@@ -96,7 +96,7 @@ def single_pixel(dim, pixel):
 
 
 def create_hom_mag(dim, res, beta, filename='output.txt', 
-                   shape_fun=slab, *param):
+                   plot_mag_distr=False, shape_fun=slab, *param):
     '''Create homog. magnetization data, saved in a file with LLG-format.
     Arguments:
         dim       - the dimensions of the grid, shape(y, x)
@@ -123,10 +123,11 @@ def create_hom_mag(dim, res, beta, filename='output.txt',
     y_mag = np.array(np.ones(dim)) * np.sin(beta) * shape_mag
     z_mag = np.array(np.zeros(dim))
     
-    fig = plt.figure()
-    fig.add_subplot(111, aspect='equal')
-    plt.quiver(x_mag, y_mag, pivot='middle', angles='xy', scale_units='xy', 
-               scale=1, headwidth=6, headlength=7)    
+    if (plot_mag_distr):
+        fig = plt.figure()
+        fig.add_subplot(111, aspect='equal')
+        plt.quiver(x_mag, y_mag, pivot='middle', angles='xy', scale_units='xy', 
+                   scale=1, headwidth=6, headlength=7)    
     
     xx = np.reshape(xx,(-1))
     yy = np.reshape(yy,(-1))

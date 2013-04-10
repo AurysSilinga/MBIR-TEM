@@ -93,3 +93,32 @@ def display(phase, res, title):
     
     plt.colorbar()
     plt.show()
+    
+    
+def display_cos(phase, res, density, title):
+    '''Display the cosine of the phasemap (times a factor) as a colormesh.
+    Arguments:
+        phase   - the phasemap that should be displayed
+        res     - the resolution of the phasemap
+        density - the factor for determining the number of contour lines
+        title   - the title of the plot
+    Returns:
+        None
+        
+    '''    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, aspect='equal')
+    
+    plt.pcolormesh(np.cos(density * phase), cmap='Greys')
+
+    ticks = ax.get_xticks()*res
+    ax.set_xticklabels(ticks.astype(int))
+    ticks = ax.get_yticks()*res
+    ax.set_yticklabels(ticks.astype(int))
+
+    ax.set_title(title+' - Cos')
+    ax.set_xlabel('x-axis [nm]')
+    ax.set_ylabel('y-axis [nm]')
+    
+    plt.colorbar()
+    plt.show()
