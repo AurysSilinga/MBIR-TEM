@@ -5,7 +5,6 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
 from numpy import pi
 from PIL import Image
 

@@ -36,7 +36,7 @@ y = np.linspace(res/2,yDim*res-res/2,num=yDim)
 '''COMPUTATION MAGNETIC PHASE SHIFT (REAL SPACE) SLAB'''
 def F0(x,y):
     a = np.log( x**2 + y**2 )
-    b = np.arctan2( x, y )  # atan or atan2?
+    b = np.arctan( x / y )  # atan or atan2?
     return x*a - 2*x + 2*y*b   
   
 coeff = b0 * res / ( 4 * PHI_0 )
@@ -48,28 +48,28 @@ def phiMag(x,y):
                                        -F0(y-y0-Ly/2,x-x0+Lx/2)+F0(y-y0+Ly/2,x-x0+Lx/2) ) )
 
 def F0_Cos_1(x,y):
-    return F0(x-x0-Lx/2,y-y0-Ly/2)
+    return coeff * np.cos(beta) * F0(x-x0-Lx/2,y-y0-Ly/2)
     
 def F0_Cos_2(x,y):
-    return F0(x-x0+Lx/2,y-y0-Ly/2)
+    return coeff * np.cos(beta) * F0(x-x0+Lx/2,y-y0-Ly/2)
     
 def F0_Cos_3(x,y):
-    return F0(x-x0-Lx/2,y-y0+Ly/2)
+    return coeff * np.cos(beta) * F0(x-x0-Lx/2,y-y0+Ly/2)
     
 def F0_Cos_4(x,y):
-    return F0(x-x0+Lx/2,y-y0+Ly/2)
+    return coeff * np.cos(beta) * F0(x-x0+Lx/2,y-y0+Ly/2)
     
 def F0_Sin_1(x,y):
-    return F0(y-y0-Ly/2,x-x0-Lx/2)
+    return coeff * np.sin(beta) * F0(y-y0-Ly/2,x-x0-Lx/2)
     
 def F0_Sin_2(x,y):
-    return F0(y-y0+Ly/2,x-x0-Lx/2)
+    return coeff * np.sin(beta) * F0(y-y0+Ly/2,x-x0-Lx/2)
     
 def F0_Sin_3(x,y):
-    return F0(y-y0-Ly/2,x-x0+Lx/2)
+    return coeff * np.sin(beta) * F0(y-y0-Ly/2,x-x0+Lx/2)
     
 def F0_Sin_4(x,y):
-    return F0(y-y0+Ly/2,x-x0+Lx/2)
+    return coeff * np.sin(beta) * F0(y-y0+Ly/2,x-x0+Lx/2)
 
 
 def phiMag1(x,y):
@@ -99,6 +99,27 @@ phase_F0_Sin_1 = F0_Sin_1(xx, yy)
 phase_F0_Sin_2 = F0_Sin_2(xx, yy)
 phase_F0_Sin_3 = F0_Sin_3(xx, yy)
 phase_F0_Sin_4 = F0_Sin_4(xx, yy)
+
+sinphase_F0_Cos_1 = np.sin(phase_F0_Cos_1)
+sinphase_F0_Cos_2 = np.sin(phase_F0_Cos_2)
+sinphase_F0_Cos_3 = np.sin(phase_F0_Cos_3)
+sinphase_F0_Cos_4 = np.sin(phase_F0_Cos_4)
+sinphase_F0_Sin_1 = np.sin(phase_F0_Sin_1)
+sinphase_F0_Sin_2 = np.sin(phase_F0_Sin_2)
+sinphase_F0_Sin_3 = np.sin(phase_F0_Sin_3)
+sinphase_F0_Sin_4 = np.sin(phase_F0_Sin_4)
+
+phase_F0_Cos_Complete = (phase_F0_Cos_1 + phase_F0_Cos_2
+                       + phase_F0_Cos_3 + phase_F0_Cos_4)
+                         
+phase_F0_Sin_Complete = (phase_F0_Sin_1 + phase_F0_Sin_2
+                       + phase_F0_Sin_3 + phase_F0_Sin_4)
+
+sinphase_F0_Cos_Complete = (sinphase_F0_Cos_1 + sinphase_F0_Cos_2
+                          + sinphase_F0_Cos_3 + sinphase_F0_Cos_4)
+                         
+sinphase_F0_Sin_Complete = (sinphase_F0_Sin_1 + sinphase_F0_Sin_2
+                          + sinphase_F0_Sin_3 + sinphase_F0_Sin_4)
 
 phaseMag1 = phiMag1(xx, yy)
 phaseMag2 = phiMag2(xx, yy)
@@ -137,22 +158,29 @@ plt.colorbar()
 plt.show()
 
 '''PLOT F0s'''
-plot_phase(phase_F0_Cos_1, 'F0_Cos_1')
-plot_phase(phase_F0_Cos_2, 'F0_Cos_2')
-plot_phase(phase_F0_Cos_3, 'F0_Cos_3')
-plot_phase(phase_F0_Cos_4, 'F0_Cos_4')
-plot_phase(phase_F0_Sin_1, 'F0_Sin_1')
-plot_phase(phase_F0_Sin_2, 'F0_Sin_2')
-plot_phase(phase_F0_Sin_3, 'F0_Sin_3')
-plot_phase(phase_F0_Sin_4, 'F0_Sin_4')
-plot_phase(phase_F0_Cos_1-phase_F0_Cos_3, 'F0_Cos_1-3')
-plot_phase(phase_F0_Cos_2-phase_F0_Cos_4, 'F0_Cos_2-4')
-plot_phase(phase_F0_Sin_1-phase_F0_Sin_3, 'F0_Sin_1-3')
-plot_phase(phase_F0_Sin_2-phase_F0_Sin_4, 'F0_Sin_2-4')
-plot_phase(phase_F0_Cos_1-phase_F0_Cos_3 + phase_F0_Cos_2-phase_F0_Cos_4,
-           'F0_Cos_Complete')
-plot_phase(phase_F0_Sin_1-phase_F0_Sin_3 + phase_F0_Sin_2-phase_F0_Sin_4,
-           'F0_Sin_Complete')
+plot_phase(phase_F0_Cos_Complete, 'F0_Cos_Complete')
+plot_phase(phase_F0_Sin_Complete, 'F0_Sin_Complete')
+plot_phase(sinphase_F0_Cos_Complete, 'Sin_F0_Cos_Complete')
+plot_phase(sinphase_F0_Sin_Complete, 'Sin_F0_Sin_Complete')
+#plot_phase(phase_F0_Cos_1, 'F0_Cos_1')
+#plot_phase(phase_F0_Cos_2, 'F0_Cos_2')
+#plot_phase(phase_F0_Cos_3, 'F0_Cos_3')
+#plot_phase(phase_F0_Cos_4, 'F0_Cos_4')
+#plot_phase(phase_F0_Sin_1, 'F0_Sin_1')
+#plot_phase(phase_F0_Sin_2, 'F0_Sin_2')
+#plot_phase(phase_F0_Sin_3, 'F0_Sin_3')
+#plot_phase(phase_F0_Sin_4, 'F0_Sin_4')
+#plot_phase(phase_F0_Cos_1-phase_F0_Cos_3, 'F0_Cos_1-3')
+#plot_phase(phase_F0_Cos_2-phase_F0_Cos_4, 'F0_Cos_2-4')
+#plot_phase(phase_F0_Sin_1-phase_F0_Sin_3, 'F0_Sin_1-3')
+#plot_phase(phase_F0_Sin_2-phase_F0_Sin_4, 'F0_Sin_2-4')
+#plot_phase(phase_F0_Cos_1-phase_F0_Cos_3 + phase_F0_Cos_2-phase_F0_Cos_4,
+#           'F0_Cos_Complete')
+#plot_phase(phase_F0_Sin_1-phase_F0_Sin_3 + phase_F0_Sin_2-phase_F0_Sin_4,
+#           'F0_Sin_Complete')
+#           plot_phase(phase_F0_Sin_1-phase_F0_Sin_3 + phase_F0_Sin_2-phase_F0_Sin_4,
+#           'F0_Sin_Complete')
+
 
 x = np.linspace(-50,50,100)
 y = np.linspace(-50,50,100)
