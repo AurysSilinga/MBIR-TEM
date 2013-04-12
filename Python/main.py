@@ -33,7 +33,7 @@ def phase_from_mag():
     padding = 20
     density = 10
     
-    dim = (60, 60)  # in px (y,x)
+    dim = (40, 40)  # in px (y,x)
     res = 10.0  # in nm
     beta = pi/4
     
@@ -41,8 +41,8 @@ def phase_from_mag():
     
     # Slab:
     shape_fun = mc.slab
-    center = (30, 30)  # in px (y,x)
-    width = (30, 30)  # in px (y,x)
+    center = (20, 20)  # in px (y,x)
+    width = (20, 20)  # in px (y,x)
     params = (center, width)
 #    # Disc:
 #    shape_fun = mc.disc

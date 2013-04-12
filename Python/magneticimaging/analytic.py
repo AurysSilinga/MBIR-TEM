@@ -29,7 +29,7 @@ def phasemap_slab(dim, res, beta, center, width, b_0):
     '''INPUT VARIABLES'''
     y_dim, x_dim = dim
     y0, x0 = res * center[0], res * center[1]
-    Lx, Ly = res * width[0], res * width[1]
+    Ly, Lx = res *  width[0], res *  width[1]
     
     '''COMPUTATION MAGNETIC PHASE SHIFT (REAL SPACE) SLAB'''
     
@@ -37,7 +37,7 @@ def phasemap_slab(dim, res, beta, center, width, b_0):
      
     def F0(x,y):
         a = np.log(x**2 + y**2)
-        b = np.arctan(x / (y + 1E-18) )
+        b = np.arctan(x / y)
         return x*a - 2*x + 2*y*b   
       
     def phiMag(x,y):

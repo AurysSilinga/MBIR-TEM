@@ -143,9 +143,8 @@ def create_hom_mag(dim, res, beta, shape_fun, params,
     z_mag   = np.array(np.zeros(dim[0] * dim[1]))
            
     data = np.array([xx, yy, zz, x_mag, y_mag, z_mag]).T
-    header = ('LLGFileCreator2D: %s\n    %d    %d    %d' %
-              (filename.replace('.txt', ''), dim[1], dim[0], 1))
-    with open(filename,'w') as exportfile:
-        print >> exportfile, header
-        print >> exportfile, '\n'.join('   '.join('{:7.6e}'.format(cell) 
-                                       for cell in row) for row in data)
+    with open(filename,'w') as mag_file:
+        mag_file.write('LLGFileCreator2D: %s\n' % filename.replace('.txt', ''))
+        mag_file.write('    %d    %d    %d\n' % (dim[1], dim[0], 1))
+        mag_file.writelines('\n'.join('   '.join('{:7.6e}'.format(cell) 
+                                      for cell in row) for row in data) )

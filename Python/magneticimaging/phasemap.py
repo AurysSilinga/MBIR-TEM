@@ -78,20 +78,18 @@ def real_space(mag_data, b_0=1, v_0=0, v_acc=30000):
      
     coeff = abs_mag * res / ( 4 * PHI_0 ) / res # TODO: Lz = res 
      
-    def F0(x,y):
+    def F0(x, y):
         a = np.log(x**2 + y**2)
-        b = np.arctan(x / (y + 1E-18) )
+        b = np.arctan(x / y)
         return x*a - 2*x + 2*y*b   
-      
+     
+    def F_part(x, y):
+        return ( F0(x-res/2, y-res/2) - F0(x+res/2, y-res/2)
+                -F0(x-res/2, y+res/2) + F0(x+res/2, y+res/2) )
+    
     def phiMag(xx, yy, xi, yj, coeffij, betaij):
-        return coeffij * ( - np.cos(betaij) * ( F0(xx-xi-res/2,yy-yj-res/2)
-                                               -F0(xx-xi+res/2,yy-yj-res/2)
-                                               -F0(xx-xi-res/2,yy-yj+res/2)
-                                               +F0(xx-xi+res/2,yy-yj+res/2) )
-                           + np.sin(betaij) * ( F0(yy-yj-res/2,xx-xi-res/2)
-                                               -F0(yy-yj+res/2,xx-xi-res/2)
-                                               -F0(yy-yj-res/2,xx-xi+res/2)
-                                               +F0(yy-yj+res/2,xx-xi+res/2) ) )
+        return coeffij * ( - np.cos(betaij) * F_part(xx-xi, yy-yj)
+                           + np.sin(betaij) * F_part(yy-yj, xx-xi) )
     
     '''CREATE COORDINATE GRIDS'''
     x = np.linspace(res/2,x_dim*res-res/2,num=x_dim)
