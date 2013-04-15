@@ -33,7 +33,7 @@ def phase_from_mag():
     padding = 20
     density = 10
     
-    dim = (40, 40)  # in px (y,x)
+    dim = (20, 20)  # in px (y,x)
     res = 10.0  # in nm
     beta = pi/4
     
@@ -41,8 +41,8 @@ def phase_from_mag():
     
     # Slab:
     shape_fun = mc.slab
-    center = (20, 20)  # in px (y,x)
-    width = (20, 20)  # in px (y,x)
+    center = (10, 10)  # in px (y,x)
+    width = (10, 10)  # in px (y,x)
     params = (center, width)
 #    # Disc:
 #    shape_fun = mc.disc
@@ -111,9 +111,8 @@ def phase_from_mag():
     diff_real_to_fft = phase_real - phase_fft
     pm.display(diff_real_to_ana, res, 'Difference: Analytic - Real')
     pm.display(diff_fft_to_ana,  res, 'Difference: Analytic - Fourier')
-    pm.display(diff_real_to_fft, res, 'Difference: Real - Fourier')
+    pm.display(diff_real_to_fft, res, 'Difference: Real - Fourier') 
     
-    pass    
     
 if __name__ == "__main__":
     phase_from_mag()

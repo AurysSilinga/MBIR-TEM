@@ -49,7 +49,7 @@ def phasemap_slab(dim, res, beta, center, width, b_0):
                                            -F0(y-y0+Ly/2,x-x0-Lx/2)
                                            -F0(y-y0-Ly/2,x-x0+Lx/2)
                                            +F0(y-y0+Ly/2,x-x0+Lx/2) ) )
-    
+             
     '''CREATE COORDINATE GRIDS'''
     x = np.linspace(res/2,x_dim*res-res/2,num=x_dim)
     y = np.linspace(res/2,y_dim*res-res/2,num=y_dim)

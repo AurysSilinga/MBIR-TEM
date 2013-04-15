@@ -67,6 +67,8 @@ def real_space(mag_data, b_0=1, v_0=0, v_acc=30000):
         
     '''
     # TODO: Expand docstring!
+
+#    import pdb; pdb.set_trace() # TODO   
     
     res  = mag_data.res
     x_dim, y_dim, z_dim = mag_data.dim
@@ -77,24 +79,33 @@ def real_space(mag_data, b_0=1, v_0=0, v_acc=30000):
     abs_mag = np.sqrt(x_mag**2 + y_mag**2)    
      
     coeff = abs_mag * res / ( 4 * PHI_0 ) / res # TODO: Lz = res 
+
+    def F0(n, m):
+        a = np.log(res**2 * (n**2 + m**2))
+        b = np.arctan(n / m)
+        return res * (n*a - 2*n + 2*m*b)
      
-    def F0(x, y):
-        a = np.log(x**2 + y**2)
-        b = np.arctan(x / y)
-        return x*a - 2*x + 2*y*b   
-     
-    def F_part(x, y):
-        return ( F0(x-res/2, y-res/2) - F0(x+res/2, y-res/2)
-                -F0(x-res/2, y+res/2) + F0(x+res/2, y+res/2) )
+    def F_part(n, m):
+        return ( F0(n-0.5, m-0.5) - F0(n+0.5, m-0.5)
+                -F0(n-0.5, m+0.5) + F0(n+0.5, m+0.5) )
     
     def phiMag(xx, yy, xi, yj, coeffij, betaij):
         return coeffij * ( - np.cos(betaij) * F_part(xx-xi, yy-yj)
                            + np.sin(betaij) * F_part(yy-yj, xx-xi) )
     
     '''CREATE COORDINATE GRIDS'''
-    x = np.linspace(res/2,x_dim*res-res/2,num=x_dim)
-    y = np.linspace(res/2,y_dim*res-res/2,num=y_dim)
+    x = np.linspace(0,(x_dim-1),num=x_dim)
+    y = np.linspace(0,(y_dim-1),num=y_dim)
     xx, yy = np.meshgrid(x,y)
+    
+    xF = np.linspace(-(x_dim-1), x_dim-1, num=2*x_dim-1)
+    yF = np.linspace(-(y_dim-1), y_dim-1, num=2*y_dim-1)
+    xxF, yyF = np.meshgrid(xF,yF)
+    
+    F_cos_part = F_part(xxF, yyF)
+    F_sin_part = F_part(yyF, xxF)
+    display(F_cos_part, res, 'F_cos_part')
+    display(F_sin_part, res, 'F_sin_part')
     
     phase = np.zeros((y_dim,x_dim))
     
