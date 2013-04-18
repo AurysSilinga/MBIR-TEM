@@ -30,15 +30,14 @@ CDICT = {'red':   [(0.00, 1.0, 0.0),
 HOLO_CMAP = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT, 256)
 
 
-def holo_image(phase, res, density, title):
-    '''Display a holography image with color-encoded gradient direction.
+def holo_image(phase, res, density):
+    '''Returns a holography image with color-encoded gradient direction.
     Arguments:
         phase   - the phasemap that should be displayed
         res     - the resolution of the phasemap
         density - the factor for determining the number of contour lines
-        title   - the title of the plot
     Returns:
-        None
+        Image
         
     '''
     img_holo = (1 + np.cos(density * phase * pi/2)) /2
@@ -47,8 +46,11 @@ def holo_image(phase, res, density, title):
     
     phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
     
-    phase_magnitude = np.sqrt(phase_grad_x ** 2 + phase_grad_y ** 2)    
-    phase_magnitude /= np.amax(phase_magnitude)
+    # TODO: Delete
+#    import pdb; pdb.set_trace()      
+    
+    phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)    
+    phase_magnitude /= phase_magnitude.max()
     phase_magnitude = np.sin(phase_magnitude * pi / 2)
     
     cmap = HOLO_CMAP
@@ -59,15 +61,13 @@ def holo_image(phase, res, density, title):
     green *= 255.999 * img_holo * phase_magnitude
     blue  *= 255.999 * img_holo * phase_magnitude
     rgb = np.dstack((red, green, blue)).astype(np.uint8)
+    # TODO: Which one?
+    rgb = (255.999 * img_holo.T * phase_magnitude.T 
+           * rgba_img[:, :, :3].T).T.astype(np.uint8)
     img = Image.fromarray(rgb)
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111, aspect='equal')
-    ax.imshow(img)
-    ax.set_title(title + ' - Holography Image')
-    ax.set_xlabel('x-axis')
-    ax.set_ylabel('y-axis')
-
+    return img
+    
 
 def make_color_wheel():
     '''Display a color wheel for the gradient direction.
@@ -93,7 +93,9 @@ def make_color_wheel():
     red   *= 255.999 * color_wheel_magnitude
     green *= 255.999 * color_wheel_magnitude
     blue  *= 255.999 * color_wheel_magnitude
-    rgb = np.dstack((red, green, blue)).astype(np.uint8)
+    #rgb = np.dstack((red, green, blue)).astype(np.uint8)
+    # TODO Evtl. einfacher:
+    rgb = (255.999 * color_wheel_magnitude.T * rgba_img[:, :, :3].T).T.astype(np.uint8)
     color_wheel = Image.fromarray(rgb)
     
     fig = plt.figure()
@@ -102,3 +104,16 @@ def make_color_wheel():
     ax.set_title('Color Wheel')
     ax.set_xlabel('x-axis')
     ax.set_ylabel('y-axis')
+    
+
+def display_holo(holo, title, axis=None):
+    # TODO: Docstring
+    if axis == None:    
+        fig = plt.figure()
+        axis = fig.add_subplot(1,1,1, aspect='equal')
+        
+    axis.imshow(holo)
+    
+    axis.set_title(title)
+    axis.set_xlabel('x-axis')
+    axis.set_ylabel('y-axis')

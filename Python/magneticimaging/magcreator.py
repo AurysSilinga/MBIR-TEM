@@ -17,8 +17,8 @@ def slab(dim, params):
         
     '''
     center, width = params
-    shape_mag = np.array([[abs(x - center[1]) < width[1] / 2
-                       and abs(y - center[0]) < width[0] / 2
+    shape_mag = np.array([[abs(x - center[1]) <= width[1] / 2
+                       and abs(y - center[0]) <= width[0] / 2
                        for x in range(dim[1])] for y in range(dim[0])])
     return shape_mag
 
@@ -35,7 +35,7 @@ def disc(dim, params):
     '''
     center, radius = params
     shape_mag = np.array([[(np.sqrt((x - center[1]) ** 2 +
-                                    (y - center[0]) ** 2) < radius)
+                                    (y - center[0]) ** 2) <= radius)
                                     for x in range(dim[1])] 
                                     for y in range(dim[0])])    
     return shape_mag
@@ -76,13 +76,11 @@ def alternating_filaments(dim, params):
     shape_mag = np.zeros(dim)
     if x_or_y == 'y':
         # TODO: List comprehension:
-        for i in range(dim[1]):
-            if i % spacing == 0:
-                shape_mag[:, i] = 1 - 2 * (int(i / spacing) % 2)  # 1 or -1
+        for i in range(0, dim[1], spacing):
+            shape_mag[:, i] = 1 - 2 * (int(i / spacing) % 2)  # 1 or -1
     else:
-        for i in range(dim[0]):
-            if i % spacing == 0:
-                shape_mag[i, :] = 1 - 2 * (int(i / spacing) % 2)  # 1 or -1
+        for i in range(0, dim[0], spacing):
+            shape_mag[i, :] = 1 - 2 * (int(i / spacing) % 2)  # 1 or -1            
     return shape_mag
 
     

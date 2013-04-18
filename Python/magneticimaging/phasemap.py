@@ -68,7 +68,8 @@ def real_space(mag_data, b_0=1, v_0=0, v_acc=30000):
     '''
     # TODO: Expand docstring!
 
-#    import pdb; pdb.set_trace() # TODO   
+    # TODO: Delete
+#    import pdb; pdb.set_trace()    
     
     res  = mag_data.res
     x_dim, y_dim, z_dim = mag_data.dim
@@ -102,21 +103,53 @@ def real_space(mag_data, b_0=1, v_0=0, v_acc=30000):
     yF = np.linspace(-(y_dim-1), y_dim-1, num=2*y_dim-1)
     xxF, yyF = np.meshgrid(xF,yF)
     
-    F_cos_part = F_part(xxF, yyF)
-    F_sin_part = F_part(yyF, xxF)
-    display(F_cos_part, res, 'F_cos_part')
-    display(F_sin_part, res, 'F_sin_part')
+    F_part_cos = F_part(xxF, yyF)
+    F_part_sin = F_part(yyF, xxF)
+    
+    display_phase(F_part_cos, res, 'F_part_cos')
+    display_phase(F_part_sin, res, 'F_part_sin')      
     
     phase = np.zeros((y_dim,x_dim))
     
+    for j in y:
+        for i in x:
+            phase += phiMag(xx, yy, i, j, coeff[j,i], beta[j,i])
+            
+    return phase
+    
+    
+    xF = np.linspace(-(x_dim-1), x_dim-1, num=2*x_dim-1)
+    yF = np.linspace(-(y_dim-1), y_dim-1, num=2*y_dim-1)
+    xxF, yyF = np.meshgrid(xF,yF)
+    
+    F_part_cos = F_part(xxF, yyF)
+    F_part_sin = F_part(yyF, xxF)
+    
+    
+    display_phase(F_part_cos, res, 'F_part_cos')
+    display_phase(F_part_sin, res, 'F_part_sin')    
+    
+    def phiMag2(xx, yy, i, j):
+        #x_ind = xxF[yy]
+        
+        return coeff[j,i] * ( - np.cos(beta[j,i]) * F_part_cos[yy.min()-j:(2*yy.max()-1)-j, xx.min()-i:(2*xx.max()-1)-i]
+                              + np.sin(beta[j,i]) * F_part_sin[xx.min()-i:(2*xx.max()-1)-i, yy.min()-j:(2*yy.max()-1)-j] )
+    
+    
+    phase2 = np.zeros((y_dim*x_dim, y_dim, x_dim))
+    
     for j in range(y_dim):
         for i in range(x_dim):
-            phase += phiMag(xx, yy, x[i], y[j], coeff[j][i], beta[j][i])
-  
-    return phase
+            phase2 += phiMag2(xx, yy, 0, 0)
+                
+   
+    
+    phase2 = np.sum(phase2, axis=0)
+    
+    return phase2
+    
 	
-	
-def display(phase, res, title):
+def display_phase(phase, res, title, axis=None):
     '''Display the phasemap as a colormesh.
     Arguments:
         phase - the phasemap that should be displayed
@@ -125,20 +158,25 @@ def display(phase, res, title):
     Returns:
         None
         
-    '''    
-    fig = plt.figure()
-    ax = fig.add_subplot(111, aspect='equal')
+    '''
+    if axis == None:
+        fig = plt.figure()
+        axis = fig.add_subplot(1,1,1, aspect='equal')
     
-    plt.pcolormesh(phase, cmap='gray')
+    im = plt.pcolormesh(phase, cmap='gray')
 
-    ticks = ax.get_xticks()*res
-    ax.set_xticklabels(ticks.astype(int))
-    ticks = ax.get_yticks()*res
-    ax.set_yticklabels(ticks.astype(int))
+    ticks = axis.get_xticks()*res
+    axis.set_xticklabels(ticks.astype(int))
+    ticks = axis.get_yticks()*res
+    axis.set_yticklabels(ticks.astype(int))
 
-    ax.set_title(title)
-    ax.set_xlabel('x-axis [nm]')
-    ax.set_ylabel('y-axis [nm]')
+    axis.set_title(title)
+    axis.set_xlabel('x-axis [nm]')
+    axis.set_ylabel('y-axis [nm]')
     
-    plt.colorbar()
+    fig = plt.gcf()
+    fig.subplots_adjust(right=0.85)
+    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
+    fig.colorbar(im, cax=cbar_ax)
+    
     plt.show()
