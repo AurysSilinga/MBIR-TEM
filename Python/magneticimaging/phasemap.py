@@ -7,7 +7,11 @@ import matplotlib.pyplot as plt
 from numpy import pi
 
 
-PHI_0 = 2067.83  # magnetic flux in T*nm²
+PHI_0 = 2067.83    # magnetic flux in T*nm²
+H_BAR = 6.626E-34  # TODO: unit
+M_E   = 9.109E-31  # TODO: unit
+Q_E   = 1.602E-19  # TODO: unit
+C     = 2.998E8    # TODO: unit
 
 
 def fourier_space(mag_data, b_0=1, padding=0, v_0=0, v_acc=30000):
@@ -57,7 +61,7 @@ def fourier_space(mag_data, b_0=1, padding=0, v_0=0, v_acc=30000):
     return phase
     
     
-def real_space(mag_data, b_0=1, v_0=0, v_acc=30000):
+def real_space_slab(mag_data, b_0=1, v_0=0, v_acc=30000):
     '''Calculate phasemap from magnetization data (real space approach).
     Arguments:
         mag_data - MagDataLLG object (from magneticimaging.dataloader) storing
@@ -77,76 +81,135 @@ def real_space(mag_data, b_0=1, v_0=0, v_acc=30000):
     
     beta = np.arctan2(y_mag, x_mag)
 
-    abs_mag = np.sqrt(x_mag**2 + y_mag**2)    
+    mag = np.hypot(x_mag, y_mag)    
      
-    coeff = abs_mag * res / ( 4 * PHI_0 ) / res # TODO: Lz = res 
+    coeff = - b_0 * res**2 / ( 2 * PHI_0 ) / res # TODO: why / res
 
-    def F0(n, m):
+    def F_h(n, m):
         a = np.log(res**2 * (n**2 + m**2))
         b = np.arctan(n / m)
-        return res * (n*a - 2*n + 2*m*b)
+        return n*a - 2*n + 2*m*b
      
-    def F_part(n, m):
-        return ( F0(n-0.5, m-0.5) - F0(n+0.5, m-0.5)
-                -F0(n-0.5, m+0.5) + F0(n+0.5, m+0.5) )
-    
-    def phiMag(xx, yy, xi, yj, coeffij, betaij):
-        return coeffij * ( - np.cos(betaij) * F_part(xx-xi, yy-yj)
-                           + np.sin(betaij) * F_part(yy-yj, xx-xi) )
+    def phi_pixel(n, m):  # TODO: rename
+        return coeff * 0.5 * ( F_h(n-0.5, m-0.5) - F_h(n+0.5, m-0.5)
+                              -F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5) )
+                
+    def phi_mag(i, j):  # TODO: rename
+        return mag[j,i]*(np.cos(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, 
+                                                   x_dim-1-i:(2*x_dim-1)-i]
+                        -np.sin(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j,
+                                                   x_dim-1-i:(2*x_dim-1)-i])
     
     '''CREATE COORDINATE GRIDS'''
     x = np.linspace(0,(x_dim-1),num=x_dim)
     y = np.linspace(0,(y_dim-1),num=y_dim)
     xx, yy = np.meshgrid(x,y)
+     
+    x_big = np.linspace(-(x_dim-1), x_dim-1, num=2*x_dim-1)
+    y_big = np.linspace(-(y_dim-1), y_dim-1, num=2*y_dim-1)
+    xx_big, yy_big = np.meshgrid(x_big, y_big)
     
-    xF = np.linspace(-(x_dim-1), x_dim-1, num=2*x_dim-1)
-    yF = np.linspace(-(y_dim-1), y_dim-1, num=2*y_dim-1)
-    xxF, yyF = np.meshgrid(xF,yF)
+    phi_cos = phi_pixel(xx_big, yy_big)
+    phi_sin = phi_pixel(yy_big, xx_big)
     
-    F_part_cos = F_part(xxF, yyF)
-    F_part_sin = F_part(yyF, xxF)
+    display_phase(phi_cos, res, 'Phase of one Pixel (Cos - Part)')
+#    display_phase(phi_sin, res, 'Phase of one Pixel (Sin - Part)')
     
-    display_phase(F_part_cos, res, 'F_part_cos')
-    display_phase(F_part_sin, res, 'F_part_sin')      
+    '''CALCULATE THE PHASE'''
+    phase = np.zeros((y_dim, x_dim))
     
-    phase = np.zeros((y_dim,x_dim))
-    
-    for j in y:
-        for i in x:
-            phase += phiMag(xx, yy, i, j, coeff[j,i], beta[j,i])
-            
-    return phase
-    
-    
-    xF = np.linspace(-(x_dim-1), x_dim-1, num=2*x_dim-1)
-    yF = np.linspace(-(y_dim-1), y_dim-1, num=2*y_dim-1)
-    xxF, yyF = np.meshgrid(xF,yF)
-    
-    F_part_cos = F_part(xxF, yyF)
-    F_part_sin = F_part(yyF, xxF)
-    
-    
-    display_phase(F_part_cos, res, 'F_part_cos')
-    display_phase(F_part_sin, res, 'F_part_sin')    
-    
-    def phiMag2(xx, yy, i, j):
-        #x_ind = xxF[yy]
-        
-        return coeff[j,i] * ( - np.cos(beta[j,i]) * F_part_cos[yy.min()-j:(2*yy.max()-1)-j, xx.min()-i:(2*xx.max()-1)-i]
-                              + np.sin(beta[j,i]) * F_part_sin[xx.min()-i:(2*xx.max()-1)-i, yy.min()-j:(2*yy.max()-1)-j] )
-    
-    
-    phase2 = np.zeros((y_dim*x_dim, y_dim, x_dim))
-    
+    # TODO: only iterate over pixels that have a magn. > threshold (first >0)
     for j in range(y_dim):
         for i in range(x_dim):
-            phase2 += phiMag2(xx, yy, 0, 0)
-                
-   
+            phase += phi_mag(i, j)
     
-    phase2 = np.sum(phase2, axis=0)
+    return (phase, phi_cos)
     
-    return phase2
+    
+def real_space_disc(mag_data, b_0=1, v_0=0, v_acc=30000):
+    '''Calculate phasemap from magnetization data (real space approach).
+    Arguments:
+        mag_data - MagDataLLG object (from magneticimaging.dataloader) storing
+                   the filename, coordinates and magnetization in x, y and z
+    Returns:
+        the phasemap as a 2 dimensional array
+        
+    '''
+    # TODO: Expand docstring!
+
+    # TODO: Delete
+#    import pdb; pdb.set_trace()    
+    
+    res  = mag_data.res
+    x_dim, y_dim, z_dim = mag_data.dim
+    x_mag, y_mag, z_mag = mag_data.magnitude    
+    
+    beta = np.arctan2(y_mag, x_mag)
+
+    mag = np.hypot(x_mag, y_mag)
+    
+    coeff = - b_0 * res**2 / ( 2 * PHI_0 ) / res # TODO: why / res
+
+    def phi_pixel(n, m):
+        in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
+        result = coeff * m / (n**2 + m**2 + 1E-30) * in_or_out
+        return result
+#        r = np.hypot(n, m)
+#        r[y_dim-1,x_dim-1] = 1E-18  # Prevent div zero error at disc center
+#        return coeff / r**2 * m * (r != 0) # (r > R) = 0 for disc center
+
+    def phi_mag(i, j):
+        return mag[j,i]*(np.cos(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, 
+                                                   x_dim-1-i:(2*x_dim-1)-i]
+                        -np.sin(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j,
+                                                   x_dim-1-i:(2*x_dim-1)-i])
+    
+    '''CREATE COORDINATE GRIDS'''
+    x = np.linspace(0,(x_dim-1),num=x_dim)
+    y = np.linspace(0,(y_dim-1),num=y_dim)
+    xx, yy = np.meshgrid(x,y)
+     
+    x_big = np.linspace(-(x_dim-1), x_dim-1, num=2*x_dim-1)
+    y_big = np.linspace(-(y_dim-1), y_dim-1, num=2*y_dim-1)
+    xx_big, yy_big = np.meshgrid(x_big, y_big)
+    
+    phi_cos = phi_pixel(xx_big, yy_big)
+    phi_sin = phi_pixel(yy_big, xx_big)
+    
+    display_phase(phi_cos, res, 'Phase of one Pixel (Cos - Part)')
+#    display_phase(phi_sin, res, 'Phase of one Pixel (Sin - Part)')
+    
+    '''CALCULATE THE PHASE'''
+    phase = np.zeros((y_dim, x_dim))
+    
+    # TODO: only iterate over pixels that have a magn. > threshold (first >0)
+    for j in range(y_dim):
+        for i in range(x_dim):
+            phase += phi_mag(i, j)
+    
+    return (phase, phi_cos)
+    
+
+def phase_elec(mag_data, b_0=1, v_0=0, v_acc=30000):
+    # TODO: Docstring
+
+    # TODO: Delete    
+#    import pdb; pdb.set_trace()
+    
+    res  = mag_data.res
+    x_dim, y_dim, z_dim = mag_data.dim
+    x_mag, y_mag, z_mag = mag_data.magnitude 
+    
+    phase = np.logical_or(x_mag, y_mag, z_mag)    
+    
+    lam = H_BAR / np.sqrt(2 * M_E * v_acc * (1 + Q_E*v_acc / (2*M_E*C**2)))
+    
+    Ce = (2*pi*Q_E/lam * (Q_E*v_acc +   M_E*C**2) /
+            (Q_E*v_acc * (Q_E*v_acc + 2*M_E*C**2)))
+    
+    phase *= res * v_0 * Ce
+    
+    return phase
     
 	
 def display_phase(phase, res, title, axis=None):
@@ -166,9 +229,9 @@ def display_phase(phase, res, title, axis=None):
     im = plt.pcolormesh(phase, cmap='gray')
 
     ticks = axis.get_xticks()*res
-    axis.set_xticklabels(ticks.astype(int))
+    axis.set_xticklabels(ticks)
     ticks = axis.get_yticks()*res
-    axis.set_yticklabels(ticks.astype(int))
+    axis.set_yticklabels(ticks)
 
     axis.set_title(title)
     axis.set_xlabel('x-axis [nm]')

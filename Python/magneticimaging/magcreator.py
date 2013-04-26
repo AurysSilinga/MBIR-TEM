@@ -4,6 +4,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy import pi
 
 
 def slab(dim, params):
@@ -34,10 +35,8 @@ def disc(dim, params):
         
     '''
     center, radius = params
-    shape_mag = np.array([[(np.sqrt((x - center[1]) ** 2 +
-                                    (y - center[0]) ** 2) <= radius)
-                                    for x in range(dim[1])] 
-                                    for y in range(dim[0])])    
+    shape_mag = np.array([[(np.hypot(x-center[1], y-center[0]) <= radius)
+                           for x in range(dim[1])] for y in range(dim[0])])    
     return shape_mag
 
     
@@ -128,6 +127,48 @@ def create_hom_mag(dim, res, beta, shape_fun, params,
     z_mag = np.array(np.zeros(dim))
     
     if (plot_mag_distr):
+        fig = plt.figure()
+        fig.add_subplot(111, aspect='equal')
+        plt.quiver(x_mag, y_mag, pivot='middle', angles='xy', scale_units='xy', 
+                   scale=1, headwidth=6, headlength=7)    
+    
+    xx = np.reshape(xx,(-1))
+    yy = np.reshape(yy,(-1))
+    zz = np.array(np.ones(dim[0] * dim[1]) * res / 2)
+    x_mag   = np.reshape(x_mag,(-1))
+    y_mag   = np.reshape(y_mag,(-1))
+    z_mag   = np.array(np.zeros(dim[0] * dim[1]))
+           
+    data = np.array([xx, yy, zz, x_mag, y_mag, z_mag]).T
+    with open(filename,'w') as mag_file:
+        mag_file.write('LLGFileCreator2D: %s\n' % filename.replace('.txt', ''))
+        mag_file.write('    %d    %d    %d\n' % (dim[1], dim[0], 1))
+        mag_file.writelines('\n'.join('   '.join('{:7.6e}'.format(cell) 
+                                      for cell in row) for row in data) )
+                                                       
+                                      
+def create_logo(edge, res, beta = pi/2, filename='logo.txt', plot_mag_distr=False):
+    
+    # TODO: rewrite so that every possible shape_mag can be given as argument
+    # TODO: write a script for creating, displaying and saving the logo
+    
+    dim = (edge, edge) 
+    res *= 1.0E-9 / 1.0E-2  # from nm to cm     
+    
+    x = np.linspace(res / 2, dim[1] * res - res / 2, num=dim[1])
+    y = np.linspace(res / 2, dim[0] * res - res / 2, num=dim[0])
+    xx, yy = np.meshgrid(x, y)
+    
+    bottom = (yy >= 0.25*edge*res)
+    left   = (yy <=            0.75/0.5 *  xx)
+    right  = np.fliplr(left)#(yy <= (edge-1)*res - 0.75/0.5 * (xx - 0.5*(edge-1)*res))
+    shape_mag = np.logical_and(np.logical_and(left, right), bottom)
+    
+    x_mag = np.array(np.ones(dim)) * np.cos(beta) * shape_mag
+    y_mag = np.array(np.ones(dim)) * np.sin(beta) * shape_mag
+    z_mag = np.array(np.zeros(dim))
+    
+    if (True):
         fig = plt.figure()
         fig.add_subplot(111, aspect='equal')
         plt.quiver(x_mag, y_mag, pivot='middle', angles='xy', scale_units='xy', 

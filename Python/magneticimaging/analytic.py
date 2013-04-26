@@ -66,17 +66,26 @@ def phasemap_slab(dim, res, beta, center, width, b_0):
 def phasemap_disc(dim, res, beta, center, radius, b_0):
     '''INPUT VARIABLES'''
     y_dim, x_dim = dim
-    y0, x0 = res * center[0], res * center[1]
-    R = res * radius
+    # y0, x0 have to be in the center of a pixel, hence: cellindex + 0.5
+    y0 = res * (center[0] + 0.5)
+    x0 = res * (center[1] + 0.5)
+    # TODO: Explanation
+    # Ly, Lx have to be odd, because the slab borders should not lie in the
+    # center of a pixel (so L/2 can't be an integer)
+    R  = res * radius
     
     '''COMPUTATION MAGNETIC PHASE SHIFT (REAL SPACE) DISC'''
       
     coeff = - pi * res * b_0 / ( 2 * PHI_0 )
-      
+    
+#    import pdb; pdb.set_trace()    
+    
     def phiMag(x,y):
-        r = np.hypot(x-x0, y-y0)      
+        r = np.hypot(x-x0, y-y0)
+        r[center[0], center[1]] = 1E-18
         result = coeff * ((y-y0) * np.cos(beta) - (x-x0) * np.sin(beta))
-        in_or_out = 1 * (r <= R) + (R / r) ** 2 * (r > R)    
+        in_or_out = 1 * (r < R) + (R / r) ** 2 * (r > R)
+#        import pdb; pdb.set_trace() 
         result *= in_or_out
         return result
     
