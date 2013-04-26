@@ -6,11 +6,11 @@ Created on Wed Apr 03 11:15:38 2013
 """
 
 import matplotlib.pyplot as plt
-import magneticimaging.magcreator as mc
-import magneticimaging.dataloader as dl
-import magneticimaging.phasemap as pm
-import magneticimaging.holoimage as hi
-import magneticimaging.analytic as an
+import pyramid.magcreator as mc
+import pyramid.dataloader as dl
+import pyramid.phasemap as pm
+import pyramid.holoimage as hi
+import pyramid.analytic as an
 import time
 import pdb, traceback, sys
 from numpy import pi
