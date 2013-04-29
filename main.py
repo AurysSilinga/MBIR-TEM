@@ -5,6 +5,7 @@ Created on Wed Apr 03 11:15:38 2013
 @author: Jan
 """
 
+import numpy as np
 import matplotlib.pyplot as plt
 import pyramid.magcreator as mc
 import pyramid.dataloader as dl
@@ -34,16 +35,16 @@ def phase_from_mag():
     padding = 20
     density = 100
     
-    dim = (100, 100)  # in px (y,x)
+    dim = (3, 3)  # in px (y,x)
     res = 1.0  # in nm
-    beta = pi/2
+    beta = pi/4
     
     plot_mag_distr = True
     
     # Slab:
     shape_fun = mc.slab
-    center = (49, 49)  # in px (y,x) index starts with 0!
-    width  = (50, 50)  # in px (y,x)
+    center = (2, 2)  # in px (y,x) index starts with 0!
+    width  = (1, 1)  # in px (y,x)
     params = (center, width)
 #    # Disc:
 #    shape_fun = mc.disc
@@ -65,12 +66,12 @@ def phase_from_mag():
 #    pixel = (5, 5)
 #    params = pixel
     
-    '''CREATE LOGO'''    
-    mc.create_logo(128, res, beta, filename, plot_mag_distr)
-    mag_data = dl.MagDataLLG(filename)
-    phase, pixel_stub = pm.real_space_slab(mag_data, b_0)  
-    holo = hi.holo_image(phase, mag_data.res, density)
-    hi.display_holo(holo, '')
+#    '''CREATE LOGO'''    
+#    mc.create_logo(128, res, beta, filename, plot_mag_distr)
+#    mag_data = dl.MagDataLLG(filename)
+#    phase= pm.real_space_slab(mag_data, b_0)  
+#    holo = hi.holo_image(phase, mag_data.res, density)
+#    hi.display_holo(holo, '')
     
     '''CREATE MAGNETIC DISTRIBUTION'''
     mc.create_hom_mag(dim, res, beta, shape_fun, params,
@@ -84,13 +85,12 @@ def phase_from_mag():
     phase_el = pm.phase_elec(mag_data, v_0=1, v_acc=200000)    
     
     
-    
-    '''COLOR WHEEL'''
-    hi.make_color_wheel()
-    
-    
-    phase_stub, phi_cos_real_slab = pm.real_space_slab(mag_data, b_0)
-    phase_stub, phi_cos_real_disc = pm.real_space_disc(mag_data, b_0) 
+    phi_cos_real_slab = np.zeros((2*dim[0]-1, 2*dim[1]-1))
+    pm.real_space_slab(mag_data, b_0, pixel_map=phi_cos_real_slab)
+    pm.display_phase(phi_cos_real_slab, res, 'Phase of one Pixel-Slab (Cos - Part)')
+    phi_cos_real_disc = np.zeros((2*dim[0]-1, 2*dim[1]-1))
+    pm.real_space_disc(mag_data, b_0, pixel_map=phi_cos_real_disc)
+    pm.display_phase(phi_cos_real_disc, res, 'Phase of one Pixel-Disc (Cos - Part)')
     phi_cos_diff = phi_cos_real_slab - phi_cos_real_disc
     pm.display_phase(phi_cos_diff, mag_data.res, 'Difference: One Pixel Slab - Disc')
     
@@ -105,16 +105,20 @@ def phase_from_mag():
     display_combined(phase_fft, mag_data.res, holo_fft, 
                      'Fourier Space Approach')
     # numerical solution Real Space (Slab):
+    jacobi = np.chararray((2*dim[0]*dim[1], dim[0]*dim[1]), itemsize=10)
     tic = time.clock()
-    phase_real_slab, pixel_stub = pm.real_space_slab(mag_data, b_0)
+    phase_real_slab = pm.real_space_slab(mag_data, b_0, jacobi=jacobi)
     toc = time.clock()
+    np.save('jacobi.npy', jacobi)
+    jacobi = np.load('jacobi.npy')
+    enter_pdb # <- raises error
     print 'Time for Real Space Approach (Slab): ' + str(toc - tic)
     holo_real_slab = hi.holo_image(phase_real_slab, mag_data.res, density)
     display_combined(phase_real_slab, mag_data.res, holo_real_slab, 
                      'Real Space Approach (Slab)')
     # numerical solution Real Space (Disc):
     tic = time.clock()
-    phase_real_disc, pixel_stub = pm.real_space_disc(mag_data, b_0)
+    phase_real_disc = pm.real_space_disc(mag_data, b_0)
     toc = time.clock()
     print 'Time for Real Space Approach (Disc): ' + str(toc - tic)
     holo_real_disc = hi.holo_image(phase_real_disc, mag_data.res, density)

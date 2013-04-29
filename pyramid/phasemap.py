@@ -61,7 +61,8 @@ def fourier_space(mag_data, b_0=1, padding=0, v_0=0, v_acc=30000):
     return phase
     
     
-def real_space_slab(mag_data, b_0=1, v_0=0, v_acc=30000):
+def real_space_slab(mag_data, b_0=1, v_0=0, v_acc=30000, 
+                    pixel_map=None, jacobi=None):
     '''Calculate phasemap from magnetization data (real space approach).
     Arguments:
         mag_data - MagDataLLG object (from magneticimaging.dataloader) storing
@@ -99,6 +100,23 @@ def real_space_slab(mag_data, b_0=1, v_0=0, v_acc=30000):
                                                    x_dim-1-i:(2*x_dim-1)-i]
                         -np.sin(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j,
                                                    x_dim-1-i:(2*x_dim-1)-i])
+
+    Y = np.chararray((y_dim,x_dim))
+    Y[:] = 'y'
+    Div = np.chararray((y_dim,x_dim))
+    Div[:] = '/'
+    Index = np.chararray((y_dim,x_dim), itemsize=3)
+    Index[:] = np.array(range(y_dim*x_dim),dtype='|S3').reshape((y_dim,x_dim))
+    Mag = np.chararray((y_dim,x_dim))
+    Mag[:] = 'm'
+    Beta = np.chararray((y_dim,x_dim))
+    Beta[:] = 'b'
+                                                   
+    def phi_del_mag(i, j):  # TODO: rename
+        return Y + Index + Div + Mag + (i+x_dim*j).astype('|S5')
+                                                   
+    def phi_del_beta(i, j):  # TODO: rename      
+        return Y + Index + Div + Beta + (i+x_dim*j).astype('|S5')
     
     '''CREATE COORDINATE GRIDS'''
     x = np.linspace(0,(x_dim-1),num=x_dim)
@@ -112,21 +130,29 @@ def real_space_slab(mag_data, b_0=1, v_0=0, v_acc=30000):
     phi_cos = phi_pixel(xx_big, yy_big)
     phi_sin = phi_pixel(yy_big, xx_big)
     
-    display_phase(phi_cos, res, 'Phase of one Pixel (Cos - Part)')
-#    display_phase(phi_sin, res, 'Phase of one Pixel (Sin - Part)')
+    if pixel_map is not None:
+        pixel_map[:] = phi_cos
     
     '''CALCULATE THE PHASE'''
     phase = np.zeros((y_dim, x_dim))
     
     # TODO: only iterate over pixels that have a magn. > threshold (first >0)
+    
+    
+    
     for j in range(y_dim):
         for i in range(x_dim):
             phase += phi_mag(i, j)
+            if jacobi is not None:
+                jacobi[i+x_dim*j]             = phi_del_mag(i, j).reshape(-1)
+                jacobi[y_dim*x_dim+i+x_dim*j] = phi_del_beta(i, j).reshape(-1)
+                
     
-    return (phase, phi_cos)
+    return phase
     
     
-def real_space_disc(mag_data, b_0=1, v_0=0, v_acc=30000):
+def real_space_disc(mag_data, b_0=1, v_0=0, v_acc=30000,
+                    pixel_map=None, jacobi=None):
     '''Calculate phasemap from magnetization data (real space approach).
     Arguments:
         mag_data - MagDataLLG object (from magneticimaging.dataloader) storing
@@ -176,8 +202,8 @@ def real_space_disc(mag_data, b_0=1, v_0=0, v_acc=30000):
     phi_cos = phi_pixel(xx_big, yy_big)
     phi_sin = phi_pixel(yy_big, xx_big)
     
-    display_phase(phi_cos, res, 'Phase of one Pixel (Cos - Part)')
-#    display_phase(phi_sin, res, 'Phase of one Pixel (Sin - Part)')
+    if pixel_map is not None:
+        pixel_map[:] = phi_cos
     
     '''CALCULATE THE PHASE'''
     phase = np.zeros((y_dim, x_dim))
@@ -187,7 +213,7 @@ def real_space_disc(mag_data, b_0=1, v_0=0, v_acc=30000):
         for i in range(x_dim):
             phase += phi_mag(i, j)
     
-    return (phase, phi_cos)
+    return phase
     
 
 def phase_elec(mag_data, b_0=1, v_0=0, v_acc=30000):
