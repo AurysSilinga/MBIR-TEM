@@ -1,0 +1,10 @@
+syntax: glob
+*~
+.spyderworkspace
+.spyderproject
+.cproject
+*.pyc
+*.so
+*.os
+output*
+build*

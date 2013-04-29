@@ -96,27 +96,16 @@ def real_space_slab(mag_data, b_0=1, v_0=0, v_acc=30000,
                               -F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5) )
                 
     def phi_mag(i, j):  # TODO: rename
-        return mag[j,i]*(np.cos(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, 
-                                                   x_dim-1-i:(2*x_dim-1)-i]
-                        -np.sin(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j,
-                                                   x_dim-1-i:(2*x_dim-1)-i])
-
-    Y = np.chararray((y_dim,x_dim))
-    Y[:] = 'y'
-    Div = np.chararray((y_dim,x_dim))
-    Div[:] = '/'
-    Index = np.chararray((y_dim,x_dim), itemsize=3)
-    Index[:] = np.array(range(y_dim*x_dim),dtype='|S3').reshape((y_dim,x_dim))
-    Mag = np.chararray((y_dim,x_dim))
-    Mag[:] = 'm'
-    Beta = np.chararray((y_dim,x_dim))
-    Beta[:] = 'b'
-                                                   
-    def phi_del_mag(i, j):  # TODO: rename
-        return Y + Index + Div + Mag + (i+x_dim*j).astype('|S5')
-                                                   
-    def phi_del_beta(i, j):  # TODO: rename      
-        return Y + Index + Div + Beta + (i+x_dim*j).astype('|S5')
+        return (np.cos(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, 
+                                          x_dim-1-i:(2*x_dim-1)-i]
+               -np.sin(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j,
+                                          x_dim-1-i:(2*x_dim-1)-i])
+                                          
+    def phi_mag_deriv(i, j):  # TODO: rename
+        return -(np.sin(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, 
+                                           x_dim-1-i:(2*x_dim-1)-i]
+               + np.cos(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j,
+                                           x_dim-1-i:(2*x_dim-1)-i])
     
     '''CREATE COORDINATE GRIDS'''
     x = np.linspace(0,(x_dim-1),num=x_dim)
@@ -139,14 +128,15 @@ def real_space_slab(mag_data, b_0=1, v_0=0, v_acc=30000,
     # TODO: only iterate over pixels that have a magn. > threshold (first >0)
     
     
-    
+#    import pdb; pdb.set_trace()
     for j in range(y_dim):
         for i in range(x_dim):
-            phase += phi_mag(i, j)
-            if jacobi is not None:
-                jacobi[i+x_dim*j]             = phi_del_mag(i, j).reshape(-1)
-                jacobi[y_dim*x_dim+i+x_dim*j] = phi_del_beta(i, j).reshape(-1)
-                
+            if (mag[j, i] != 0): # TODO: same result with or without?
+                phi_mag_cache = phi_mag(i, j)
+                phase += mag[j,i] * phi_mag_cache
+                if jacobi is not None:
+                    jacobi[i+x_dim*j]             = phi_mag_cache.reshape(-1)
+                    jacobi[x_dim*y_dim+i+x_dim*j] = (mag[j,i]*phi_mag_deriv(i, j)).reshape(-1)
     
     return phase
     
@@ -211,7 +201,8 @@ def real_space_disc(mag_data, b_0=1, v_0=0, v_acc=30000,
     # TODO: only iterate over pixels that have a magn. > threshold (first >0)
     for j in range(y_dim):
         for i in range(x_dim):
-            phase += phi_mag(i, j)
+#            if (mag[j, i] != 0): # TODO: same result with or without?
+                phase += phi_mag(i, j)
     
     return phase
     

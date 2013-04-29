@@ -35,7 +35,7 @@ def phase_from_mag():
     padding = 20
     density = 100
     
-    dim = (3, 3)  # in px (y,x)
+    dim = (50, 50)  # in px (y,x)
     res = 1.0  # in nm
     beta = pi/4
     
@@ -43,8 +43,8 @@ def phase_from_mag():
     
     # Slab:
     shape_fun = mc.slab
-    center = (2, 2)  # in px (y,x) index starts with 0!
-    width  = (1, 1)  # in px (y,x)
+    center = (24, 24)  # in px (y,x) index starts with 0!
+    width  = (25, 25)  # in px (y,x)
     params = (center, width)
 #    # Disc:
 #    shape_fun = mc.disc
@@ -105,13 +105,11 @@ def phase_from_mag():
     display_combined(phase_fft, mag_data.res, holo_fft, 
                      'Fourier Space Approach')
     # numerical solution Real Space (Slab):
-    jacobi = np.chararray((2*dim[0]*dim[1], dim[0]*dim[1]), itemsize=10)
+#    jacobi = np.zeros((2*dim[0]*dim[1], dim[0]*dim[1]))
     tic = time.clock()
-    phase_real_slab = pm.real_space_slab(mag_data, b_0, jacobi=jacobi)
+    phase_real_slab = pm.real_space_slab(mag_data, b_0, jacobi=None)
     toc = time.clock()
-    np.save('jacobi.npy', jacobi)
-    jacobi = np.load('jacobi.npy')
-    enter_pdb # <- raises error
+#    np.savetxt('jacobi.npy', jacobi)
     print 'Time for Real Space Approach (Slab): ' + str(toc - tic)
     holo_real_slab = hi.holo_image(phase_real_slab, mag_data.res, density)
     display_combined(phase_real_slab, mag_data.res, holo_real_slab, 
