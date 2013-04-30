@@ -33,10 +33,10 @@ def phase_from_mag():
     v_0 = 0  # TODO: units?
     v_acc = 30000  # in V
     padding = 20
-    density = 10
+    density = 100
     
     dim = (50, 50)  # in px (y,x)
-    res = 10.0  # in nm
+    res = 1.0  # in nm
     beta = pi/4
     
     plot_mag_distr = True

@@ -29,14 +29,14 @@ def phase_from_mag():
     '''INPUT'''
     # TODO: Input via GUI
     filename = '../output/output.txt'
-    b_0 = 1.0  # in T
+    b_0 = 10.0  # in T
     v_0 = 0  # TODO: units?
     v_acc = 30000  # in V
     padding = 20
-    density = 10
+    density = 100
     
     dim = (50, 50)  # in px (y,x)
-    res = 10.0  # in nm
+    res = 1.0  # in nm
     beta = pi/4
     
     plot_mag_distr = True

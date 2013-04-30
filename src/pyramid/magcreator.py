@@ -168,7 +168,7 @@ def create_logo(edge, res, beta = pi/2, filename='logo.txt', plot_mag_distr=Fals
     y_mag = np.array(np.ones(dim)) * np.sin(beta) * shape_mag
     z_mag = np.array(np.zeros(dim))
     
-    if (True):
+    if (plot_mag_distr):
         fig = plt.figure()
         fig.add_subplot(111, aspect='equal')
         plt.quiver(x_mag, y_mag, pivot='middle', angles='xy', scale_units='xy', 

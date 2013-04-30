@@ -71,6 +71,8 @@ def real_space_slab(mag_data, b_0=1, v_0=0, v_acc=30000,
         the phasemap as a 2 dimensional array
         
     '''
+    # TODO: combine with disc and sphere approach, pixel field as function
+    
     # TODO: Expand docstring!
 
     # TODO: Delete
