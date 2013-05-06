@@ -6,11 +6,17 @@ PYTHON_LIBPATH = distutils.sysconfig.get_python_lib()
 PYTHON_INCPATH = distutils.sysconfig.get_python_inc()
 PYTHON_LIBRARY = "python" + sys.version[:3]
 
-cythonBuilder = Builder(action ='cython $SOURCE',
+CythonBuilder = Builder(action ='cython $SOURCE',
                         suffix = '.c',
                         src_suffix = '.pyx')
 
-env = Environment(ENV      =   os.environ,
-                  BUILDERS = {'Py2C':cythonBuilder})
+def PydBuilder(env,source):
+    cCode = env.Py2C(source)
+    env.SharedLibrary(target='karl.pyd', source=cCode, LIBPREFIX='')
 
-env.Py2C('c1.c', 'c1.pyx')
+env = Environment(ENV      =   os.environ,
+                  BUILDERS = {'Py2C':CythonBuilder})
+
+env.AddMethod(CythonBuilder,'Cython')
+
+env.Cython('c1')

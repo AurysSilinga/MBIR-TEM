@@ -48,6 +48,8 @@ def phase_from_mag():
     np.savetxt('../output/jacobi.npy', jacobi)
     print 'Time for Real Space Approach with Jacobi-Matrix (Slab): ' + str(toc - tic)
     
+    
+    
     return jacobi
     
     

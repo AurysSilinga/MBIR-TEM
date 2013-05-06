@@ -112,34 +112,44 @@ def real_space(mag_data, method, b_0=1, jacobi=None):
     phi_sin = phi_pixel(method, yy_big, xx_big, res, b_0)
             
     def phi_mag(i, j):  # TODO: rename
-        return (np.cos(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, 
-                                          x_dim-1-i:(2*x_dim-1)-i]
-               -np.sin(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j,
-                                          x_dim-1-i:(2*x_dim-1)-i])
+        return (np.cos(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i]
+               -np.sin(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i])
                                           
     def phi_mag_deriv(i, j):  # TODO: rename
-        return -(np.sin(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, 
-                                           x_dim-1-i:(2*x_dim-1)-i]
-                +np.cos(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j,
-                                           x_dim-1-i:(2*x_dim-1)-i])   
+        return -(np.sin(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i]
+                +np.cos(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i])
+                                           
+    def phi_mag_fd(i, j, h):  # TODO: rename
+        return ((np.cos(beta[j,i]+h) - np.cos(beta[j,i])) / h 
+                      * phi_cos[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i]
+               -(np.sin(beta[j,i]+h) - np.sin(beta[j,i])) / h 
+                      * phi_sin[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i])
     
     '''CALCULATE THE PHASE'''
     phase = np.zeros((y_dim, x_dim))
     
     # TODO: only iterate over pixels that have a magn. > threshold (first >0)
+    jacobi_fd = jacobi.copy()
+    h = 0.0001
+    
     for j in range(y_dim):
         for i in range(x_dim):
-            if (mag[j, i] != 0 ):#or jacobi is not None): # TODO: same result with or without?
+            #if (mag[j,i] != 0 ):#or jacobi is not None): # TODO: same result with or without?
                 phi_mag_cache = phi_mag(i, j)
                 phase += mag[j,i] * phi_mag_cache
                 if jacobi is not None:
                     jacobi[:,i+x_dim*j] = phi_mag_cache.reshape(-1)
-                    jacobi[:,x_dim*y_dim+i+x_dim*j] = (mag[j,i]*phi_mag_deriv(i, j)).reshape(-1)         
+                    jacobi[:,x_dim*y_dim+i+x_dim*j] = (mag[j,i]*phi_mag_deriv(i,j)).reshape(-1)
+                    
+                    jacobi_fd[:,i+x_dim*j] = phi_mag_cache.reshape(-1)
+                    jacobi_fd[:,x_dim*y_dim+i+x_dim*j] = (mag[j,i]*phi_mag_fd(i,j,h)).reshape(-1)  
+                    
+                    
+    
+    jacobi_diff = jacobi_fd - jacobi
+    assert (np.abs(jacobi_diff) < 1.0E-8).all(), 'jacobi matrix is not the same'
     
     return phase
-
-    
-
     
 
 def phase_elec(mag_data, b_0=1, v_0=0, v_acc=30000):
