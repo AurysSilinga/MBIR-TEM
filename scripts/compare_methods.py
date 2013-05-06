@@ -25,75 +25,42 @@ def phase_from_mag():
         None
     
     '''
-    
-    '''INPUT'''
     # TODO: Input via GUI
-    filename = '../output/output.txt'
-    b_0 = 10.0  # in T
+    b_0 = 1.0  # in T
     v_0 = 0  # TODO: units?
     v_acc = 30000  # in V
     padding = 20
-    density = 100
+    density = 10
     
     dim = (50, 50)  # in px (y,x)
-    res = 1.0  # in nm
+    res = 10.0  # in nm
     beta = pi/4
     
-    plot_mag_distr = True
-    
-    # Slab:
-    shape_fun = mc.slab
     center = (24, 24)  # in px (y,x) index starts with 0!
     width  = (25, 25)  # in px (y,x)
-    params = (center, width)
-#    # Disc:
-#    shape_fun = mc.disc
-#    center = (4, 4)  # in px (y,x)
-#    radius = 2.5
-#    params = (center, radius)
-#    # Filament:
-#    shape_fun = mc.filament
-#    pos = 5
-#    x_or_y = 'y'
-#    params = (pos, x_or_y)
-#    # Alternating Filaments:
-#    shape_fun = mc.alternating_filaments
-#    spacing = 5
-#    x_or_y = 'y'
-#    params = (spacing, x_or_y)
-#    # Single Pixel:
-#    shape_fun = mc.single_pixel
-#    pixel = (5, 5)
-#    params = pixel
+    radius = 12.5
     
-#    '''CREATE LOGO'''    
-#    mc.create_logo(128, res, beta, filename, plot_mag_distr)
-#    mag_data = dl.MagDataLLG(filename)
-#    phase= pm.real_space_slab(mag_data, b_0)  
-#    holo = hi.holo_image(phase, mag_data.res, density)
-#    hi.display_holo(holo, '')
+    filename = '../output/output.txt'
+    geometry = 'slab'        
+    
+    if geometry == 'slab':
+        mag_shape = mc.slab(dim, center, width)
+        phase_ana = an.phasemap_slab(dim, res, beta, center, width, b_0)
+    elif geometry == 'slab':
+        mag_shape = mc.disc(dim, center, radius)
+        phase_ana = an.phasemap_disc(dim, res, beta, center, radius, b_0)
+    
+    holo_ana  = hi.holo_image(phase_ana, res, density)
+    display_combined(phase_ana, res, holo_ana, 'Analytic Solution')
     
     '''CREATE MAGNETIC DISTRIBUTION'''
-    mc.create_hom_mag(dim, res, beta, shape_fun, params,
-                      filename, plot_mag_distr)
+    mc.create_hom_mag(dim, res, beta, mag_shape, filename)
     
     '''LOAD MAGNETIC DISTRIBUTION'''
     mag_data = dl.MagDataLLG(filename)
     
-    
     # TODO: get it to work:
-    phase_el = pm.phase_elec(mag_data, v_0=1, v_acc=200000)    
-    
-    
-    phi_cos_real_slab = np.zeros((2*dim[0]-1, 2*dim[1]-1))
-    pm.real_space_slab(mag_data, b_0, pixel_map=phi_cos_real_slab)
-    pm.display_phase(phi_cos_real_slab, res, 'Phase of one Pixel-Slab (Cos - Part)')
-    phi_cos_real_disc = np.zeros((2*dim[0]-1, 2*dim[1]-1))
-    pm.real_space_disc(mag_data, b_0, pixel_map=phi_cos_real_disc)
-    pm.display_phase(phi_cos_real_disc, res, 'Phase of one Pixel-Disc (Cos - Part)')
-    phi_cos_diff = phi_cos_real_slab - phi_cos_real_disc
-    pm.display_phase(phi_cos_diff, mag_data.res, 'Difference: One Pixel Slab - Disc')
-    
+    phase_el = pm.phase_elec(mag_data, v_0, v_acc)    
     
     '''NUMERICAL SOLUTION'''
     # numerical solution Fourier Space:
@@ -102,54 +69,34 @@ def phase_from_mag():
     toc = time.clock()
     print 'Time for Fourier Space Approach:     ' + str(toc - tic)
     holo_fft = hi.holo_image(phase_fft, mag_data.res, density)
-    display_combined(phase_fft, mag_data.res, holo_fft, 
-                     'Fourier Space Approach')
+    display_combined(phase_fft, mag_data.res, holo_fft, 'Fourier Space Approach')
+    
     # numerical solution Real Space (Slab):
-    jacobi = np.zeros((2*dim[0]*dim[1], dim[0]*dim[1]))
     tic = time.clock()
-    phase_real_slab = pm.real_space_slab(mag_data, b_0, jacobi=None)
+    phase_slab = pm.real_space(mag_data, 'slab', b_0)
     toc = time.clock()
-    np.savetxt('../output/jacobi.npy', jacobi)
     print 'Time for Real Space Approach (Slab): ' + str(toc - tic)
-    holo_real_slab = hi.holo_image(phase_real_slab, mag_data.res, density)
-    display_combined(phase_real_slab, mag_data.res, holo_real_slab, 
-                     'Real Space Approach (Slab)')
+    holo_slab = hi.holo_image(phase_slab, mag_data.res, density)
+    display_combined(phase_slab, mag_data.res, holo_slab, 'Real Space Approach (Slab)')
+    
     # numerical solution Real Space (Disc):
     tic = time.clock()
-    phase_real_disc = pm.real_space_disc(mag_data, b_0)
+    phase_disc = pm.real_space(mag_data, 'disc', b_0)
     toc = time.clock()
     print 'Time for Real Space Approach (Disc): ' + str(toc - tic)
-    holo_real_disc = hi.holo_image(phase_real_disc, mag_data.res, density)
-    display_combined(phase_real_disc, mag_data.res, holo_real_disc,
-                     'Real Space Approach (Disc)')
-    
-    '''ANALYTIC SOLUTION'''
-    # analytic solution slab:
-    phase = an.phasemap_slab(dim, res, beta, center, width, b_0)
-    holo  = hi.holo_image(phase, res, density)
-    display_combined(phase, res, holo, 'Analytic Solution - Slab')
-#    # analytic solution disc:
-#    phase = an.phasemap_disc(dim, res, beta, center, radius, b_0)
-#    holo  = hi.holo_image(phase, res, density)
-#    display_combined(phase, res, holo, 'Analytic Solution - Disc')
-#    # analytic solution sphere:
-#    phase = an.phasemap_sphere(dim, res, beta, center, radius, b_0)
-#    holo  = hi.holo_image(phase, res, density)
-#    display_combined(phase, res, holo, 'Analytic Solution - Sphere')
-
+    holo_disc = hi.holo_image(phase_disc, mag_data.res, density)
+    display_combined(phase_disc, mag_data.res, holo_disc, 'Real Space Approach (Disc)')
     
     '''DIFFERENCES'''
-    diff_fft_to_ana       = phase_fft       - phase 
-    diff_real_slab_to_ana = phase_real_slab - phase
-    diff_real_disc_to_ana = phase_real_disc - phase
-    diff_slab_to_disc     = phase_real_disc - phase_real_slab
-    pm.display_phase(diff_fft_to_ana,       res, 'Difference: FFT - Analytic')
-    pm.display_phase(diff_real_slab_to_ana, res, 'Difference: Slab - Analytic')
-    pm.display_phase(diff_real_disc_to_ana, res, 'Difference: Disc - Analytic')
-    pm.display_phase(diff_slab_to_disc,     res, 'Difference: Disc - Slab')
-    
-    # TODO: Delete
-#    import pdb; pdb.set_trace()
+    diff_fft  = phase_fft  - phase_ana 
+    diff_slab = phase_slab - phase_ana
+    diff_disc = phase_disc - phase_ana
+    rms_fft  = np.sqrt((diff_fft**2).mean())
+    rms_slab = np.sqrt((diff_slab**2).mean())
+    rms_disc = np.sqrt((diff_disc**2).mean())
+    pm.display_phase(diff_fft,  res, 'FFT - Analytic (RMS = ' + '{:3.2e}'.format(rms_fft) + ')')
+    pm.display_phase(diff_slab, res, 'Slab - Analytic (RMS = ' +'{:3.2e}'.format(rms_slab) + ')')
+    pm.display_phase(diff_disc, res, 'Disc - Analytic (RMS = ' + '{:3.2e}'.format(rms_disc) + ')')
  
     
 def display_combined(phase, res, holo, title):
