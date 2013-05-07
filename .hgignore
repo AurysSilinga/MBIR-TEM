@@ -4,6 +4,7 @@ syntax: glob
 .spyderproject
 .cproject
 *.pyc
+*.pyd
 *.so
 *.os
 output*

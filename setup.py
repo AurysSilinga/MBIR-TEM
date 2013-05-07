@@ -7,15 +7,19 @@ Created on Fri May 03 10:27:04 2013
 
 #call with: python setup.py build_ext --inplace --compiler=mingw32
 
+import os
 import glob
 from distutils.core import setup
 from Cython.Build import cythonize
 
 setup(
-    name = 'Pyramex',
+    name = 'Pyramid',
     version = '0.1',    
-    description = 'Pyramid Cython Extensions',
+    description = 'PYthon based Reconstruction Algorithm for MagnetIc Distributions',
     author = 'Jan Caron',
     author_email = 'j.caron@fz-juelich.de',
-    ext_modules = cythonize(glob.glob('*.pyx'))
+    package_dir = {'': 'src'},
+    packages = ['pyramid'],
+    ext_package = ['pyramex']
+    ext_modules = cythonize(glob.glob(os.path.join('pyramex','*.pyx')))
 )

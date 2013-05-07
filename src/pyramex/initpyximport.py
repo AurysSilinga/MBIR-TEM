@@ -20,7 +20,7 @@ if os.name == 'nt':
 #        os.environ['PATH'] = 'C:\MinGW\bin'
 
     mingw_setup_args = { 'options': { 'build_ext': { 'compiler': 'mingw32' } } }
-    pyximport.install(setup_args=mingw_setup_args)
+    pyximport.install(setup_args=mingw_setup_args, inplace=True)
 
 
 elif os.name == 'posix':
@@ -29,4 +29,4 @@ elif os.name == 'posix':
     else:
         os.environ['CFLAGS'] = ' -I' + numpy.get_include()
         
-    pyximport.install()
+    pyximport.install(inplace=True)
