@@ -129,7 +129,8 @@ def real_space(mag_data, method, b_0=1, jacobi=None):
     phase = np.zeros((y_dim, x_dim))
     
     # TODO: only iterate over pixels that have a magn. > threshold (first >0)
-    jacobi_fd = jacobi.copy()
+    if jacobi is not None:
+        jacobi_fd = jacobi.copy()
     h = 0.0001
     
     for j in range(y_dim):
@@ -146,8 +147,9 @@ def real_space(mag_data, method, b_0=1, jacobi=None):
                     
                     
     
-    jacobi_diff = jacobi_fd - jacobi
-    assert (np.abs(jacobi_diff) < 1.0E-8).all(), 'jacobi matrix is not the same'
+    if jacobi is not None:
+        jacobi_diff = jacobi_fd - jacobi
+        assert (np.abs(jacobi_diff) < 1.0E-8).all(), 'jacobi matrix is not the same'
     
     return phase
     

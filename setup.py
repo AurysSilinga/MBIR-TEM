@@ -18,8 +18,6 @@ setup(
     description = 'PYthon based Reconstruction Algorithm for MagnetIc Distributions',
     author = 'Jan Caron',
     author_email = 'j.caron@fz-juelich.de',
-    package_dir = {'': 'src'},
     packages = ['pyramid'],
-    ext_package = ['pyramex']
-    ext_modules = cythonize(glob.glob(os.path.join('pyramex','*.pyx')))
+    ext_modules = cythonize(glob.glob(os.path.join('pyramid','numcore','*.pyx')))
 )
