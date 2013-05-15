@@ -5,30 +5,40 @@ Created on Mon May 13 13:05:40 2013
 @author: Jan
 """
 
-import random
+import random as rnd
 import numpy as np
-import matplotlib.pyplot as plt
 import pyramid.magcreator as mc
-import time
 import pdb, traceback, sys
 from numpy import pi
 
 
-def phase_from_mag():
+def create_random_distribution():
     
     count = 10
-    dim = (128, 128)    
+    dim = (1, 128, 128)    
+    res = 10 # in nm
     
-    random.seed(42)
+    rnd.seed(42)
+    
+    mag_shape_list = np.zeros((count, dim[0], dim[1], dim[2]))
+    beta_list      = np.zeros(count) 
+    magnitude_list = np.zeros(count)
     
     for i in range(count):
+        pixel = (rnd.randrange(dim[0]), rnd.randrange(dim[1]), rnd.randrange(dim[2]))
+        mag_shape_list[i,...] = mc.shape_single_pixel(dim, pixel)
+        beta_list[i] = 2*pi*rnd.random()
+        magnitude_list[i] = 1#rnd.random()
         
-        x = random.rand
+    mag_data = mc.create_mag_dist(dim, res, mag_shape_list, beta_list, magnitude_list)
+    mag_data.quiver_plot()
+    #mag_data.quiver_plot_3D()
+    mag_data.save_to_llg('../output/mag_dist_random_pixel.txt')
     
     
 if __name__ == "__main__":
     try:
-        phase_from_mag()
+        create_random_distribution()
     except:
         type, value, tb = sys.exc_info()
         traceback.print_exc()
