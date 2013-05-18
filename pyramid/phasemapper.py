@@ -3,148 +3,131 @@
 
 
 import numpy as np
-import matplotlib.pyplot as plt
-import pyramid.projector as pj
-from numpy import pi
-from phasemap import PhaseMap
 
 
+# Physical constants
 PHI_0 = 2067.83    # magnetic flux in T*nm²
-H_BAR = 6.626E-34  # TODO: unit
-M_E   = 9.109E-31  # TODO: unit
-Q_E   = 1.602E-19  # TODO: unit
-C     = 2.998E8    # TODO: unit
+H_BAR = 6.626E-34  # Planck constant in J*s
+M_E   = 9.109E-31  # electron mass in kg
+Q_E   = 1.602E-19  # electron charge in C
+C     = 2.998E8    # speed of light in m/s
 
 
-def fourier_space(mag_data, b_0=1, padding=0):
-    '''Calculate phasemap from magnetization data (fourier approach).
+def phase_mag_fourier(res, projection, b_0=1, padding=0):
+    '''Calculate phasemap from magnetization data (Fourier space approach).
     Arguments:
-        mag_data - MagDataLLG object (from magneticimaging.dataloader) storing
-                   the filename, coordinates and magnetization in x, y and z
-        b_0      - magnetic induction corresponding to a magnetization Mo in T 
-                   (default: 1)
-        padding  - factor for zero padding, the default is 0 (no padding), for
-                   a factor of n the number of pixels is increase by (1+n)**2,
-                   padded zeros are cropped at the end
-        v_0      - average potential of the sample in V (default: 0)
-        v_acc    - acceleration voltage of the microscop in V (default: 30000)
+        res        - the resolution of the grid (grid spacing) in nm
+        projection - projection of a magnetic distribution (created with pyramid.projector)
+        b_0        - magnetic induction corresponding to a magnetization Mo in T (default: 1)
+        padding    - factor for zero padding, the default is 0 (no padding), for a factor of n the 
+                     number of pixels is increase by (1+n)**2, padded zeros are cropped at the end
     Returns:
         the phasemap as a 2 dimensional array
     
-    '''    
-    res  = mag_data.res
-    z_dim, y_dim, x_dim = mag_data.dim
-    z_mag, y_mag, x_mag = pj.simple_axis_projection(mag_data)#mag_data.magnitude  
-    
-    # TODO: interpolation (redefine xDim,yDim,zDim) thickness ramp
-    
-    x_pad = x_dim/2 * padding
-    y_pad = y_dim/2 * padding
-    x_mag_big = np.zeros(((1 + padding) * y_dim, (1 + padding) * x_dim))
-    y_mag_big = np.zeros(((1 + padding) * y_dim, (1 + padding) * x_dim))
-    # TODO: padding so that x_dim and y_dim = 2^n
-    x_mag_big[y_pad : y_pad + y_dim, x_pad : x_pad + x_dim] = x_mag
-    y_mag_big[y_pad : y_pad + y_dim, x_pad : x_pad + x_dim] = y_mag
-    
-    x_mag_fft = np.fft.fftshift(np.fft.rfft2(x_mag_big), axes=0)
-    y_mag_fft = np.fft.fftshift(np.fft.rfft2(y_mag_big), axes=0)
+    '''
+    v_dim, u_dim = np.shape(projection[0])
+    v_mag, u_mag = projection
+    # Create zero padded matrices:
+    u_pad = u_dim/2 * padding
+    v_pad = v_dim/2 * padding
+    u_mag_big = np.zeros(((1 + padding) * v_dim, (1 + padding) * u_dim))
+    v_mag_big = np.zeros(((1 + padding) * v_dim, (1 + padding) * u_dim))
+    u_mag_big[v_pad : v_pad + v_dim, u_pad : u_pad + u_dim] = u_mag
+    v_mag_big[v_pad : v_pad + v_dim, u_pad : u_pad + u_dim] = v_mag
+    # Fourier transform of the two components:
+    u_mag_fft = np.fft.fftshift(np.fft.rfft2(u_mag_big), axes=0)
+    v_mag_fft = np.fft.fftshift(np.fft.rfft2(v_mag_big), axes=0)
+    # Calculate the Fourier transform of the phase:
     nyq = 1 / res  # nyquist frequency
-    x = np.linspace(      0, nyq/2, x_mag_fft.shape[1])
-    y = np.linspace( -nyq/2, nyq/2, x_mag_fft.shape[0]+1)[:-1]
-    xx, yy = np.meshgrid(x, y)
-                         
-    phase_fft = (1j * res * b_0) / (2 * PHI_0) * ((x_mag_fft * yy - y_mag_fft * xx) 
-                                           / (xx ** 2 + yy ** 2 + 1e-18))
+    u = np.linspace(      0, nyq/2, u_mag_fft.shape[1])
+    v = np.linspace( -nyq/2, nyq/2, u_mag_fft.shape[0]+1)[:-1]
+    uu, vv = np.meshgrid(u, v)
+    coeff = (1j * res * b_0) / (2 * PHI_0)              
+    phase_fft = coeff * (u_mag_fft*vv - v_mag_fft*uu) / (uu**2 + vv**2 + 1e-30)
+    # Transform to real space and revert padding:
     phase_big = np.fft.irfft2(np.fft.ifftshift(phase_fft, axes=0))
-    
-    phase = phase_big[y_pad : y_pad + y_dim, x_pad : x_pad + x_dim]
-    
-    # TODO: Electrostatic Component
-
-    return PhaseMap(phase)
+    phase = phase_big[v_pad : v_pad + v_dim, u_pad : u_pad + u_dim]
+    return phase
       
-      
-def phi_pixel(method, n, m, res, b_0):  # TODO: rename
-    if method == 'slab':    
-        def F_h(n, m):
-            a = np.log(res**2 * (n**2 + m**2))
-            b = np.arctan(n / m)
-            return n*a - 2*n + 2*m*b            
-        coeff = -b_0 * res**2 / ( 2 * PHI_0 )
-        return coeff * 0.5 * ( F_h(n-0.5, m-0.5) - F_h(n+0.5, m-0.5) 
-                              -F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5) ) 
-    elif method == 'disc':
-        coeff = - b_0 * res**2 / ( 2 * PHI_0 )
-        in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
-        return coeff * m / (n**2 + m**2 + 1E-30) * in_or_out
 
-
-def real_space(mag_data, method, b_0=1, jacobi=None):
+def phase_mag_real(res, projection, method, b_0=1, jacobi=None):
     '''Calculate phasemap from magnetization data (real space approach).
     Arguments:
-        mag_data - MagDataLLG object (from magneticimaging.dataloader) storing the filename, 
-                   coordinates and magnetization in x, y and z
+        res        - the resolution of the grid (grid spacing) in nm
+        projection - projection of a magnetic distribution (created with pyramid.projector)
+        method     - String, describing the method to use for the pixel field ('slab' or 'disc')
+        b_0        - magnetic induction corresponding to a magnetization Mo in T (default: 1)
+        padding    - factor for zero padding, the default is 0 (no padding), for a factor of n the 
+                     number of pixels is increase by (1+n)**2, padded zeros are cropped at the end
     Returns:
         the phasemap as a 2 dimensional array
-        
-    '''    
-    # TODO: Expand docstring!  
-
-    res  = mag_data.res
-    z_dim, y_dim, x_dim = mag_data.dim
-    z_mag, y_mag, x_mag = mag_data.magnitude
     
-    z_mag, y_mag, x_mag = pj.simple_axis_projection(mag_data)
+    '''# TODO: Docstring!
+    def phi_lookup(method, n, m, res, b_0):  # TODO: rename
+        if method == 'slab':    
+            def F_h(n, m):
+                a = np.log(res**2 * (n**2 + m**2))
+                b = np.arctan(n / m)
+                return n*a - 2*n + 2*m*b            
+            coeff = -b_0 * res**2 / ( 2 * PHI_0 )
+            return coeff * 0.5 * ( F_h(n-0.5, m-0.5) - F_h(n+0.5, m-0.5) 
+                                  -F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5) ) 
+        elif method == 'disc':
+            coeff = - b_0 * res**2 / ( 2 * PHI_0 )
+            in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
+            return coeff * m / (n**2 + m**2 + 1E-30) * in_or_out
     
-    beta = np.arctan2(y_mag, x_mag)
-
-    mag = np.hypot(x_mag, y_mag) 
+    v_dim, u_dim = np.shape(projection[0])
+    v_mag, u_mag = projection
+    
+    beta = np.arctan2(v_mag, u_mag)
+    mag = np.hypot(u_mag, v_mag) 
                 
     '''CREATE COORDINATE GRIDS'''
-    x = np.linspace(0,(x_dim-1),num=x_dim)
-    y = np.linspace(0,(y_dim-1),num=y_dim)
-    xx, yy = np.meshgrid(x,y)
+    u = np.linspace(0,(u_dim-1),num=u_dim)
+    v = np.linspace(0,(v_dim-1),num=v_dim)
+    uu, vv = np.meshgrid(u,v)
      
-    x_big = np.linspace(-(x_dim-1), x_dim-1, num=2*x_dim-1)
-    y_big = np.linspace(-(y_dim-1), y_dim-1, num=2*y_dim-1)
-    xx_big, yy_big = np.meshgrid(x_big, y_big)
+    u_lookup = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
+    v_lookup = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
+    uu_lookup, vv_lookup = np.meshgrid(u_lookup, v_lookup)
     
-    phi_cos = phi_pixel(method, xx_big, yy_big, res, b_0)
-    phi_sin = phi_pixel(method, yy_big, xx_big, res, b_0)
+    phi_cos = phi_lookup(method, uu_lookup, vv_lookup, res, b_0)
+    phi_sin = phi_lookup(method, vv_lookup, uu_lookup, res, b_0)
             
     def phi_mag(i, j):  # TODO: rename
-        return (np.cos(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i]
-               -np.sin(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i])
+        return (np.cos(beta[j,i])*phi_cos[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+               -np.sin(beta[j,i])*phi_sin[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
                                           
     def phi_mag_deriv(i, j):  # TODO: rename
-        return -(np.sin(beta[j,i])*phi_cos[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i]
-                +np.cos(beta[j,i])*phi_sin[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i])
+        return -(np.sin(beta[j,i])*phi_cos[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+                +np.cos(beta[j,i])*phi_sin[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
                                            
     def phi_mag_fd(i, j, h):  # TODO: rename
         return ((np.cos(beta[j,i]+h) - np.cos(beta[j,i])) / h 
-                      * phi_cos[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i]
+                      * phi_cos[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
                -(np.sin(beta[j,i]+h) - np.sin(beta[j,i])) / h 
-                      * phi_sin[y_dim-1-j:(2*y_dim-1)-j, x_dim-1-i:(2*x_dim-1)-i])
+                      * phi_sin[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
     
     '''CALCULATE THE PHASE'''
-    phase = np.zeros((y_dim, x_dim))
+    phase = np.zeros((v_dim, u_dim))
     
     # TODO: only iterate over pixels that have a magn. > threshold (first >0)
     if jacobi is not None:
         jacobi_fd = jacobi.copy()
     h = 0.0001
     
-    for j in range(y_dim):
-        for i in range(x_dim):
+    for j in range(v_dim):
+        for i in range(u_dim):
             #if (mag[j,i] != 0 ):#or jacobi is not None): # TODO: same result with or without?
                 phi_mag_cache = phi_mag(i, j)
                 phase += mag[j,i] * phi_mag_cache
                 if jacobi is not None:
-                    jacobi[:,i+x_dim*j] = phi_mag_cache.reshape(-1)
-                    jacobi[:,x_dim*y_dim+i+x_dim*j] = (mag[j,i]*phi_mag_deriv(i,j)).reshape(-1)
+                    jacobi[:,i+u_dim*j] = phi_mag_cache.reshape(-1)
+                    jacobi[:,u_dim*v_dim+i+u_dim*j] = (mag[j,i]*phi_mag_deriv(i,j)).reshape(-1)
                     
-                    jacobi_fd[:,i+x_dim*j] = phi_mag_cache.reshape(-1)
-                    jacobi_fd[:,x_dim*y_dim+i+x_dim*j] = (mag[j,i]*phi_mag_fd(i,j,h)).reshape(-1)  
+                    jacobi_fd[:,i+u_dim*j] = phi_mag_cache.reshape(-1)
+                    jacobi_fd[:,u_dim*v_dim+i+u_dim*j] = (mag[j,i]*phi_mag_fd(i,j,h)).reshape(-1)  
                     
                     
     
@@ -155,23 +138,20 @@ def real_space(mag_data, method, b_0=1, jacobi=None):
     return phase
     
 
-def phase_elec(mag_data, b_0=1, v_0=0, v_acc=30000):
-    # TODO: Docstring
-
-    # TODO: Delete    
-#    import pdb; pdb.set_trace()
-    
-    res  = mag_data.res
-    z_dim, y_dim, x_dim = mag_data.dim
-    z_mag, y_mag, x_mag = mag_data.magnitude  
-    
-    phase = np.logical_or(x_mag, y_mag, z_mag)    
-    
-    lam = H_BAR / np.sqrt(2 * M_E * v_acc * (1 + Q_E*v_acc / (2*M_E*C**2)))
-    
-    Ce = (2*pi*Q_E/lam * (Q_E*v_acc +   M_E*C**2) /
-            (Q_E*v_acc * (Q_E*v_acc + 2*M_E*C**2)))
-    
-    phase *= res * v_0 * Ce
-    
-    return phase
+#def phase_elec(mag_data, v_0=0, v_acc=30000):
+#    # TODO: Docstring
+#
+#    res  = mag_data.res
+#    z_dim, y_dim, x_dim = mag_data.dim
+#    z_mag, y_mag, x_mag = mag_data.magnitude  
+#    
+#    phase = np.logical_or(x_mag, y_mag, z_mag)    
+#    
+#    lam = H_BAR / np.sqrt(2 * M_E * v_acc * (1 + Q_E*v_acc / (2*M_E*C**2)))
+#    
+#    Ce = (2*pi*Q_E/lam * (Q_E*v_acc +   M_E*C**2) /
+#            (Q_E*v_acc * (Q_E*v_acc + 2*M_E*C**2)))
+#    
+#    phase *= res * v_0 * Ce
+#    
+#    return phase

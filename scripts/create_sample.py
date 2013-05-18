@@ -1,54 +1,52 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 03 11:15:38 2013
+"""Create magnetic distributions with simple geometries."""
 
-@author: Jan
-"""
 
-import pyramid.magcreator as mc
 import pdb, traceback, sys
 from numpy import pi
 
+import pyramid.magcreator as mc
+from pyramid.magdata import MagData
+
 
 def create_sample():
-    '''Calculate and display the phase map from a given magnetization.
+    '''Calculate, display and save simple magnetic distributions to file.
     Arguments:
         None
     Returns:
         None
     
     '''
-    
-    # TODO: Input via GUI
+    # Input parameters:
     key = 'slab'
-    
-    filename = '../output/mag_distr_' + key + '.txt'    
-    dim = (50, 50)  # in px (y,x)
-    res = 1.0  # in nm
-    beta = pi/4
-    plot_mag_distr = True    
-    
-    center = (24, 24)  # in px (y,x) index starts with 0!
-    width  = (25, 25)  # in px (y,x)
-    radius = 12.5  # in px
-    pos = 24  # in px
-    spacing = 5  # in px
-    x_or_y = 'y'  
-    pixel = (24, 24) # in px    
-    
+    filename = '../output/mag_dist_' + key + '.txt'    
+    dim = (1, 128, 128)  # in px (z, y, x)
+    res = 10.0  # in nm
+    beta = pi/4   
+    # Geometry parameters:    
+    center = (0, 64, 64)  # in px (z, y, x), index starts with 0!
+    width  = (1, 50, 50)  # in px (z, y, x)
+    radius = 25  # in px
+    height =  1  # in px
+    pos = (0, 63)  # in px (tuple of length 2)
+    pixel = (0, 63, 63) # in px (z, y, x), index starts with 0!
+    # Determine the magnetic shape:
     if   key == 'slab':
-        mag_shape = mc.slab(dim, center, width)
+        mag_shape = mc.Shapes.slab(dim, center, width)
     elif key == 'disc':
-        mag_shape = mc.disc(dim, center, radius)
+        mag_shape = mc.Shapes.disc(dim, center, radius, height)
+    elif key == 'sphere':
+        mag_shape = mc.Shapes.sphere(dim, center, radius)
     elif key == 'filament':
-        mag_shape = mc.filament(dim, pos, x_or_y)
-    elif key == 'alternating_filaments':
-        mag_shape = mc.alternating_filaments(dim, spacing, x_or_y)
+        mag_shape = mc.Shapes.filament(dim, pos)
     elif key == 'pixel':
-        mag_shape = mc.single_pixel(dim, pixel)
-    
-    mc.create_hom_mag(dim, res, beta, mag_shape, filename, plot_mag_distr)
-    
+        mag_shape = mc.Shapes.single_pixel(dim, pixel)
+    # Create magnetic distribution
+    magnitude = mc.create_mag_dist(mag_shape, beta) 
+    mag_data = MagData(res, magnitude)
+    mag_data.quiver_plot()
+    mag_data.save_to_llg(filename)
+
     
 if __name__ == "__main__":
     try:

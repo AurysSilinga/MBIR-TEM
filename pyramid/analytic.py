@@ -27,7 +27,7 @@ def plot_phase(phase, res, name):
 
 def phasemap_slab(dim, res, beta, center, width, b_0):
     '''INPUT VARIABLES'''
-    y_dim, x_dim = dim
+    z_dim, y_dim, x_dim = dim
     # y0, x0 have to be in the center of a pixel, hence: cellindex + 0.5
     y0 = res * (center[0] + 0.5)
     x0 = res * (center[1] + 0.5)

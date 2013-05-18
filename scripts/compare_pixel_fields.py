@@ -1,38 +1,39 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 03 11:15:38 2013
+"""Compare the phase map of one pixel for different real space approaches."""
 
-@author: Jan
-"""
 
-import numpy as np
-import pyramid.phasemap as pm
 import pdb, traceback, sys
+from numpy import pi
+
+import pyramid.magcreator  as mc
+import pyramid.projector   as pj
+import pyramid.phasemapper as pm
+from pyramid.magdata  import MagData
+from pyramid.phasemap import PhaseMap
 
 
 def compare_pixel_fields():
-    '''Calculate and display the phase map from a given magnetization.
+    '''Calculate and display the phase map for different real space approaches.
     Arguments:
         None
     Returns:
         None
     
     '''
-    # TODO: Input via GUI
-    b_0 = 1.0  # in T
-    res = 10.0   
-    dim = (10, 10)
-    
-    x_big = np.linspace(-(dim[1]-1), dim[1]-1, num=2*dim[1]-1)
-    y_big = np.linspace(-(dim[0]-1), dim[0]-1, num=2*dim[0]-1)
-    xx_big, yy_big = np.meshgrid(x_big, y_big)    
-    
-    phi_cos_real_slab = pm.phi_pixel('slab', xx_big, yy_big, res, b_0)
-    pm.display_phase(phi_cos_real_slab, res, 'Phase of one Pixel-Slab (Cos - Part)')
-    phi_cos_real_disc = pm.phi_pixel('disc', xx_big, yy_big, res, b_0)
-    pm.display_phase(phi_cos_real_disc, res, 'Phase of one Pixel-Disc (Cos - Part)')
-    phi_cos_diff = phi_cos_real_disc - phi_cos_real_slab
-    pm.display_phase(phi_cos_diff, res, 'Phase of one Pixel-Disc (Cos - Part)')
+    # Input parameters:    
+    res   = 10.0  # in nm
+    beta  = pi/2  # in rad
+    dim   = (1, 11, 11)
+    pixel = (0,  5,  5) 
+    # Create magnetic data, project it, get the phase map and display the holography image:    
+    mag_data   = MagData(res, mc.create_mag_dist(mc.Shapes.single_pixel(dim, pixel), beta)) 
+    projection = pj.simple_axis_projection(mag_data)
+    phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))    
+    phase_map_slab.display('Phase of one Pixel (Slab)')
+    phase_map_disc = PhaseMap(res, pm.phase_mag_real(res, projection, 'disc'))    
+    phase_map_disc.display('Phase of one Pixel (Disc)')
+    phase_map_diff = PhaseMap(res, phase_map_disc.phase - phase_map_slab.phase)
+    phase_map_diff.display('Phase difference of one Pixel (Disc - Slab)')
     
     
 if __name__ == "__main__":
