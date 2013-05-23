@@ -40,7 +40,7 @@ def create_sample():
     elif key == 'filament':
         mag_shape = mc.Shapes.filament(dim, pos)
     elif key == 'pixel':
-        mag_shape = mc.Shapes.single_pixel(dim, pixel)
+        mag_shape = mc.Shapes.pixel(dim, pixel)
     # Create magnetic distribution
     magnitude = mc.create_mag_dist(mag_shape, beta) 
     mag_data = MagData(res, magnitude)

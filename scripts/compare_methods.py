@@ -30,27 +30,34 @@ def phase_from_mag():
     beta    = pi/4
     padding = 20
     density = 10
-    dim = (1, 50, 50)  # in px (z, y, x)    
+    dim = (1, 100, 100)  # in px (z, y, x)    
     # Create magnetic shape:
     geometry = 'slab'        
     if geometry == 'slab':
-        center = (0, 24, 24)  # in px (z, y, x) index starts with 0!
-        width  = (1, 25, 25)  # in px (z, y, x)
+        center = (0, 49, 49)  # in px (z, y, x) index starts with 0!
+        width  = (1, 50, 50)  # in px (z, y, x)
         mag_shape = mc.Shapes.slab(dim, center, width)
-        phase_ana = an.phasemap_slab(dim, res, beta, center, width, b_0)
+        phase_ana = an.phase_mag_slab(dim, res, beta, center, width, b_0)
     elif geometry == 'disc':
-        radius = 12.5  # in px 
-        height =  1    # in px
+        center = (0, 49, 49)  # in px (z, y, x) index starts with 0!
+        radius = 25  # in px 
+        height =  1  # in px
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
-        phase_ana = an.phasemap_disc(dim, res, beta, center, radius, b_0)
+        phase_ana = an.phase_mag_disc(dim, res, beta, center, radius, b_0)
     # Project the magnetization data:    
     mag_data = MagData(res, mc.create_mag_dist(mag_shape, beta))    
     projection = pj.simple_axis_projection(mag_data)
     # Construct phase maps:
     phase_map_ana  = PhaseMap(res, phase_ana)
+    start_time = time.time()
     phase_map_fft  = PhaseMap(res, pm.phase_mag_fourier(res, projection, b_0, padding))
+    print 'Time for Fourier space approach:    ', time.time() - start_time
+    start_time = time.time()   
     phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab', b_0))
+    print 'Time for real space approach (Slab):', time.time() - start_time
+    start_time = time.time()
     phase_map_disc = PhaseMap(res, pm.phase_mag_real(res, projection, 'disc', b_0))
+    print 'Time for real space approach (Disc):', time.time() - start_time
     # Display the combinated plots with phasemap and holography image:
     hi.display_combined(phase_map_ana,  density, 'Analytic Solution')
     hi.display_combined(phase_map_fft,  density, 'Fourier Space')
@@ -65,12 +72,12 @@ def phase_from_mag():
     phase_map_diff_fft  = PhaseMap(res, phase_map_ana.phase-phase_map_fft.phase)
     phase_map_diff_slab = PhaseMap(res, phase_map_ana.phase-phase_map_slab.phase)
     phase_map_diff_disc = PhaseMap(res, phase_map_ana.phase-phase_map_disc.phase)
-    RMS_fft  = phase_map_diff_fft.phase
-    RMS_slab = phase_map_diff_slab.phase
-    RMS_disc = phase_map_diff_disc.phase
-    phase_map_diff_fft.display('Fourier Space (RMS = {})'.format(np.std(RMS_fft)))
-    phase_map_diff_slab.display('Real Space (Slab) (RMS = {})'.format(np.std(RMS_slab)))
-    phase_map_diff_disc.display('Real Space (Disc) (RMS = {})'.format(np.std(RMS_disc)))
+    RMS_fft  = np.std(phase_map_diff_fft.phase)
+    RMS_slab = np.std(phase_map_diff_slab.phase)
+    RMS_disc = np.std(phase_map_diff_disc.phase)
+    phase_map_diff_fft.display('Fourier Space (RMS = {:3.2e})'.format(RMS_fft))
+    phase_map_diff_slab.display('Real Space (Slab) (RMS = {:3.2e})'.format(RMS_slab))
+    phase_map_diff_disc.display('Real Space (Disc) (RMS = {:3.2e})'.format(RMS_disc))
     
     
 if __name__ == "__main__":

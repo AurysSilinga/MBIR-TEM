@@ -3,38 +3,22 @@
 
 
 import numpy as np
-import matplotlib.pyplot as plt
 from numpy import pi
 
 
 PHI_0 = 2067.83  # magnetic flux in T*nm²
 
 
-def plot_phase(phase, res, name):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, aspect='equal')
-    plt.pcolormesh(phase, cmap='gray')
-    ticks = ax.get_xticks() * res
-    ax.set_xticklabels(ticks.astype(int))
-    ticks = ax.get_yticks() * res
-    ax.set_yticklabels(ticks.astype(int))
-    ax.set_title('Analytical Solution' + name)
-    ax.set_xlabel('x-axis [nm]')
-    ax.set_ylabel('y-axis [nm]')
-    plt.colorbar()
-    plt.show()
-
-
-def phasemap_slab(dim, res, beta, center, width, b_0):
+def phase_mag_slab(dim, res, beta, center, width, b_0):
     '''INPUT VARIABLES'''
     z_dim, y_dim, x_dim = dim
     # y0, x0 have to be in the center of a pixel, hence: cellindex + 0.5
-    y0 = res * (center[0] + 0.5)
-    x0 = res * (center[1] + 0.5)
+    y0 = res * (center[1] + 0.5)
+    x0 = res * (center[2] + 0.5)
     # Ly, Lx have to be odd, because the slab borders should not lie in the
     # center of a pixel (so L/2 can't be an integer)
-    Ly = res * ( width[0] + (width[0]+1)%2) 
-    Lx = res * ( width[1] + (width[1]+1)%2)   
+    Ly = res * ( width[1] + (width[1]+1)%2) 
+    Lx = res * ( width[2] + (width[2]+1)%2)   
     
     '''COMPUTATION MAGNETIC PHASE SHIFT (REAL SPACE) SLAB'''
 
@@ -63,12 +47,12 @@ def phasemap_slab(dim, res, beta, center, width, b_0):
     return phiMag(xx, yy)
     
     
-def phasemap_disc(dim, res, beta, center, radius, b_0):
+def phase_mag_disc(dim, res, beta, center, radius, b_0):
     '''INPUT VARIABLES'''
-    y_dim, x_dim = dim
+    z_dim, y_dim, x_dim = dim
     # y0, x0 have to be in the center of a pixel, hence: cellindex + 0.5
-    y0 = res * (center[0] + 0.5)
-    x0 = res * (center[1] + 0.5)
+    y0 = res * (center[1] + 0.5)
+    x0 = res * (center[2] + 0.5)
     # TODO: Explanation
     # Ly, Lx have to be odd, because the slab borders should not lie in the
     # center of a pixel (so L/2 can't be an integer)
@@ -82,7 +66,7 @@ def phasemap_disc(dim, res, beta, center, radius, b_0):
     
     def phiMag(x,y):
         r = np.hypot(x-x0, y-y0)
-        r[center[0], center[1]] = 1E-18
+        r[center[1], center[2]] = 1E-30
         result = coeff * ((y-y0) * np.cos(beta) - (x-x0) * np.sin(beta))
         in_or_out = 1 * (r < R) + (R / r) ** 2 * (r > R)
 #        import pdb; pdb.set_trace() 
@@ -97,7 +81,7 @@ def phasemap_disc(dim, res, beta, center, radius, b_0):
     return phiMag(xx, yy)
     
     
-def phasemap_sphere(dim, res, beta, center, radius, b_0):
+def phase_mag_sphere(dim, res, beta, center, radius, b_0):
     
     # TODO: Sphere is equivalent to disc, if only one pixel in z is used!
     

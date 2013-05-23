@@ -118,7 +118,7 @@ class Shapes:
         return mag_shape
     
     @classmethod    
-    def single_pixel(cls, dim, pixel):
+    def pixel(cls, dim, pixel):
         '''Get the magnetic shape of a single magnetized pixel.
         Arguments:
             dim   - the dimensions of the grid, shape(z, y, x)
@@ -146,9 +146,9 @@ def create_mag_dist(mag_shape, beta, magnitude=1):
     '''
     dim = np.shape(mag_shape)
     assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
-    z_mag = np.array(np.zeros(dim))  # TODO: Implement another angle!
-    y_mag = np.array(np.ones(dim)) * np.sin(beta) * mag_shape * magnitude
-    x_mag = np.array(np.ones(dim)) * np.cos(beta) * mag_shape * magnitude
+    z_mag = np.zeros(dim)  # TODO: Implement another angle!
+    y_mag = np.ones(dim) * np.sin(beta) * mag_shape * magnitude
+    x_mag = np.ones(dim) * np.cos(beta) * mag_shape * magnitude
     return z_mag, y_mag, x_mag
 
 

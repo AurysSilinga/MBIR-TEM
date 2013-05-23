@@ -1,29 +1,31 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 24 07:10:28 2013
+"""Testcase for the analytic module."""
 
-@author: Jan
-"""
-# py.test
 
 import unittest
+import pyramid.analytic as an
 
 
-class TestSuite(unittest.TestCase):
+class TestCaseAnalytic(unittest.TestCase):
     
     def setUp(self):
         pass
     
     def tearDown(self):
         pass
+        
+    def test_template(self):
+        pass
     
-    def test(self):
-        self.assertTrue(True)
-        
-    def test_almost(self):
-        self.assertAlmostEqual(0, 0.01, places=1)
-        
-        
+    def test_phase_mag_slab(self):
+        pass
+    
+    def test_phase_mag_disc(self):
+        pass
+    
+    def test_phase_mag_sphere(self):
+        pass
+            
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestSuite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseAnalytic)
     unittest.TextTestRunner(verbosity=2).run(suite)

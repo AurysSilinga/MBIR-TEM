@@ -18,14 +18,14 @@ def simple_axis_projection(mag_data, axis='z'):
     assert isinstance(mag_data, MagData), 'Parameter mag_data has to be a MagData object!'
     assert axis == 'z' or axis == 'y' or axis == 'x', 'Axis has to be x, y or z (as String)!'
     if axis == 'z':
-        projection = (mag_data.magnitude[1].mean(0) * mag_data.dim[0],  # y_mag -> v_mag
-                      mag_data.magnitude[2].mean(0) * mag_data.dim[0])  # x_mag -> u_mag
+        projection = (mag_data.magnitude[1].sum(0),  # y_mag -> v_mag
+                      mag_data.magnitude[2].sum(0))  # x_mag -> u_mag
     elif axis == 'y':
-        projection = (mag_data.magnitude[0].mean(1) * mag_data.dim[1],  # z_mag -> v_mag
-                      mag_data.magnitude[2].mean(1) * mag_data.dim[1])  # x_mag -> u_mag
+        projection = (mag_data.magnitude[0].sum(1),  # z_mag -> v_mag
+                      mag_data.magnitude[2].sum(1))  # x_mag -> u_mag
     elif axis == 'x':
-        projection = (mag_data.magnitude[0].mean(2) * mag_data.dim[2],  # y_mag -> v_mag
-                      mag_data.magnitude[1].mean(2) * mag_data.dim[2])  # x_mag -> u_mag
+        projection = (mag_data.magnitude[0].sum(2),  # z_mag -> v_mag
+                      mag_data.magnitude[1].sum(2))  # y_mag -> u_mag
     return projection
     
     

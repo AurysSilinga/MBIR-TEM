@@ -57,13 +57,67 @@ def phase_mag_real(res, projection, method, b_0=1, jacobi=None):
         projection - projection of a magnetic distribution (created with pyramid.projector)
         method     - String, describing the method to use for the pixel field ('slab' or 'disc')
         b_0        - magnetic induction corresponding to a magnetization Mo in T (default: 1)
-        padding    - factor for zero padding, the default is 0 (no padding), for a factor of n the 
-                     number of pixels is increase by (1+n)**2, padded zeros are cropped at the end
+        jacobi     - matrix in which to save the jacobi matrix (default: None, faster computation)
     Returns:
         the phasemap as a 2 dimensional array
     
-    '''# TODO: Docstring!
-    def phi_lookup(method, n, m, res, b_0):  # TODO: rename
+    '''
+    def phi_lookup(method, n, m, res, b_0):
+        if method == 'slab':    
+            def F_h(n, m):
+                a = np.log(res**2 * (n**2 + m**2))
+                b = np.arctan(n / m)
+                return n*a - 2*n + 2*m*b            
+            return coeff * 0.5 * ( F_h(n-0.5, m-0.5) - F_h(n+0.5, m-0.5) 
+                                  -F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5) ) 
+        elif method == 'disc':
+            in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
+            return coeff * m / (n**2 + m**2 + 1E-30) * in_or_out
+#    def phi_mag(i, j):  # TODO: rename
+#        return (np.cos(beta[j,i])*phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+#               -np.sin(beta[j,i])*phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
+#                                          
+#    def phi_mag_deriv(i, j):  # TODO: rename
+#        return -(np.sin(beta[j,i])*phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+#                +np.cos(beta[j,i])*phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
+    # Process input parameters:
+    v_dim, u_dim = np.shape(projection[0])
+    v_mag, u_mag = projection 
+    coeff = -b_0 * res**2 / ( 2 * PHI_0 )            
+    # Create lookup-tables for the phase of one pixel:
+    u = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
+    v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
+    uu, vv = np.meshgrid(u, v)
+    phi_u = phi_lookup(method, uu, vv, res, b_0)
+    phi_v = phi_lookup(method, vv, uu, res, b_0)    
+    '''CALCULATE THE PHASE'''
+    phase = np.zeros((v_dim, u_dim))
+    for j in range(v_dim):  # TODO: only iterate over pixels that have a magn. > threshold (first >0)
+        for i in range(u_dim):
+            if (u_mag[j,i] != 0 and v_mag[j,i] != 0) or jacobi is not None: # TODO: same result with or without?
+                phase_u = phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]                
+                phase_v = phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+                phase += u_mag[j,i]*phase_u - v_mag[j,i]*phase_v
+                if jacobi is not None:
+                    jacobi[:,i+u_dim*j]             =  phase_u.reshape(-1)
+                    jacobi[:,u_dim*v_dim+i+u_dim*j] = -phase_v.reshape(-1)
+    
+    return phase
+    
+    
+def phase_mag_real_ANGLE(res, projection, method, b_0=1, jacobi=None):  # TODO: Modify
+    '''Calculate phasemap from magnetization data (real space approach).
+    Arguments:
+        res        - the resolution of the grid (grid spacing) in nm
+        projection - projection of a magnetic distribution (created with pyramid.projector)
+        method     - String, describing the method to use for the pixel field ('slab' or 'disc')
+        b_0        - magnetic induction corresponding to a magnetization Mo in T (default: 1)
+        jacobi     - matrix in which to save the jacobi matrix (default: None, faster computation)
+    Returns:
+        the phasemap as a 2 dimensional array
+    
+    '''
+    def phi_lookup(method, n, m, res, b_0):
         if method == 'slab':    
             def F_h(n, m):
                 a = np.log(res**2 * (n**2 + m**2))

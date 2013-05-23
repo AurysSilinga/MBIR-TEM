@@ -8,10 +8,10 @@ from numpy import pi
 
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
-#import pyramid.phasemapper as pm
-#import pyramid.projector as pj
-#import pyramid.holoimage as hi
-#from pyramid.phasemap import PhaseMap
+import pyramid.phasemapper as pm
+import pyramid.projector as pj
+import pyramid.holoimage as hi
+from pyramid.phasemap import PhaseMap
 
 
 def create_random_distribution():
@@ -33,7 +33,7 @@ def create_random_distribution():
     magnitude_list = np.zeros(count)
     for i in range(count):
         pixel = (rnd.randrange(dim[0]), rnd.randrange(dim[1]), rnd.randrange(dim[2]))
-        mag_shape_list[i,...] = mc.Shapes.single_pixel(dim, pixel)
+        mag_shape_list[i,...] = mc.Shapes.pixel(dim, pixel)
         beta_list[i] = 2*pi*rnd.random()
         magnitude_list[i] = 1#rnd.random()
     # Create magnetic distribution
@@ -41,9 +41,9 @@ def create_random_distribution():
     mag_data = MagData(res, magnitude)
     mag_data.quiver_plot()
     mag_data.save_to_llg('../output/mag_dist_random_pixel.txt')
-#    projection = pj.simple_axis_projection(mag_data)
-#    phase_map  = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))    
-#    hi.display(hi.holo_image(phase_map, 10))
+    projection = pj.simple_axis_projection(mag_data)
+    phase_map  = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))    
+    hi.display(hi.holo_image(phase_map, 10))
     
     
 if __name__ == "__main__":

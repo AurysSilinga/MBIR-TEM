@@ -1,8 +1,12 @@
+# -*- coding: utf-8 -*-
+"""Testcase for the magcreator module."""
+
+
 import os
 import unittest
 
 
-class TestCompliance(unittest.TestCase):
+class TestCaseCompliance(unittest.TestCase):
     """
     Class for checking compliance of pyjurassic.
     """

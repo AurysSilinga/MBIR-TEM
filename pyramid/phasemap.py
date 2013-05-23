@@ -4,6 +4,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import tables.netcdf3 as nc
 
 
 class PhaseMap:
@@ -27,8 +28,8 @@ class PhaseMap:
         self.phase = phase
         
     @classmethod
-    def load_from_file(cls, filename):
-        '''Construct PhaseMap object from file (classmethod).
+    def load_from_txt(cls, filename):
+        '''Construct PhaseMap object from a human readable txt-file (classmethod).
         Arguments:
             filename - name of the file from which to load the data
         Returns.
@@ -41,8 +42,8 @@ class PhaseMap:
             phase = np.loadtxt(filename, delimiter='    ', skiprows=2)
         return PhaseMap(res, phase)
 
-    def save_to_file(self, filename='phasemap_output.txt'):
-        '''Save magnetization data in a file with LLG-format.
+    def save_to_txt(self, filename='..\output\phasemap_output.txt'):
+        '''Save PhaseMap data in a file with txt-format.
         Arguments:
             filename - the name of the file in which to store the phase map data
                        (default: 'phasemap_output.txt')
@@ -53,7 +54,39 @@ class PhaseMap:
         with open(filename, 'w') as f:
             f.write('{}\n'.format(filename.replace('.txt', '')))
             f.write('resolution = {} nm\n'.format(self.res))
-            np.savetxt(f, self.phase, fmt='%7.6e', delimiter='    ')        
+            np.savetxt(f, self.phase, fmt='%7.6e', delimiter='    ')    
+                        
+    @classmethod
+    def load_from_netcdf(cls, filename):
+        '''Construct PhaseMap object from a NetCDF-file (classmethod).
+        Arguments:
+            filename - name of the file from which to load the data
+        Returns:
+            PhaseMap object
+            
+        '''
+        f = nc.NetCDFFile(filename, 'r')
+        res = getattr(f, 'res')
+        phase = f.variables['phase'].getValue()
+        f.close()
+        return PhaseMap(res, phase)
+    
+    def save_to_netcdf(self, filename='..\output\phasemap_output.nc'):
+        '''Save PhaseMap data in a file with NetCDF-format.
+        Arguments:
+            filename - the name of the file in which to store the phase map data
+                       (default: 'phasemap_output.txt')
+        Returns:
+            None
+            
+        '''
+        f = nc.NetCDFFile(filename, 'w')
+        setattr(f, 'res', self.res)
+        f.createDimension('v_dim', self.dim[0])
+        f.createDimension('u_dim', self.dim[1])
+        phase = f.createVariable('phase', 'f', ('v_dim', 'u_dim'))
+        phase[:] = self.phase
+        f.close()
 
     def display(self, title='Phase Map', axis=None, cmap='gray'):
         '''Display the phasemap as a colormesh.

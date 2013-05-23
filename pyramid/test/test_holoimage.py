@@ -1,29 +1,31 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 24 07:10:28 2013
+"""Testcase for the holoimage module."""
 
-@author: Jan
-"""
-# py.test
 
 import unittest
+import pyramid.holoimage as hi
 
 
-class TestSuite(unittest.TestCase):
+class TestCaseHoloImage(unittest.TestCase):
     
     def setUp(self):
         pass
     
     def tearDown(self):
         pass
+        
+    def test_holo_image(self):
+        pass
+        
+    def test_make_color_wheel(self):
+        pass
     
-    def test(self):
-        self.assertTrue(True)
-        
-    def test_almost(self):
-        self.assertAlmostEqual(0, 0.01, places=1)
-        
+    def test_display(self):
+        pass
+    
+    def test_display_combined(self):
+        pass
         
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestSuite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseHoloImage)
     unittest.TextTestRunner(verbosity=2).run(suite)

@@ -7,8 +7,9 @@ Created on Wed Apr 03 11:15:38 2013
 
 import numpy as np
 import pyramid.magcreator as mc
-import pyramid.dataloader as dl
-import pyramid.phasemap as pm
+import pyramid.projector as pj
+import pyramid.phasemapper as pm
+from pyramid.magdata import MagData
 import time
 import pdb, traceback, sys
 from numpy import pi
@@ -23,32 +24,27 @@ def phase_from_mag():
     
     '''
     # TODO: Input via GUI
-    filename = '../output/output.txt'
     b_0 = 1.0  # in T    
-    dim = (3, 3)  # in px (y,x)
+    dim = (1, 3, 3)  # in px (y,x)
     res = 10.0  # in nm
-    beta = pi/4    
+    beta = 0*pi/4    
     
-    center = (1, 1)  # in px (y,x) index starts with 0!
-    width  = (1, 1)  # in px (y,x)
-    mag_shape = mc.slab(dim, center, width)
+    center = (0, 1, 1)  # in px (y,x) index starts with 0!
+    width  = (0, 1, 1)  # in px (y,x)
+    mag_shape = mc.Shapes.slab(dim, center, width)
+
+    mag_data = MagData(res, mc.create_mag_dist(mag_shape, beta))
     
-    '''CREATE MAGNETIC DISTRIBUTION'''
-    mc.create_hom_mag(dim, res, beta, mag_shape, filename)
-    
-    '''LOAD MAGNETIC DISTRIBUTION'''
-    mag_data = dl.MagDataLLG(filename)
+    projection = pj.simple_axis_projection(mag_data)
     
     '''NUMERICAL SOLUTION'''
     # numerical solution Real Space (Slab):
-    jacobi = np.zeros((dim[0]*dim[1], 2*dim[0]*dim[1]))
+    jacobi = np.zeros((dim[2]*dim[1], 2*dim[2]*dim[1]))
     tic = time.clock()
-    pm.real_space(mag_data, 'slab', b_0, jacobi=jacobi)
+    pm.phase_mag_real(res, projection, 'slab', b_0, jacobi=jacobi)
     toc = time.clock()
     np.savetxt('../output/jacobi.npy', jacobi)
     print 'Time for Real Space Approach with Jacobi-Matrix (Slab): ' + str(toc - tic)
-    
-    
     
     return jacobi
     
