@@ -51,9 +51,14 @@ class TestCaseCompliance(unittest.TestCase):
         self.assertTrue(self.pep8 is not None,
                         msg="Install Python pep8 module to fully execute testbench!")
         errors = 0
-        for dir_name in ["test", os.environ["BUILDDIR"]]:
+        for dir_name in "./":
             errors += self.checkDirectory(dir_name)
         self.assertEqual(errors, 0)
+
+
+if __name__ == '__main__':
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseCompliance)
+    unittest.TextTestRunner(verbosity=2).run(suite)
 
 #    def test_variables(self):
 #        """

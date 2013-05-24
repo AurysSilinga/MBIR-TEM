@@ -62,6 +62,7 @@ def phase_mag_real(res, projection, method, b_0=1, jacobi=None):
         the phasemap as a 2 dimensional array
     
     '''
+    # Function for creating the lookup-tables:
     def phi_lookup(method, n, m, res, b_0):
         if method == 'slab':    
             def F_h(n, m):
@@ -73,13 +74,6 @@ def phase_mag_real(res, projection, method, b_0=1, jacobi=None):
         elif method == 'disc':
             in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
             return coeff * m / (n**2 + m**2 + 1E-30) * in_or_out
-#    def phi_mag(i, j):  # TODO: rename
-#        return (np.cos(beta[j,i])*phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
-#               -np.sin(beta[j,i])*phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
-#                                          
-#    def phi_mag_deriv(i, j):  # TODO: rename
-#        return -(np.sin(beta[j,i])*phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
-#                +np.cos(beta[j,i])*phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
     # Process input parameters:
     v_dim, u_dim = np.shape(projection[0])
     v_mag, u_mag = projection 
@@ -90,22 +84,35 @@ def phase_mag_real(res, projection, method, b_0=1, jacobi=None):
     uu, vv = np.meshgrid(u, v)
     phi_u = phi_lookup(method, uu, vv, res, b_0)
     phi_v = phi_lookup(method, vv, uu, res, b_0)    
-    '''CALCULATE THE PHASE'''
+    # Calculation of the phase:
     phase = np.zeros((v_dim, u_dim))
-    for j in range(v_dim):  # TODO: only iterate over pixels that have a magn. > threshold (first >0)
-        for i in range(u_dim):
-            if (u_mag[j,i] != 0 and v_mag[j,i] != 0) or jacobi is not None: # TODO: same result with or without?
-                phase_u = phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]                
+    threshold = 0
+    if jacobi is not None:  # With Jacobian matrix (slower)
+        jacobi[:] = 0  # Jacobi matrix --> zeros
+        ############################### TODO: NUMERICAL CORE  #####################################
+        for j in range(v_dim):
+            for i in range(u_dim):
+                phase_u = phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+                jacobi[:,i+u_dim*j] = phase_u.reshape(-1)
+                if abs(u_mag[j, i]) > threshold:
+                    phase += u_mag[j,i] * phase_u
                 phase_v = phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
-                phase += u_mag[j,i]*phase_u - v_mag[j,i]*phase_v
-                if jacobi is not None:
-                    jacobi[:,i+u_dim*j]             =  phase_u.reshape(-1)
-                    jacobi[:,u_dim*v_dim+i+u_dim*j] = -phase_v.reshape(-1)
-    
+                jacobi[:,u_dim*v_dim+i+u_dim*j] = -phase_v.reshape(-1)
+                if abs(v_mag[j, i]) > threshold:
+                    phase -= v_mag[j,i] * phase_v
+        ############################### TODO: NUMERICAL CORE  #####################################
+    else:  # Without Jacobi matrix (faster)
+        for j in range(v_dim):
+            for i in range(u_dim):
+                if abs(u_mag[j, i]) > threshold:
+                    phase += u_mag[j, i] * phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+                if abs(v_mag[j, i]) > threshold:
+                    phase -= v_mag[j, i] * phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+    # Return the phase:
     return phase
     
     
-def phase_mag_real_ANGLE(res, projection, method, b_0=1, jacobi=None):  # TODO: Modify
+def phase_mag_real_alt(res, projection, method, b_0=1, jacobi=None):  # TODO: Modify
     '''Calculate phasemap from magnetization data (real space approach).
     Arguments:
         res        - the resolution of the grid (grid spacing) in nm
@@ -117,78 +124,58 @@ def phase_mag_real_ANGLE(res, projection, method, b_0=1, jacobi=None):  # TODO: 
         the phasemap as a 2 dimensional array
     
     '''
+    # Function for creating the lookup-tables:
     def phi_lookup(method, n, m, res, b_0):
         if method == 'slab':    
             def F_h(n, m):
                 a = np.log(res**2 * (n**2 + m**2))
                 b = np.arctan(n / m)
                 return n*a - 2*n + 2*m*b            
-            coeff = -b_0 * res**2 / ( 2 * PHI_0 )
             return coeff * 0.5 * ( F_h(n-0.5, m-0.5) - F_h(n+0.5, m-0.5) 
                                   -F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5) ) 
         elif method == 'disc':
-            coeff = - b_0 * res**2 / ( 2 * PHI_0 )
             in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
             return coeff * m / (n**2 + m**2 + 1E-30) * in_or_out
-    
+    # Function for the phase contribution of one pixel:
+    def phi_mag(i, j):
+        return (np.cos(beta[j,i])*phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+               -np.sin(beta[j,i])*phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
+    # Function for the derivative of the phase contribution of one pixel:                                   
+    def phi_mag_deriv(i, j):
+        return -(np.sin(beta[j,i])*phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+                +np.cos(beta[j,i])*phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
+    # Process input parameters:
     v_dim, u_dim = np.shape(projection[0])
     v_mag, u_mag = projection
-    
     beta = np.arctan2(v_mag, u_mag)
-    mag = np.hypot(u_mag, v_mag) 
-                
-    '''CREATE COORDINATE GRIDS'''
-    u = np.linspace(0,(u_dim-1),num=u_dim)
-    v = np.linspace(0,(v_dim-1),num=v_dim)
-    uu, vv = np.meshgrid(u,v)
-     
-    u_lookup = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
-    v_lookup = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
-    uu_lookup, vv_lookup = np.meshgrid(u_lookup, v_lookup)
-    
-    phi_cos = phi_lookup(method, uu_lookup, vv_lookup, res, b_0)
-    phi_sin = phi_lookup(method, vv_lookup, uu_lookup, res, b_0)
-            
-    def phi_mag(i, j):  # TODO: rename
-        return (np.cos(beta[j,i])*phi_cos[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
-               -np.sin(beta[j,i])*phi_sin[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
-                                          
-    def phi_mag_deriv(i, j):  # TODO: rename
-        return -(np.sin(beta[j,i])*phi_cos[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
-                +np.cos(beta[j,i])*phi_sin[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
-                                           
-    def phi_mag_fd(i, j, h):  # TODO: rename
-        return ((np.cos(beta[j,i]+h) - np.cos(beta[j,i])) / h 
-                      * phi_cos[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
-               -(np.sin(beta[j,i]+h) - np.sin(beta[j,i])) / h 
-                      * phi_sin[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i])
-    
-    '''CALCULATE THE PHASE'''
+    mag  = np.hypot(u_mag, v_mag) 
+    coeff = -b_0 * res**2 / ( 2 * PHI_0 )            
+    # Create lookup-tables for the phase of one pixel:
+    u = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
+    v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
+    uu, vv = np.meshgrid(u, v)
+    phi_u = phi_lookup(method, uu, vv, res, b_0)
+    phi_v = phi_lookup(method, vv, uu, res, b_0)    
+    # Calculation of the phase:
     phase = np.zeros((v_dim, u_dim))
-    
-    # TODO: only iterate over pixels that have a magn. > threshold (first >0)
-    if jacobi is not None:
-        jacobi_fd = jacobi.copy()
-    h = 0.0001
-    
-    for j in range(v_dim):
-        for i in range(u_dim):
-            #if (mag[j,i] != 0 ):#or jacobi is not None): # TODO: same result with or without?
-                phi_mag_cache = phi_mag(i, j)
-                phase += mag[j,i] * phi_mag_cache
-                if jacobi is not None:
-                    jacobi[:,i+u_dim*j] = phi_mag_cache.reshape(-1)
+    threshold = 0
+    if jacobi is not None:  # With Jacobian matrix (slower)
+        jacobi[:] = 0  # Jacobi matrix --> zeros
+        ############################### TODO: NUMERICAL CORE  #####################################
+        for j in range(v_dim):
+            for i in range(u_dim):
+                phase_cache = phi_mag(i, j)
+                jacobi[:,i+u_dim*j] = phase_cache.reshape(-1)
+                if mag[j, i] > threshold:
+                    phase += mag[j,i]*phase_cache
                     jacobi[:,u_dim*v_dim+i+u_dim*j] = (mag[j,i]*phi_mag_deriv(i,j)).reshape(-1)
-                    
-                    jacobi_fd[:,i+u_dim*j] = phi_mag_cache.reshape(-1)
-                    jacobi_fd[:,u_dim*v_dim+i+u_dim*j] = (mag[j,i]*phi_mag_fd(i,j,h)).reshape(-1)  
-                    
-                    
-    
-    if jacobi is not None:
-        jacobi_diff = jacobi_fd - jacobi
-        assert (np.abs(jacobi_diff) < 1.0E-8).all(), 'jacobi matrix is not the same'
-    
+        ############################### TODO: NUMERICAL CORE  #####################################
+    else:  # Without Jacobi matrix (faster)
+        for j in range(v_dim):
+            for i in range(u_dim):
+                if abs(mag[j, i]) > threshold:
+                    phase += mag[j,i] * phi_mag(i, j)
+    # Return the phase:
     return phase
     
 

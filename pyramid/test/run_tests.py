@@ -31,7 +31,7 @@ def run():
     suite.addTest(loader.loadTestsFromTestCase(TestCaseAnalytic))
     suite.addTest(loader.loadTestsFromTestCase(TestCaseReconstructor))
     runner.run(suite)
-
+    
 
 if __name__ == '__main__':
     run()
