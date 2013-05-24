@@ -28,8 +28,8 @@ def phase_from_mag():
     # Input parameters:
     b_0     =  1    # in T
     res     = 10.0  # in nm
-    beta    = pi/4#np.linspace(0, 2*pi, endpoint=False, num=72)
-    padding = range(26)
+    betas    = pi/4#np.linspace(0, 2*pi, endpoint=False, num=72)
+    paddings = range(26)
     dim = (1, 100, 100)  # in px (z, y, x)    
     # Create magnetic shape:
     geometry = 'slab'        
@@ -48,25 +48,25 @@ def phase_from_mag():
     mag_data = MagData(res, mc.create_mag_dist(mag_shape, beta))    
     projection = pj.simple_axis_projection(mag_data)
    
-#    '''FOURIER'''
-#    #padding
-#    RMS = np.zeros(len(padding))
-#    duration = np.zeros(len(padding))
-#    for i in range(len(padding)):
-#        print 'padding =', padding[i]
-#        start_time = time.time()
-#        phase_num  = pm.phase_mag_fourier(res, projection, b_0, padding[i])
-#        duration[i] = time.time() - start_time
-#        phase_diff = phase_ana - phase_num
-#        RMS[i]  = np.std(phase_diff)
-#    
-#    fig = plt.figure()
-#    fig.add_subplot(111)    
-#    plt.plot(padding, RMS)
-#    
-#    fig = plt.figure()
-#    fig.add_subplot(111)    
-#    plt.plot(padding, duration)
+    '''FOURIER'''
+    #padding
+    RMS = np.zeros(len(paddings))
+    duration = np.zeros(len(paddings))
+    for (i, padding) in enumerate(paddings):
+        print 'padding =', padding[i]
+        start_time = time.time()
+        phase_num  = pm.phase_mag_fourier(res, projection, b_0, padding[i])
+        duration[i] = time.time() - start_time
+        phase_diff = phase_ana - phase_num
+        RMS[i]  = np.std(phase_diff)
+    
+    fig = plt.figure()
+    fig.add_subplot(111)
+    plt.plot(padding, RMS)
+    
+    fig = plt.figure()
+    fig.add_subplot(111)    
+    plt.plot(padding, duration)
     
     
     '''REAL SLAB '''

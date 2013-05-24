@@ -17,8 +17,8 @@ def phase_mag_slab(dim, res, beta, center, width, b_0):
     x0 = res * (center[2] + 0.5)
     # Ly, Lx have to be odd, because the slab borders should not lie in the
     # center of a pixel (so L/2 can't be an integer)
-    Ly = res * ( width[1] + (width[1]+1)%2) 
-    Lx = res * ( width[2] + (width[2]+1)%2)   
+    Ly = res * (width[1] + (width[1]+1)%2) 
+    Lx = res * (width[2] + (width[2]+1)%2)   
     
     '''COMPUTATION MAGNETIC PHASE SHIFT (REAL SPACE) SLAB'''
 
