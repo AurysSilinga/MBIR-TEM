@@ -16,7 +16,7 @@ from pyramid.magdata  import MagData
 from pyramid.phasemap import PhaseMap
 
 
-def phase_from_mag():
+def compare_methods():
     '''Calculate and display the phase map from a given magnetization.
     Arguments:
         None
@@ -25,27 +25,33 @@ def phase_from_mag():
     
     '''
     # Input parameters:
-    b_0     =  1    # in T
+    b_0     = 1    # in T
     res     = 10.0  # in nm
     beta    = pi/4
     padding = 20
     density = 10
-    dim = (1, 100, 100)  # in px (z, y, x)    
+    dim = (1, 128, 128)  # in px (z, y, x)    
     # Create magnetic shape:
     geometry = 'slab'        
     if geometry == 'slab':
-        center = (0, 49, 49)  # in px (z, y, x) index starts with 0!
-        width  = (1, 50, 50)  # in px (z, y, x)
+        center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
+        width  = (1, dim[1]/2., dim[2]/2.)  # in px (z, y, x)
         mag_shape = mc.Shapes.slab(dim, center, width)
         phase_ana = an.phase_mag_slab(dim, res, beta, center, width, b_0)
     elif geometry == 'disc':
-        center = (0, 49, 49)  # in px (z, y, x) index starts with 0!
-        radius = 25  # in px 
-        height =  1  # in px
+        center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
+        radius = dim[1]/4  # in px 
+        height = 1  # in px
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
-        phase_ana = an.phase_mag_disc(dim, res, beta, center, radius, b_0)
+        phase_ana = an.phase_mag_disc(dim, res, beta, center, radius, height, b_0)
+    elif geometry == 'sphere':
+        center = (50, 50, 50)  # in px (z, y, x) index starts with 0!
+        radius = 25  # in px 
+        mag_shape = mc.Shapes.sphere(dim, center, radius)
+        phase_ana = an.phase_mag_sphere(dim, res, beta, center, radius, b_0)
     # Project the magnetization data:    
-    mag_data = MagData(res, mc.create_mag_dist(mag_shape, beta))    
+    mag_data = MagData(res, mc.create_mag_dist(mag_shape, beta))
+    mag_data.quiver_plot(ax_slice=int(center[0]))
     projection = pj.simple_axis_projection(mag_data)
     # Construct phase maps:
     phase_map_ana  = PhaseMap(res, phase_ana)
@@ -63,11 +69,6 @@ def phase_from_mag():
     hi.display_combined(phase_map_fft,  density, 'Fourier Space')
     hi.display_combined(phase_map_slab, density, 'Real Space (Slab)')
     hi.display_combined(phase_map_disc, density, 'Real Space (Disc)')
-    # Display all phase maps:
-    phase_map_ana.display('Analytic Solution')
-    phase_map_fft.display('Fourier Space')
-    phase_map_slab.display('Real Space (Slab)')
-    phase_map_disc.display('Real Space (Disc)')
     # Plot differences to the analytic solution:
     phase_map_diff_fft  = PhaseMap(res, phase_map_ana.phase-phase_map_fft.phase)
     phase_map_diff_slab = PhaseMap(res, phase_map_ana.phase-phase_map_slab.phase)
@@ -82,7 +83,7 @@ def phase_from_mag():
     
 if __name__ == "__main__":
     try:
-        phase_from_mag()
+        compare_methods()
     except:
         type, value, tb = sys.exc_info()
         traceback.print_exc()

@@ -40,7 +40,7 @@ def create_random_slabs():
         mag_shape_list[i,...] = mc.Shapes.slab(dim, center, width)
         beta_list[i] = 2*pi*rnd.random()
         magnitude_list[i] = 1#rnd.random()
-    # Create magnetic distribution
+    # Create magnetic distribution:
     magnitude = mc.create_mag_dist_comb(mag_shape_list, beta_list, magnitude_list) 
     mag_data = MagData(res, magnitude)
     mag_data.quiver_plot()

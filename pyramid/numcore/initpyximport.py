@@ -8,7 +8,7 @@ import pyximport
 
 
 if os.name == 'nt':
-    if os.environ.has_key('CPATH'):
+    if 'CPATH' in os.environ:
         os.environ['CPATH'] = os.environ['CPATH'] + numpy.get_include()
     else:
         os.environ['CPATH'] = numpy.get_include()
@@ -19,14 +19,14 @@ if os.name == 'nt':
 #    else:
 #        os.environ['PATH'] = 'C:\MinGW\bin'
 
-    mingw_setup_args = { 'options': { 'build_ext': { 'compiler': 'mingw32' } } }
+    mingw_setup_args = {'options': {'build_ext': {'compiler': 'mingw32'}}}
     pyximport.install(setup_args=mingw_setup_args, inplace=True)
 
 
 elif os.name == 'posix':
-    if os.environ.has_key('CFLAGS'):
+    if 'CFLAGS' in os.environ:
         os.environ['CFLAGS'] = os.environ['CFLAGS'] + ' -I' + numpy.get_include()
     else:
         os.environ['CFLAGS'] = ' -I' + numpy.get_include()
-        
+
     pyximport.install(inplace=True)

@@ -13,7 +13,7 @@ def simple_axis_projection(mag_data, axis='z'):
     Returns:
         the in-plane projection of the magnetization as a tuple: (x_mag, y_mag)
         ()
-    
+
     '''
     assert isinstance(mag_data, MagData), 'Parameter mag_data has to be a MagData object!'
     assert axis == 'z' or axis == 'y' or axis == 'x', 'Axis has to be x, y or z (as String)!'
@@ -27,8 +27,7 @@ def simple_axis_projection(mag_data, axis='z'):
         projection = (mag_data.magnitude[0].sum(2),  # z_mag -> v_mag
                       mag_data.magnitude[1].sum(2))  # y_mag -> u_mag
     return projection
-    
-    
+
 # TODO: proper projection algorithm with two angles and such!
 # CAUTION: the res for the projection does not have to be the res of the 3D-magnetization!
 # Just for a first approach

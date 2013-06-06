@@ -8,25 +8,25 @@ import tables.netcdf3 as nc
 
 
 class PhaseMap:
-    
+
     '''An object storing magnetization data.'''
-    
+
     def __init__(self, res, phase):
         '''Constructor for a MagData object for storing magnetization data.
         Arguments:
             res       - the resolution of the grid (grid spacing) in nm
-            magnitude - the z-, y- and x-component of the magnetization vector for every 
+            magnitude - the z-, y- and x-component of the magnetization vector for every
                         3D-gridpoint as a tuple
         Returns:
             MagData object
-        
+
         '''
         dim = np.shape(phase)
         assert len(dim) == 2, 'Phasemap has to be 2-dimensional!'
-        self.res   = res
-        self.dim   = dim
+        self.res = res
+        self.dim = dim
         self.phase = phase
-        
+
     @classmethod
     def load_from_txt(cls, filename):
         '''Construct PhaseMap object from a human readable txt-file (classmethod).
@@ -34,12 +34,12 @@ class PhaseMap:
             filename - name of the file from which to load the data
         Returns.
             PhaseMap object
-            
+
         '''
         with open(filename, 'r') as f:
             f.readline()  # Headerline is not used
             res = int(f.readline()[13:-4])
-            phase = np.loadtxt(filename, delimiter='    ', skiprows=2)
+            phase = np.loadtxt(filename, delimiter='\t', skiprows=2)
         return PhaseMap(res, phase)
 
     def save_to_txt(self, filename='..\output\phasemap_output.txt'):
@@ -49,13 +49,13 @@ class PhaseMap:
                        (default: 'phasemap_output.txt')
         Returns:
             None
-            
-        '''        
+
+        '''
         with open(filename, 'w') as f:
             f.write('{}\n'.format(filename.replace('.txt', '')))
             f.write('resolution = {} nm\n'.format(self.res))
-            np.savetxt(f, self.phase, fmt='%7.6e', delimiter='    ')    
-                        
+            np.savetxt(f, self.phase, fmt='%7.6e', delimiter='\t')
+
     @classmethod
     def load_from_netcdf(cls, filename):
         '''Construct PhaseMap object from a NetCDF-file (classmethod).
@@ -63,14 +63,14 @@ class PhaseMap:
             filename - name of the file from which to load the data
         Returns:
             PhaseMap object
-            
+
         '''
         f = nc.NetCDFFile(filename, 'r')
         res = getattr(f, 'res')
         phase = f.variables['phase'].getValue()
         f.close()
         return PhaseMap(res, phase)
-    
+
     def save_to_netcdf(self, filename='..\output\phasemap_output.nc'):
         '''Save PhaseMap data in a file with NetCDF-format.
         Arguments:
@@ -78,7 +78,7 @@ class PhaseMap:
                        (default: 'phasemap_output.txt')
         Returns:
             None
-            
+
         '''
         f = nc.NetCDFFile(filename, 'w')
         setattr(f, 'res', self.res)
@@ -96,12 +96,12 @@ class PhaseMap:
             cmap  - the colormap which is used for the plot (default: 'gray')
         Returns:
             None
-            
+
         '''
         # If no axis is specified, a new figure is created:
-        if axis == None:
+        if axis is None:
             fig = plt.figure()
-            axis = fig.add_subplot(1,1,1, aspect='equal')
+            axis = fig.add_subplot(1, 1, 1, aspect='equal')
         im = plt.pcolormesh(self.phase, cmap=cmap)
         # Set the axes ticks and labels:
         ticks = axis.get_xticks()*self.res
