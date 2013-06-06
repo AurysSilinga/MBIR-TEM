@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Unittests for pyramid.
-"""
+"""Unittests for pyramid."""
 
 import unittest
 from test_compliance import TestCaseCompliance

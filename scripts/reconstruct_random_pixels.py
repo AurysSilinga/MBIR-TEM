@@ -12,7 +12,7 @@ import pyramid.phasemapper as pm
 import pyramid.projector as pj
 import pyramid.holoimage as hi
 from pyramid.phasemap import PhaseMap
-from scipy.optimize import leastsq
+import pyramid.reconstructor as rc
 
 
 def reconstruct_random_distribution():
@@ -26,10 +26,11 @@ def reconstruct_random_distribution():
     # Input parameters:
     n_pixel = 10
     dim = (32, 32, 32)
-    b_0 = 1    # in T
+    b_0 = 1 # in T
     res = 10.0 # in nm
     rnd.seed(12)
     threshold = 0
+
     # Create lists for magnetic objects:
     mag_shape_list = np.zeros((n_pixel,) + dim)
     beta_list      = np.zeros(n_pixel)
@@ -52,34 +53,10 @@ def reconstruct_random_distribution():
     x_mask = abs(x_mag) > threshold
     y_mask = abs(y_mag) > threshold
     mask = np.logical_or(np.logical_or(x_mask, y_mask), z_mask)
-    # True values for the magnetisation informations, condensed into one vector:
-    x_t = mag_data.get_vector(mask)
-    # Create empty MagData object for the reconstruction:
-    mag_data_rec = MagData(res, (np.zeros(dim), np.zeros(dim), np.zeros(dim)))
-    ############################# FORWARD MODEL ###################################################
-    # Function that returns the phase map for a magnetic configuration x:
-    def F(x):
-        mag_data_rec.set_vector(mask, x)
-        phase = pm.phase_mag_real(res, pj.simple_axis_projection(mag_data_rec), 'slab', b_0)
-        return phase.reshape(-1)
-    ############################# FORWARD MODEL ###################################################
-    # Get a vector containing the measured phase at the specified places:
-    y_m = F(x_t)
-    print "y_m", y_m
-    ############################# RECONSTRUCTION ##################################################
-    lam = 1e-6  # Regularisation parameter
-    # Cost function which should be minimized:
-    def J(x_i):
-        y_i = F(x_i)
-        term1 = (y_i - y_m)
-        term2 = lam * x_i
-        return np.concatenate([term1, term2])
-    # Reconstruct the magnetization components:
-    x_f, _ = leastsq(J, np.zeros(x_t.shape))
-    ############################# RECONSTRUCTION ##################################################
-    # Save the reconstructed values in the MagData object:
-    y_f = F(x_f)
-    print "y_f", y_f
+    
+    # Reconstruct the magnetic distribution:
+    mag_data_rec = rc.reconstruct_simple_lsqu(phase_map, mask, b_0)
+
     # Display the reconstructed phase map and holography image:
     projection_rec = pj.simple_axis_projection(mag_data_rec)
     phase_map_rec = PhaseMap(res, pm.phase_mag_real(res, projection_rec, 'slab', b_0))
