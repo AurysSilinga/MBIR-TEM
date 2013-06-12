@@ -3,6 +3,7 @@
 
 
 import numpy as np
+from numpy import pi
 
 
 class Shapes:
@@ -158,11 +159,13 @@ class Shapes:
         return mag_shape
 
 
-def create_mag_dist(mag_shape, beta, magnitude=1):
+def create_mag_dist(mag_shape, phi, theta=pi/2, magnitude=1):
     '''Create a 3-dimensional magnetic distribution of a homogeneous magnetized object.
     Arguments:
         mag_shape - the magnetic shapes (numpy arrays, see Shapes.* for examples)
-        beta      - the angle, describing the direction of the magnetized object
+        phi       - the azimuthal angle, describing the direction of the magnetized object
+        theta     - the polar angle, describing the direction of the magnetized object
+                    (optional, is set to pi/2 if not specified -> z-component is zero)
         magnitude - the relative magnitudes for the magnetic shape (optional, one if not specified)
     Returns:
         the 3D magnetic distribution as a MagData object (see pyramid.magdata for reference)
@@ -170,17 +173,20 @@ def create_mag_dist(mag_shape, beta, magnitude=1):
     '''
     dim = np.shape(mag_shape)
     assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
-    z_mag = np.zeros(dim)  # TODO: Implement another angle!
-    y_mag = np.ones(dim) * np.sin(beta) * mag_shape * magnitude
-    x_mag = np.ones(dim) * np.cos(beta) * mag_shape * magnitude
+    z_mag = np.ones(dim) * np.cos(theta) * mag_shape * magnitude
+    y_mag = np.ones(dim) * np.sin(theta) * np.sin(phi) * mag_shape * magnitude
+    x_mag = np.ones(dim) * np.sin(theta) * np.cos(phi) * mag_shape * magnitude
     return z_mag, y_mag, x_mag
 
 
-def create_mag_dist_comb(mag_shape_list, beta_list, magnitude_list=None):
+def create_mag_dist_comb(mag_shape_list, phi_list, theta_list=None, magnitude_list=None):
     '''Create a 3-dimensional magnetic distribution from a list of homogeneous magnetized objects.
     Arguments:
         mag_shape_list - a list of magnetic shapes (numpy arrays, see Shapes.* for examples)
-        beta_list      - a list of angles, describing the direction of the magnetized objects
+        phi_list       - a list of azimuthal angles, describing the direction of the
+                         magnetized object
+        theta_list     - a list of polar angles, describing the direction of the magnetized object
+                         (optional, is set to pi/2 if not specified -> z-component is zero)
         magnitude_list - a list of relative magnitudes for the magnetic shapes
                          (optional, if not specified, every relative magnitude is set to one)
     Returns:
@@ -189,21 +195,24 @@ def create_mag_dist_comb(mag_shape_list, beta_list, magnitude_list=None):
     '''
     # If no relative magnitude is specified, 1 is assumed for every homog. object:
     if magnitude_list is None:
-        magnitude_list = np.ones(len(beta_list))
+        magnitude_list = np.ones(len(phi_list))
+    # If no relative magnitude is specified, 1 is assumed for every homog. object:
+    if theta_list is None:
+        theta_list = np.ones(len(phi_list)) * pi/2
     # For every shape of a homogeneous object a relative magnitude and angle have to be set:
-    assert np.shape(mag_shape_list)[0] == len(beta_list) == len(magnitude_list), \
+    assert np.shape(mag_shape_list)[0] == len(phi_list) == len(theta_list) == len(magnitude_list),\
         'Lists have not the same length!'
     dim = np.shape(mag_shape_list[0])  # Has to be the shape of ALL mag_shapes!
     assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
-    assert np.array([mag_shape_list[i].shape == dim for i in range(len(mag_shape_list))]).all(), \
+    assert np.array([mag_shape_list[i].shape == dim for i in range(len(mag_shape_list))]).all(),\
         'Magnetic shapes must describe distributions with the same size!'
     # Start with a zero distribution:
     x_mag = np.zeros(dim)
     y_mag = np.zeros(dim)
     z_mag = np.zeros(dim)
     # Add every specified homogeneous object:
-    for i in range(np.size(beta_list)):
-        mag_object = create_mag_dist(mag_shape_list[i], beta_list[i], magnitude_list[i])
+    for i in range(np.size(phi_list)):
+        mag_object = create_mag_dist(mag_shape_list[i], phi_list[i], magnitude_list[i])
         z_mag += mag_object[0]
         y_mag += mag_object[1]
         x_mag += mag_object[2]

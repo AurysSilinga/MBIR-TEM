@@ -30,7 +30,7 @@ def create_random_slabs():
     w_max = 10
     # Create lists for magnetic objects:
     mag_shape_list = np.zeros((count,) + dim)
-    beta_list      = np.zeros(count) 
+    phi_list = np.zeros(count) 
     magnitude_list = np.zeros(count)
     for i in range(count):
         width  = (1, rnd.randint(1, w_max), rnd.randint(1, w_max))
@@ -38,10 +38,10 @@ def create_random_slabs():
                   rnd.randrange(int(width[1]/2), dim[1]-int(width[1]/2)),
                   rnd.randrange(int(width[2]/2), dim[2]-int(width[2]/2)))
         mag_shape_list[i,...] = mc.Shapes.slab(dim, center, width)
-        beta_list[i] = 2*pi*rnd.random()
+        phi_list[i] = 2*pi*rnd.random()
         magnitude_list[i] = 1#rnd.random()
     # Create magnetic distribution:
-    magnitude = mc.create_mag_dist_comb(mag_shape_list, beta_list, magnitude_list) 
+    magnitude = mc.create_mag_dist_comb(mag_shape_list, phi_list, magnitude_list) 
     mag_data = MagData(res, magnitude)
     mag_data.quiver_plot()
     mag_data.save_to_llg('../output/mag_dist_random_slabs.txt')

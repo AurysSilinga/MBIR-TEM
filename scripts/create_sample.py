@@ -22,7 +22,7 @@ def create_sample():
     filename = '../output/mag_dist_' + key + '.txt'    
     dim = (1, 128, 128)  # in px (z, y, x)
     res = 10.0  # in nm
-    beta = pi/4   
+    phi = pi/4   
     # Geometry parameters:    
     center = (0, 64, 64)  # in px (z, y, x), index starts with 0!
     width  = (1, 50, 50)  # in px (z, y, x)
@@ -42,7 +42,7 @@ def create_sample():
     elif key == 'pixel':
         mag_shape = mc.Shapes.pixel(dim, pixel)
     # Create magnetic distribution
-    magnitude = mc.create_mag_dist(mag_shape, beta) 
+    magnitude = mc.create_mag_dist(mag_shape, phi) 
     mag_data = MagData(res, magnitude)
     mag_data.quiver_plot()
     mag_data.save_to_llg(filename)

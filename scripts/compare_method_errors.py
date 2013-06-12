@@ -34,7 +34,7 @@ def phase_from_mag():
     b_0 =  1    # in T
     res = 10.0  # in nm
     dim = (1, 128, 128)    
-    beta = -pi/4
+    phi = -pi/4
     padding_list = [0, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4,5, 6,7, 8,9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
     geometry = 'disc'
     # Create magnetic shape:
@@ -42,15 +42,15 @@ def phase_from_mag():
         center = (0, dim[1]/2-0.5, dim[2]/2-0.5)  # in px (z, y, x) index starts with 0!
         width  = (1, dim[1]/2, dim[2]/2)  # in px (z, y, x)
         mag_shape = mc.Shapes.slab(dim, center, width)
-        phase_ana = an.phase_mag_slab(dim, res, beta, center, width, b_0)
+        phase_ana = an.phase_mag_slab(dim, res, phi, center, width, b_0)
     elif geometry == 'disc':
         center = (0, dim[1]/2-0.5, dim[2]/2-0.5)  # in px (z, y, x) index starts with 0!
         radius = dim[1]/4  # in px 
         height =  1  # in px
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
-        phase_ana = an.phase_mag_disc(dim, res, beta, center, radius, b_0)
+        phase_ana = an.phase_mag_disc(dim, res, phi, center, radius, b_0)
     # Project the magnetization data:    
-    mag_data = MagData(res, mc.create_mag_dist(mag_shape, beta))    
+    mag_data = MagData(res, mc.create_mag_dist(mag_shape, phi))    
     projection = pj.simple_axis_projection(mag_data)
     # Create data:
     data = np.zeros((3, len(padding_list)))
@@ -60,7 +60,7 @@ def phase_from_mag():
         # Key:
         key = ', '.join(['Padding->RMS|duration', 'Fourier', 'padding={}'.format(padding_list[i]), 
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
-                        'beta={}'.format(beta), 'geometry={}'.format(geometry)])
+                        'phi={}'.format(phi), 'geometry={}'.format(geometry)])
         if data_shelve.has_key(key):
             data[:, i] = data_shelve[key]
         else:
@@ -107,21 +107,21 @@ def phase_from_mag():
 #    plt.show()
 
 #    '''REAL SLAB '''
-#    beta = np.linspace(0, 2*pi, endpoint=False, num=72)
+#    phi = np.linspace(0, 2*pi, endpoint=False, num=72)
 #    
-#    RMS = np.zeros(len(beta))
-#    for i in range(len(beta)):
-#        print 'beta =', round(360*beta[i]/(2*pi))
-#        mag_data = MagData(res, mc.create_mag_dist(mag_shape, beta[i]))
+#    RMS = np.zeros(len(phi))
+#    for i in range(len(phi)):
+#        print 'phi =', round(360*phi[i]/(2*pi))
+#        mag_data = MagData(res, mc.create_mag_dist(mag_shape, phi[i]))
 #        projection = pj.simple_axis_projection(mag_data)
 #        phase_num  = pm.phase_mag_real(res, projection, 'slab', b_0)
-#        phase_ana  = an.phase_mag_slab(dim, res, beta[i], center, width, b_0)
+#        phase_ana  = an.phase_mag_slab(dim, res, phi[i], center, width, b_0)
 #        phase_diff = phase_ana - phase_num
 #        RMS[i]  = np.std(phase_diff)
 #    
 #    fig = plt.figure()
 #    fig.add_subplot(111)    
-#    plt.plot(np.round(360*beta/(2*pi)), RMS)
+#    plt.plot(np.round(360*phi/(2*pi)), RMS)
     
       
 #    phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab', b_0))

@@ -29,15 +29,15 @@ def create_random_pixels():
     rnd.seed(12)
     # Create lists for magnetic objects:
     mag_shape_list = np.zeros((count,) + dim)
-    beta_list      = np.zeros(count) 
+    phi_list = np.zeros(count) 
     magnitude_list = np.zeros(count)
     for i in range(count):
         pixel = (rnd.randrange(dim[0]), rnd.randrange(dim[1]), rnd.randrange(dim[2]))
         mag_shape_list[i,...] = mc.Shapes.pixel(dim, pixel)
-        beta_list[i] = 2*pi*rnd.random()
+        phi_list[i] = 2*pi*rnd.random()
         magnitude_list[i] = 1#rnd.random()
     # Create magnetic distribution:
-    magnitude = mc.create_mag_dist_comb(mag_shape_list, beta_list, magnitude_list) 
+    magnitude = mc.create_mag_dist_comb(mag_shape_list, phi_list, magnitude_list) 
     mag_data = MagData(res, magnitude)
     mag_data.quiver_plot()
     mag_data.save_to_llg('../output/mag_dist_random_pixels.txt')

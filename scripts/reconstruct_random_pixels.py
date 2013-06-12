@@ -33,15 +33,15 @@ def reconstruct_random_distribution():
 
     # Create lists for magnetic objects:
     mag_shape_list = np.zeros((n_pixel,) + dim)
-    beta_list      = np.zeros(n_pixel)
+    phi_list      = np.zeros(n_pixel)
     magnitude_list = np.zeros(n_pixel)
     for i in range(n_pixel):
         pixel = (rnd.randrange(dim[0]), rnd.randrange(dim[1]), rnd.randrange(dim[2]))
         mag_shape_list[i,...] = mc.Shapes.pixel(dim, pixel)
-        beta_list[i] = 2*pi*rnd.random()
+        phi_list[i] = 2*pi*rnd.random()
         magnitude_list[i] = rnd.random()
     # Create magnetic distribution:
-    magnitude = mc.create_mag_dist_comb(mag_shape_list, beta_list, magnitude_list)
+    magnitude = mc.create_mag_dist_comb(mag_shape_list, phi_list, magnitude_list)
     mag_data = MagData(res, magnitude)
     # Display phase map and holography image:
     projection = pj.simple_axis_projection(mag_data)
@@ -55,7 +55,7 @@ def reconstruct_random_distribution():
     mask = np.logical_or(np.logical_or(x_mask, y_mask), z_mask)
     
     # Reconstruct the magnetic distribution:
-    mag_data_rec = rc.reconstruct_simple_lsqu(phase_map, mask, b_0)
+    mag_data_rec = rc.reconstruct_simple_leastsq(phase_map, mask, b_0)
 
     # Display the reconstructed phase map and holography image:
     projection_rec = pj.simple_axis_projection(mag_data_rec)

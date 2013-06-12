@@ -9,7 +9,7 @@ from pyramid.magdata import MagData
 from scipy.optimize import leastsq
 
 
-def reconstruct_simple_lsqu(phase_map, mask, b_0):
+def reconstruct_simple_leastsq(phase_map, mask, b_0):
     '''Reconstruct a magnetic distribution where the positions of the magnetized voxels are known
     from a single phase_map using the least square method (only works for slice thickness = 1)
     Arguments:
@@ -41,6 +41,7 @@ def reconstruct_simple_lsqu(phase_map, mask, b_0):
         term1 = (y_i - y_m)
         term2 = lam * x_i
         return np.concatenate([term1, term2])
+
     # Reconstruct the magnetization components:
     x_rec, _ = leastsq(J, np.zeros(3*count))
     mag_data_rec.set_vector(mask, x_rec)

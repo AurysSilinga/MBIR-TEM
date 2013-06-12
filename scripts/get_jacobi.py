@@ -28,12 +28,12 @@ def get_jacobi():
     b_0 = 1.0  # in T    
     dim = (1, 3, 3)  # in px (y,x)
     res = 10.0  # in nm
-    beta = pi/4    
+    phi = pi/4    
     
     center = (0, 1, 1)  # in px (y,x) index starts with 0!
     width  = (0, 1, 1)  # in px (y,x)
 
-    mag_data = MagData(res, mc.create_mag_dist(mc.Shapes.slab(dim, center, width), beta))
+    mag_data = MagData(res, mc.create_mag_dist(mc.Shapes.slab(dim, center, width), phi))
     projection = pj.simple_axis_projection(mag_data)
     
     '''NUMERICAL SOLUTION'''

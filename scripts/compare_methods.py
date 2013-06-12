@@ -25,9 +25,9 @@ def compare_methods():
     
     '''
     # Input parameters:
-    b_0     = 1    # in T
-    res     = 10.0  # in nm
-    beta    = pi/4
+    b_0 = 1    # in T
+    res = 10.0  # in nm
+    phi = pi/4
     padding = 20
     density = 10
     dim = (1, 128, 128)  # in px (z, y, x)    
@@ -37,20 +37,20 @@ def compare_methods():
         center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
         width  = (1, dim[1]/2., dim[2]/2.)  # in px (z, y, x)
         mag_shape = mc.Shapes.slab(dim, center, width)
-        phase_ana = an.phase_mag_slab(dim, res, beta, center, width, b_0)
+        phase_ana = an.phase_mag_slab(dim, res, phi, center, width, b_0)
     elif geometry == 'disc':
         center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
         radius = dim[1]/4  # in px 
         height = 1  # in px
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
-        phase_ana = an.phase_mag_disc(dim, res, beta, center, radius, height, b_0)
+        phase_ana = an.phase_mag_disc(dim, res, phi, center, radius, height, b_0)
     elif geometry == 'sphere':
         center = (50, 50, 50)  # in px (z, y, x) index starts with 0!
         radius = 25  # in px 
         mag_shape = mc.Shapes.sphere(dim, center, radius)
-        phase_ana = an.phase_mag_sphere(dim, res, beta, center, radius, b_0)
+        phase_ana = an.phase_mag_sphere(dim, res, phi, center, radius, b_0)
     # Project the magnetization data:    
-    mag_data = MagData(res, mc.create_mag_dist(mag_shape, beta))
+    mag_data = MagData(res, mc.create_mag_dist(mag_shape, phi))
     mag_data.quiver_plot(ax_slice=int(center[0]))
     projection = pj.simple_axis_projection(mag_data)
     # Construct phase maps:
