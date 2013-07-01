@@ -24,11 +24,11 @@ def reconstruct_random_distribution():
 
     '''
     # Input parameters:
-    n_pixel = 10
-    dim = (32, 32, 32)
+    n_pixel = 5
+    dim = (1, 16, 16)
     b_0 = 1 # in T
     res = 10.0 # in nm
-    rnd.seed(12)
+    rnd.seed(18)
     threshold = 0
 
     # Create lists for magnetic objects:
@@ -43,6 +43,7 @@ def reconstruct_random_distribution():
     # Create magnetic distribution:
     magnitude = mc.create_mag_dist_comb(mag_shape_list, phi_list, magnitude_list)
     mag_data = MagData(res, magnitude)
+    mag_data.quiver_plot()
     # Display phase map and holography image:
     projection = pj.simple_axis_projection(mag_data)
     phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab', b_0))

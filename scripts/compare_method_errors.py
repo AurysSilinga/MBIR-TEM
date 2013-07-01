@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import pyramid.magcreator  as mc
 import pyramid.projector   as pj
 import pyramid.phasemapper as pm
-import pyramid.holoimage   as hi
 import pyramid.analytic    as an
 from pyramid.magdata  import MagData
 from pyramid.phasemap import PhaseMap
@@ -88,58 +87,145 @@ def phase_from_mag():
     axis.set_ylabel('duration [s]')
     
     
-#    fig = plt.figure()
-#    axis = fig.add_subplot(1, 1, 1, aspect='equal')
-#    im = plt.pcolormesh(self.phase, cmap=cmap)
-#    # Set the axes ticks and labels:
-#    ticks = axis.get_xticks()*self.res
-#    axis.set_xticklabels(ticks)
-#    ticks = axis.get_yticks()*self.res
-#    axis.set_yticklabels(ticks)
-#    axis.set_title(title)
-#    axis.set_xlabel('x-axis [nm]')
-#    axis.set_ylabel('y-axis [nm]')
-#    # Plot the phase map:
-#    fig = plt.gcf()
-#    fig.subplots_adjust(right=0.85)
-#    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
-#    fig.colorbar(im, cax=cbar_ax)
-#    plt.show()
-
-#    '''REAL SLAB '''
-#    phi = np.linspace(0, 2*pi, endpoint=False, num=72)
-#    
-#    RMS = np.zeros(len(phi))
-#    for i in range(len(phi)):
-#        print 'phi =', round(360*phi[i]/(2*pi))
-#        mag_data = MagData(res, mc.create_mag_dist(mag_shape, phi[i]))
-#        projection = pj.simple_axis_projection(mag_data)
-#        phase_num  = pm.phase_mag_real(res, projection, 'slab', b_0)
-#        phase_ana  = an.phase_mag_slab(dim, res, phi[i], center, width, b_0)
-#        phase_diff = phase_ana - phase_num
-#        RMS[i]  = np.std(phase_diff)
-#    
-#    fig = plt.figure()
-#    fig.add_subplot(111)    
-#    plt.plot(np.round(360*phi/(2*pi)), RMS)
     
-      
-#    phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab', b_0))
-#    phase_map_disc = PhaseMap(res, pm.phase_mag_real(res, projection, 'disc', b_0))
-#    # Display the combinated plots with phasemap and holography image:
-#    hi.display_combined(phase_map_ana,  density, 'Analytic Solution')
-#    hi.display_combined(phase_map_fft,  density, 'Fourier Space')
-#    hi.display_combined(phase_map_slab, density, 'Real Space (Slab)')
-#    hi.display_combined(phase_map_disc, density, 'Real Space (Disc)')
-#
-#    # Plot differences to the analytic solution:
-#    
-#    phase_map_diff_slab = PhaseMap(res, phase_map_ana.phase-phase_map_slab.phase)
-#    phase_map_diff_disc = PhaseMap(res, phase_map_ana.phase-phase_map_disc.phase)
-#    
-#    RMS_slab = phase_map_diff_slab.phase
-#    RMS_disc = phase_map_diff_disc.phase
-
+    
+    
+    
+    
+    '''VARY DIMENSIONS FOR ALL APPROACHES'''
+    
+    b_0 =  1    # in T
+    phi = -pi/4
+    dim_list = [(1, 4, 4), (1, 8, 8), (1, 16, 16), (1, 32, 32), (1, 64, 64), (1, 128, 128)]
+    res_list = [64., 32., 16., 8., 4., 2., 1.]  # in nm
+    
+    
+    
+    data_sl_p_fourier0 = np.zeros((3, len(res_list)))
+    data_sl_w_fourier0 = np.zeros((3, len(res_list)))
+    data_disc_fourier0 = np.zeros((3, len(res_list)))
+    
+    data_sl_p_fourier1 = np.zeros((3, len(res_list)))
+    data_sl_w_fourier1 = np.zeros((3, len(res_list)))
+    data_disc_fourier1 = np.zeros((3, len(res_list)))
+    
+    data_sl_p_fourier20 = np.zeros((3, len(res_list)))
+    data_sl_w_fourier20 = np.zeros((3, len(res_list)))
+    data_disc_fourier20 = np.zeros((3, len(res_list)))
+    
+    data_sl_p_real_s = np.zeros((3, len(res_list)))
+    data_sl_w_real_s = np.zeros((3, len(res_list)))
+    data_disc_real_s = np.zeros((3, len(res_list)))
+    
+    data_sl_p_real_d= np.zeros((3, len(res_list)))
+    data_sl_w_real_d = np.zeros((3, len(res_list)))
+    data_disc_real_d = np.zeros((3, len(res_list)))
+    
+    data_slab_perfect[0, :] = res_list
+    data_slab_worst[0, :] = res_list
+    data_disc[0, :] = res_list
+    
+    
+    
+    '''FOURIER UNPADDED'''
+    
+    for i, (dim, res) in enumerate(zip(dim_list, res_list)):
+        
+        print 'dim =', str(dim)        
+        
+        # ANALYTIC SOLUTIONS:
+        # Slab (perfectly aligned):
+        center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
+        width  = (1, dim[1], dim[2])  # in px (z, y, x)
+        mag_shape_slab_perfect = mc.Shapes.slab(dim, center, width)
+        phase_ana_slab_perfect = an.phase_mag_slab(dim, res, phi, center, width, b_0)
+        mag_data_slab_perfect = MagData(res, mc.create_mag_dist(mag_shape_slab_perfect, phi))
+        projection_slab_perfect = pj.simple_axis_projection(mag_data_slab_perfect)
+        # Slab (worst case):
+        center = (0, dim[1]/2, dim[2]/2)  # in px (z, y, x) index starts with 0!
+        width  = (1, dim[1], dim[2])  # in px (z, y, x)
+        mag_shape_slab_worst = mc.Shapes.slab(dim, center, width)
+        phase_ana_slab_worst = an.phase_mag_slab(dim, res, phi, center, width, b_0)
+        mag_data_slab_worst = MagData(res, mc.create_mag_dist(mag_shape_slab_worst, phi))
+        projection_slab_worst = pj.simple_axis_projection(mag_data_slab_worst)
+        # Disc:
+        center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
+        radius = dim[1]/2  # in px 
+        height = 1  # in px
+        mag_shape_disc = mc.Shapes.disc(dim, center, radius, height)
+        phase_ana_disc = an.phase_mag_disc(dim, res, phi, center, radius, height, b_0)
+        mag_data_disc = MagData(res, mc.create_mag_dist(mag_shape_disc, phi))
+        projection_disc = pj.simple_axis_projection(mag_data_disc)
+        
+        # NUMERICAL SOLUTIONS:
+        # Slab (perfectly aligned):
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding=0', 
+                        'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
+                        'phi={}'.format(phi), 'geometry=slab_perfect'])
+        if data_shelve.has_key(key):
+            data_slab_perfect[:, i] = data_shelve[key]
+        else:
+            start_time = time.time()
+            phase_num = pm.phase_mag_fourier(res, projection_slab_perfect, b_0, 0)
+            data_slab_perfect[2, i] = time.time() - start_time
+            phase_diff = phase_ana_slab_perfect - phase_num
+            data_slab_perfect[1, i] = np.std(phase_diff)
+            data_shelve[key] = data_slab_perfect[:, i]
+        # Slab (worst case):
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding=0', 
+                        'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
+                        'phi={}'.format(phi), 'geometry=slab_worst'])
+        if data_shelve.has_key(key):
+            data_slab_worst[:, i] = data_shelve[key]
+        else:
+            start_time = time.time()
+            phase_num = pm.phase_mag_fourier(res, projection_slab_worst, b_0, 0)
+            data_slab_worst[2, i] = time.time() - start_time
+            phase_diff = phase_ana_slab_worst - phase_num
+            data_slab_worst[1, i] = np.std(phase_diff)
+            data_shelve[key] = data_slab_worst[:, i]
+        # Disc:
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding=0', 
+                        'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
+                        'phi={}'.format(phi), 'geometry=disc'])
+        if data_shelve.has_key(key):
+            data_disc[:, i] = data_shelve[key]
+        else:
+            start_time = time.time()
+            phase_num = pm.phase_mag_fourier(res, projection_disc, b_0, 0)
+            data_disc[2, i] = time.time() - start_time
+            phase_diff = phase_ana_disc - phase_num
+            data_disc[1, i] = np.std(phase_diff)
+            data_shelve[key] = data_disc[:, i]    
+            
+    # Plot duration against res:
+    fig = plt.figure()
+    axis = fig.add_subplot(1, 1, 1)
+    axis.set_yscale('log')
+    axis.plot(data_slab_perfect[0], data_slab_perfect[1],
+              data_slab_worst[0], data_slab_worst[1],
+              data_disc[0], data_disc[1])
+    axis.set_title('Variation of the resolution (Fourier without padding)')
+    axis.set_xlabel('res [nm]')
+    axis.set_ylabel('RMS')
+    # Plot RMS against res:
+    fig = plt.figure()
+    axis = fig.add_subplot(1, 1, 1)
+    axis.plot(data_slab_perfect[0], data_slab_perfect[1],
+              data_slab_worst[0], data_slab_worst[1],
+              data_disc[0], data_disc[1])
+    axis.set_title('Variation of the resolution (Fourier without padding)')
+    axis.set_xlabel('res [nm]')
+    axis.set_ylabel('duration [s]')
+    
+    
+    
+    
+    
+    
+    
+    
+    
     data_shelve.close()
 
     

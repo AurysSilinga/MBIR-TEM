@@ -31,11 +31,11 @@ CDICT = {'red':   [(0.00, 1.0, 0.0),
 HOLO_CMAP = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT, 256)
 
 
-def holo_image(phase_map, density):
+def holo_image(phase_map, density=1):
     '''Returns a holography image with color-encoded gradient direction.
     Arguments:
         phase_map - a PhaseMap object storing the phase informations
-        density   - the factor for determining the number of contour lines
+        density   - the gain factor for determining the number of contour lines (default: 1)
     Returns:
         holography image
 

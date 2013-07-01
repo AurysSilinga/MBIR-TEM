@@ -34,8 +34,8 @@ def compare_methods():
     # Create magnetic shape:
     geometry = 'slab'        
     if geometry == 'slab':
-        center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
-        width  = (1, dim[1]/2., dim[2]/2.)  # in px (z, y, x)
+        center = (0, dim[1]/2., dim[2]/2.)  # in px (z, y, x) index starts with 0!
+        width  = (1, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x)
         mag_shape = mc.Shapes.slab(dim, center, width)
         phase_ana = an.phase_mag_slab(dim, res, phi, center, width, b_0)
     elif geometry == 'disc':
