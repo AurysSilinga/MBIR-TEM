@@ -64,10 +64,10 @@ def phase_mag_disc(dim, res, beta, center, radius, height, b_0=1):
     '''
     # Function for the phase:
     def phiMag(x, y):
-        r = np.hypot(x-x0, y-y0)
+        r = np.hypot(x - x0, y - y0)
         r[center[1], center[2]] = 1E-30
-        result = coeff * Lz * ((y-y0) * np.cos(beta) - (x-x0) * np.sin(beta))
-        result *= np.where(r <= R, 1, (R/r)**2)
+        result = coeff * Lz * ((y - y0) * np.cos(beta) - (x - x0) * np.sin(beta))
+        result *= np.where(r <= R, 1, (R / r) ** 2)
         return result
     # Process input parameters:
     z_dim, y_dim, x_dim = dim
@@ -97,10 +97,10 @@ def phase_mag_sphere(dim, res, beta, center, radius, b_0=1):
     '''
     # Function for the phase:
     def phiMag(x, y):
-        r = np.hypot(x-x0, y-y0)
+        r = np.hypot(x - x0, y - y0)
         r[center[1], center[2]] = 1E-30
-        result = coeff * R**3/r**2 * ((y-y0) * np.cos(beta) - (x-x0) * np.sin(beta))
-        result *= np.where(r > R, 1, (1-(1-(r/R)**2)**(3./2.)))
+        result = coeff * R ** 3 / r ** 2 * ((y - y0) * np.cos(beta) - (x - x0) * np.sin(beta))
+        result *= np.where(r > R, 1, (1 - (1 - (r / R) ** 2) ** (3. / 2.)))
         return result
     # Process input parameters:
     z_dim, y_dim, x_dim = dim
@@ -109,8 +109,8 @@ def phase_mag_sphere(dim, res, beta, center, radius, b_0=1):
     R = res * radius
     coeff = - 2./3. * pi * b_0 / PHI_0
     # Create grid:
-    x = np.linspace(res/2, x_dim*res-res/2, num=x_dim)
-    y = np.linspace(res/2, y_dim*res-res/2, num=y_dim)
+    x = np.linspace(res / 2, x_dim * res - res / 2, num=x_dim)
+    y = np.linspace(res / 2, y_dim * res - res / 2, num=y_dim)
     xx, yy = np.meshgrid(x, y)
     # Return phase:
     return phiMag(xx, yy)
