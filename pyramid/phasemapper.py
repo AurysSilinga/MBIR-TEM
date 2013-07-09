@@ -3,7 +3,8 @@
 
 
 import numpy as np
-
+import numcore
+import time
 
 # Physical constants
 PHI_0 = -2067.83    # magnetic flux in T*nm²
@@ -102,12 +103,19 @@ def phase_mag_real(res, projection, method, b_0=1, jacobi=None):
                     phase -= v_mag[j, i] * phase_v
         ############################### TODO: NUMERICAL CORE  #####################################
     else:  # Without Jacobi matrix (faster)
+##        phasecopy = phase.copy()
+##        start_time = time.time()
+##        numcore.phase_mag_real_helper_1(v_dim, u_dim, phi_u, phi_v, u_mag, v_mag, phasecopy, threshold)
+##        print time.time() - start_time
+##        start_time = time.time()
         for j in range(v_dim):
             for i in range(u_dim):
                 if abs(u_mag[j, i]) > threshold:
                     phase += u_mag[j, i] * phi_u[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
                 if abs(v_mag[j, i]) > threshold:
                     phase -= v_mag[j, i] * phi_v[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i]
+##        print time.time() - start_time
+##        print ((phase - phasecopy) ** 2).sum()
     # Return the phase:
     return phase
 
