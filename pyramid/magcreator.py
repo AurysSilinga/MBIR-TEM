@@ -217,3 +217,30 @@ def create_mag_dist_comb(mag_shape_list, phi_list, theta_list=None, magnitude_li
         y_mag += mag_object[1]
         x_mag += mag_object[2]
     return z_mag, y_mag, x_mag
+
+
+def create_mag_dist_vortex(mag_shape, center=None, magnitude=1):
+    '''Create a 3-dimensional magnetic distribution of a homogeneous magnetized object.
+    Arguments:
+        mag_shape - the magnetic shapes (numpy arrays, see Shapes.* for examples)
+        phi       - the azimuthal angle, describing the direction of the magnetized object
+        theta     - the polar angle, describing the direction of the magnetized object
+                    (optional, is set to pi/2 if not specified -> z-component is zero)
+        magnitude - the relative magnitudes for the magnetic shape (optional, one if not specified)
+    Returns:
+        the 3D magnetic distribution as a MagData object (see pyramid.magdata for reference)
+
+    '''
+    dim = np.shape(mag_shape)
+    assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
+    if center is None:
+        center = (int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)  # center has to be between (!) two pixels
+    assert len(center) == 2, 'Vortex center has to be defined in 2D!'
+    x = np.linspace(-center[1], dim[2]-1-center[1], dim[2])
+    y = np.linspace(-center[0], dim[1]-1-center[0], dim[1])
+    xx, yy = np.meshgrid(x, y)
+    phi = np.arctan2(yy, xx) - pi/2
+    z_mag = np.zeros(dim)
+    y_mag = -np.ones(dim) * np.sin(phi) * mag_shape * magnitude
+    x_mag = -np.ones(dim) * np.cos(phi) * mag_shape * magnitude
+    return z_mag, y_mag, x_mag

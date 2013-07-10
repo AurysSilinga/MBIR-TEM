@@ -37,7 +37,8 @@ def compare_method_errors_res():
     
     b_0 =  1    # in T
     phi = -pi/4
-    dim_list = [(1, 4, 4), (1, 8, 8), (1, 16, 16), (1, 32, 32), (1, 64, 64), (1, 128, 128), (1, 256, 256), (1, 512, 512)]
+    dim_list = [(1, 4, 4), (1, 8, 8), (1, 16, 16), (1, 32, 32), (1, 64, 64), 
+                (1, 128, 128), (1, 256, 256), (1, 512, 512)]
     res_list = [64., 32., 16., 8., 4., 2., 1., 0.5, 0.25]  # in nm
     
     
@@ -69,23 +70,27 @@ def compare_method_errors_res():
     data_sl_p_fourier0[0, :] = res_list
     data_sl_w_fourier0[0, :] = res_list
     data_disc_fourier0[0, :] = res_list
+    data_vort_fourier0[0, :] = res_list
     
     data_sl_p_fourier1[0, :] = res_list
     data_sl_w_fourier1[0, :] = res_list
     data_disc_fourier1[0, :] = res_list
+    data_vort_fourier1[0, :] = res_list
     
     data_sl_p_fourier20[0, :] = res_list
     data_sl_w_fourier20[0, :] = res_list
     data_disc_fourier20[0, :] = res_list
+    data_vort_fourier20[0, :] = res_list
     
     data_sl_p_real_s[0, :] = res_list
     data_sl_w_real_s[0, :] = res_list
     data_disc_real_s[0, :] = res_list
+    data_vort_real_s[0, :] = res_list
     
     data_sl_p_real_d[0, :]= res_list
     data_sl_w_real_d[0, :] = res_list
     data_disc_real_d[0, :] = res_list
-
+    data_vort_real_d[0, :] = res_list
         
     
     
@@ -117,6 +122,9 @@ def compare_method_errors_res():
         phase_ana_disc = an.phase_mag_disc(dim, res, phi, center, radius, height, b_0)
         mag_data_disc = MagData(res, mc.create_mag_dist(mag_shape_disc, phi))
         projection_disc = pj.simple_axis_projection(mag_data_disc)
+        # Vortex:
+        center_vortex = (center[1], center[2])
+        
         
         '''FOURIER UNPADDED'''
         padding = 0
