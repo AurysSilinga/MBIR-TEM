@@ -15,10 +15,10 @@ from Cython.Build import cythonize
 
 setup(
     name = 'Pyramid',
-    version = '0.1',    
+    version = '0.1',
     description = 'PYthon based Reconstruction Algorithm for MagnetIc Distributions',
     author = 'Jan Caron',
     author_email = 'j.caron@fz-juelich.de',
-    packages = ['pyramid'],
-    ext_modules = cythonize(glob.glob(os.path.join('pyramid','numcore','*.pyx')))
+    packages = ['pyramid', 'pyramid.numcore'],
+    ext_modules = cythonize(glob.glob(os.path.join('pyramid', 'numcore', '*.pyx')))
 )

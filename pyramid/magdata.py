@@ -5,7 +5,6 @@
 import numpy as np
 import tables.netcdf3 as nc
 import matplotlib.pyplot as plt
-from mayavi import mlab
 
 
 class MagData:
@@ -164,6 +163,8 @@ class MagData:
             None
 
         '''
+        from mayavi import mlab
+
         res = self.res
         dim = self.dim
         # Create points and vector components as lists:
