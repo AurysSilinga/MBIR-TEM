@@ -11,10 +11,12 @@ from numpy import pi
 PHI_0 = -2067.83  # magnetic flux in T*nm²
 
 
-def phase_mag_slab(dim, res, beta, center, width, b_0=1):
+def phase_mag_slab(dim, res, phi, center, width, b_0=1):
     '''Get the analytic solution for a phase map of a slab of specified dimensions
     Arguments:
         dim    - the dimensions of the grid, shape(z, y, x)
+        res    - the resolution of the grid (grid spacing) in nm
+        phi    - the azimuthal angle, describing the direction of the magnetized object
         center - the center of the slab in pixel coordinates, shape(z, y, x)
         width  - the width of the slab in pixel coordinates, shape(z, y, x)
         b_0    - magnetic induction corresponding to a magnetization Mo in T (default: 1)
@@ -28,11 +30,11 @@ def phase_mag_slab(dim, res, beta, center, width, b_0=1):
             a = np.log(x**2 + y**2 + 1E-30)
             b = np.arctan(x / (y+1E-30))
             return x*a - 2*x + 2*y*b
-        return coeff * Lz * (- np.cos(beta) * (F0(x-x0-Lx/2, y-y0-Ly/2)
+        return coeff * Lz * (- np.cos(phi) * (F0(x-x0-Lx/2, y-y0-Ly/2)
                                              - F0(x-x0+Lx/2, y-y0-Ly/2)
                                              - F0(x-x0-Lx/2, y-y0+Ly/2)
                                              + F0(x-x0+Lx/2, y-y0+Ly/2))
-                             + np.sin(beta) * (F0(y-y0-Ly/2, x-x0-Lx/2)
+                             + np.sin(phi) * (F0(y-y0-Ly/2, x-x0-Lx/2)
                                              - F0(y-y0+Ly/2, x-x0-Lx/2)
                                              - F0(y-y0-Ly/2, x-x0+Lx/2)
                                              + F0(y-y0+Ly/2, x-x0+Lx/2)))
@@ -50,10 +52,12 @@ def phase_mag_slab(dim, res, beta, center, width, b_0=1):
     return phiMag(xx, yy)
 
 
-def phase_mag_disc(dim, res, beta, center, radius, height, b_0=1):
+def phase_mag_disc(dim, res, phi, center, radius, height, b_0=1):
     '''Get the analytic solution for a phase map of a disc of specified dimensions
     Arguments:
         dim    - the dimensions of the grid, shape(z, y, x)
+        res    - the resolution of the grid (grid spacing) in nm
+        phi    - the azimuthal angle, describing the direction of the magnetized object
         center - the center of the disc in pixel coordinates, shape(z, y, x)
         radius - the radius of the disc in pixel coordinates (scalar value)
         height - the height of the disc in pixel coordinates (scalar value)
@@ -66,7 +70,7 @@ def phase_mag_disc(dim, res, beta, center, radius, height, b_0=1):
     def phiMag(x, y):
         r = np.hypot(x - x0, y - y0)
         r[center[1], center[2]] = 1E-30
-        result = coeff * Lz * ((y - y0) * np.cos(beta) - (x - x0) * np.sin(beta))
+        result = coeff * Lz * ((y - y0) * np.cos(phi) - (x - x0) * np.sin(phi))
         result *= np.where(r <= R, 1, (R / r) ** 2)
         return result
     # Process input parameters:
@@ -84,10 +88,12 @@ def phase_mag_disc(dim, res, beta, center, radius, height, b_0=1):
     return phiMag(xx, yy)
 
 
-def phase_mag_sphere(dim, res, beta, center, radius, b_0=1):
+def phase_mag_sphere(dim, res, phi, center, radius, b_0=1):
     '''Get the analytic solution for a phase map of a sphere of specified dimensions
     Arguments:
         dim    - the dimensions of the grid, shape(z, y, x)
+        res    - the resolution of the grid (grid spacing) in nm
+        phi    - the azimuthal angle, describing the direction of the magnetized object
         center - the center of the sphere in pixel coordinates, shape(z, y, x)
         radius - the radius of the sphere in pixel coordinates (scalar value)
         b_0    - magnetic induction corresponding to a magnetization Mo in T (default: 1)
@@ -99,7 +105,7 @@ def phase_mag_sphere(dim, res, beta, center, radius, b_0=1):
     def phiMag(x, y):
         r = np.hypot(x - x0, y - y0)
         r[center[1], center[2]] = 1E-30
-        result = coeff * R ** 3 / r ** 2 * ((y - y0) * np.cos(beta) - (x - x0) * np.sin(beta))
+        result = coeff * R ** 3 / r ** 2 * ((y - y0) * np.cos(phi) - (x - x0) * np.sin(phi))
         result *= np.where(r > R, 1, (1 - (1 - (r / R) ** 2) ** (3. / 2.)))
         return result
     # Process input parameters:

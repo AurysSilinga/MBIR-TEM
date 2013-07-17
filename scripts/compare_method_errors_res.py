@@ -47,23 +47,28 @@ def compare_method_errors_res():
     data_sl_p_fourier0 = np.zeros((3, len(res_list)))
     data_sl_w_fourier0 = np.zeros((3, len(res_list)))
     data_disc_fourier0 = np.zeros((3, len(res_list)))
-    
+    data_vort_fourier0 = np.zeros((3, len(res_list)))
+
     data_sl_p_fourier1 = np.zeros((3, len(res_list)))
     data_sl_w_fourier1 = np.zeros((3, len(res_list)))
     data_disc_fourier1 = np.zeros((3, len(res_list)))
-    
+    data_vort_fourier1 = np.zeros((3, len(res_list)))
+
     data_sl_p_fourier20 = np.zeros((3, len(res_list)))
     data_sl_w_fourier20 = np.zeros((3, len(res_list)))
     data_disc_fourier20 = np.zeros((3, len(res_list)))
-    
+    data_vort_fourier20 = np.zeros((3, len(res_list)))
+
     data_sl_p_real_s = np.zeros((3, len(res_list)))
     data_sl_w_real_s = np.zeros((3, len(res_list)))
     data_disc_real_s = np.zeros((3, len(res_list)))
-    
+    data_vort_real_s = np.zeros((3, len(res_list)))
+
     data_sl_p_real_d= np.zeros((3, len(res_list)))
     data_sl_w_real_d = np.zeros((3, len(res_list)))
     data_disc_real_d = np.zeros((3, len(res_list)))
-    
+    data_vort_real_d = np.zeros((3, len(res_list)))
+
     
     '''CREATE DATA ARRAYS'''
         

@@ -24,7 +24,7 @@ class TestCaseCompliance(unittest.TestCase):
         filepaths = []
         for root, dirs, files in os.walk(rootdir):
             for filename in files:
-                if filename.endswith('.py'):
+                if filename.endswith('.py') or filename.endswith('.pyx'):
                     filepaths.append(os.path.join(root, filename))
         return filepaths
 
