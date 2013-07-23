@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import pyramid.magcreator  as mc
 import pyramid.projector   as pj
 import pyramid.phasemapper as pm
-import pyramid.analytic as an
+import pyramid.analytic    as an
 from pyramid.magdata  import MagData
 from pyramid.phasemap import PhaseMap
 import shelve
@@ -31,10 +31,10 @@ def phase_from_mag():
     '''FOURIER PADDING->RMS|DURATION'''
     # Parameters:
     b_0 =  1    # in T
-    res = 1.0  # in nm
-    dim = (16, 256, 256)    
+    res = 10.0  # in nm
+    dim = (1, 128, 128)    
     phi = -pi/4
-    padding_list = [0, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4,5, 6,7, 8,9, 10, 11]#, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    padding_list = [0, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4,5, 6,7, 8,9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
     geometry = 'disc'
     # Create magnetic shape:
     if geometry == 'slab':
@@ -45,7 +45,7 @@ def phase_from_mag():
     elif geometry == 'disc':
         center = (0, dim[1]/2-0.5, dim[2]/2-0.5)  # in px (z, y, x) index starts with 0!
         radius = dim[1]/4  # in px 
-        height =  8  # in px
+        height =  1  # in px
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
         phase_ana = an.phase_mag_disc(dim, res, phi, center, radius, b_0)
     # Project the magnetization data:    
@@ -73,8 +73,7 @@ def phase_from_mag():
     # Plot duration against padding:
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
-#    axis.set_xscale('log')
-#    axis.set_yscale('log')
+    axis.set_yscale('log')
     axis.plot(data[0], data[1])
     axis.set_title('Fourier Space Approach: Variation of the Padding')
     axis.set_xlabel('padding')
@@ -82,8 +81,6 @@ def phase_from_mag():
     # Plot RMS against padding:
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
-#    axis.set_xscale('log')
-#    axis.set_yscale('log')
     axis.plot(data[0], data[2])
     axis.set_title('Fourier Space Approach: Variation of the Padding')
     axis.set_xlabel('padding')

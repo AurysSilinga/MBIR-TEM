@@ -11,4 +11,5 @@ from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
 
 import os
-os.chdir('C:\Users\Jan\PhD Thesis\Pyramid\output')
+os.chdir('C:\Users\Jan\Daten\PhD Thesis\Pyramid\output')
+# TODO: Path not hard-coded!!!

@@ -20,27 +20,22 @@ PHI_0 = -2067.83  # magnetic flux in T*nm²
 
 
 def compare_vortices():
-    '''Calculate and display the Pyramid-Logo.
-    Arguments:
-        None
-    Returns:
-        None
-    
+    ''' DOCSTRING
     '''
     # Input parameters:  
     dim_list = [(16, 256, 256), (8, 128, 128), (4, 64, 64), (2, 32, 32), (1, 16, 16)]
-    res_list = [4., 8., 16., 32., 64.]  # in nm
-    density = 1
+    res_list = [1., 2., 4., 8., 16.]  # in nm
+    density = 20
     phi = pi/2
     
     x = []
     y = []
     
     # Analytic solution:
-    L = 1024.  # in nm
-    Lz = 0.5 * 64.  # in nm
-    R = 0.25 * L
-    x0 = L / 2
+    L = dim_list[0][1]  # in px/nm
+    Lz = 0.5 * dim_list[0][0]  # in px/nm
+    R = 0.25 * L  # in px/nm
+    x0 = L / 2  # in px/nm
     def F(x):
         coeff = - pi * Lz / (2*PHI_0)
         result = coeff * (- (x - x0) * np.sin(phi))
@@ -73,9 +68,6 @@ def compare_vortices():
         hi.display_combined(phase_map, density, 'Vortex State, res = {}'.format(res))
         x.append(np.linspace(0, dim[1]*res, dim[1]))
         y.append(phase_map.phase[dim[1]/2, :])
-        fig = plt.figure()
-        fig.add_subplot(1, 1, 1)
-        plt.plot(x[i], y[i])
 
     # Plot:
     fig = plt.figure()

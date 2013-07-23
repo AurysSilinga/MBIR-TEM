@@ -30,7 +30,7 @@ class TestCaseCompliance(unittest.TestCase):
 
     def test_pep8(self):
         # TODO: Docstring
-        files = self.get_files_to_check('..')  # search in pyramid package
+        files = self.get_files_to_check('../../pyramid') + self.get_files_to_check('../../scripts')
         ignores = ('E226', 'E128')
         pep8.MAX_LINE_LENGTH = 99
         pep8style = pep8.StyleGuide(quiet=False)

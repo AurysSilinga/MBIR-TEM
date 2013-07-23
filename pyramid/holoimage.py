@@ -99,7 +99,7 @@ def display(holo_image, title='Holography Image', axis=None):
         fig = plt.figure()
         axis = fig.add_subplot(1, 1, 1, aspect='equal')
     # Plot the image and set axes:
-    axis.imshow(holo_image)
+    axis.imshow(holo_image, interpolation='none')
     axis.set_title(title)
     axis.set_xlabel('x-axis')
     axis.set_ylabel('y-axis')

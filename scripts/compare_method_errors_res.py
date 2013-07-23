@@ -104,7 +104,6 @@ def compare_method_errors_res():
         print 'i =', i, '   dim =', str(dim)        
         
         '''ANALYTIC SOLUTIONS'''
-        
         # Slab (perfectly aligned):
         center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
         width  = (1, dim[1]/2, dim[2]/2)  # in px (z, y, x)
@@ -120,6 +119,7 @@ def compare_method_errors_res():
         mag_data_sl_w = MagData(res, mc.create_mag_dist(mag_shape_sl_w, phi))
         projection_sl_w = pj.simple_axis_projection(mag_data_sl_w)
         # Disc:
+        print center
         center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
         radius = dim[1]/4  # in px 
         height = 1  # in px
@@ -129,7 +129,10 @@ def compare_method_errors_res():
         projection_disc = pj.simple_axis_projection(mag_data_disc)
         # Vortex:
         center_vortex = (center[1], center[2])
-        
+        mag_shape_vort = mc.Shapes.disc(dim, center, radius, height)
+        phase_ana_vort = an.phase_mag_vortex(dim, res, center, radius, height, b_0)
+        mag_data_vort = MagData(res, mc.create_mag_dist_vortex(mag_shape_vort, center_vortex))
+        projection_vort = pj.simple_axis_projection(mag_data_vort)
         
         '''FOURIER UNPADDED'''
         padding = 0
@@ -172,6 +175,19 @@ def compare_method_errors_res():
             phase_diff = phase_ana_disc - phase_num
             data_disc_fourier0[1, i] = np.std(phase_diff)
             data_shelve[key] = data_disc_fourier0[:, i]
+        # Vortex:
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+                        'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
+                        'phi={}'.format(phi), 'geometry=vortex'])
+        if data_shelve.has_key(key):
+            data_vort_fourier0[:, i] = data_shelve[key]
+        else:
+            start_time = time.time()
+            phase_num = pm.phase_mag_fourier(res, projection_disc, b_0, padding)
+            data_vort_fourier0[2, i] = time.time() - start_time
+            phase_diff = phase_ana_vort - phase_num
+            data_vort_fourier0[1, i] = np.std(phase_diff)
+            data_shelve[key] = data_vort_fourier0[:, i]
             
             
         '''FOURIER PADDED ONCE'''
@@ -214,7 +230,20 @@ def compare_method_errors_res():
             data_disc_fourier1[2, i] = time.time() - start_time
             phase_diff = phase_ana_disc - phase_num
             data_disc_fourier1[1, i] = np.std(phase_diff)
-            data_shelve[key] = data_disc_fourier1[:, i]    
+            data_shelve[key] = data_disc_fourier1[:, i]
+        # Vortex:
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+                        'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
+                        'phi={}'.format(phi), 'geometry=vortex'])
+        if data_shelve.has_key(key):
+            data_vort_fourier1[:, i] = data_shelve[key]
+        else:
+            start_time = time.time()
+            phase_num = pm.phase_mag_fourier(res, projection_disc, b_0, padding)
+            data_vort_fourier1[2, i] = time.time() - start_time
+            phase_diff = phase_ana_vort - phase_num
+            data_vort_fourier1[1, i] = np.std(phase_diff)
+            data_shelve[key] = data_vort_fourier1[:, i]
             
             
         '''FOURIER PADDED 20'''
@@ -259,7 +288,19 @@ def compare_method_errors_res():
                 phase_diff = phase_ana_disc - phase_num
                 data_disc_fourier20[1, i] = np.std(phase_diff)
                 data_shelve[key] = data_disc_fourier20[:, i]
-            
+            # Vortex:
+            key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+                            'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
+                            'phi={}'.format(phi), 'geometry=vortex'])
+            if data_shelve.has_key(key):
+                data_vort_fourier20[:, i] = data_shelve[key]
+            else:
+                start_time = time.time()
+                phase_num = pm.phase_mag_fourier(res, projection_disc, b_0, padding)
+                data_vort_fourier20[2, i] = time.time() - start_time
+                phase_diff = phase_ana_vort - phase_num
+                data_vort_fourier20[1, i] = np.std(phase_diff)
+                data_shelve[key] = data_vort_fourier20[:, i]
             
         '''REAL SLAB'''
         method = 'slab'
@@ -301,8 +342,20 @@ def compare_method_errors_res():
             data_disc_real_s[2, i] = time.time() - start_time
             phase_diff = phase_ana_disc - phase_num
             data_disc_real_s[1, i] = np.std(phase_diff)
-            data_shelve[key] = data_disc_real_s[:, i]    
-            
+            data_shelve[key] = data_disc_real_s[:, i]
+        # Vortex:
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+                        'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
+                        'phi={}'.format(phi), 'geometry=vortex'])
+        if data_shelve.has_key(key):
+            data_disc_real_s[:, i] = data_shelve[key]
+        else:
+            start_time = time.time()
+            phase_num = pm.phase_mag_real(res, projection_disc, method, b_0)
+            data_vort_real_s[2, i] = time.time() - start_time
+            phase_diff = phase_ana_vort - phase_num
+            data_vort_real_s[1, i] = np.std(phase_diff)
+            data_shelve[key] = data_vort_real_s[:, i]
             
         '''REAL DISC'''
         method = 'disc'
@@ -345,11 +398,24 @@ def compare_method_errors_res():
             phase_diff = phase_ana_disc - phase_num
             data_disc_real_d[1, i] = np.std(phase_diff)
             data_shelve[key] = data_disc_real_d[:, i]
-       
+       # Vortex:
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+                        'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
+                        'phi={}'.format(phi), 'geometry=vortex'])
+        if data_shelve.has_key(key):
+            data_vort_real_d[:, i] = data_shelve[key]
+        else:
+            start_time = time.time()
+            phase_num = pm.phase_mag_real(res, projection_disc, method, b_0)
+            data_vort_real_d[2, i] = time.time() - start_time
+            phase_diff = phase_ana_vort - phase_num
+            data_vort_real_d[1, i] = np.std(phase_diff)
+            data_shelve[key] = data_vort_real_d[:, i]
       
     # Plot duration against res (perfect slab):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
+    axis.set_xscale('log')
     axis.set_yscale('log')
     axis.plot(data_sl_p_fourier0[0], data_sl_p_fourier0[1], 'b+',
               data_sl_p_fourier1[0], data_sl_p_fourier1[1], 'bx',
@@ -362,6 +428,7 @@ def compare_method_errors_res():
     # Plot RMS against res (perfect slab):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
+    axis.set_xscale('log')
     axis.set_yscale('log')
     axis.plot(data_sl_p_fourier0[0], data_sl_p_fourier0[2], 'b+',
               data_sl_p_fourier1[0], data_sl_p_fourier1[2], 'bx',
@@ -371,10 +438,18 @@ def compare_method_errors_res():
     axis.set_title('Variation of the resolution (perfectly adjusted slab)')
     axis.set_xlabel('res [nm]')
     axis.set_ylabel('duration [s]')
+    # Save to file:
+    data_sl_p = np.concatenate((data_sl_p_fourier0,
+                                data_sl_p_fourier1[1:,:],
+                                data_sl_p_fourier20[1:,:],
+                                data_sl_p_real_s[1:,:],
+                                data_sl_p_real_d[1:,:]))
+    np.savetxt('../output/data_slab_perfect.txt', data_sl_p.T)
     
     # Plot duration against res (worst case slab):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
+    axis.set_xscale('log')
     axis.set_yscale('log')
     axis.plot(data_sl_w_fourier0[0], data_sl_w_fourier0[1], 'b+',
               data_sl_w_fourier1[0], data_sl_w_fourier1[1], 'bx',
@@ -387,6 +462,7 @@ def compare_method_errors_res():
     # Plot RMS against res (worst case slab):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
+    axis.set_xscale('log')
     axis.set_yscale('log')
     axis.plot(data_sl_w_fourier0[0], data_sl_w_fourier0[2], 'b+',
               data_sl_w_fourier1[0], data_sl_w_fourier1[2], 'bx',
@@ -396,10 +472,18 @@ def compare_method_errors_res():
     axis.set_title('Variation of the resolution (worst case slab)')
     axis.set_xlabel('res [nm]')
     axis.set_ylabel('duration [s]')
+    # Save to file:
+    data_sl_w = np.concatenate((data_sl_w_fourier0,
+                                data_sl_w_fourier1[1:,:],
+                                data_sl_w_fourier20[1:,:],
+                                data_sl_w_real_s[1:,:],
+                                data_sl_w_real_d[1:,:]))
+    np.savetxt('../output/data_slab_worstcase.txt', data_sl_w.T)
     
-    # Plot duration against res (disc<):
+    # Plot duration against res (disc):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
+    axis.set_xscale('log')
     axis.set_yscale('log')
     axis.plot(data_disc_fourier0[0], data_disc_fourier0[1], 'b+',
               data_disc_fourier1[0], data_disc_fourier1[1], 'bx',
@@ -412,6 +496,7 @@ def compare_method_errors_res():
     # Plot RMS against res (disc):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
+    axis.set_xscale('log')
     axis.set_yscale('log')
     axis.plot(data_disc_fourier0[0], data_disc_fourier0[2], 'b+',
               data_disc_fourier1[0], data_disc_fourier1[2], 'bx',
@@ -421,7 +506,47 @@ def compare_method_errors_res():
     axis.set_title('Variation of the resolution (disc)')
     axis.set_xlabel('res [nm]')
     axis.set_ylabel('duration [s]')
+    # Save to file:
+    data_disc = np.concatenate((data_disc_fourier0,
+                                data_disc_fourier1[1:,:],
+                                data_disc_fourier20[1:,:],
+                                data_disc_real_s[1:,:],
+                                data_disc_real_d[1:,:]))
+    np.savetxt('../output/data_disc.txt', data_disc.T)
     
+    # Plot duration against res (vortex):
+    fig = plt.figure()
+    axis = fig.add_subplot(1, 1, 1)
+    axis.set_xscale('log')
+    axis.set_yscale('log')
+    axis.plot(data_vort_fourier0[0], data_vort_fourier0[1], 'b+',
+              data_vort_fourier1[0], data_vort_fourier1[1], 'bx',
+              data_vort_fourier20[0], data_vort_fourier20[1], 'b*',
+              data_vort_real_s[0], data_vort_real_s[1], 'rs',
+              data_vort_real_d[0], data_vort_real_d[1], 'ro')
+    axis.set_title('Variation of the resolution (vortex)')
+    axis.set_xlabel('res [nm]')
+    axis.set_ylabel('RMS')
+    # Plot RMS against res (vort):
+    fig = plt.figure()
+    axis = fig.add_subplot(1, 1, 1)
+    axis.set_xscale('log')
+    axis.set_yscale('log')
+    axis.plot(data_vort_fourier0[0], data_vort_fourier0[2], 'b+',
+              data_vort_fourier1[0], data_vort_fourier1[2], 'bx',
+              data_vort_fourier20[0], data_vort_fourier20[2], 'b*',
+              data_vort_real_s[0], data_vort_real_s[2], 'rs',
+              data_vort_real_d[0], data_vort_real_d[2], 'ro')
+    axis.set_title('Variation of the resolution (vortex)')
+    axis.set_xlabel('res [nm]')
+    axis.set_ylabel('duration [s]')
+    # Save to file:
+    data_vort = np.concatenate((data_vort_fourier0,
+                                data_vort_fourier1[1:,:],
+                                data_vort_fourier20[1:,:],
+                                data_vort_real_s[1:,:],
+                                data_vort_real_d[1:,:]))
+    np.savetxt('../output/data_vortex.txt', data_vort.T)
     
     data_shelve.close()
 
