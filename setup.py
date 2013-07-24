@@ -15,40 +15,43 @@ import numpy
 import os
 import sys
 import sysconfig
+#import glob
 
-from distutils.core import setup
+#from distutils.core import setup
 from distutils.command.build import build
-from distutils.extension import Extension
+#from distutils.extension import Extension
+
 from Cython.Distutils import build_ext
 
-class custom_build(build):
-    def run(self):
-        build.run(self)
-        print 'Test'
+from setuptools import setup, find_packages
 
-def distutils_dir_name(dname):
-    '''Returns the name of a distutils build directory'''
-    path = "{dirname}.{platform}-{version[0]}.{version[1]}"
-    return path.format(dirname=dname, platform=sysconfig.get_platform(), version=sys.version_info)
+from setuptools.extension import Extension
 
+
+def make_hgrevision(target, source, env):
+    import subprocess as sp
+    output = sp.Popen(["hg", "id", "-i"], stdout=sp.PIPE).communicate()[0]
+    hgrevision_cc = file(str(target[0]), "w")
+    hgrevision_cc.write('HG_Revision = "{0}"\n'.format(output.strip()))
+    hgrevision_cc.close()
 
 print '\n------------------------------------------------------------------------------'
 
-build_path = os.path.join('build', distutils_dir_name('lib'))
-
 setup(
-
       name = 'Pyramid',
       version = '0.1',
       description = 'PYthon based Reconstruction Algorithm for MagnetIc Distributions',
       author = 'Jan Caron',
       author_email = 'j.caron@fz-juelich.de',
       
-      packages = ['pyramid', 'pyramid.numcore', 'pyramid.test'],
+      packages = find_packages(exclude=['test']),#['pyramid', 'pyramid.numcore', 'test', 'scripts'],
       include_dirs = [numpy.get_include()],
       requires = ['numpy', 'matplotlib'],
-                      
-      cmdclass = {'build_ext': build_ext, 'build': custom_build},
+      
+      scripts = ['scripts/create_logo.py'],
+      test_suite = 'test',
+      
+      cmdclass = {'build_ext': build_ext},
       ext_package = 'pyramid/numcore',
       ext_modules = [
           Extension('phase_mag_real', ['pyramid/numcore/phase_mag_real.pyx'], 
@@ -56,13 +59,6 @@ setup(
                     extra_compile_args=["-march=native", "-mtune=native"]
                     )
           ]
-
 )
 
-import os
-print os.getcwd()
-
 print '------------------------------------------------------------------------------\n'
-
-#import pyramid.test as test
-#test.run_tests()

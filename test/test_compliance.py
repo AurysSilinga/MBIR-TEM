@@ -30,14 +30,16 @@ class TestCaseCompliance(unittest.TestCase):
 
     def test_pep8(self):
         # TODO: Docstring
-        files = self.get_files_to_check('../../pyramid') + self.get_files_to_check('../../scripts')
+        files = self.get_files_to_check('pyramid') \
+              + self.get_files_to_check('scripts') \
+              + self.get_files_to_check('test')
         ignores = ('E226', 'E128')
         pep8.MAX_LINE_LENGTH = 99
         pep8style = pep8.StyleGuide(quiet=False)
         pep8style.options.ignore = ignores
 
         stdout_buffer = sys.stdout
-        with open(os.path.join('..', '..', 'output', 'pep8_log.txt'), 'w') as sys.stdout:
+        with open(os.path.join('output', 'pep8_log.txt'), 'w') as sys.stdout:
             print '<<< PEP8 LOGFILE >>>'
             print 'RUN:', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print 'IGNORED RULES:', ', '.join(ignores)
