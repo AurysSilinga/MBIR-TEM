@@ -26,6 +26,9 @@ class TestCaseAnalytic(unittest.TestCase):
     def test_phase_mag_sphere(self):
         pass
 
+    def test_phase_mag_vortex(self):
+        pass
+
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseAnalytic)
     unittest.TextTestRunner(verbosity=2).run(suite)

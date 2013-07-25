@@ -20,7 +20,7 @@ class custom_build(build):
     def make_hgrevision(self, target):
         output = subprocess.Popen(["hg", "id", "-i"], stdout=subprocess.PIPE).communicate()[0]
         hgrevision_cc = file(str(target), "w")
-        hgrevision_cc.write('HG_Revision = "{0}"\n'.format(output.strip()))
+        hgrevision_cc.write('HG_Revision = "{0}"'.format(output.strip()))
         hgrevision_cc.close()
 
     def run(self):
@@ -53,6 +53,7 @@ setup(
       description = 'PYthon based Reconstruction Algorithm for MagnetIc Distributions',
       author = 'Jan Caron',
       author_email = 'j.caron@fz-juelich.de',
+      url = 'fz-juelich.de',
       
       packages = find_packages(exclude=['tests']),
       include_dirs = [numpy.get_include()],
