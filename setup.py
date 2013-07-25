@@ -1,41 +1,51 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri May 03 10:27:04 2013
-
-@author: Jan
-"""
-
-
-# Build extensions: 'python setup.py build_ext -i clean'
-# Install package:  'python setup.py install clean'
+"""Setup for testing, building, distributing and installing the 'Pyramid'-package"""
 
 
 import numpy
-
 import os
 import sys
 import sysconfig
-#import glob
-
-#from distutils.core import setup
+import subprocess
 from distutils.command.build import build
-#from distutils.extension import Extension
-
 from Cython.Distutils import build_ext
-
-from setuptools import setup, find_packages
-
+from setuptools import setup
+from setuptools import find_packages
 from setuptools.extension import Extension
 
 
-def make_hgrevision(target, source, env):
-    import subprocess as sp
-    output = sp.Popen(["hg", "id", "-i"], stdout=sp.PIPE).communicate()[0]
-    hgrevision_cc = file(str(target[0]), "w")
-    hgrevision_cc.write('HG_Revision = "{0}"\n'.format(output.strip()))
-    hgrevision_cc.close()
+class custom_build(build):
+    '''Custom build command'''
 
-print '\n------------------------------------------------------------------------------'
+    def make_hgrevision(self, target):
+        output = subprocess.Popen(["hg", "id", "-i"], stdout=subprocess.PIPE).communicate()[0]
+        hgrevision_cc = file(str(target), "w")
+        hgrevision_cc.write('HG_Revision = "{0}"\n'.format(output.strip()))
+        hgrevision_cc.close()
+
+    def run(self):
+        build.run(self)
+        print 'creating hg_revision.txt'
+        self.make_hgrevision(os.path.join('build', get_build_path('lib'), 'hg_revision.txt'))
+
+
+def get_build_path(dname):
+    '''Returns the name of a distutils build directory'''
+    path = "{dirname}.{platform}-{version[0]}.{version[1]}"
+    return path.format(dirname=dname, platform=sysconfig.get_platform(), version=sys.version_info)
+
+
+def get_files(rootdir):
+    '''Returns a list of .py-files inside rootdir'''
+    filepaths = []
+    for root, dirs, files in os.walk(rootdir):
+        for filename in files:
+            if filename.endswith('.py'):
+                filepaths.append(os.path.join(root, filename))
+    return filepaths
+
+
+print '\n-------------------------------------------------------------------------------'
 
 setup(
       name = 'Pyramid',
@@ -44,21 +54,23 @@ setup(
       author = 'Jan Caron',
       author_email = 'j.caron@fz-juelich.de',
       
-      packages = find_packages(exclude=['test']),#['pyramid', 'pyramid.numcore', 'test', 'scripts'],
+      packages = find_packages(exclude=['tests']),
       include_dirs = [numpy.get_include()],
       requires = ['numpy', 'matplotlib'],
-      
-      scripts = ['scripts/create_logo.py'],
-      test_suite = 'test',
-      
-      cmdclass = {'build_ext': build_ext},
+
+      scripts = get_files('scripts'),
+
+      test_suite = 'tests',
+
+      cmdclass = {'build_ext': build_ext, 'build': custom_build},
+
       ext_package = 'pyramid/numcore',
       ext_modules = [
-          Extension('phase_mag_real', ['pyramid/numcore/phase_mag_real.pyx'], 
+          Extension('phase_mag_real', ['pyramid/numcore/phase_mag_real.pyx'],
                     include_dirs = [numpy.get_include(), numpy.get_numarray_include()],
-                    extra_compile_args=["-march=native", "-mtune=native"]
+                    extra_compile_args=['-march=native', '-mtune=native']
                     )
           ]
 )
 
-print '------------------------------------------------------------------------------\n'
+print '-------------------------------------------------------------------------------\n'

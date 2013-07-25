@@ -12,4 +12,3 @@ from pyramid.phasemap import PhaseMap
 
 import os
 os.chdir('C:\Users\Jan\Daten\PhD Thesis\Pyramid\output')
-# TODO: Path not hard-coded!!!

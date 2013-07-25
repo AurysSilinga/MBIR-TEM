@@ -9,3 +9,4 @@ syntax: glob
 *.os
 output*
 build*
+Pyramid.egg-info*

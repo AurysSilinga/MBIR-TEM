@@ -7,23 +7,23 @@ import numpy as np
 from numpy import pi
 from PyQt4 import QtCore, QtGui, uic
 
-import pyramid.magcreator  as mc
-import pyramid.projector   as pj
+import pyramid.magcreator as mc
+import pyramid.projector as pj
 import pyramid.phasemapper as pm
-import pyramid.holoimage   as hi
-from pyramid.magdata  import MagData
+import pyramid.holoimage as hi
+from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
 
 from gui.create_logo import Ui_CreateLogoWidget
 
 
 class Overlay(QtGui.QWidget):
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
         palette = QtGui.QPalette(self.palette())
         palette.setColor(palette.Background, QtCore.Qt.transparent)
         self.setPalette(palette)
-    
+
     def paintEvent(self, event):
         painter = QtGui.QPainter()
         painter.begin(self)
@@ -40,20 +40,21 @@ class Overlay(QtGui.QWidget):
                 self.height()/2 + 30 * np.sin(2 * pi * i / 6.0) - 10,
                 20, 20)
         painter.end()
-    
+
     def showEvent(self, event):
         self.timer = self.startTimer(50)
         self.counter = 0
-        
+
     def hideEvent(self, event):
         self.killTimer(self.timer)
-   
+
     def timerEvent(self, event):
         self.counter += 1
         self.update()
 
 
 class CreateLogoWidget(QtGui.QWidget, Ui_CreateLogoWidget):
+
     def __init__(self):
         # Call parent constructor
         QtGui.QWidget.__init__(self)
@@ -68,7 +69,7 @@ class CreateLogoWidget(QtGui.QWidget, Ui_CreateLogoWidget):
         self.overlay.hide()
         # Show Widget:
         self.show()
-        
+
         self.workerThread = WorkerThread()
 
     def buttonPushed(self):
@@ -76,19 +77,17 @@ class CreateLogoWidget(QtGui.QWidget, Ui_CreateLogoWidget):
         x = self.xSpinBox.value()
         y = self.ySpinBox.value()
         create_logo((1, y, x), self.mplWidget.axes)
-        self.mplWidget.draw()        
-        
+        self.mplWidget.draw()
 #        self.workerThread.start()
-        
         self.overlay.hide()
-    
+
     def resizeEvent(self, event):
         self.overlay.resize(event.size())
         event.accept()
 
 
 class WorkerThread(QtCore.QThread):
-    
+
     def __init__(self, parent=None):
         QtCore.QThread.__init__(self)
 
@@ -105,9 +104,9 @@ def create_logo(dim, axis):
         None
     Returns:
         None
-    
+
     '''
-    # Input parameters:    
+    # Input parameters:
     res = 10.0  # in nm
     phi = -pi/2  # in rad
     density = 10
@@ -115,18 +114,18 @@ def create_logo(dim, axis):
     mag_shape = np.zeros(dim)
     x = range(dim[2])
     y = range(dim[1])
-    xx, yy = np.meshgrid(x, y)    
+    xx, yy = np.meshgrid(x, y)
     bottom = (yy >= 0.25*dim[1])
-    left   = (yy <= 0.75/0.5 * dim[1]/dim[2] * xx)
-    right  = np.fliplr(left)
-    mag_shape[0,...] = np.logical_and(np.logical_and(left, right), bottom)
-    # Create magnetic data, project it, get the phase map and display the holography image:    
-    mag_data   = MagData(res, mc.create_mag_dist(mag_shape, phi)) 
+    left = (yy <= 0.75/0.5 * dim[1]/dim[2] * xx)
+    right = np.fliplr(left)
+    mag_shape[0, ...] = np.logical_and(np.logical_and(left, right), bottom)
+    # Create magnetic data, project it, get the phase map and display the holography image:
+    mag_data = MagData(res, mc.create_mag_dist(mag_shape, phi))
     projection = pj.simple_axis_projection(mag_data)
-    phase_map  = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))    
+    phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))
     hi.display(hi.holo_image(phase_map, density), 'PYRAMID - LOGO', axis)
-    
-    
+
+
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     gui = CreateLogoWidget()

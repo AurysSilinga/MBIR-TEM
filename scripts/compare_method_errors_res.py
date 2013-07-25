@@ -1,18 +1,21 @@
+#! python
 # -*- coding: utf-8 -*-
 """Compare the different methods to create phase maps."""
 
 
 import time
-import pdb, traceback, sys
+import pdb
+import traceback
+import sys
 import numpy as np
 from numpy import pi
 import matplotlib.pyplot as plt
 
-import pyramid.magcreator  as mc
-import pyramid.projector   as pj
+import pyramid.magcreator as mc
+import pyramid.projector as pj
 import pyramid.phasemapper as pm
-import pyramid.analytic    as an
-from pyramid.magdata  import MagData
+import pyramid.analytic as an
+from pyramid.magdata import MagData
 import shelve
 
 
@@ -22,28 +25,21 @@ def compare_method_errors_res():
         None
     Returns:
         None
-    
+
     '''
     # Create / Open databank:
     data_shelve = shelve.open('../output/method_errors_shelve')
-    
-    
-    
-    
-    
-    
-    
+
     '''VARY DIMENSIONS FOR ALL APPROACHES'''
-    
-    b_0 =  1    # in T
+
+    b_0 = 1    # in T
     phi = -pi/4
-    dim_list = [(1, 4, 4), (1, 8, 8), (1, 16, 16), (1, 32, 32), (1, 64, 64), 
+    dim_list = [(1, 4, 4), (1, 8, 8), (1, 16, 16), (1, 32, 32), (1, 64, 64),
                 (1, 128, 128), (1, 256, 256), (1, 512, 512)]
     res_list = [64., 32., 16., 8., 4., 2., 1., 0.5, 0.25]  # in nm
-    
-    
+
     '''CREATE DATA ARRAYS'''
-        
+
     data_sl_p_fourier0 = np.zeros((3, len(res_list)))
     data_sl_w_fourier0 = np.zeros((3, len(res_list)))
     data_disc_fourier0 = np.zeros((3, len(res_list)))
@@ -64,56 +60,53 @@ def compare_method_errors_res():
     data_disc_real_s = np.zeros((3, len(res_list)))
     data_vort_real_s = np.zeros((3, len(res_list)))
 
-    data_sl_p_real_d= np.zeros((3, len(res_list)))
+    data_sl_p_real_d = np.zeros((3, len(res_list)))
     data_sl_w_real_d = np.zeros((3, len(res_list)))
     data_disc_real_d = np.zeros((3, len(res_list)))
     data_vort_real_d = np.zeros((3, len(res_list)))
 
-    
     '''CREATE DATA ARRAYS'''
-        
+
     data_sl_p_fourier0[0, :] = res_list
     data_sl_w_fourier0[0, :] = res_list
     data_disc_fourier0[0, :] = res_list
     data_vort_fourier0[0, :] = res_list
-    
+
     data_sl_p_fourier1[0, :] = res_list
     data_sl_w_fourier1[0, :] = res_list
     data_disc_fourier1[0, :] = res_list
     data_vort_fourier1[0, :] = res_list
-    
+
     data_sl_p_fourier20[0, :] = res_list
     data_sl_w_fourier20[0, :] = res_list
     data_disc_fourier20[0, :] = res_list
     data_vort_fourier20[0, :] = res_list
-    
+
     data_sl_p_real_s[0, :] = res_list
     data_sl_w_real_s[0, :] = res_list
     data_disc_real_s[0, :] = res_list
     data_vort_real_s[0, :] = res_list
-    
-    data_sl_p_real_d[0, :]= res_list
+
+    data_sl_p_real_d[0, :] = res_list
     data_sl_w_real_d[0, :] = res_list
     data_disc_real_d[0, :] = res_list
     data_vort_real_d[0, :] = res_list
-        
-    
-    
+
     for i, (dim, res) in enumerate(zip(dim_list, res_list)):
-        
-        print 'i =', i, '   dim =', str(dim)        
-        
+
+        print 'i =', i, '   dim =', str(dim)
+
         '''ANALYTIC SOLUTIONS'''
         # Slab (perfectly aligned):
         center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
-        width  = (1, dim[1]/2, dim[2]/2)  # in px (z, y, x)
+        width = (1, dim[1]/2, dim[2]/2)  # in px (z, y, x)
         mag_shape_sl_p = mc.Shapes.slab(dim, center, width)
         phase_ana_sl_p = an.phase_mag_slab(dim, res, phi, center, width, b_0)
         mag_data_sl_p = MagData(res, mc.create_mag_dist(mag_shape_sl_p, phi))
         projection_sl_p = pj.simple_axis_projection(mag_data_sl_p)
         # Slab (worst case):
         center = (0, dim[1]/2, dim[2]/2)  # in px (z, y, x) index starts with 0!
-        width  = (1, dim[1]/2, dim[2]/2)  # in px (z, y, x)
+        width = (1, dim[1]/2, dim[2]/2)  # in px (z, y, x)
         mag_shape_sl_w = mc.Shapes.slab(dim, center, width)
         phase_ana_sl_w = an.phase_mag_slab(dim, res, phi, center, width, b_0)
         mag_data_sl_w = MagData(res, mc.create_mag_dist(mag_shape_sl_w, phi))
@@ -121,7 +114,7 @@ def compare_method_errors_res():
         # Disc:
         print center
         center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
-        radius = dim[1]/4  # in px 
+        radius = dim[1]/4  # in px
         height = 1  # in px
         mag_shape_disc = mc.Shapes.disc(dim, center, radius, height)
         phase_ana_disc = an.phase_mag_disc(dim, res, phi, center, radius, height, b_0)
@@ -133,14 +126,14 @@ def compare_method_errors_res():
         phase_ana_vort = an.phase_mag_vortex(dim, res, center, radius, height, b_0)
         mag_data_vort = MagData(res, mc.create_mag_dist_vortex(mag_shape_vort, center_vortex))
         projection_vort = pj.simple_axis_projection(mag_data_vort)
-        
+
         '''FOURIER UNPADDED'''
         padding = 0
         # Slab (perfectly aligned):
-        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=sl_p'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_sl_p_fourier0[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -150,10 +143,10 @@ def compare_method_errors_res():
             data_sl_p_fourier0[1, i] = np.std(phase_diff)
             data_shelve[key] = data_sl_p_fourier0[:, i]
         # Slab (worst case):
-        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=sl_w'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_sl_w_fourier0[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -163,10 +156,10 @@ def compare_method_errors_res():
             data_sl_w_fourier0[1, i] = np.std(phase_diff)
             data_shelve[key] = data_sl_w_fourier0[:, i]
         # Disc:
-        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=disc'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_disc_fourier0[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -176,10 +169,10 @@ def compare_method_errors_res():
             data_disc_fourier0[1, i] = np.std(phase_diff)
             data_shelve[key] = data_disc_fourier0[:, i]
         # Vortex:
-        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=vortex'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_vort_fourier0[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -188,15 +181,14 @@ def compare_method_errors_res():
             phase_diff = phase_ana_vort - phase_num
             data_vort_fourier0[1, i] = np.std(phase_diff)
             data_shelve[key] = data_vort_fourier0[:, i]
-            
-            
+
         '''FOURIER PADDED ONCE'''
         padding = 1
         # Slab (perfectly aligned):
-        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=sl_p'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_sl_p_fourier1[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -206,10 +198,10 @@ def compare_method_errors_res():
             data_sl_p_fourier1[1, i] = np.std(phase_diff)
             data_shelve[key] = data_sl_p_fourier1[:, i]
         # Slab (worst case):
-        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=sl_w'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_sl_w_fourier1[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -219,10 +211,10 @@ def compare_method_errors_res():
             data_sl_w_fourier1[1, i] = np.std(phase_diff)
             data_shelve[key] = data_sl_w_fourier1[:, i]
         # Disc:
-        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=disc'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_disc_fourier1[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -232,10 +224,10 @@ def compare_method_errors_res():
             data_disc_fourier1[1, i] = np.std(phase_diff)
             data_shelve[key] = data_disc_fourier1[:, i]
         # Vortex:
-        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+        key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=vortex'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_vort_fourier1[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -244,16 +236,15 @@ def compare_method_errors_res():
             phase_diff = phase_ana_vort - phase_num
             data_vort_fourier1[1, i] = np.std(phase_diff)
             data_shelve[key] = data_vort_fourier1[:, i]
-            
-            
+
         '''FOURIER PADDED 20'''
         if dim[1] <= 128:
             padding = 20
             # Slab (perfectly aligned):
-            key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+            key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                             'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                             'phi={}'.format(phi), 'geometry=sl_p'])
-            if data_shelve.has_key(key):
+            if key in data_shelve:
                 data_sl_p_fourier20[:, i] = data_shelve[key]
             else:
                 start_time = time.time()
@@ -263,10 +254,10 @@ def compare_method_errors_res():
                 data_sl_p_fourier20[1, i] = np.std(phase_diff)
                 data_shelve[key] = data_sl_p_fourier20[:, i]
             # Slab (worst case):
-            key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+            key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                             'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                             'phi={}'.format(phi), 'geometry=sl_w'])
-            if data_shelve.has_key(key):
+            if key in data_shelve:
                 data_sl_w_fourier20[:, i] = data_shelve[key]
             else:
                 start_time = time.time()
@@ -276,10 +267,10 @@ def compare_method_errors_res():
                 data_sl_w_fourier20[1, i] = np.std(phase_diff)
                 data_shelve[key] = data_sl_w_fourier20[:, i]
             # Disc:
-            key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+            key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                             'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                             'phi={}'.format(phi), 'geometry=disc'])
-            if data_shelve.has_key(key):
+            if key in data_shelve:
                 data_disc_fourier20[:, i] = data_shelve[key]
             else:
                 start_time = time.time()
@@ -289,10 +280,10 @@ def compare_method_errors_res():
                 data_disc_fourier20[1, i] = np.std(phase_diff)
                 data_shelve[key] = data_disc_fourier20[:, i]
             # Vortex:
-            key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding), 
+            key = ', '.join(['Resolution->RMS|duration', 'Fourier', 'padding={}'.format(padding),
                             'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                             'phi={}'.format(phi), 'geometry=vortex'])
-            if data_shelve.has_key(key):
+            if key in data_shelve:
                 data_vort_fourier20[:, i] = data_shelve[key]
             else:
                 start_time = time.time()
@@ -301,14 +292,14 @@ def compare_method_errors_res():
                 phase_diff = phase_ana_vort - phase_num
                 data_vort_fourier20[1, i] = np.std(phase_diff)
                 data_shelve[key] = data_vort_fourier20[:, i]
-            
+
         '''REAL SLAB'''
         method = 'slab'
         # Slab (perfectly aligned):
-        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=sl_p'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_sl_p_real_s[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -318,10 +309,10 @@ def compare_method_errors_res():
             data_sl_p_real_s[1, i] = np.std(phase_diff)
             data_shelve[key] = data_sl_p_real_s[:, i]
         # Slab (worst case):
-        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=sl_w'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_sl_w_real_s[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -331,10 +322,10 @@ def compare_method_errors_res():
             data_sl_w_real_s[1, i] = np.std(phase_diff)
             data_shelve[key] = data_sl_w_real_s[:, i]
         # Disc:
-        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=disc'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_disc_real_s[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -344,10 +335,10 @@ def compare_method_errors_res():
             data_disc_real_s[1, i] = np.std(phase_diff)
             data_shelve[key] = data_disc_real_s[:, i]
         # Vortex:
-        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=vortex'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_disc_real_s[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -356,14 +347,14 @@ def compare_method_errors_res():
             phase_diff = phase_ana_vort - phase_num
             data_vort_real_s[1, i] = np.std(phase_diff)
             data_shelve[key] = data_vort_real_s[:, i]
-            
+
         '''REAL DISC'''
         method = 'disc'
         # Slab (perfectly aligned):
-        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=sl_p'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_sl_p_real_d[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -373,10 +364,10 @@ def compare_method_errors_res():
             data_sl_p_real_d[1, i] = np.std(phase_diff)
             data_shelve[key] = data_sl_p_real_d[:, i]
         # Slab (worst case):
-        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=sl_w'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_sl_w_real_d[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -386,10 +377,10 @@ def compare_method_errors_res():
             data_sl_w_real_d[1, i] = np.std(phase_diff)
             data_shelve[key] = data_sl_w_real_d[:, i]
         # Disc:
-        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=disc'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_disc_real_d[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -399,10 +390,10 @@ def compare_method_errors_res():
             data_disc_real_d[1, i] = np.std(phase_diff)
             data_shelve[key] = data_disc_real_d[:, i]
        # Vortex:
-        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method), 
+        key = ', '.join(['Resolution->RMS|duration', 'Real', 'method={}'.format(method),
                         'B0={}'.format(b_0), 'res={}'.format(res), 'dim={}'.format(dim),
                         'phi={}'.format(phi), 'geometry=vortex'])
-        if data_shelve.has_key(key):
+        if key in data_shelve:
             data_vort_real_d[:, i] = data_shelve[key]
         else:
             start_time = time.time()
@@ -411,7 +402,7 @@ def compare_method_errors_res():
             phase_diff = phase_ana_vort - phase_num
             data_vort_real_d[1, i] = np.std(phase_diff)
             data_shelve[key] = data_vort_real_d[:, i]
-      
+
     # Plot duration against res (perfect slab):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
@@ -440,12 +431,12 @@ def compare_method_errors_res():
     axis.set_ylabel('duration [s]')
     # Save to file:
     data_sl_p = np.concatenate((data_sl_p_fourier0,
-                                data_sl_p_fourier1[1:,:],
-                                data_sl_p_fourier20[1:,:],
-                                data_sl_p_real_s[1:,:],
-                                data_sl_p_real_d[1:,:]))
+                                data_sl_p_fourier1[1:, :],
+                                data_sl_p_fourier20[1:, :],
+                                data_sl_p_real_s[1:, :],
+                                data_sl_p_real_d[1:, :]))
     np.savetxt('../output/data_slab_perfect.txt', data_sl_p.T)
-    
+
     # Plot duration against res (worst case slab):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
@@ -474,12 +465,12 @@ def compare_method_errors_res():
     axis.set_ylabel('duration [s]')
     # Save to file:
     data_sl_w = np.concatenate((data_sl_w_fourier0,
-                                data_sl_w_fourier1[1:,:],
-                                data_sl_w_fourier20[1:,:],
-                                data_sl_w_real_s[1:,:],
-                                data_sl_w_real_d[1:,:]))
+                                data_sl_w_fourier1[1:, :],
+                                data_sl_w_fourier20[1:, :],
+                                data_sl_w_real_s[1:, :],
+                                data_sl_w_real_d[1:, :]))
     np.savetxt('../output/data_slab_worstcase.txt', data_sl_w.T)
-    
+
     # Plot duration against res (disc):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
@@ -508,12 +499,12 @@ def compare_method_errors_res():
     axis.set_ylabel('duration [s]')
     # Save to file:
     data_disc = np.concatenate((data_disc_fourier0,
-                                data_disc_fourier1[1:,:],
-                                data_disc_fourier20[1:,:],
-                                data_disc_real_s[1:,:],
-                                data_disc_real_d[1:,:]))
+                                data_disc_fourier1[1:, :],
+                                data_disc_fourier20[1:, :],
+                                data_disc_real_s[1:, :],
+                                data_disc_real_d[1:, :]))
     np.savetxt('../output/data_disc.txt', data_disc.T)
-    
+
     # Plot duration against res (vortex):
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
@@ -542,16 +533,15 @@ def compare_method_errors_res():
     axis.set_ylabel('duration [s]')
     # Save to file:
     data_vort = np.concatenate((data_vort_fourier0,
-                                data_vort_fourier1[1:,:],
-                                data_vort_fourier20[1:,:],
-                                data_vort_real_s[1:,:],
-                                data_vort_real_d[1:,:]))
+                                data_vort_fourier1[1:, :],
+                                data_vort_fourier20[1:, :],
+                                data_vort_real_s[1:, :],
+                                data_vort_real_d[1:, :]))
     np.savetxt('../output/data_vortex.txt', data_vort.T)
-    
+
     data_shelve.close()
 
-    
-    
+
 if __name__ == "__main__":
     try:
         compare_method_errors_res()

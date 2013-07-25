@@ -10,9 +10,7 @@ import pep8
 
 
 class TestCaseCompliance(unittest.TestCase):
-    """
-    Class for checking compliance of pyjurassic.
-    """  # TODO: Docstring
+    """Class for checking compliance of pyramid."""  # TODO: Docstring
 
     def setUp(self):
         pass
@@ -24,15 +22,16 @@ class TestCaseCompliance(unittest.TestCase):
         filepaths = []
         for root, dirs, files in os.walk(rootdir):
             for filename in files:
-                if filename.endswith('.py') or filename.endswith('.pyx'):
+                if ((filename.endswith('.py') or filename.endswith('.pyx'))
+                and root != os.path.join('scripts', 'gui')):
                     filepaths.append(os.path.join(root, filename))
         return filepaths
 
     def test_pep8(self):
         # TODO: Docstring
         files = self.get_files_to_check('pyramid') \
-              + self.get_files_to_check('scripts') \
-              + self.get_files_to_check('test')
+            + self.get_files_to_check('scripts') \
+            + self.get_files_to_check('tests')
         ignores = ('E226', 'E128')
         pep8.MAX_LINE_LENGTH = 99
         pep8style = pep8.StyleGuide(quiet=False)
@@ -48,6 +47,8 @@ class TestCaseCompliance(unittest.TestCase):
             result = pep8style.check_files(files)
             if result.total_errors == 0:
                 print 'No Warnings or Errors detected!'
+            else:
+                print '\n{} Warnings and Errors detected!'.format(result.total_errors)
         sys.stdout = stdout_buffer
 
         error_message = 'Found %s Errors and Warnings!' % result.total_errors

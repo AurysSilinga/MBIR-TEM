@@ -1,18 +1,20 @@
+#! python
 # -*- coding: utf-8 -*-
 """Create the Pyramid-Logo."""
 
 
-import pdb, traceback, sys
+import pdb
+import traceback
+import sys
 import numpy as np
 from numpy import pi
 import matplotlib.pyplot as plt
 
-import pyramid.magcreator  as mc
-import pyramid.projector   as pj
+import pyramid.magcreator as mc
+import pyramid.projector as pj
 import pyramid.phasemapper as pm
-import pyramid.holoimage   as hi
-import pyramid.analytic    as an
-from pyramid.magdata  import MagData
+import pyramid.holoimage as hi
+from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
 
 
@@ -20,22 +22,22 @@ PHI_0 = -2067.83  # magnetic flux in T*nm²
 
 
 def compare_vortices():
-    ''' DOCSTRING
-    '''
-    # Input parameters:  
+    ''' DOCSTRING'''  # TODO: Docstring!
+    # Input parameters:
     dim_list = [(16, 256, 256), (8, 128, 128), (4, 64, 64), (2, 32, 32), (1, 16, 16)]
     res_list = [1., 2., 4., 8., 16.]  # in nm
     density = 20
     phi = pi/2
-    
+
     x = []
     y = []
-    
+
     # Analytic solution:
     L = dim_list[0][1]  # in px/nm
     Lz = 0.5 * dim_list[0][0]  # in px/nm
     R = 0.25 * L  # in px/nm
     x0 = L / 2  # in px/nm
+
     def F(x):
         coeff = - pi * Lz / (2*PHI_0)
         result = coeff * (- (x - x0) * np.sin(phi))
@@ -43,16 +45,16 @@ def compare_vortices():
         return result
     x_an = np.linspace(0, L, 1000)
     y_an = F(x_an)
-    
+
     # Starting magnetic distribution:
     dim_start = (2*dim_list[0][0], 2*dim_list[0][1], 2*dim_list[0][2])
     res_start = res_list[0] / 2
     center = (dim_start[0]/2 - 0.5, dim_start[1]/2 - 0.5, dim_start[2]/2 - 0.5)
     radius = 0.25 * dim_start[1]
-    height = 0.5* dim_start[0]
+    height = 0.5 * dim_start[0]
     mag_shape = mc.Shapes.disc(dim_start, center, radius, height)
     mag_data = MagData(res_start, mc.create_mag_dist(mag_shape, phi))
-    
+
     for i, (dim, res) in enumerate(zip(dim_list, res_list)):
         # Create coarser grid for the magnetization:
         print 'dim = ', dim, 'res = ', res
@@ -64,7 +66,7 @@ def compare_vortices():
                      x_mag.mean(axis=5).mean(axis=3).mean(axis=1))
         mag_data = MagData(res, magnitude)
         projection = pj.simple_axis_projection(mag_data)
-        phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))    
+        phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))
         hi.display_combined(phase_map, density, 'Vortex State, res = {}'.format(res))
         x.append(np.linspace(0, dim[1]*res, dim[1]))
         y.append(phase_map.phase[dim[1]/2, :])
@@ -80,8 +82,8 @@ def compare_vortices():
               x_an, y_an, 'k')
     axis.set_xlabel('x [nm]')
     axis.set_ylabel('phase')
-  
-    
+
+
 if __name__ == "__main__":
     try:
         compare_vortices()
