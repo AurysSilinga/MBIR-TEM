@@ -4,7 +4,8 @@
 
 import numpy as np
 import numcore
-import time
+
+from numpy import pi
 
 # Physical constants
 PHI_0 = -2067.83    # magnetic flux in T*nm²
@@ -248,20 +249,20 @@ def phase_mag_real_alt(res, projection, method, b_0=1, jacobi=None):  # TODO: Mo
     return phase
 
 
-#def phase_elec(mag_data, v_0=0, v_acc=30000):
-#    # TODO: Docstring
-#
-#    res  = mag_data.res
-#    z_dim, y_dim, x_dim = mag_data.dim
-#    z_mag, y_mag, x_mag = mag_data.magnitude
-#
-#    phase = np.logical_or(x_mag, y_mag, z_mag)
-#
-#    lam = H_BAR / np.sqrt(2 * M_E * v_acc * (1 + Q_E*v_acc / (2*M_E*C**2)))
-#
-#    Ce = (2*pi*Q_E/lam * (Q_E*v_acc +   M_E*C**2) /
-#            (Q_E*v_acc * (Q_E*v_acc + 2*M_E*C**2)))
-#
-#    phase *= res * v_0 * Ce
-#
-#    return phase
+def phase_elec(mag_data, v_0=1, v_acc=30000):
+    # TODO: Docstring
+
+    res  = mag_data.res
+    z_dim, y_dim, x_dim = mag_data.dim
+    z_mag, y_mag, x_mag = mag_data.magnitude
+
+    phase = np.logical_or(x_mag, y_mag, z_mag)
+
+    lam = H_BAR / np.sqrt(2 * M_E * v_acc * (1 + Q_E*v_acc / (2*M_E*C**2)))
+
+    Ce = (2*pi*Q_E/lam * (Q_E*v_acc +   M_E*C**2) /
+            (Q_E*v_acc * (Q_E*v_acc + 2*M_E*C**2)))
+
+    phase *= res * v_0 * Ce
+
+    return phase

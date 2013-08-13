@@ -12,7 +12,7 @@ PHI_0 = -2067.83  # magnetic flux in T*nm²
 
 
 def phase_mag_slab(dim, res, phi, center, width, b_0=1):
-    '''Get the analytic solution for a phase map of a slab of specified dimensions
+    '''Get the analytic solution for a phase map of a slab of specified dimensions.
     Arguments:
         dim    - the dimensions of the grid, shape(z, y, x)
         res    - the resolution of the grid (grid spacing) in nm
@@ -40,8 +40,8 @@ def phase_mag_slab(dim, res, phi, center, width, b_0=1):
                                              + F0(y-y0+Ly/2, x-x0+Lx/2)))
     # Process input parameters:
     z_dim, y_dim, x_dim = dim
-    y0 = res * (center[1] + 0.5)  # y0, x0 have to be in the center of a pixel,
-    x0 = res * (center[2] + 0.5)  # hence: cellindex + 0.5
+    y0 = res * (center[1] + 0.5)  # y0, x0 define the center of a pixel,
+    x0 = res * (center[2] + 0.5)  # hence: (cellindex + 0.5) * resolution
     Lz, Ly, Lx = res * width[0], res * width[1], res * width[2]
     coeff = b_0 / (4*PHI_0)
     # Create grid:
@@ -53,7 +53,7 @@ def phase_mag_slab(dim, res, phi, center, width, b_0=1):
 
 
 def phase_mag_disc(dim, res, phi, center, radius, height, b_0=1):
-    '''Get the analytic solution for a phase map of a disc of specified dimensions
+    '''Get the analytic solution for a phase map of a disc of specified dimensions.
     Arguments:
         dim    - the dimensions of the grid, shape(z, y, x)
         res    - the resolution of the grid (grid spacing) in nm
@@ -89,7 +89,7 @@ def phase_mag_disc(dim, res, phi, center, radius, height, b_0=1):
 
 
 def phase_mag_sphere(dim, res, phi, center, radius, b_0=1):
-    '''Get the analytic solution for a phase map of a sphere of specified dimensions
+    '''Get the analytic solution for a phase map of a sphere of specified dimensions.
     Arguments:
         dim    - the dimensions of the grid, shape(z, y, x)
         res    - the resolution of the grid (grid spacing) in nm
@@ -123,7 +123,7 @@ def phase_mag_sphere(dim, res, phi, center, radius, b_0=1):
 
 
 def phase_mag_vortex(dim, res, center, radius, height, b_0=1):
-    '''Get the analytic solution for a phase map of a sharp vortex disc of specified dimensions
+    '''Get the analytic solution for a phase map of a sharp vortex disc of specified dimensions.
     Arguments:
         dim    - the dimensions of the grid, shape(z, y, x)
         res    - the resolution of the grid (grid spacing) in nm

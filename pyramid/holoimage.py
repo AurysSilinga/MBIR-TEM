@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from pyramid.phasemap import PhaseMap
 from numpy import pi
 from PIL import Image
+from matplotlib.ticker import NullLocator
 
 
 CDICT = {'red':   [(0.00, 1.0, 0.0),
@@ -76,20 +77,20 @@ def make_color_wheel():
     rgb = (255.999 * color_wheel_magnitude.T * rgba[:, :, :3].T).T.astype(np.uint8)
     color_wheel = Image.fromarray(rgb)
     # Plot the color wheel:
-    fig = plt.figure()
-    ax = fig.add_subplot(111, aspect='equal')
-    ax.imshow(color_wheel)
-    ax.set_title('Color Wheel')
-    ax.set_xlabel('x-axis')
-    ax.set_ylabel('y-axis')
+    fig = plt.figure(figsize=(4, 4))
+    axis = fig.add_subplot(1, 1, 1, aspect='equal')
+    axis.imshow(color_wheel, origin='lower')
+    axis.xaxis.set_major_locator(NullLocator())
+    axis.yaxis.set_major_locator(NullLocator())
 
 
-def display(holo_image, title='Holography Image', axis=None):
+def display(holo_image, title='Holography Image', axis=None, interpolation='none'):
     '''Display the color coded holography image resulting from a given phase map.
     Arguments:
-        holo_image - holography image created with the holo_image function of this module
-        title      - the title of the plot (default: 'Holography Image')
-        axis       - the axis on which to display the plot (default: None, a new figure is created)
+        holo_image    - holography image created with the holo_image function of this module
+        title         - the title of the plot (default: 'Holography Image')
+        axis          - the axis on which to display the plot (default: None, creates new figure)
+        interpolation - defines the interpolation method (default: 'none')
     Returns:
         None
 
@@ -99,13 +100,17 @@ def display(holo_image, title='Holography Image', axis=None):
         fig = plt.figure()
         axis = fig.add_subplot(1, 1, 1, aspect='equal')
     # Plot the image and set axes:
-    axis.imshow(holo_image, interpolation='none')
+    axis.imshow(holo_image, origin='lower', interpolation=interpolation)
+    # Set the title and the axes labels:
     axis.set_title(title)
-    axis.set_xlabel('x-axis')
-    axis.set_ylabel('y-axis')
+    plt.tick_params(axis='both', which='major', labelsize=14)
+    axis.set_title(title, fontsize=18)
+    axis.set_xlabel('x-axis [px]', fontsize=15)
+    axis.set_ylabel('y-axis [px]', fontsize=15)
 
 
-def display_combined(phase_map, density, title='Combined Plot'):
+def display_combined(phase_map, density, title='Combined Plot', interpolation='none',
+                     labels=('x-axis [nm]', 'y-axis [nm]', 'phase [rad]')):# TODO DOCSTRING
     '''Display a given phase map and the resulting color coded holography image in one plot.
     Arguments:
         phase_map - the PhaseMap object from which the holography image is calculated
@@ -116,11 +121,12 @@ def display_combined(phase_map, density, title='Combined Plot'):
 
     '''
     # Create combined plot and set title:
-    fig = plt.figure(figsize=(14, 7))
+    fig = plt.figure(figsize=(16, 7))
     fig.suptitle(title, fontsize=20)
     # Plot holography image:
     holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-    display(holo_image(phase_map, density), axis=holo_axis)
+    display(holo_image(phase_map, density), axis=holo_axis, interpolation=interpolation)
     # Plot phase map:
     phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
-    phase_map.display(axis=phase_axis)
+    fig.subplots_adjust(right=0.85)
+    phase_map.display(axis=phase_axis, labels=('x-axis [nm]', 'y-axis [nm]', 'phase [mrad]'))

@@ -57,17 +57,20 @@ def run():
         mag_data_vort.quiver_plot3d()
         print '--SHELVE MAGNETIC DISTRIBUTIONS'
         data_shelve[key] = (mag_data_disc, mag_data_vort)
-
-    print '--PLOT/SAVE HOMOG. MAGN. DISC'
-    # Plot and save MagData (Disc):
-    mag_data_disc.quiver_plot('Homog. magn. disc')
-    plt.savefig(directory + '/ch5-0-mag_data_disc.png', bbox_inches='tight')
-
     
-    print '--PLOT/SAVE VORTEX STATE DISC'
-    # Plot and save MagData (Vortex):
-    mag_data_vort.quiver_plot('Vortex state disc')
-    plt.savefig(directory + '/ch5-0-mag_data_vort.png', bbox_inches='tight')
+    print '--PLOT/SAVE MAGNETIC DISTRIBUTIONS'
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+    fig.suptitle('Magnetic Distributions', fontsize=20)
+    # Plot MagData (Disc):
+    mag_data_disc.quiver_plot('Homog. magn. disc', axis = axes[0])
+    axes[0].set_aspect('equal')
+    # Plot MagData (Disc):
+    mag_data_vort.quiver_plot('Vortex state disc', axis = axes[1])
+    axes[1].set_aspect('equal')
+    # Save Plots:
+    plt.figtext(0.15, 0.15, 'a)', fontsize=30)
+    plt.figtext(0.57, 0.15, 'b)', fontsize=30)
+    plt.savefig(directory + '/ch5-0-magnetic_distributions.png', bbox_inches='tight')
     
     ###############################################################################################
     print 'CLOSING SHELVE\n'

@@ -88,7 +88,8 @@ class PhaseMap:
         phase[:] = self.phase
         f.close()
 
-    def display(self, title='Phase Map', axis=None, cmap='gray'):
+    def display(self, title='Phase Map', labels=('x-axis [nm]', 'y-axis [nm]', 'phase [rad]'),
+                cmap='RdBu', limit=None, norm=None, axis=None):
         '''Display the phasemap as a colormesh.
         Arguments:
             title - the title of the plot (default: 'Phase Map')
@@ -97,23 +98,65 @@ class PhaseMap:
         Returns:
             None
 
-        '''
+        ''' # TODO: Docstring!
+        
+        # TODO: ALWAYS CENTERED around 0
+        if limit is None:
+            limit = np.max(np.abs(self.phase))
+        
         # If no axis is specified, a new figure is created:
         if axis is None:
-            fig = plt.figure()
+            fig = plt.figure(figsize=(8.5, 7))
             axis = fig.add_subplot(1, 1, 1, aspect='equal')
-        im = plt.pcolormesh(self.phase, cmap=cmap)
+        # Plot the phasemap:
+        im = axis.pcolormesh(self.phase, cmap=cmap, vmin=-limit, vmax=limit, norm=norm)
         # Set the axes ticks and labels:
-        ticks = axis.get_xticks()*self.res
+        axis.set_xlim(0, np.shape(self.phase)[1])
+        axis.set_ylim(0, np.shape(self.phase)[0])
+        ticks = (axis.get_xticks()*self.res).astype(int)
         axis.set_xticklabels(ticks)
-        ticks = axis.get_yticks()*self.res
+        ticks = (axis.get_yticks()*self.res).astype(int)
+        axis.tick_params(axis='both', which='major', labelsize=14)
         axis.set_yticklabels(ticks)
-        axis.set_title(title)
-        axis.set_xlabel('x-axis [nm]')
-        axis.set_ylabel('y-axis [nm]')
-        # Plot the phase map:
+        axis.set_title(title, fontsize=18)
+        axis.set_xlabel(labels[0], fontsize=15)
+        axis.set_ylabel(labels[1], fontsize=15)
+        # Add colorbar:
         fig = plt.gcf()
-        fig.subplots_adjust(right=0.85)
-        cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
-        fig.colorbar(im, cax=cbar_ax)
+        fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
+        cbar = fig.colorbar(im, cax=cbar_ax)
+        cbar.ax.tick_params(labelsize=14)
+        cbar.set_label(labels[2], fontsize=15)
+        
+        plt.show()
+
+    def display3d(self, title='Phase Map', labels=('x-axis [nm]', 'y-axis [nm]', 'phase [rad]'),
+                cmap='RdBu', limit=None, norm=None, axis=None):
+        '''Display the phasemap as a colormesh.
+        Arguments:
+            title - the title of the plot (default: 'Phase Map')
+            axis  - the axis on which to display the plot (default: None, a new figure is created)
+            cmap  - the colormap which is used for the plot (default: 'gray')
+        Returns:
+            None
+
+        ''' # TODO: Docstring!
+        
+        from mpl_toolkits.mplot3d import Axes3D
+
+        fig = plt.figure()
+        ax = Axes3D(fig)#.gca(projection='3d')
+
+        u = range(self.dim[1])
+        v = range(self.dim[0])
+        uu, vv = np.meshgrid(u, v)
+        ax.plot_surface(uu, vv, self.phase, rstride=4, cstride=4, alpha=0.7, cmap='RdBu',
+                        linewidth=0, antialiased=False)
+        ax.contourf(uu, vv, self.phase, 15, zdir='z', offset=np.min(self.phase), cmap='RdBu')
+        ax.view_init(45, -135)
+        ax.set_xlabel('x-axis [px]')
+        ax.set_ylabel('y-axis [px]')
+        ax.set_zlabel('phase [mrad]')
+
         plt.show()

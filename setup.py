@@ -57,7 +57,7 @@ setup(
       
       packages = find_packages(exclude=['tests']),
       include_dirs = [numpy.get_include()],
-      requires = ['numpy', 'matplotlib'],
+      requires = ['numpy', 'matplotlib', 'mayavi'],
 
       scripts = get_files('scripts'),
 

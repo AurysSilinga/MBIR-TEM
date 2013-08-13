@@ -10,7 +10,9 @@ import sys
 import os
 import numpy as np
 from numpy import pi
+
 import matplotlib.pyplot as plt
+from matplotlib.ticker import IndexLocator
 
 import pyramid.magcreator as mc
 import pyramid.projector as pj
@@ -180,91 +182,75 @@ def run():
     
     print '--PLOT/SAVE METHOD DATA'
     
-    # row and column sharing
-    fig, axes = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(16, 7))
-#    ax1.plot(x, y)
-#    ax1.set_title('Sharing x per column, y per row')
-#    ax2.scatter(x, y)
-#    ax3.scatter(x, 2 * y ** 2 - 1, color='r')
-#    ax4.plot(x, 2 * y ** 2 - 1, color='r')
-    
-    
-    
-    # Plot duration against res (disc):
-#    fig = plt.figure()
-#    axis = fig.add_subplot(1, 1, 1)
-    plt.tick_params(axis='both', which='major', labelsize=14)
+    # Plot using shared rows and colums:
+    fig, axes = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(12, 8))
+    fig.tight_layout(rect=(0.05, 0.05, 0.95, 0.95))
+    fig.suptitle('Method Comparison', fontsize=20)
+
+    # Plot duration against res (disc) [top/left]:
     axes[1, 0].set_yscale('log')
-    axes[1, 0].plot(data_disc_fourier0[0], data_disc_fourier0[1], '--b+', label='Fourier padding=0')
-    axes[1, 0].plot(data_disc_fourier1[0], data_disc_fourier1[1], '--bx', label='Fourier padding=1')
-    axes[1, 0].plot(data_disc_fourier10[0], data_disc_fourier10[1], '--b*', label='Fourier padding=10')
-    axes[1, 0].plot(data_disc_real_s[0], data_disc_real_s[1], '--rs', label='Real space (slab)')
-    axes[1, 0].plot(data_disc_real_d[0], data_disc_real_d[1], '--ro', label='Real space (disc)')
-    axes[1, 0].set_title('Variation of the resolution (disc)', fontsize=18)
-#    axes[1, 0].set_xlabel('res [nm]', fontsize=15)
-#    axes[1, 0].set_ylabel('RMS [mrad]', fontsize=15)
-#    axes[1, 0].set_xlim(-0.5, 16.5)
-#    axes[1, 0].legend(loc=4)
-#    plt.tick_params(axis='both', which='major', labelsize=14)
-#    plt.savefig(directory + '/ch5-3-disc_RMS_against_res.png', bbox_inches='tight')
-    # Plot RMS against res (disc):
-#    fig = plt.figure()
-#    axis = fig.add_subplot(1, 1, 1)
+    axes[1, 0].plot(data_disc_fourier0[0], data_disc_fourier0[1], ':bs')
+    axes[1, 0].plot(data_disc_fourier1[0], data_disc_fourier1[1], ':bo')
+    axes[1, 0].plot(data_disc_fourier10[0], data_disc_fourier10[1], ':b^')
+    axes[1, 0].plot(data_disc_real_s[0], data_disc_real_s[1], '--rs')
+    axes[1, 0].plot(data_disc_real_d[0], data_disc_real_d[1], '--ro')
+    axes[1, 0].set_xlabel('res [nm]', fontsize=15)
+    axes[1, 0].set_ylabel('RMS [mrad]', fontsize=15)
+    axes[1, 0].set_xlim(-0.5, 16.5)
+    axes[1, 0].tick_params(axis='both', which='major', labelsize=14)
+    axes[1, 0].xaxis.set_major_locator(IndexLocator(base=4, offset=-0.5))
+
+    # Plot RMS against res (disc) [bottom/left]:
+    plt.tick_params(axis='both', which='major', labelsize=14)
     axes[0, 0].set_yscale('log')
-    axes[0, 0].plot(data_disc_fourier0[0], data_disc_fourier0[2], '--b+', label='Fourier padding=0')
-    axes[0, 0].plot(data_disc_fourier1[0], data_disc_fourier1[2], '--bx', label='Fourier padding=1')
-    axes[0, 0].plot(data_disc_fourier10[0], data_disc_fourier10[2], '--b*', label='Fourier padding=10')
-    axes[0, 0].plot(data_disc_real_s[0], data_disc_real_s[2], '--rs', label='Real space (slab)')
-    axes[0, 0].plot(data_disc_real_d[0], data_disc_real_d[2], '--ro', label='Real space (disc)')
-    axes[0, 0].set_title('Variation of the resolution (disc)', fontsize=18)
-#    axes[0, 0].set_xlabel('res [nm]', fontsize=15)
+    axes[0, 0].plot(data_disc_fourier0[0], data_disc_fourier0[2], ':bs')
+    axes[0, 0].plot(data_disc_fourier1[0], data_disc_fourier1[2], ':bo')
+    axes[0, 0].plot(data_disc_fourier10[0], data_disc_fourier10[2], ':b^')
+    axes[0, 0].plot(data_disc_real_s[0], data_disc_real_s[2], '--rs')
+    axes[0, 0].plot(data_disc_real_d[0], data_disc_real_d[2], '--ro')
+    axes[0, 0].set_title('Homog. magn. disc', fontsize=18)
     axes[0, 0].set_ylabel('duration [s]', fontsize=15)
-#    axes[0, 0].set_xlim(-0.5, 16.5)
-#    axes[0, 0].legend(loc=1)
-#    plt.tick_params(axis='both', which='major', labelsize=14)
-#    plt.savefig(directory + '/ch5-3-disc_duration_against_res.png', bbox_inches='tight')
+    axes[0, 0].set_xlim(-0.5, 16.5)
+    axes[0, 0].tick_params(axis='both', which='major', labelsize=14)
+    axes[0, 0].xaxis.set_major_locator(IndexLocator(base=4, offset=-0.5))
 
-    # Plot duration against res (vortex):
-#    fig = plt.figure()
-#    axis = fig.add_subplot(1, 1, 1)
+    # Plot duration against res (vortex) [top/right]:
     axes[1, 1].set_yscale('log')
-    axes[1, 1].plot(data_vort_fourier0[0], data_vort_fourier0[1], '--b+', label='Fourier padding=0')
-    axes[1, 1].plot(data_vort_fourier1[0], data_vort_fourier1[1], '--bx', label='Fourier padding=1')
-    axes[1, 1].plot(data_vort_fourier10[0], data_vort_fourier10[1], '--b*', label='Fourier padding=10')
-    axes[1, 1].plot(data_vort_real_s[0], data_vort_real_s[1], '--rs', label='Real space (slab)')
-    axes[1, 1].plot(data_vort_real_d[0], data_vort_real_d[1], '--ro', label='Real space (disc)')
-#    axes[1, 1].set_title('Variation of the resolution (vortex)', fontsize=18)
+    axes[1, 1].plot(data_vort_fourier0[0], data_vort_fourier0[1], ':bs')
+    axes[1, 1].plot(data_vort_fourier1[0], data_vort_fourier1[1], ':bo')
+    axes[1, 1].plot(data_vort_fourier10[0], data_vort_fourier10[1], ':b^')
+    axes[1, 1].plot(data_vort_real_s[0], data_vort_real_s[1], '--rs')
+    axes[1, 1].plot(data_vort_real_d[0], data_vort_real_d[1], '--ro')
     axes[1, 1].set_xlabel('res [nm]', fontsize=15)
-#    axes[1, 1].set_ylabel('RMS [mrad]', fontsize=15)
     axes[1, 1].set_xlim(-0.5, 16.5)
-#    axes[1, 1].legend(loc=4)
-#    plt.tick_params(axis='both', which='major', labelsize=14)
-#    plt.savefig(directory + '/ch5-3-vortex_RMS_against_res.png', bbox_inches='tight')
-    # Plot RMS against res (vort):
-#    fig = plt.figure()
-#    axis = fig.add_subplot(1, 1, 1)
+    axes[1, 1].tick_params(axis='both', which='major', labelsize=14)
+    axes[1, 1].xaxis.set_major_locator(IndexLocator(base=4, offset=-0.5))
+
+    # Plot RMS against res (vortex) [bottom/right]:
     axes[0, 1].set_yscale('log')
-    axes[0, 1].plot(data_vort_fourier0[0], data_vort_fourier0[2], '--b+', label='Fourier padding=0')
-    axes[0, 1].plot(data_vort_fourier1[0], data_vort_fourier1[2], '--bx', label='Fourier padding=1')
-    axes[0, 1].plot(data_vort_fourier10[0], data_vort_fourier10[2], '--b*', label='Fourier padding=10')
-    axes[0, 1].plot(data_vort_real_s[0], data_vort_real_s[2], '--rs', label='Real space (slab)')
-    axes[0, 1].plot(data_vort_real_d[0], data_vort_real_d[2], '--ro', label='Real space (disc)')
-    axes[0, 1].set_title('Variation of the resolution (vortex)', fontsize=18)
-#    axes[0, 1].set_xlabel('res [nm]', fontsize=15)
-#    axes[0, 1].set_ylabel('duration [s]', fontsize=15)
+    axes[0, 1].plot(data_vort_fourier0[0], data_vort_fourier0[2], ':bs',
+                    label='Fourier padding=0')
+    axes[0, 1].plot(data_vort_fourier1[0], data_vort_fourier1[2], ':bo',
+                    label='Fourier padding=1')
+    axes[0, 1].plot(data_vort_fourier10[0], data_vort_fourier10[2], ':b^',
+                    label='Fourier padding=10')
+    axes[0, 1].plot(data_vort_real_s[0], data_vort_real_s[2], '--rs',
+                    label='Real space (slab)')
+    axes[0, 1].plot(data_vort_real_d[0], data_vort_real_d[2], '--ro',
+                    label='Real space (disc)')
+    axes[0, 1].set_title('Vortex state disc', fontsize=18)
     axes[0, 1].set_xlim(-0.5, 16.5)
+    axes[0, 1].tick_params(axis='both', which='major', labelsize=14)
+    axes[0, 1].xaxis.set_major_locator(IndexLocator(base=4, offset=-0.5))
     axes[0, 1].legend(loc=1)
-#    plt.tick_params(axis='both', which='major', labelsize=14)
-    plt.savefig(directory + '/ch5-3-vortex_duration_against_res.png', bbox_inches='tight')
-
-
-
-
-
-
-
-
-
+    
+    # Save figure as .png:
+    plt.show()
+    plt.figtext(0.45, 0.85, 'a)', fontsize=30)
+    plt.figtext(0.57, 0.85, 'b)', fontsize=30)
+    plt.figtext(0.45, 0.15, 'c)', fontsize=30)
+    plt.figtext(0.57, 0.15, 'd)', fontsize=30)
+    plt.savefig(directory + '/ch5-3-method comparison.png', bbox_inches='tight')
 
     ###############################################################################################
     print 'CLOSING SHELVE\n'

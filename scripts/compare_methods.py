@@ -31,20 +31,20 @@ def compare_methods():
     b_0 = 1    # in T
     res = 10.0  # in nm
     phi = pi/4
-    padding = 20
-    density = 10
-    dim = (1, 128, 128)  # in px (z, y, x)
+    padding = 12
+    density = 1
+    dim = (16, 128, 128)  # in px (z, y, x)
     # Create magnetic shape:
-    geometry = 'slab'
+    geometry = 'disc'
     if geometry == 'slab':
-        center = (0, dim[1]/2., dim[2]/2.)  # in px (z, y, x) index starts with 0!
-        width = (1, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x)
+        center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
+        width = (dim[0]/2, dim[1]/2., dim[2]/2.)  # in px (z, y, x)
         mag_shape = mc.Shapes.slab(dim, center, width)
         phase_ana = an.phase_mag_slab(dim, res, phi, center, width, b_0)
     elif geometry == 'disc':
-        center = (0, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
+        center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
         radius = dim[1]/4  # in px
-        height = 1  # in px
+        height = dim[0]/2  # in px
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
         phase_ana = an.phase_mag_disc(dim, res, phi, center, radius, height, b_0)
     elif geometry == 'sphere':

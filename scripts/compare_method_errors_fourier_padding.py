@@ -36,7 +36,7 @@ def phase_from_mag():
     b_0 = 1  # in T
     res = 10.0  # in nm
     dim = (1, 128, 128)
-    phi = -pi/4
+    phi = -pi/2
     padding_list = [0, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
                     16, 17, 18, 19, 20, 21, 22]
     geometry = 'disc'
