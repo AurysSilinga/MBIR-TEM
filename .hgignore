@@ -7,6 +7,8 @@ syntax: glob
 *.pyd
 *.so
 *.os
+*.c
+_*
 output*
 build*
 Pyramid.egg-info*

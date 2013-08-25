@@ -1,14 +1,26 @@
 # -*- coding: utf-8 -*-
-"""Display holography images with the gradient direction encoded in color"""
+"""Create holographic contour maps from a given phase map.
+
+This module converts phase maps into holographic contour map. This basically means taking the
+cosine of the (optionally amplified) phase and encoding the direction of the 2-dimensional
+gradient via color. The directional encoding can be seen by using the :func:`~.make_color_wheel`
+function. Use the :func:`~.holoimage` function to create these holographic contour maps. It is
+possible to use these as input for the :func:`~.display` to plot them, or just pass the
+:class:`~pyramid.phasemap.PhaseMap` object to the :func:`~.display_combined` function to plot
+the phase map and the holographic contour map next to each other.
+
+"""
 
 
 import numpy as np
+from numpy import pi
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from pyramid.phasemap import PhaseMap
-from numpy import pi
-from PIL import Image
 from matplotlib.ticker import NullLocator
+from PIL import Image
+
+from pyramid.phasemap import PhaseMap
 
 
 CDICT = {'red':   [(0.00, 1.0, 0.0),
@@ -33,19 +45,28 @@ HOLO_CMAP = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT, 256)
 
 
 def holo_image(phase_map, density=1):
-    '''Returns a holography image with color-encoded gradient direction.
-    Arguments:
-        phase_map - a PhaseMap object storing the phase informations
-        density   - the gain factor for determining the number of contour lines (default: 1)
-    Returns:
-        holography image
+    '''Create a holographic contour map from a :class:`~pyramid.phasemap.PhaseMap` object.
+
+    Parameters
+    ----------
+    phase_map : :class:`~pyramid.phasemap.PhaseMap`
+        A :class:`~pyramid.phasemap.PhaseMap` object storing the phase information.
+    density : float, optional
+        The gain factor for determining the number of contour lines. The default is 1.
+
+    Returns
+    -------
+    holo_image : :class:`~PIL.image`
+        The resulting holographic contour map with color encoded gradient.
 
     '''
     assert isinstance(phase_map, PhaseMap), 'phase_map has to be a PhaseMap object!'
+    # Extract the phase (considering the unit):
+    phase = phase_map.phase
     # Calculate the holography image intensity:
-    img_holo = (1 + np.cos(density * phase_map.phase * pi/2)) / 2
+    img_holo = (1 + np.cos(density * phase)) / 2
     # Calculate the phase gradients, expressed by magnitude and angle:
-    phase_grad_y, phase_grad_x = np.gradient(phase_map.phase, phase_map.res, phase_map.res)
+    phase_grad_y, phase_grad_x = np.gradient(phase, phase_map.res, phase_map.res)
     phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
     phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)
     phase_magnitude = np.sin(phase_magnitude/phase_magnitude.max() * pi / 2)
@@ -57,11 +78,15 @@ def holo_image(phase_map, density=1):
 
 
 def make_color_wheel():
-    '''Display a color wheel for the gradient direction.
-    Arguments:
-        None
-    Returns:
-        None
+    '''Display a color wheel to illustrate the color coding of the gradient direction.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
 
     '''
     x = np.linspace(-256, 256, num=512)
@@ -84,15 +109,23 @@ def make_color_wheel():
     axis.yaxis.set_major_locator(NullLocator())
 
 
-def display(holo_image, title='Holography Image', axis=None, interpolation='none'):
-    '''Display the color coded holography image resulting from a given phase map.
-    Arguments:
-        holo_image    - holography image created with the holo_image function of this module
-        title         - the title of the plot (default: 'Holography Image')
-        axis          - the axis on which to display the plot (default: None, creates new figure)
-        interpolation - defines the interpolation method (default: 'none')
-    Returns:
-        None
+def display(holo_image, title='Holographic Contour Map', axis=None, interpolation='none'):
+    '''Display the color coded holography image.
+
+    Parameters
+    ----------
+    holo_image : :class:`~PIL.image`
+        The resulting holographic contour map with color encoded gradient.
+    title : string, optional
+        The title of the plot. The default is 'Holographic Contour Map'.
+    axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+        Axis on which the graph is plotted. Creates a new figure if none is specified.
+    interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
+        Defines the interpolation method. No interpolation is used in the default case.
+
+    Returns
+    -------
+    None
 
     '''
     # If no axis is specified, a new figure is created:
@@ -109,15 +142,24 @@ def display(holo_image, title='Holography Image', axis=None, interpolation='none
     axis.set_ylabel('y-axis [px]', fontsize=15)
 
 
-def display_combined(phase_map, density, title='Combined Plot', interpolation='none',
-                     labels=('x-axis [nm]', 'y-axis [nm]', 'phase [rad]')):# TODO DOCSTRING
+def display_combined(phase_map, density=1, title='Combined Plot', interpolation='none'):
     '''Display a given phase map and the resulting color coded holography image in one plot.
-    Arguments:
-        phase_map - the PhaseMap object from which the holography image is calculated
-        density   - the factor for determining the number of contour lines
-        title     - the title of the combined plot (default: 'Combined Plot')
-    Returns:
-        None
+
+    Parameters
+    ----------
+    phase_map : :class:`~pyramid.phasemap.PhaseMap`
+        A :class:`~pyramid.phasemap.PhaseMap` object storing the phase information.
+    density : float, optional
+        The gain factor for determining the number of contour lines. The default is 1.
+    title : string, optional
+        The title of the plot. The default is 'Combined Plot'.
+    interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
+        Defines the interpolation method for the holographic contour map.
+        No interpolation is used in the default case.
+
+    Returns
+    -------
+    None
 
     '''
     # Create combined plot and set title:
@@ -129,4 +171,4 @@ def display_combined(phase_map, density, title='Combined Plot', interpolation='n
     # Plot phase map:
     phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
     fig.subplots_adjust(right=0.85)
-    phase_map.display(axis=phase_axis, labels=('x-axis [nm]', 'y-axis [nm]', 'phase [mrad]'))
+    phase_map.display(axis=phase_axis)

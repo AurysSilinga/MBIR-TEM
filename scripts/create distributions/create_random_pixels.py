@@ -5,6 +5,8 @@ import random as rnd
 import pdb
 import traceback
 import sys
+import os
+
 import numpy as np
 from numpy import pi
 
@@ -24,25 +26,27 @@ def create_random_pixels():
         None
 
     '''
+    directory = '../../output/magnetic distributions'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    # Input parameters:
+    filename = directory + '/mag_dist_random_pixels.txt'
     # Input parameters:
     count = 10
     dim = (1, 128, 128)
     res = 10  # in nm
     rnd.seed(12)
-    # Create lists for magnetic objects:
-    mag_shape_list = np.zeros((count,) + dim)
-    phi_list = np.zeros(count)
-    magnitude_list = np.zeros(count)
+    # Create empty MagData object and add pixels:
+    mag_data = MagData(res)
     for i in range(count):
         pixel = (rnd.randrange(dim[0]), rnd.randrange(dim[1]), rnd.randrange(dim[2]))
-        mag_shape_list[i, ...] = mc.Shapes.pixel(dim, pixel)
-        phi_list[i] = 2 * pi * rnd.random()
-        magnitude_list[i] = 1  # TODO: rnd.random()
-    # Create magnetic distribution:
-    magnitude = mc.create_mag_dist_comb(mag_shape_list, phi_list, magnitude_list)
-    mag_data = MagData(res, magnitude)
+        mag_shape = mc.Shapes.pixel(dim, pixel)
+        phi = 2 * pi * rnd.random()
+        magnitude = 1  # TODO: rnd.random()
+        mag_data.add_magnitude(mc.create_mag_dist_homog(mag_shape, phi, magnitude=magnitude))
+    # Plot magnetic distribution, phase map and holographic contour map:
     mag_data.quiver_plot()
-    mag_data.save_to_llg('../output/mag_dist_random_pixels.txt')
+    mag_data.save_to_llg(filename)
     projection = pj.simple_axis_projection(mag_data)
     phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))
     hi.display(hi.holo_image(phase_map, 10))

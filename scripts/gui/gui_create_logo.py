@@ -59,7 +59,7 @@ class CreateLogoWidget(QtGui.QWidget, Ui_CreateLogoWidget):
         # Call parent constructor
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
-        self.ui = uic.loadUi('gui/create_logo.ui')
+        self.ui = uic.loadUi('create_logo.ui')
 #        self.setCentralWidget(self.ui)
         # Connect Widgets with locally defined functions:
         self.connect(self.logoPushButton, QtCore.SIGNAL('clicked()'), self.buttonPushed)
@@ -120,7 +120,7 @@ def create_logo(dim, axis):
     right = np.fliplr(left)
     mag_shape[0, ...] = np.logical_and(np.logical_and(left, right), bottom)
     # Create magnetic data, project it, get the phase map and display the holography image:
-    mag_data = MagData(res, mc.create_mag_dist(mag_shape, phi))
+    mag_data = MagData(res, mc.create_mag_dist_homog(mag_shape, phi))
     projection = pj.simple_axis_projection(mag_data)
     phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))
     hi.display(hi.holo_image(phase_map, density), 'PYRAMID - LOGO', axis)

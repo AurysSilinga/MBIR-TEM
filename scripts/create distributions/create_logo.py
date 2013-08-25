@@ -6,6 +6,7 @@
 import pdb
 import traceback
 import sys
+
 import numpy as np
 from numpy import pi
 
@@ -40,7 +41,7 @@ def create_logo():
     right = np.fliplr(left)
     mag_shape[0, ...] = np.logical_and(np.logical_and(left, right), bottom)
     # Create magnetic data, project it, get the phase map and display the holography image:
-    mag_data = MagData(res, mc.create_mag_dist(mag_shape, phi))
+    mag_data = MagData(res, mc.create_mag_dist_homog(mag_shape, phi))
     mag_data.quiver_plot()
     projection = pj.simple_axis_projection(mag_data)
     phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))

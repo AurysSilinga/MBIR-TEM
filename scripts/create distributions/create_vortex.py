@@ -5,6 +5,8 @@
 import pdb
 import traceback
 import sys
+import os
+
 import matplotlib.pyplot as plt
 
 import pyramid.magcreator as mc
@@ -23,8 +25,11 @@ def create_vortex():
         None
 
     '''
+    directory = '../../output/magnetic distributions'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     # Input parameters:
-    filename = '../output/mag_dist_vortex.txt'
+    filename = directory + '/mag_dist_vortex.txt'
     res = 10.0  # in nm
     density = 1
     dim = (1, 128, 128)

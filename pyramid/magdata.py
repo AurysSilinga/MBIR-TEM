@@ -1,62 +1,187 @@
 # -*- coding: utf-8 -*-
-"""Class for creating objects to store magnetizatin data."""
+"""Class for the storage of magnetizatin data.
+
+This module provides the :class:`~.MagData` class whose instances can be used to store
+magnetization data for 3 components for a 3-dimensional grid. It is possible to load data from
+NetCDF4 or LLG (.txt) files or to save the data in these formats. Also plotting methods are
+provided. See :class:`~.MagData` for further information.
+
+"""
 
 
 import numpy as np
-import tables.netcdf3 as nc
+
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+
+from mayavi import mlab
+
+import netCDF4
 
 
 class MagData:
 
-    '''An object storing magnetization data.'''
+    '''Class for storing magnetization data.
 
-    def __init__(self, res, magnitude):  # TODO: electrostatic component!
-        '''Constructor for a MagData object for storing magnetization data.
-        Arguments:
-            res       - the resolution of the grid (grid spacing) in nm
-            magnitude - the z-, y- and x-component of the magnetization vector for every
-                        3D-gridpoint as a tuple
-        Returns:
-            MagData object
+    Represents 3-dimensional magnetic distributions with 3 components which are stored as a
+    tuple of size 3 in `magnitude`. The object can be created empty by omitting the `magnitude`
+    paramter. The `magnitude` can be added later by using the :func:`~.add_magnitude` function.
+    This is useful, if the `magnitude` is more complex and more than one magnetized object should
+    be represented by the :class:`~.MagData` object, which can be added one after another by the
+    :func:`~.add_magnitude` function. The dimensions `dim` of the grid will be set as soon as the
+    magnitude is specified. However, `res` has to be always specified at construction time.
+
+    Attributes
+    ----------
+    res : float
+        The resolution of the grid (grid spacing in nm)
+    dim : tuple (N=3)
+        Dimensions of the grid.
+    magnitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3)
+        The `z`-, `y`- and `x`-component of the magnetization vector for every 3D-gridpoint
+        as a tuple.
+
+    '''
+
+    def __init__(self, res, magnitude=None):
+        '''Constructor for a :class:`~.MagData` object for storing magnetization data.
+
+        Parameters
+        ----------
+        res : float
+            The resolution of the grid (grid spacing) in nm.
+        magnitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3), optional
+            The `z`-, `y`- and `x`-component of the magnetization vector for every 3D-gridpoint
+            as a tuple. Is zero everywhere if not specified.
+
+        Returns
+        -------
+        mag_data : :class:`~.MagData`
+            The 3D magnetic distribution as a :class:`~.MagData` object.
 
         '''
-        dim = np.shape(magnitude[0])
-        assert len(dim) == 3, 'Magnitude has to be defined for a 3-dimensional grid!'
-        assert np.shape(magnitude[1]) == np.shape(magnitude[2]) == dim, \
-            'Dimensions of the magnitude components do not match!'
+        if magnitude is not None:
+            dim = np.shape(magnitude[0])
+            assert len(dim) == 3, 'Magnitude has to be defined for a 3-dimensional grid!'
+            assert np.shape(magnitude[1]) == np.shape(magnitude[2]) == dim, \
+                'Dimensions of the magnitude components do not match!'
+            self.magnitude = magnitude
+            self.dim = dim
+        else:
+            self.magnitude = None
+            self.dim = None
         self.res = res
-        self.dim = dim
-        self.magnitude = magnitude
+
+    def add_magnitude(self, magnitude):
+        '''Add a given magnitude to the magnitude of the :class:`~.MagData`.
+
+        Parameters
+        ----------
+        magnitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3)
+            The `z`-, `y`- and `x`-component of the magnetization vector for every 3D-gridpoint
+            as a tuple. If the :class:`~.MagData` object already has a `magnitude`, the added
+            one has to match the dimensions `dim`, otherwise the added magnitude sets `dim`.
+
+        Returns
+        -------
+        None
+
+        '''
+        if self.magnitude is not None:  # Add magnitude to existing one
+            assert np.shape(magnitude) == (3,) + self.dim, \
+                'Added magnitude has to have the same dimensions!'
+            z_mag, y_mag, x_mag = self.magnitude
+            z_new, y_new, x_new = magnitude
+            z_mag += z_new
+            y_mag += y_new
+            x_mag += x_new
+            self.magnitude = (z_mag, y_mag, x_mag)
+        else:  # Magnitude is set for the first time and the dimensions are calculated
+            dim = np.shape(magnitude[0])
+            assert len(dim) == 3, 'Magnitude has to be defined for a 3-dimensional grid!'
+            assert np.shape(magnitude[1]) == np.shape(magnitude[2]) == dim, \
+                'Dimensions of the magnitude components do not match!'
+            self.magnitude = magnitude
+            self.dim = dim
 
     def get_vector(self, mask):
-        # TODO: DOCSTRING!
+        '''Returns the magnetic components arranged in a vector, specified by a mask.
+
+        Parameters
+        ----------
+        mask : :class:`~numpy.ndarray` (N=3, boolean)
+            Masks the pixels from which the components should be taken.
+
+        Returns
+        -------
+        vector : :class:`~numpy.ndarray` (N=1)
+            The vector containing magnetization components of the specified pixels.
+            Order is: first all `x`-, then all `y`-, then all `z`-components.
+
+        '''
         return np.concatenate([self.magnitude[2][mask],
                                self.magnitude[1][mask],
                                self.magnitude[0][mask]])
 
     def set_vector(self, mask, vector):
-        # TODO: DOCSTRING!
+        '''Set the magnetic components of the masked pixels to the values specified by `vector`.
+
+        Parameters
+        ----------
+        mask : :class:`~numpy.ndarray` (N=3, boolean)
+            Masks the pixels from which the components should be taken.
+        vector : :class:`~numpy.ndarray` (N=1)
+            The vector containing magnetization components of the specified pixels.
+            Order is: first all `x`-, then all `y-, then all `z`-components.
+
+        Returns
+        -------
+        None
+
+        '''
         assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
         count = np.size(vector)/3
         self.magnitude[2][mask] = vector[:count]  # x-component
         self.magnitude[1][mask] = vector[count:2*count]  # y-component
         self.magnitude[0][mask] = vector[2*count:]  # z-component
-        
+
     def get_mask(self, threshold=0):
-        # TODO: DOCSTRING!
-        z_mask = abs(self.magnitude[0]) > threshold
-        x_mask = abs(self.magnitude[1]) > threshold
-        y_mask = abs(self.magnitude[2]) > threshold
-        return np.logical_or(np.logical_or(x_mask, y_mask), z_mask)
+        '''Mask all pixels where the amplitude of the magnetization lies above `threshold`.
+
+        Parameters
+        ----------
+        threshold : float, optional
+            A pixel only gets masked, if it lies above this threshold . The default is 0.
+
+        Returns
+        -------
+        mask : :class:`~numpy.ndarray` (N=3, boolean)
+            Mask of the pixels where the amplitude of the magnetization lies above `threshold`.
+
+        '''
+        return np.sqrt(np.sum(np.array(self.magnitude)**2, axis=0)) > threshold
 
     def scale_down(self, n=1):
-        # TODO: DOCSTRING!
-        # Starting magnetic distribution:
-        assert n >= 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
+        '''Scale down the magnetic distribution by averaging over two pixels along each axis.
+
+        Parameters
+        ----------
+        n : int, optional
+            Number of times the magnetic distribution is scaled down. The default is 1.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions and resolution accordingly.
+        Only possible, if each axis length is a power of 2!
+
+        '''
+        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
         assert self.dim[0] % 2**n == 0 and self.dim[1] % 2**n == 0 and self.dim[2] % 2**n == 0, \
-            'For downscaling, every dimension must be a multiple of 2!'    
+            'For downscaling, every dimension must be a multiple of 2!'
         for t in range(n):
             # Create coarser grid for the magnetization:
             z_mag = self.magnitude[0].reshape(self.dim[0]/2, 2, self.dim[1]/2, 2, self.dim[2]/2, 2)
@@ -70,29 +195,40 @@ class MagData:
 
     @classmethod
     def load_from_llg(cls, filename):
-        '''Construct DataMag object from LLG-file (classmethod).
-        Arguments:
-            filename - the name of the LLG-file from which to load the data
-        Returns.
-            MagData object
+        '''Construct :class:`~.MagData` object from LLG-file.
+
+        Parameters
+        ----------
+        filename : string
+            The name of the LLG-file from which to load the data.
+
+        Returns
+        -------
+        mag_data: :class:`~.MagData`
+            A :class:`~.MagData` object containing the loaded data.
 
         '''
-        scale = 1.0E-9 / 1.0E-2  # From cm to nm
+        SCALE = 1.0E-9 / 1.0E-2  # From cm to nm
         data = np.genfromtxt(filename, skip_header=2)
         x_dim, y_dim, z_dim = np.genfromtxt(filename, dtype=int, skip_header=1,
                                             skip_footer=len(data[:, 0]))
-        res = (data[1, 0] - data[0, 0]) / scale
+        res = (data[1, 0] - data[0, 0]) / SCALE
         # Reshape in Python and Igor is different, Python fills rows first, Igor columns:
         x_mag, y_mag, z_mag = [data[:, i].reshape(z_dim, y_dim, x_dim) for i in range(3, 6)]
         return MagData(res, (z_mag, y_mag, x_mag))
 
     def save_to_llg(self, filename='magdata_output.txt'):
         '''Save magnetization data in a file with LLG-format.
-        Arguments:
-            filename - the name of the LLG-file in which to store the magnetization data
-                       (default: 'magdata_output.txt')
-        Returns:
-            None
+
+        Parameters
+        ----------
+        filename : string, optional
+            The name of the LLG-file in which to store the magnetization data.
+            The default is 'magdata_output.txt'.
+
+        Returns
+        -------
+        None
 
         '''
         dim = self.dim
@@ -116,60 +252,82 @@ class MagData:
                                           for cell in row) for row in data))
 
     @classmethod
-    def load_from_netcdf(cls, filename):
-        '''Construct MagData object from a NetCDF-file (classmethod).
-        Arguments:
-            filename - name of the file from which to load the data
-        Returns:
-            PhaseMap object
+    def load_from_netcdf4(cls, filename):
+        '''Construct :class:`~.DataMag` object from NetCDF4-file.
+
+        Parameters
+        ----------
+        filename : string
+            The name of the NetCDF4-file from which to load the data. Standard format is '\*.nc'.
+
+        Returns
+        -------
+        mag_data: :class:`~.MagData`
+            A :class:`~.MagData` object containing the loaded data.
 
         '''
-        f = nc.NetCDFFile(filename, 'r')
-        res = getattr(f, 'res')
-        z_mag = f.variables['z_mag'].getValue()
-        y_mag = f.variables['y_mag'].getValue()
-        x_mag = f.variables['x_mag'].getValue()
-        f.close()
+        mag_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
+        res = mag_file.res
+        z_mag = mag_file.variables['z_mag'][:]
+        y_mag = mag_file.variables['y_mag'][:]
+        x_mag = mag_file.variables['x_mag'][:]
+        mag_file.close()
         return MagData(res, (z_mag, y_mag, x_mag))
 
-    def save_to_netcdf(self, filename='..\output\magdata_output.nc'):
-        '''Save magnetization data in a file with NetCDF-format.
-        Arguments:
-            filename - the name of the file in which to store the phase map data
-                       (default: 'phasemap_output.txt')
-        Returns:
-            None
+    def save_to_netcdf4(self, filename='..\output\magdata_output.nc'):
+        '''Save magnetization data in a file with NetCDF4-format.
+
+        Parameters
+        ----------
+        filename : string, optional
+            The name of the NetCDF4-file in which to store the magnetization data.
+            The default is 'magdata_output.nc'.
+
+        Returns
+        -------
+        None
 
         '''
-        f = nc.NetCDFFile(filename, 'w')
-        setattr(f, 'res', self.res)
-        f.createDimension('z_dim', self.dim[0])
-        f.createDimension('y_dim', self.dim[1])
-        f.createDimension('x_dim', self.dim[2])
-        z_mag = f.createVariable('z_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
-        y_mag = f.createVariable('y_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
-        x_mag = f.createVariable('x_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
+        mag_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
+        mag_file.res = self.res
+        mag_file.createDimension('z_dim', self.dim[0])
+        mag_file.createDimension('y_dim', self.dim[1])
+        mag_file.createDimension('x_dim', self.dim[2])
+        z_mag = mag_file.createVariable('z_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
+        y_mag = mag_file.createVariable('y_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
+        x_mag = mag_file.createVariable('x_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
         z_mag[:] = self.magnitude[0]
         y_mag[:] = self.magnitude[1]
         x_mag[:] = self.magnitude[2]
-        print f
-        f.close()
+        print mag_file
+        mag_file.close()
 
-    def quiver_plot(self, title='Magnetic Distribution)', proj_axis='z', ax_slice=None,
-                    filename=None, axis=None): # TODO!!
+    def quiver_plot(self, title='Magnetic Distribution', filename=None, axis=None,
+                    proj_axis='z', ax_slice=None):
         '''Plot a slice of the magnetization as a quiver plot.
-        Arguments:
-            axis     - the axis from which a slice is plotted ('x', 'y' or 'z'), default = 'z'
-            ax_slice - the slice-index of the specified axis (optional, if not specified, is
-                       set to the center of the specified axis)
-            filename - filename, specifying the location where the image is saved (optional, if
-                       not specified, image is shown instead)
-        Returns:
-            None
+
+        Parameters
+        ----------
+        title : string, optional
+            The title for the plot.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        filename : string, optional
+            The filename, specifying the location where the image is saved. If not specified,
+            the image is shown instead.
+        proj_axis : {'z', 'y', 'x'}, optional
+            The axis, from which a slice is plotted. The default is 'z'.
+        ax_slice : int, optional
+            The slice-index of the axis specified in `proj_axis`. Is set to the center of
+            `proj_axis` if not specified.
+
+        Returns
+        -------
+        None
 
         '''
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
-               'Axis has to be x, y or z (as string).'
+            'Axis has to be x, y or z (as string).'
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
             if ax_slice is None:
                 ax_slice = int(self.dim[0]/2)
@@ -208,15 +366,17 @@ class MagData:
         plt.show()
 
     def quiver_plot3d(self):
-        '''3D-Quiver-Plot of the magnetization as vectors.
-        Arguments:
-            None
-        Returns:
-            None
+        '''Plot the magnetization as 3D-vectors in a quiverplot.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
 
         '''
-        from mayavi import mlab
-
         res = self.res
         dim = self.dim
         # Create points and vector components as lists:

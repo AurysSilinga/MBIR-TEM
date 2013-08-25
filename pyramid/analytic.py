@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Create simple phasemaps from analytic solutions."""
+"""Create phase maps for magnetic distributions with analytic solutions.
 
-# TODO: Currently just for projections along the z-axis!
+This module provides methods for the calculation of the magnetic phase for simple geometries for
+which the analytic solutions are known. These can be used for comparison with the phase
+calculated by the functions from the :mod:`~pyramid.phasemapper` module.
+
+"""
 
 
 import numpy as np
@@ -12,32 +16,45 @@ PHI_0 = -2067.83  # magnetic flux in T*nm²
 
 
 def phase_mag_slab(dim, res, phi, center, width, b_0=1):
-    '''Get the analytic solution for a phase map of a slab of specified dimensions.
-    Arguments:
-        dim    - the dimensions of the grid, shape(z, y, x)
-        res    - the resolution of the grid (grid spacing) in nm
-        phi    - the azimuthal angle, describing the direction of the magnetized object
-        center - the center of the slab in pixel coordinates, shape(z, y, x)
-        width  - the width of the slab in pixel coordinates, shape(z, y, x)
-        b_0    - magnetic induction corresponding to a magnetization Mo in T (default: 1)
-    Returns:
-        the analytic solution for the phase map
+    '''Calculate the analytic magnetic phase for a homogeneously magnetized slab.
+
+    Parameters
+    ----------
+    dim : tuple (N=3)
+        The dimensions of the grid `(z, y, x)`.
+    res : float
+        The resolution of the grid (grid spacing) in nm.
+    phi : float
+        The azimuthal angle, describing the direction of the magnetization.
+    center : tuple (N=3)
+        The center of the slab in pixel coordinates `(z, y, x)`.
+    width : tuple (N=3)
+        The width of the slab in pixel coordinates `(z, y, x)`.
+    b_0 : float, optional
+        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The default is 1.
+
+    Returns
+    -------
+    phase_map : :class:`~numpy.ndarray` (N=2)
+        The phase as a 2-dimensional array.
 
     '''
+
     # Function for the phase:
-    def phiMag(x,  y):
-        def F0(x, y):
+    def phi_mag(x,  y):
+        def F_0(x, y):
             a = np.log(x**2 + y**2 + 1E-30)
             b = np.arctan(x / (y+1E-30))
             return x*a - 2*x + 2*y*b
-        return coeff * Lz * (- np.cos(phi) * (F0(x-x0-Lx/2, y-y0-Ly/2)
-                                             - F0(x-x0+Lx/2, y-y0-Ly/2)
-                                             - F0(x-x0-Lx/2, y-y0+Ly/2)
-                                             + F0(x-x0+Lx/2, y-y0+Ly/2))
-                             + np.sin(phi) * (F0(y-y0-Ly/2, x-x0-Lx/2)
-                                             - F0(y-y0+Ly/2, x-x0-Lx/2)
-                                             - F0(y-y0-Ly/2, x-x0+Lx/2)
-                                             + F0(y-y0+Ly/2, x-x0+Lx/2)))
+        return coeff * Lz * (- np.cos(phi) * (F_0(x-x0-Lx/2, y-y0-Ly/2)
+                                             - F_0(x-x0+Lx/2, y-y0-Ly/2)
+                                             - F_0(x-x0-Lx/2, y-y0+Ly/2)
+                                             + F_0(x-x0+Lx/2, y-y0+Ly/2))
+                             + np.sin(phi) * (F_0(y-y0-Ly/2, x-x0-Lx/2)
+                                             - F_0(y-y0+Ly/2, x-x0-Lx/2)
+                                             - F_0(y-y0-Ly/2, x-x0+Lx/2)
+                                             + F_0(y-y0+Ly/2, x-x0+Lx/2)))
     # Process input parameters:
     z_dim, y_dim, x_dim = dim
     y0 = res * (center[1] + 0.5)  # y0, x0 define the center of a pixel,
@@ -49,25 +66,38 @@ def phase_mag_slab(dim, res, phi, center, width, b_0=1):
     y = np.linspace(res/2, y_dim*res-res/2, num=y_dim)
     xx, yy = np.meshgrid(x, y)
     # Return phase:
-    return phiMag(xx, yy)
+    return phi_mag(xx, yy)
 
 
 def phase_mag_disc(dim, res, phi, center, radius, height, b_0=1):
-    '''Get the analytic solution for a phase map of a disc of specified dimensions.
-    Arguments:
-        dim    - the dimensions of the grid, shape(z, y, x)
-        res    - the resolution of the grid (grid spacing) in nm
-        phi    - the azimuthal angle, describing the direction of the magnetized object
-        center - the center of the disc in pixel coordinates, shape(z, y, x)
-        radius - the radius of the disc in pixel coordinates (scalar value)
-        height - the height of the disc in pixel coordinates (scalar value)
-        b_0    - magnetic induction corresponding to a magnetization Mo in T (default: 1)
-    Returns:
-        the analytic solution for the phase map
+    '''Calculate the analytic magnetic phase for a homogeneously magnetized disc.
+
+    Parameters
+    ----------
+    dim : tuple (N=3)
+        The dimensions of the grid `(z, y, x)`.
+    res : float
+        The resolution of the grid (grid spacing) in nm.
+    phi : float
+        The azimuthal angle, describing the direction of the magnetization.
+    center : tuple (N=3)
+        The center of the disc in pixel coordinates `(z, y, x)`.
+    radius : float
+        The radius of the disc in pixel coordinates.
+    height : float
+        The height of the disc in pixel coordinates.
+    b_0 : float, optional
+        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The default is 1.
+
+    Returns
+    -------
+    phase_map : :class:`~numpy.ndarray` (N=2)
+        The phase as a 2-dimensional array.
 
     '''
     # Function for the phase:
-    def phiMag(x, y):
+    def phi_mag(x, y):
         r = np.hypot(x - x0, y - y0)
         r[center[1], center[2]] = 1E-30
         result = coeff * Lz * ((y - y0) * np.cos(phi) - (x - x0) * np.sin(phi))
@@ -85,24 +115,36 @@ def phase_mag_disc(dim, res, phi, center, radius, height, b_0=1):
     y = np.linspace(res/2, y_dim*res-res/2, num=y_dim)
     xx, yy = np.meshgrid(x, y)
     # Return phase:
-    return phiMag(xx, yy)
+    return phi_mag(xx, yy)
 
 
 def phase_mag_sphere(dim, res, phi, center, radius, b_0=1):
-    '''Get the analytic solution for a phase map of a sphere of specified dimensions.
-    Arguments:
-        dim    - the dimensions of the grid, shape(z, y, x)
-        res    - the resolution of the grid (grid spacing) in nm
-        phi    - the azimuthal angle, describing the direction of the magnetized object
-        center - the center of the sphere in pixel coordinates, shape(z, y, x)
-        radius - the radius of the sphere in pixel coordinates (scalar value)
-        b_0    - magnetic induction corresponding to a magnetization Mo in T (default: 1)
-    Returns:
-        the analytic solution for the phase map
+    '''Calculate the analytic magnetic phase for a homogeneously magnetized sphere.
+
+    Parameters
+    ----------
+    dim : tuple (N=3)
+        The dimensions of the grid `(z, y, x)`.
+    res : float
+        The resolution of the grid (grid spacing) in nm.
+    phi : float
+        The azimuthal angle, describing the direction of the magnetization.
+    center : tuple (N=3)
+        The center of the sphere in pixel coordinates `(z, y, x)`.
+    radius : float
+        The radius of the sphere in pixel coordinates.
+    b_0 : float, optional
+        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The default is 1.
+
+    Returns
+    -------
+    phase_map : :class:`~numpy.ndarray` (N=2)
+        The phase as a 2-dimensional array.
 
     '''
     # Function for the phase:
-    def phiMag(x, y):
+    def phi_mag(x, y):
         r = np.hypot(x - x0, y - y0)
         r[center[1], center[2]] = 1E-30
         result = coeff * R ** 3 / r ** 2 * ((y - y0) * np.cos(phi) - (x - x0) * np.sin(phi))
@@ -119,24 +161,36 @@ def phase_mag_sphere(dim, res, phi, center, radius, b_0=1):
     y = np.linspace(res / 2, y_dim * res - res / 2, num=y_dim)
     xx, yy = np.meshgrid(x, y)
     # Return phase:
-    return phiMag(xx, yy)
+    return phi_mag(xx, yy)
 
 
 def phase_mag_vortex(dim, res, center, radius, height, b_0=1):
-    '''Get the analytic solution for a phase map of a sharp vortex disc of specified dimensions.
-    Arguments:
-        dim    - the dimensions of the grid, shape(z, y, x)
-        res    - the resolution of the grid (grid spacing) in nm
-        center - the center of the disc in pixel coordinates, shape(z, y, x)
-        radius - the radius of the disc in pixel coordinates (scalar value)
-        height - the height of the disc in pixel coordinates (scalar value)
-        b_0    - magnetic induction corresponding to a magnetization Mo in T (default: 1)
-    Returns:
-        the analytic solution for the phase map
+    '''Calculate the analytic magnetic phase for a vortex state disc.
+
+    Parameters
+    ----------
+    dim : tuple (N=3)
+        The dimensions of the grid `(z, y, x)`.
+    res : float
+        The resolution of the grid (grid spacing) in nm.
+    center : tuple (N=3)
+        The center of the disc in pixel coordinates `(z, y, x)`, which is also the vortex center.
+    radius : float
+        The radius of the disc in pixel coordinates.
+    height : float
+        The height of the disc in pixel coordinates.
+    b_0 : float, optional
+        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The default is 1.
+
+    Returns
+    -------
+    phase_map : :class:`~numpy.ndarray` (N=2)
+        The phase as a 2-dimensional array.
 
     '''
     # Function for the phase:
-    def phiMag(x, y):
+    def phi_mag(x, y):
         r = np.hypot(x - x0, y - y0)
         result = coeff * np.where(r <= R, r - R, 0)
         return result
@@ -152,4 +206,4 @@ def phase_mag_vortex(dim, res, center, radius, height, b_0=1):
     y = np.linspace(res/2, y_dim*res-res/2, num=y_dim)
     xx, yy = np.meshgrid(x, y)
     # Return phase:
-    return phiMag(xx, yy)
+    return phi_mag(xx, yy)

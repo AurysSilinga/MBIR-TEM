@@ -4,6 +4,8 @@ Created on Fri Jul 26 14:37:20 2013
 
 @author: Jan
 """
+
+
 import sys
 import traceback
 import pdb
@@ -20,7 +22,7 @@ import matplotlib.pyplot as plt
 
 
 def run():
-    
+
     print '\nACCESS SHELVE'
     # Create / Open databank:
     directory = '../../output/paper 1'
@@ -42,41 +44,41 @@ def run():
         phi = pi/2
         dim = (32, 256, 256)  # in px (z, y, x)
         # Create magnetic shape:
-        center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
+        center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts at 0!
         radius = dim[1]/4  # in px
         height = dim[0]/2  # in px
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
         print '--CREATE MAGN. DISTR. OF HOMOG. MAG. DISC'
-        mag_data_disc = MagData(res, mc.create_mag_dist(mag_shape, phi))
+        mag_data_disc = MagData(res, mc.create_mag_dist_homog(mag_shape, phi))
         mag_data_disc.scale_down(3)
         print '--CREATE MAGN. DISTR. OF VORTEX STATE DISC'
         mag_data_vort = MagData(res, mc.create_mag_dist_vortex(mag_shape, center))
         mag_data_vort.scale_down(3)
-        # Mayavi-Plots    
-        mag_data_disc.quiver_plot3d()    
+        # Mayavi-Plots:
+        mag_data_disc.quiver_plot3d()
         mag_data_vort.quiver_plot3d()
         print '--SHELVE MAGNETIC DISTRIBUTIONS'
         data_shelve[key] = (mag_data_disc, mag_data_vort)
-    
+
     print '--PLOT/SAVE MAGNETIC DISTRIBUTIONS'
     fig, axes = plt.subplots(1, 2, figsize=(16, 7))
     fig.suptitle('Magnetic Distributions', fontsize=20)
     # Plot MagData (Disc):
-    mag_data_disc.quiver_plot('Homog. magn. disc', axis = axes[0])
+    mag_data_disc.quiver_plot('Homog. magn. disc', axis=axes[0])
     axes[0].set_aspect('equal')
     # Plot MagData (Disc):
-    mag_data_vort.quiver_plot('Vortex state disc', axis = axes[1])
+    mag_data_vort.quiver_plot('Vortex state disc', axis=axes[1])
     axes[1].set_aspect('equal')
     # Save Plots:
     plt.figtext(0.15, 0.15, 'a)', fontsize=30)
     plt.figtext(0.57, 0.15, 'b)', fontsize=30)
     plt.savefig(directory + '/ch5-0-magnetic_distributions.png', bbox_inches='tight')
-    
+
     ###############################################################################################
     print 'CLOSING SHELVE\n'
     # Close shelve:
     data_shelve.close()
-    
+
     ###############################################################################################
 
 if __name__ == "__main__":

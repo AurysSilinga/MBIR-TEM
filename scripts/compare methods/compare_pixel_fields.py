@@ -6,6 +6,8 @@
 import pdb
 import traceback
 import sys
+import os
+
 from numpy import pi
 
 import pyramid.magcreator as mc
@@ -23,20 +25,24 @@ def compare_pixel_fields():
         None
 
     '''
+    directory = '../../output/magnetic distributions'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     # Input parameters:
-    res = 10.0  # in nm
+    res = 1.0  # in nm
     phi = pi/2  # in rad
-    dim = (1, 5, 5)
-    pixel = (0,  2,  2)
+    dim = (1, 101, 101)
+    pixel = (0,  int(dim[1]/2),  int(dim[2]/2))
+    limit = 0.25
     # Create magnetic data, project it, get the phase map and display the holography image:
-    mag_data = MagData(res, mc.create_mag_dist(mc.Shapes.pixel(dim, pixel), phi))
-    mag_data.save_to_llg('../output/mag_dist_single_pixel.txt')
+    mag_data = MagData(res, mc.create_mag_dist_homog(mc.Shapes.pixel(dim, pixel), phi))
+    mag_data.save_to_llg(directory + '/mag_dist_single_pixel.txt')
     projection = pj.simple_axis_projection(mag_data)
-    phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))
-    phase_map_slab.display('Phase of one Pixel (Slab)')
-    phase_map_disc = PhaseMap(res, pm.phase_mag_real(res, projection, 'disc'))
-    phase_map_disc.display('Phase of one Pixel (Disc)')
-    phase_map_diff = PhaseMap(res, phase_map_disc.phase - phase_map_slab.phase)
+    phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'), 'mrad')
+    phase_map_slab.display('Phase of one Pixel (Slab)', limit=limit)
+    phase_map_disc = PhaseMap(res, pm.phase_mag_real(res, projection, 'disc'), 'mrad')
+    phase_map_disc.display('Phase of one Pixel (Disc)', limit=limit)
+    phase_map_diff = PhaseMap(res, phase_map_disc.phase - phase_map_slab.phase, 'mrad')
     phase_map_diff.display('Phase difference of one Pixel (Disc - Slab)')
 
 if __name__ == "__main__":

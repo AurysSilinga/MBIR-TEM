@@ -1,23 +1,50 @@
 # -*- coding: utf-8 -*-
-"""Reconstruct magnetic distributions with given phasemaps"""
+"""Reconstruct magnetic distributions from given phasemaps.
+
+This module reconstructs 3-dimensional magnetic distributions (as :class:`~pyramid.magdata.MagData`
+objects) from a given set of phase maps (represented by :class:`~pyramid.phasemap.PhaseMap`
+objects) by using several model based reconstruction algorithms which use the forward model
+provided by :mod:`~pyramid.projector` and :mod:`~pyramid.phasemapper` and a priori knowledge of
+the distribution.
+So far, only a simple least square algorithm for known pixel locations for 2-dimensional problems
+is implemented (:func:`~.reconstruct_simple_leastsq`), but more complex solutions are planned.
+
+"""
 
 
 import numpy as np
+
+from scipy.optimize import leastsq
+
 import pyramid.projector as pj
 import pyramid.phasemapper as pm
 from pyramid.magdata import MagData
-from scipy.optimize import leastsq
 
 
-def reconstruct_simple_leastsq(phase_map, mask, b_0):
-    '''Reconstruct a magnetic distribution where the positions of the magnetized voxels are known
-    from a single phase_map using the least square method (only works for slice thickness = 1)
-    Arguments:
-        phase_map - a PhaseMap object, from which to reconstruct the magnetic distribution
-        mask      - a boolean matrix representing the positions of the magnetized voxels (3D)
-        b_0       - magnetic induction corresponding to a magnetization Mo in T (default: 1)
-    Returns:
-        the reconstructed magnetic distribution (as a MagData object)
+def reconstruct_simple_leastsq(phase_map, mask, b_0=1):
+    '''Reconstruct a magnetic distribution for a 2-D problem with known pixel locations.
+
+    Parameters
+    ----------
+        phase_map : :class:`~pyramid.phasemap.PhaseMap`
+            A :class:`~pyramid.phasemap.PhaseMap` object, representing the phase from which to
+            reconstruct the magnetic distribution.
+        mask : :class:`~numpy.ndarray` (N=3)
+            A boolean matrix (or a matrix consisting of ones and zeros), representing the
+            positions of the magnetized voxels in 3 dimensions.
+        b_0 : float, optional
+            The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+            The default is 1.
+    Returns
+    -------
+        mag_data : :class:`~pyramid.magdata.MagData`
+            The reconstructed magnetic distribution as a
+            :class:`~pyramid.magdata.MagData` object.
+
+    Notes
+    -----
+    Only works for a single phase_map, if the positions of the magnetized voxels are known and
+    for slice thickness of 1 (constraint for the `z`-dimension).
 
     '''
     # Read in parameters:

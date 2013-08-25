@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Create random magnetic distributions."""
 
-import random as rnd
+
 import pdb
 import traceback
 import sys
-import numpy as np
+import os
+
 from numpy import pi
 
 import pyramid.magcreator as mc
@@ -24,7 +25,11 @@ def create_multiple_samples():
         None
 
     '''
-    filename = '../output/mag_dist_multiple_samples.txt'
+    directory = '../../output/magnetic distributions'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    # Input parameters:
+    filename = directory + '/mag_dist_multiple_samples.txt'
     res = 10.0  # nm
     dim = (64, 128, 128)
     # Slab:
@@ -40,13 +45,13 @@ def create_multiple_samples():
     center = (32, 96, 64)  # in px (z, y, x), index starts with 0!
     radius = 24  # in px
     mag_shape_sphere = mc.Shapes.sphere(dim, center, radius)
-    # Create lists for magnetic objects:
-    mag_shape_list = [mag_shape_slab, mag_shape_disc, mag_shape_sphere]
-    phi_list = [pi/4, pi/2, pi]
-    # Create magnetic distribution:
-    magnitude = mc.create_mag_dist_comb(mag_shape_list, phi_list)
-    mag_data = MagData(res, magnitude)
-    mag_data.quiver_plot('z', dim[0]/2)
+    # Create empty MagData object and add magnetized objects:
+    mag_data = MagData(res)
+    mag_data.add_magnitude(mc.create_mag_dist_homog(mag_shape_slab, pi/4))
+    mag_data.add_magnitude(mc.create_mag_dist_homog(mag_shape_disc, pi/2))
+    mag_data.add_magnitude(mc.create_mag_dist_homog(mag_shape_sphere, pi))
+    # Plot the magnetic distribution, phase map and holographic contour map:
+    mag_data.quiver_plot()
     mag_data.save_to_llg(filename)
     projection = pj.simple_axis_projection(mag_data)
     phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))

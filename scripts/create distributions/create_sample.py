@@ -5,6 +5,8 @@
 import pdb
 import traceback
 import sys
+import os
+
 from numpy import pi
 
 import pyramid.magcreator as mc
@@ -19,14 +21,18 @@ def create_sample():
         None
 
     '''
+    
+    directory = '../../output/magnetic distributions'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     # Input parameters:
-    key = 'slab'
-    filename = '../output/mag_dist_' + key + '.txt'
-    dim = (1, 128, 128)  # in px (z, y, x)
+    key = 'sphere'
+    filename = directory + '/mag_dist_' + key + '.txt'
+    dim = (128, 128, 128)  # in px (z, y, x)
     res = 10.0  # in nm
     phi = pi/4
     # Geometry parameters:
-    center = (0, 64, 64)  # in px (z, y, x), index starts with 0!
+    center = (64, 64, 64)  # in px (z, y, x), index starts with 0!
     width = (1, 50, 50)  # in px (z, y, x)
     radius = 25  # in px
     height = 1  # in px
@@ -44,7 +50,7 @@ def create_sample():
     elif key == 'pixel':
         mag_shape = mc.Shapes.pixel(dim, pixel)
     # Create magnetic distribution
-    magnitude = mc.create_mag_dist(mag_shape, phi)
+    magnitude = mc.create_mag_dist_homog(mag_shape, phi)
     mag_data = MagData(res, magnitude)
     mag_data.quiver_plot()
     mag_data.save_to_llg(filename)

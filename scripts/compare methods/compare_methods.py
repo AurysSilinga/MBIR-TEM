@@ -7,6 +7,7 @@ import time
 import pdb
 import traceback
 import sys
+
 import numpy as np
 from numpy import pi
 
@@ -28,21 +29,21 @@ def compare_methods():
 
     '''
     # Input parameters:
-    b_0 = 1    # in T
+    b_0 = 1.1    # in T
     res = 10.0  # in nm
     phi = pi/4
     padding = 12
     density = 1
     dim = (16, 128, 128)  # in px (z, y, x)
     # Create magnetic shape:
-    geometry = 'disc'
+    geometry = 'slab'
     if geometry == 'slab':
-        center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
+        center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts at 0!
         width = (dim[0]/2, dim[1]/2., dim[2]/2.)  # in px (z, y, x)
         mag_shape = mc.Shapes.slab(dim, center, width)
         phase_ana = an.phase_mag_slab(dim, res, phi, center, width, b_0)
     elif geometry == 'disc':
-        center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
+        center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts at 0!
         radius = dim[1]/4  # in px
         height = dim[0]/2  # in px
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
@@ -53,13 +54,13 @@ def compare_methods():
         mag_shape = mc.Shapes.sphere(dim, center, radius)
         phase_ana = an.phase_mag_sphere(dim, res, phi, center, radius, b_0)
     # Project the magnetization data:
-    mag_data = MagData(res, mc.create_mag_dist(mag_shape, phi))
+    mag_data = MagData(res, mc.create_mag_dist_homog(mag_shape, phi))
     mag_data.quiver_plot(ax_slice=int(center[0]))
     projection = pj.simple_axis_projection(mag_data)
     # Construct phase maps:
     phase_map_ana = PhaseMap(res, phase_ana)
     start_time = time.time()
-    phase_map_fft = PhaseMap(res, pm.phase_mag_fourier(res, projection, b_0, padding))
+    phase_map_fft = PhaseMap(res, pm.phase_mag_fourier(res, projection, padding, b_0))
     print 'Time for Fourier space approach:    ', time.time() - start_time
     start_time = time.time()
     phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab', b_0))
