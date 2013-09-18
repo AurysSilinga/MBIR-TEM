@@ -8,7 +8,7 @@ import traceback
 import sys
 import os
 
-from numpy import pi
+import numpy as np
 
 import pyramid.magcreator as mc
 import pyramid.projector as pj
@@ -30,20 +30,63 @@ def compare_pixel_fields():
         os.makedirs(directory)
     # Input parameters:
     res = 1.0  # in nm
-    phi = pi/2  # in rad
-    dim = (1, 101, 101)
+    phi = 0  # in rad
+    dim = (1, 32, 32)
     pixel = (0,  int(dim[1]/2),  int(dim[2]/2))
-    limit = 0.25
+    limit = 0.35
+
+    def get_fourier_kernel():
+        PHI_0 = 2067.83    # magnetic flux in T*nm²
+        b_0 = 1
+        coeff = - 1j * b_0 * res**2 / (2*PHI_0)
+        nyq = 1 / res  # nyquist frequency
+        f_u = np.linspace(0, nyq/2, dim[2]/2.+1)
+        f_v = np.linspace(-nyq/2, nyq/2, dim[1], endpoint=False)
+        f_uu, f_vv = np.meshgrid(f_u, f_v)
+        phase_fft = coeff * f_vv / (f_uu**2 + f_vv**2 + 1e-30)
+        # Transform to real space and revert padding:
+        phase_fft = np.fft.ifftshift(phase_fft, axes=0)
+        phase_fft_kernel = np.fft.fftshift(np.fft.irfft2(phase_fft), axes=(0, 1))
+        return phase_fft_kernel
+
     # Create magnetic data, project it, get the phase map and display the holography image:
     mag_data = MagData(res, mc.create_mag_dist_homog(mc.Shapes.pixel(dim, pixel), phi))
     mag_data.save_to_llg(directory + '/mag_dist_single_pixel.txt')
     projection = pj.simple_axis_projection(mag_data)
-    phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'), 'mrad')
-    phase_map_slab.display('Phase of one Pixel (Slab)', limit=limit)
+    # Kernel of a disc in real space:
     phase_map_disc = PhaseMap(res, pm.phase_mag_real(res, projection, 'disc'), 'mrad')
     phase_map_disc.display('Phase of one Pixel (Disc)', limit=limit)
-    phase_map_diff = PhaseMap(res, phase_map_disc.phase - phase_map_slab.phase, 'mrad')
-    phase_map_diff.display('Phase difference of one Pixel (Disc - Slab)')
+    # Kernel of a slab in real space:
+    phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'), 'mrad')
+    phase_map_slab.display('Phase of one Pixel (Slab)', limit=limit)
+    # Kernel of the Fourier method:
+    phase_map_fft = PhaseMap(res, pm.phase_mag_fourier(res, projection, padding=0), 'mrad')
+    phase_map_fft.display('Phase of one Pixel (Fourier)', limit=limit)
+    # Kernel of the Fourier method, calculated directly:
+    phase_map_fft_kernel = PhaseMap(res, get_fourier_kernel(), 'mrad')
+    phase_map_fft_kernel.display('Phase of one Pixel (Fourier Kernel)', limit=limit)
+    # Kernel differences:
+    print 'Fourier Kernel, direct and indirect method are identical:', \
+          np.all(phase_map_fft_kernel.phase - phase_map_fft.phase) == 0
+    phase_map_diff = PhaseMap(res, phase_map_fft.phase - phase_map_disc.phase, 'mrad')
+    phase_map_diff.display('Phase difference of one Pixel (Disc - Fourier)')
+
+    phase_inv_fft_r = np.real(np.fft.ifftshift(np.fft.rfft2(phase_map_fft.phase), axes=0))
+    phase_map_inv_fft = PhaseMap(res, phase_inv_fft_r)
+    phase_map_inv_fft.display('FT of the Phase of one Pixel (Fourier, real)')
+
+    phase_inv_fft_i = np.imag(np.fft.ifftshift(np.fft.rfft2(phase_map_fft.phase), axes=0))
+    phase_map_inv_fft = PhaseMap(res, phase_inv_fft_i)
+    phase_map_inv_fft.display('FT of the Phase of one Pixel (Fourier, imag)')
+
+    phase_inv_disc_r = np.real(np.fft.ifftshift(np.fft.rfft2(phase_map_disc.phase), axes=0))
+    phase_map_inv_disc = PhaseMap(res, phase_inv_disc_r)
+    phase_map_inv_disc.display('FT of the Phase of one Pixel (Disc, real)')
+
+    phase_inv_disc_i = np.imag(np.fft.ifftshift(np.fft.rfft2(phase_map_disc.phase), axes=0))
+    phase_map_inv_disc = PhaseMap(res, phase_inv_disc_i)
+    phase_map_inv_disc.display('FT of the Phase of one Pixel (Disc, imag)')
+
 
 if __name__ == "__main__":
     try:

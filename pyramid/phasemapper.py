@@ -16,6 +16,8 @@ from numpy import pi
 
 import pyramid.numcore as nc
 
+from scipy.signal import fftconvolve
+
 
 PHI_0 = -2067.83    # magnetic flux in T*nm²
 H_BAR = 6.626E-34  # Planck constant in J*s
@@ -143,6 +145,144 @@ def phase_mag_real(res, projection, method='discs', b_0=1, jacobi=None):
         nc.phase_mag_real_core(v_dim, u_dim, v_phi, u_phi, v_mag, u_mag, phase, threshold)
     # Return the phase:
     return phase
+
+
+def phase_mag_real_conv(res, projection, method='disc', b_0=1, jacobi=None):
+    '''Calculate the magnetic phase from magnetization data (real space approach).
+
+    Parameters
+    ----------
+    res : float
+        The resolution of the grid (grid spacing) in nm.
+    projection : tuple (N=3) of :class:`~numpy.ndarray` (N=2)
+        The in-plane projection of the magnetization as a tuple, storing the `u`- and `v`-component
+        of the magnetization and the thickness projection for the resulting 2D-grid.
+    method : {'disc', 'slab'}, optional
+        Specifies the elemental geometry to use for the pixel field.
+        The default is 'disc', because of the smaller computational overhead.
+    b_0 : float, optional
+        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The default is 1.
+    jacobi : :class:`~numpy.ndarray` (N=2), optional
+        Specifies the matrix in which to save the jacobi matrix. The jacobi matrix will not be
+        calculated, if no matrix is specified (default), resulting in a faster computation.
+
+    Returns
+    -------
+    phase : :class:`~numpy.ndarray` (N=2)
+        The phase as a 2-dimensional array.
+
+    '''  # TODO: Docstring!!!
+
+    # Function for creating the lookup-tables:
+    def phi_lookup(method, n, m, res, b_0):
+        if method == 'slab':
+            def F_h(n, m):
+                a = np.log(res**2 * (n**2 + m**2))
+                b = np.arctan(n / m)
+                return n*a - 2*n + 2*m*b
+            return coeff * 0.5 * (F_h(n-0.5, m-0.5) - F_h(n+0.5, m-0.5)
+                                - F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5))
+        elif method == 'disc':
+            in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
+            return coeff * m / (n**2 + m**2 + 1E-30) * in_or_out
+
+    # Process input parameters:
+    v_dim, u_dim = np.shape(projection[0])
+    v_mag, u_mag = projection[:-1]
+    coeff = -b_0 * res**2 / (2*PHI_0)
+
+    # Create lookup-tables for the phase of one pixel:
+    u = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
+    v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
+    uu, vv = np.meshgrid(u, v)
+    u_phi = phi_lookup(method, uu, vv, res, b_0)
+    v_phi = phi_lookup(method, vv, uu, res, b_0)
+
+    # Return the phase:
+    return fftconvolve(u_mag, u_phi, 'same') - fftconvolve(v_mag, v_phi, 'same')
+
+#    def fftconvolve(in1, in2, mode="full"):
+#    """Convolve two N-dimensional arrays using FFT.
+#
+#    Convolve `in1` and `in2` using the fast Fourier transform method, with
+#    the output size determined by the `mode` argument.
+#
+#    This is generally much faster than `convolve` for large arrays (n > ~500),
+#    but can be slower when only a few output values are needed, and can only
+#    output float arrays (int or object array inputs will be cast to float).
+#
+#    Parameters
+#    ----------
+#    in1 : array_like
+#        First input.
+#    in2 : array_like
+#        Second input. Should have the same number of dimensions as `in1`;
+#        if sizes of `in1` and `in2` are not equal then `in1` has to be the
+#        larger array.
+#    mode : str {'full', 'valid', 'same'}, optional
+#        A string indicating the size of the output:
+#
+#        ``full``
+#           The output is the full discrete linear convolution
+#           of the inputs. (Default)
+#        ``valid``
+#           The output consists only of those elements that do not
+#           rely on the zero-padding.
+#        ``same``
+#           The output is the same size as `in1`, centered
+#           with respect to the 'full' output.
+#
+#    Returns
+#    -------
+#    out : array
+#        An N-dimensional array containing a subset of the discrete linear
+#        convolution of `in1` with `in2`.
+#
+#    """
+#    in1 = asarray(in1)
+#    in2 = asarray(in2)
+#
+#    if rank(in1) == rank(in2) == 0:  # scalar inputs
+#        return in1 * in2
+#    elif not in1.ndim == in2.ndim:
+#        raise ValueError("in1 and in2 should have the same rank")
+#    elif in1.size == 0 or in2.size == 0:  # empty arrays
+#        return array([])
+#
+#    s1 = array(in1.shape)
+#    s2 = array(in2.shape)
+#    complex_result = (np.issubdtype(in1.dtype, np.complex) or
+#                      np.issubdtype(in2.dtype, np.complex))
+#    size = s1 + s2 - 1
+#
+#    if mode == "valid":
+#        for d1, d2 in zip(s1, s2):
+#            if not d1 >= d2:
+#                warnings.warn("in1 should have at least as many items as in2 in "
+#                              "every dimension for 'valid' mode.  In scipy "
+#                              "0.13.0 this will raise an error",
+#                              DeprecationWarning)
+#
+#    # Always use 2**n-sized FFT
+#    fsize = 2 ** np.ceil(np.log2(size)).astype(int)
+#    print('fsize =', fsize)
+#    print('s1 =', s1)
+#    print('s2 =', s2)
+#    fslice = tuple([slice(0, int(sz)) for sz in size])
+#    if not complex_result:
+#        ret = irfftn(rfftn(in1, fsize) *
+#                     rfftn(in2, fsize), fsize)[fslice].copy()
+#        ret = ret.real
+#    else:
+#        ret = ifftn(fftn(in1, fsize) * fftn(in2, fsize))[fslice].copy()
+#
+#    if mode == "full":
+#        return ret
+#    elif mode == "same":
+#        return _centered(ret, s1)
+#    elif mode == "valid":
+#        return _centered(ret, abs(s1 - s2) + 1)
 
 
 def phase_elec(res, projection, v_0=1, v_acc=30000):

@@ -7,12 +7,16 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt4 import QtCore, QtGui
+from matplotlibwidget import MatplotlibWidget
+
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
     _fromUtf8 = lambda s: s
+
 
 class Ui_CreateLogoWidget(object):
     def setupUi(self, CreateLogoWidget):
@@ -64,5 +68,3 @@ class Ui_CreateLogoWidget(object):
         self.xLabel.setText(QtGui.QApplication.translate("CreateLogoWidget", "X [px] :", None, QtGui.QApplication.UnicodeUTF8))
         self.yLabel.setText(QtGui.QApplication.translate("CreateLogoWidget", "Y [px] :", None, QtGui.QApplication.UnicodeUTF8))
         self.logoPushButton.setText(QtGui.QApplication.translate("CreateLogoWidget", "Create Logo", None, QtGui.QApplication.UnicodeUTF8))
-
-from matplotlibwidget import MatplotlibWidget

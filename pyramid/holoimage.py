@@ -69,7 +69,8 @@ def holo_image(phase_map, density=1):
     phase_grad_y, phase_grad_x = np.gradient(phase, phase_map.res, phase_map.res)
     phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
     phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)
-    phase_magnitude = np.sin(phase_magnitude/phase_magnitude.max() * pi / 2)
+    if phase_magnitude.max() != 0:
+        phase_magnitude = np.sin(phase_magnitude/phase_magnitude.max() * pi / 2)
     # Color code the angle and create the holography image:
     rgba = HOLO_CMAP(phase_angle)
     rgb = (255.999 * img_holo.T * phase_magnitude.T * rgba[:, :, :3].T).T.astype(np.uint8)

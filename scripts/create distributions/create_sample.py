@@ -21,7 +21,7 @@ def create_sample():
         None
 
     '''
-    
+
     directory = '../../output/magnetic distributions'
     if not os.path.exists(directory):
         os.makedirs(directory)

@@ -104,6 +104,22 @@ class MagData:
             self.magnitude = magnitude
             self.dim = dim
 
+    def get_mask(self, threshold=0):
+        '''Mask all pixels where the amplitude of the magnetization lies above `threshold`.
+
+        Parameters
+        ----------
+        threshold : float, optional
+            A pixel only gets masked, if it lies above this threshold . The default is 0.
+
+        Returns
+        -------
+        mask : :class:`~numpy.ndarray` (N=3, boolean)
+            Mask of the pixels where the amplitude of the magnetization lies above `threshold`.
+
+        '''
+        return np.sqrt(np.sum(np.array(self.magnitude)**2, axis=0)) > threshold
+
     def get_vector(self, mask):
         '''Returns the magnetic components arranged in a vector, specified by a mask.
 
@@ -144,22 +160,6 @@ class MagData:
         self.magnitude[2][mask] = vector[:count]  # x-component
         self.magnitude[1][mask] = vector[count:2*count]  # y-component
         self.magnitude[0][mask] = vector[2*count:]  # z-component
-
-    def get_mask(self, threshold=0):
-        '''Mask all pixels where the amplitude of the magnetization lies above `threshold`.
-
-        Parameters
-        ----------
-        threshold : float, optional
-            A pixel only gets masked, if it lies above this threshold . The default is 0.
-
-        Returns
-        -------
-        mask : :class:`~numpy.ndarray` (N=3, boolean)
-            Mask of the pixels where the amplitude of the magnetization lies above `threshold`.
-
-        '''
-        return np.sqrt(np.sum(np.array(self.magnitude)**2, axis=0)) > threshold
 
     def scale_down(self, n=1):
         '''Scale down the magnetic distribution by averaging over two pixels along each axis.
@@ -355,8 +355,8 @@ class MagData:
             axis = fig.add_subplot(1, 1, 1, aspect='equal')
         axis.quiver(mag_slice_u, mag_slice_v, pivot='middle', angles='xy', scale_units='xy',
                    scale=1, headwidth=6, headlength=7)
-        axis.set_xlim(0, np.shape(mag_slice_u)[1])
-        axis.set_ylim(0, np.shape(mag_slice_u)[0])
+        axis.set_xlim(-1, np.shape(mag_slice_u)[1])
+        axis.set_ylim(-1, np.shape(mag_slice_u)[0])
         axis.set_title(title, fontsize=18)
         axis.set_xlabel(u_label, fontsize=15)
         axis.set_ylabel(v_label, fontsize=15)

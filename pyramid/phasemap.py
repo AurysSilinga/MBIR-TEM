@@ -39,7 +39,7 @@ class PhaseMap:
         always in `rad`.
 
     '''
-    
+
     UNITDICT = {'rad': 1E0,
                 'mrad': 1E3,
                 'µrad': 1E6}
@@ -76,7 +76,7 @@ class PhaseMap:
 
         Parameters
         ----------
-        unit : {'rad', 'mrad', 'µrad'}, optional
+        unit : {'rad', 'mrad'}, optional
             Set the unit of the phase map. This is important for the :func:`~.display` function,
             because the phase is scaled accordingly. Does not change the phase itself, which is
             always in `rad`.
@@ -86,6 +86,7 @@ class PhaseMap:
         None
 
         '''
+        assert unit in ['rad', 'mrad']
         self.unit = unit
 
     @classmethod
@@ -105,7 +106,7 @@ class PhaseMap:
         '''
         with open(filename, 'r') as phase_file:
             phase_file.readline()  # Headerline is not used
-            res = int(phase_file.readline()[13:-4])
+            res = float(phase_file.readline()[13:-4])
             phase = np.loadtxt(filename, delimiter='\t', skiprows=2)
         return PhaseMap(res, phase)
 

@@ -2,20 +2,22 @@
 """Testcase for the reconstructor module."""
 
 
+import os
 import unittest
+
 import pyramid.reconstructor as rc
 
 
 class TestCaseReconstructor(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
 
     def tearDown(self):
-        pass
+        self.path = None
 
-    def test_template(self):
-        pass
+    def test_reconstruct_simple_leastsq(self):
+        raise AssertionError
 
 
 if __name__ == '__main__':

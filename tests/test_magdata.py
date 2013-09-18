@@ -2,71 +2,89 @@
 """Testcase for the magdata module."""
 
 
+import os
 import unittest
 import numpy as np
-from numpy import pi
-from pyramid.magdata import MagData
 
-# py.test
-# TODO: define test constants somewhere
-# TODO: proper error messages
-# TODO: Docstring
+from pyramid.magdata import MagData
 
 
 class TestCaseMagData(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_magdata')
+        magnitude = (np.zeros((4, 4, 4)), np.zeros((4, 4, 4)), np.zeros((4, 4, 4)))
+        magnitude[0][1:-1, 1:-1, 1:-1] = 1
+        magnitude[1][1:-1, 1:-1, 1:-1] = 1
+        magnitude[2][1:-1, 1:-1, 1:-1] = 1
+        self.mag_data = MagData(10.0, magnitude)
 
     def tearDown(self):
-        pass
+        self.path = None
+        self.mag_data = None
 
-    def test_init(self):
-        magnitude = (np.zeros((1, 1, 1), np.zeros(1, 1, 1), np.zeros(1, 1, 1)))
-        magnitude = (np.zeros((1, 1, 1), np.zeros(1, 1, 1), np.zeros(1, 1, 1)))
-        self.assertRaises(AssertionError, MagData, 10.0, )
-        self.assertEqual(self.mag_data.filename, self.filename)
+    def test_add_magnitude(self):
+        reference = (np.ones((4, 4, 4)), np.ones((4, 4, 4)), np.ones((4, 4, 4)))
+        self.mag_data.add_magnitude(reference)
+        reference[0][1:-1, 1:-1, 1:-1] = 2
+        reference[1][1:-1, 1:-1, 1:-1] = 2
+        reference[2][1:-1, 1:-1, 1:-1] = 2
+        np.testing.assert_equal(self.mag_data.magnitude, reference,
+                                'Unexpected behavior in add_magnitude()!')
 
-    def test_resolution(self):
-        self.assertEqual(self.mag_data.res, 10.0)
+    def test_get_mask(self):
+        mask = self.mag_data.get_mask()
+        reference = np.zeros((4, 4, 4))
+        reference[1:-1, 1:-1, 1:-1] = True
+        np.testing.assert_equal(mask, reference, 'Unexpected behavior in get_mask()!')
 
-    def test_dimensions(self):
-        self.assertEqual(self.mag_data.dim, (1, 3, 5))
+    def test_get_vector(self):
+        mask = self.mag_data.get_mask()
+        vector = self.mag_data.get_vector(mask)
+        reference = np.ones(np.count_nonzero(self.mag_data.magnitude[0])*3)
+        np.testing.assert_equal(vector, reference, 'Unexpected behavior in get_mask()!')
 
-    def test_length(self):
-        self.assertEqual(self.mag_data.length, (10.0, 30.0, 50.0))
+    def test_set_vector(self):
+        mask = self.mag_data.get_mask()
+        vector = 2 * np.ones(np.count_nonzero(self.mag_data.magnitude[0])*3)
+        self.mag_data.set_vector(mask, vector)
+        reference = (np.zeros((4, 4, 4)), np.zeros((4, 4, 4)), np.zeros((4, 4, 4)))
+        reference[0][1:-1, 1:-1, 1:-1] = 2
+        reference[1][1:-1, 1:-1, 1:-1] = 2
+        reference[2][1:-1, 1:-1, 1:-1] = 2
+        np.testing.assert_equal(self.mag_data.magnitude, reference,
+                                'Unexpected behavior in set_mask()!')
 
-    def test_magnitude(self):
-        test_shape = (1, 3, 5)
-        test_array = np.zeros(test_shape)
-        z_mag = self.mag_data.magnitude[0]
-        y_mag = self.mag_data.magnitude[1]
-        x_mag = self.mag_data.magnitude[2]
-        self.assertEqual(z_mag.shape, test_shape)
-        self.assertEqual(y_mag.shape, test_shape)
-        self.assertEqual(x_mag.shape, test_shape)
-        np.testing.assert_array_equal(z_mag, test_array, 'Testmessage')
-        test_array[:, 1, 1:4] = np.cos(pi/4)
-        np.testing.assert_array_almost_equal(y_mag, test_array, err_msg='y failure')
-        np.testing.assert_array_almost_equal(x_mag, test_array, err_msg='x failure')
+    def test_scale_down(self):
+        self.mag_data.scale_down()
+        reference = (1/8. * np.ones((2, 2, 2)),
+                     1/8. * np.ones((2, 2, 2)),
+                     1/8. * np.ones((2, 2, 2)))
+        np.testing.assert_equal(self.mag_data.magnitude, reference,
+                                'Unexpected behavior in scale_down()!')
+        np.testing.assert_equal(self.mag_data.res, 20, 'Unexpected behavior in scale_down()!')
 
     def test_load_from_llg(self):
-        pass
+        self.mag_data = MagData.load_from_llg(os.path.join(self.path, 'ref_mag_data.txt'))
+        reference = (np.zeros((4, 4, 4)), np.zeros((4, 4, 4)), np.zeros((4, 4, 4)))
+        reference[0][1:-1, 1:-1, 1:-1] = 1
+        reference[1][1:-1, 1:-1, 1:-1] = 1
+        reference[2][1:-1, 1:-1, 1:-1] = 1
+        np.testing.assert_equal(self.mag_data.magnitude, reference,
+                                'Unexpected behavior in load_from_llg()!')
+        np.testing.assert_equal(self.mag_data.res, 10, 'Unexpected behavior in load_from_llg()!')
 
-    def test_save_to_llg(self):
-        pass
+    def test_load_from_netcdf4(self):
+        self.mag_data = MagData.load_from_netcdf4(os.path.join(self.path, 'ref_mag_data.nc'))
+        reference = (np.zeros((4, 4, 4)), np.zeros((4, 4, 4)), np.zeros((4, 4, 4)))
+        reference[0][1:-1, 1:-1, 1:-1] = 1
+        reference[1][1:-1, 1:-1, 1:-1] = 1
+        reference[2][1:-1, 1:-1, 1:-1] = 1
+        np.testing.assert_equal(self.mag_data.magnitude, reference,
+                                'Unexpected behavior in load_from_netcdf4()!')
+        np.testing.assert_equal(self.mag_data.res, 10,
+                                'Unexpected behavior in load_from_netcdf4()!')
 
-    def test_load_from_netcdf(self):
-        pass
-
-    def test_save_to_netcdf(self):
-        pass
-
-    def test_quiver_plot(self):
-        pass
-
-    def test_quiver_plot3d(self):
-        pass
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseMagData)
