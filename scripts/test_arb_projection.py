@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, NullLocator
 
 
-dim = (4, 4)
+dim = (8, 8)
 offset = (dim[0]/2., dim[1]/2.)
 phi = 1.000000001*pi/4
 field = np.zeros(dim)

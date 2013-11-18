@@ -13,6 +13,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import MaxNLocator, FuncFormatter
 
 import netCDF4
 
@@ -194,7 +195,8 @@ class PhaseMap:
 
         Returns
         -------
-        None
+        axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted.
 
         '''
         # Take units into consideration:
@@ -210,11 +212,11 @@ class PhaseMap:
         # Set the axes ticks and labels:
         axis.set_xlim(0, np.shape(phase)[1])
         axis.set_ylim(0, np.shape(phase)[0])
-        ticks = (axis.get_xticks()*self.res).astype(int)
-        axis.set_xticklabels(ticks)
-        ticks = (axis.get_yticks()*self.res).astype(int)
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+        axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.res)))
+        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.res)))
         axis.tick_params(axis='both', which='major', labelsize=14)
-        axis.set_yticklabels(ticks)
         axis.set_title(title, fontsize=18)
         axis.set_xlabel('x [nm]', fontsize=15)
         axis.set_ylabel('y [nm]', fontsize=15)
@@ -241,7 +243,8 @@ class PhaseMap:
 
         Returns
         -------
-        None
+        axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted.
 
         '''
         # Take units into consideration:

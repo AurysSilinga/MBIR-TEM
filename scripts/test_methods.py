@@ -27,10 +27,12 @@ def compare_methods():
     # Input parameters:
     res = 10.0  # in nm
     phi = 0
-    density = 1
+    theta = pi/2
+    tilt = pi/4
+    density = 0.25
     dim = (128, 128, 128)  # in px (z, y, x)
     # Create magnetic shape:
-    geometry = 'slab'
+    geometry = 'sphere'
     if geometry == 'slab':
         center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts at 0!
         width = (dim[0]/2, dim[1]/2., dim[2]/2.)  # in px (z, y, x)
@@ -45,17 +47,18 @@ def compare_methods():
         radius = dim[0]/4  # in px
         mag_shape = mc.Shapes.sphere(dim, center, radius)
     # Project the magnetization data:
-    mag_data = MagData(res, mc.create_mag_dist_homog(mag_shape, phi, theta=0))
+    mag_data = MagData(res, mc.create_mag_dist_homog(mag_shape, phi, theta))
 
 #    density = 0.3
 #    mag_data = MagData.load_from_llg('../output/magnetic distributions/mag_dist_sphere.txt')
 
     res = mag_data.res
-    mag_data.quiver_plot()
+    mag_data.quiver_plot(ax_slice=dim[1]/2)
 #    mag_data.quiver_plot3d()
     import time
     start = time.time()
-    projection = pj.single_tilt_projection(mag_data, tilt=pi/4)
+    projection = pj.single_tilt_projection(mag_data, tilt)
+    pj.quiver_plot(projection)
     print 'Total projection time:', time.time() - start
     # Construct phase maps:
     phase_map_mag = PhaseMap(res, pm.phase_mag_fourier(res, projection, padding=1))
@@ -66,7 +69,15 @@ def compare_methods():
 
     phase_map = PhaseMap(res, phase_map_mag.phase+phase_map_elec.phase)
     hi.display_combined(phase_map, density)
-
+    
+    import matplotlib.pyplot as plt
+    x = range(dim[2])
+    y = phase_map_elec.phase[dim[1]/2, :]
+    fig = plt.figure()
+    axis = fig.add_subplot(1, 1, 1)
+    axis.plot(x, y, label='Real space method')
+    axis.grid()
+    
 
 if __name__ == "__main__":
     try:

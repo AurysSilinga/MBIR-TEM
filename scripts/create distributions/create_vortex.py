@@ -32,10 +32,10 @@ def create_vortex():
     filename = directory + '/mag_dist_vortex.txt'
     res = 10.0  # in nm
     density = 1
-    dim = (1, 128, 128)
-    center = (0, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
+    dim = (64, 64, 64)
+    center = (int(dim[0]/2)-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
     radius = 0.25 * dim[1]
-    height = 1
+    height = dim[0]/4
     # Create magnetic shape:
     mag_shape = mc.Shapes.disc(dim, center, radius, height)
     mag_data = MagData(res, mc.create_mag_dist_vortex(mag_shape))

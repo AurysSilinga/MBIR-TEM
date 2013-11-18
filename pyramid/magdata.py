@@ -323,7 +323,8 @@ class MagData:
 
         Returns
         -------
-        None
+        axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted.
 
         '''
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
@@ -361,8 +362,8 @@ class MagData:
         axis.set_xlabel(u_label, fontsize=15)
         axis.set_ylabel(v_label, fontsize=15)
         axis.tick_params(axis='both', which='major', labelsize=14)
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=8, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=8, integer=True))
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+        axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         plt.show()
 
     def quiver_plot3d(self):
@@ -391,7 +392,7 @@ class MagData:
         z_mag = np.reshape(self.magnitude[0], (-1))
         # Plot them as vectors:
         mlab.figure()
-        plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode='arrow', scale_factor=10.0)
+        plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode='arrow')#, scale_factor=5.0)
         mlab.outline(plot)
         mlab.axes(plot)
         mlab.colorbar()

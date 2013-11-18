@@ -26,18 +26,18 @@ def create_sample():
     if not os.path.exists(directory):
         os.makedirs(directory)
     # Input parameters:
-    key = 'sphere'
+    key = 'pixel'
     filename = directory + '/mag_dist_' + key + '.txt'
-    dim = (128, 128, 128)  # in px (z, y, x)
-    res = 10.0  # in nm
-    phi = pi/4
+    dim = (1, 1, 5)  # in px (z, y, x)
+    res = 1.0  # in nm
+    phi = pi/2
     # Geometry parameters:
-    center = (64, 64, 64)  # in px (z, y, x), index starts with 0!
-    width = (1, 50, 50)  # in px (z, y, x)
-    radius = 25  # in px
-    height = 1  # in px
-    pos = (0, 63)  # in px (tuple of length 2)
-    pixel = (0, 63, 63)  # in px (z, y, x), index starts with 0!
+    center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2-0.5)  # in px (z, y, x), index starts with 0!
+    width = (dim[0]/2, dim[1]/2, dim[2]/2)  # in px (z, y, x)
+    radius = dim[2]/4  # in px
+    height = dim[0]/2  # in px
+    pos = (0, dim[1]/2)  # in px (tuple of length 2)
+    pixel = (0, 0, 1)  # in px (z, y, x), index starts with 0!
     # Determine the magnetic shape:
     if key == 'slab':
         mag_shape = mc.Shapes.slab(dim, center, width)

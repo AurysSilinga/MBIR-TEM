@@ -17,7 +17,7 @@ from numpy import pi
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.ticker import NullLocator
+from matplotlib.ticker import NullLocator, MaxNLocator
 from PIL import Image
 
 from pyramid.phasemap import PhaseMap
@@ -61,12 +61,10 @@ def holo_image(phase_map, density=1):
 
     '''
     assert isinstance(phase_map, PhaseMap), 'phase_map has to be a PhaseMap object!'
-    # Extract the phase (considering the unit):
-    phase = phase_map.phase
     # Calculate the holography image intensity:
-    img_holo = (1 + np.cos(density * phase)) / 2
+    img_holo = (1 + np.cos(density * phase_map.phase)) / 2
     # Calculate the phase gradients, expressed by magnitude and angle:
-    phase_grad_y, phase_grad_x = np.gradient(phase, phase_map.res, phase_map.res)
+    phase_grad_y, phase_grad_x = np.gradient(phase_map.phase, phase_map.res, phase_map.res)
     phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
     phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)
     if phase_magnitude.max() != 0:
@@ -126,7 +124,8 @@ def display(holo_image, title='Holographic Contour Map', axis=None, interpolatio
 
     Returns
     -------
-    None
+    axis: :class:`~matplotlib.axes.AxesSubplot`
+        The axis on which the graph is plotted.
 
     '''
     # If no axis is specified, a new figure is created:
@@ -141,6 +140,10 @@ def display(holo_image, title='Holographic Contour Map', axis=None, interpolatio
     axis.set_title(title, fontsize=18)
     axis.set_xlabel('x-axis [px]', fontsize=15)
     axis.set_ylabel('y-axis [px]', fontsize=15)
+    axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+    axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+
+    return axis
 
 
 def display_combined(phase_map, density=1, title='Combined Plot', interpolation='none'):
@@ -160,7 +163,8 @@ def display_combined(phase_map, density=1, title='Combined Plot', interpolation=
 
     Returns
     -------
-    None
+    phase_axis, holo_axis: :class:`~matplotlib.axes.AxesSubplot`
+        The axes on which the graphs are plotted.
 
     '''
     # Create combined plot and set title:
@@ -169,7 +173,13 @@ def display_combined(phase_map, density=1, title='Combined Plot', interpolation=
     # Plot holography image:
     holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
     display(holo_image(phase_map, density), axis=holo_axis, interpolation=interpolation)
+    holo_axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+    holo_axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
     # Plot phase map:
     phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
     fig.subplots_adjust(right=0.85)
     phase_map.display(axis=phase_axis)
+    phase_axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+    phase_axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+    
+    return phase_axis, holo_axis

@@ -8,11 +8,12 @@ directions with the use of transfer functions (work in progress).
 
 """
 
-import time
 
 import numpy as np
 from numpy import pi
 
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import itertools
 
 from pyramid.magdata import MagData
@@ -59,26 +60,21 @@ def simple_axis_projection(mag_data, axis='z', threshold=0):
 
 def single_tilt_projection(mag_data, tilt=0, threshold=0):
     # TODO: Docstring!!!
+    '''Projection with tilt around the (centered!) y-axis'''
     assert isinstance(mag_data, MagData), 'Parameter mag_data has to be a MagData object!'
 #    assert axis == 'z' or axis == 'y' or axis == 'x', 'Axis has to be x, y or z (as string)!'
 
-    # Set starting variables:
-    dim = (mag_data.dim[0], mag_data.dim[2])
-    z_mag, y_mag, x_mag = mag_data.magnitude
-    mask = mag_data.get_mask()
-    projection = (np.zeros((mag_data.dim[1], mag_data.dim[2])),
-                  np.zeros((mag_data.dim[1], mag_data.dim[2])),
-                  np.zeros((mag_data.dim[1], mag_data.dim[2])))
-
     def get_position(p, m, b, size):
-        x, y = np.array(p)[:, 0]+0.5, np.array(p)[:, 1]+0.5
+        y, x = np.array(p)[:, 0]+0.5, np.array(p)[:, 1]+0.5
+#        print 'p:', p
+#        print 'position:', (y-m*x-b)/np.sqrt(m**2+1)# + size/2.
         return (y-m*x-b)/np.sqrt(m**2+1) + size/2.
 
     def get_impact(pos, r, size):
         return [x for x in np.arange(np.floor(pos-r), np.floor(pos+r)+1, dtype=int)
                 if 0 <= x < size]
 
-    def get_weight(delta, rho):
+    def get_weight(delta, rho):  # use circles to represent the voxels
         a, b = delta-rho, delta+rho
         if a >= 1 or b <= -1:  # TODO: Should not be necessary!
             print 'Outside of bounds:', delta
@@ -95,18 +91,27 @@ def single_tilt_projection(mag_data, tilt=0, threshold=0):
             w_a = (a*np.sqrt(1-a**2) + np.arctan(a/np.sqrt(1-a**2))) / pi
         return w_b - w_a
 
+    # Set starting variables:
+    # length along projection (proj, z), rotation (rot, y) and perpendicular (perp, x) axis:
+    dim_proj, dim_rot, dim_perp = mag_data.dim
+    z_mag, y_mag, x_mag = mag_data.magnitude
+    mask = mag_data.get_mask()
+    projection = (np.zeros((dim_rot, dim_perp)),
+                  np.zeros((dim_rot, dim_perp)),
+                  np.zeros((dim_rot, dim_perp)))
     # Creating coordinate list of all voxels:
-    xi = range(dim[0])
-    yj = range(dim[1])
-    ii, jj = np.meshgrid(xi, yj)
-    voxels = list(itertools.product(yj, xi))
+    voxels = list(itertools.product(range(dim_proj), range(dim_perp)))
+#    print 'voxels:', voxels
 
     # Calculate positions along the projected pixel coordinate system:
-    direction = (-np.cos(tilt), np.sin(tilt))
-    center = (dim[0]/2., dim[1]/2.)
-    m = direction[0]/(direction[1]+1E-30)
+    center = (dim_proj/2., dim_perp/2.)
+#    direction = (-np.cos(tilt), np.sin(tilt))
+    m = np.where(tilt<=pi, -1/np.tan(tilt+1E-30), 1/np.tan(tilt+1E-30))#direction[0]/(direction[1]+1E-30)
+#    print 'm:', m
     b = center[0] - m * center[1]
-    positions = get_position(voxels, m, b, dim[0])
+#    print 'b:', b
+    positions = get_position(voxels, m, b, dim_perp)
+#    print positions
 
     # Calculate weights:
     r = 1/np.sqrt(np.pi)  # radius of the voxel circle
@@ -114,19 +119,18 @@ def single_tilt_projection(mag_data, tilt=0, threshold=0):
     weights = []
     for i, voxel in enumerate(voxels):
         voxel_weights = []
-        impacts = get_impact(positions[i], r, dim[0])
+        impacts = get_impact(positions[i], r, dim_perp)
         for impact in impacts:
             distance = np.abs(impact+0.5 - positions[i])
             delta = distance / r
             voxel_weights.append((impact, get_weight(delta, rho)))
         weights.append((voxel, voxel_weights))
-
-    # Calculate projection with the calculated weights for the voxels:
-    for i, weight in enumerate(weights):
-        voxel = weights[i][0]
-        voxel_weights = weights[i][1]
-        for voxel_weight in voxel_weights:
-            pixel, weight = voxel_weight
+    
+#    print weights
+    
+    # Calculate projection with the calculated weights for the voxels (rotation around y-axis):
+    for i, (voxel, voxel_weights) in enumerate(weights):
+        for pixel, weight in voxel_weights:
             # Component parallel to tilt axis (':' goes over all slices):
             projection[0][:, pixel] += weight * y_mag[voxel[0], :, voxel[1]]
             # Component perpendicular to tilt axis:
@@ -134,5 +138,5 @@ def single_tilt_projection(mag_data, tilt=0, threshold=0):
                                                + z_mag[voxel[0], :, voxel[1]]*np.sin(tilt))
             # Thickness profile:
             projection[2][:, pixel] += weight * mask[voxel[0], :, voxel[1]]
-
+    
     return projection
