@@ -7,6 +7,8 @@ import sys
 import datetime
 import unittest
 
+import re
+
 import pep8
 
 
@@ -49,7 +51,24 @@ class TestCaseCompliance(unittest.TestCase):
             if result.total_errors == 0:
                 print 'No Warnings or Errors detected!'
             else:
-                print '\n{} Warnings and Errors detected!'.format(result.total_errors)
+                print '---->   {} Warnings and Errors detected!'.format(result.total_errors)
+            print '\nTODOS:'
+            todos_found = False
+            todo_count = 0
+            regex = ur'# TODO: (.*)'
+            for py_file in files:
+                with open (py_file) as f:
+                    for line in f:
+                        todo = re.findall(regex, line)
+                        if todo and not todo[0]=="(.*)'":
+                            todos_found = True
+                            todo_count += 1
+                            print '{}: {}'.format(f.name, todo[0])
+            if todos_found:
+                print '---->   {} TODOs found!'.format(todo_count)
+            else:
+                print 'No TODOS found!'
+
         sys.stdout = stdout_buffer
 
         error_message = 'Found %s Errors and Warnings!' % result.total_errors

@@ -89,6 +89,5 @@ mask = mag_data.get_mask()
 dim = mag_data.dim
 res = mag_data.res
 mag_data_reconstruct = MagData(res, (np.zeros(dim),)*3)
-print np.shape(mag_data_reconstruct.magnitude)
 
 mag_vector = mag_data_reconstruct.get_vector(mask)

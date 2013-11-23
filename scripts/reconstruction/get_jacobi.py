@@ -44,18 +44,56 @@ def get_jacobi():
 
     mag_data = MagData(res, mc.create_mag_dist_homog(mc.Shapes.slab(dim, center, width), phi))
     projection = pj.simple_axis_projection(mag_data)
+    print 'Projection calculated!'
 
     '''NUMERICAL SOLUTION'''
-    # numerical solution Real Space (Slab):
-    jacobi = np.zeros((dim[2]*dim[1], 2*dim[2]*dim[1]))
+    # numerical solution Real Space:
+    dim_proj = np.shape(projection[0])
+    size = np.prod(dim_proj)
+    kernel = pm.Kernel(dim_proj, res, 'disc')
+
     tic = time.clock()
-    phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab', b_0, jacobi=jacobi))
+    kernel.multiply_jacobi(np.ones(2*size))  # column-wise
+    toc = time.clock()
+    print 'Time for one multiplication with the Jacobi-Matrix:      ', toc - tic
+
+    jacobi = np.zeros((size, 2*size))
+    tic = time.clock()
+    phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'disc', b_0, jacobi=jacobi))
     toc = time.clock()
     phase_map.display()
     np.savetxt(filename, jacobi)
-    print 'Time for Real Space Approach with Jacobi-Matrix (Slab): ' + str(toc - tic)
+    print 'Time for Jacobi-Matrix during phase calculation:         ', toc - tic
+    
+    tic = time.clock()
+    jacobi_test = kernel.get_jacobi()
+    toc = time.clock()
+    print 'Time for Jacobi-Matrix from the Kernel:                  ', toc - tic
+    
+    unity = np.eye(2*size)
+    jacobi_test2 = np.zeros((size, 2*size))
+    tic = time.clock()
+    for i in range(unity.shape[1]):
+        jacobi_test2[:, i] = kernel.multiply_jacobi(unity[:, i])  # column-wise
+    toc = time.clock()
+    print 'Time for getting the Jacobi-Matrix (vector-wise):        ', toc - tic
 
-    return jacobi
+    unity_transp = np.eye(size)
+    jacobi_transp = np.zeros((2*size, size))
+    tic = time.clock()
+    for i in range(unity_transp.shape[1]):
+        jacobi_transp[:, i] = kernel.multiply_jacobi_T(unity_transp[:, i])  # column-wise
+    toc = time.clock()
+    print 'Time for getting the transp. Jacobi-Matrix (vector-wise):', toc - tic
+
+    print 'Methods (during vs kernel) in accordance?                ', \
+        np.logical_not(np.all(jacobi-jacobi_test))
+    print 'Methods (during vs vector-wise) in accordance?           ', \
+        np.logical_not(np.all(jacobi-jacobi_test2))
+    print 'Methods (transponed Jacobi) in accordance?               ', \
+        np.logical_not(np.all(jacobi.T-jacobi_transp))
+    
+    return (jacobi, jacobi_test, jacobi_test2, jacobi_transp)
 
 
 if __name__ == "__main__":

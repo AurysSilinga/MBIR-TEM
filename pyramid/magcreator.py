@@ -138,6 +138,36 @@ class Shapes:
         return mag_shape
 
     @classmethod
+    def ellipsoid(cls, dim, center, width):
+        '''Create the shape of a sphere.
+
+        Parameters
+        ----------
+        dim : tuple (N=3)
+            The dimensions of the grid `(z, y, x)`.
+        center : tuple (N=3)
+            The center of the sphere in pixel coordinates `(z, y, x)`.
+        radius : float
+            The radius of the sphere in pixel coordinates.
+
+        Returns
+        -------
+        mag_shape : :class:`~numpy.ndarray` (N=3)
+            The magnetic shape as a 3D-array with values between 1 and 0.
+
+        '''
+        assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
+        assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
+#        assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'  # TODO: change
+        mag_shape = np.array([[[np.sqrt((x-center[2])**2/(width[2]/2)**2
+                                      + (y-center[1])**2/(width[1]/2)**2
+                                      + (z-center[0])**2/(width[0]/2)**2) <= 1
+                            for x in range(dim[2])]
+                            for y in range(dim[1])]
+                            for z in range(dim[0])])
+        return mag_shape
+
+    @classmethod
     def filament(cls, dim, pos, axis='y'):
         '''Create the shape of a filament.
 

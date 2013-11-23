@@ -35,7 +35,7 @@ def compare_methods():
     geometry = 'sphere'
     if geometry == 'slab':
         center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts at 0!
-        width = (dim[0]/2, dim[1]/2., dim[2]/2.)  # in px (z, y, x)
+        width = (dim[0]/3., dim[1]/4., dim[2]/2.)  # in px (z, y, x)
         mag_shape = mc.Shapes.slab(dim, center, width)
     elif geometry == 'disc':
         center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts at 0!
@@ -58,7 +58,6 @@ def compare_methods():
     import time
     start = time.time()
     projection = pj.single_tilt_projection(mag_data, tilt)
-    pj.quiver_plot(projection)
     print 'Total projection time:', time.time() - start
     # Construct phase maps:
     phase_map_mag = PhaseMap(res, pm.phase_mag_fourier(res, projection, padding=1))

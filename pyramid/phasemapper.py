@@ -26,55 +26,99 @@ Q_E = 1.602E-19    # electron charge in C
 C = 2.998E8        # speed of light in m/s
 
 
-def phase_mag_fourier(res, projection, padding=0, b_0=1):
-    '''Calculate the magnetic phase from magnetization data (Fourier space approach).
+# TODO: Kernel class? Creator, transform to fourier, get_jacobi?
 
-    Parameters
-    ----------
-    res : float
-        The resolution of the grid (grid spacing) in nm.
-    projection : tuple (N=3) of :class:`~numpy.ndarray` (N=2)
-        The in-plane projection of the magnetization as a tuple, storing the `u`- and `v`-component
-        of the magnetization and the thickness projection for the resulting 2D-grid.
-    padding : int, optional
-        Factor for the zero padding. The default is 0 (no padding). For a factor of n the number
-        of pixels is increase by ``(1+n)**2``. Padded zeros are cropped at the end.
-    b_0 : float, optional
-        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
-        The default is 1.
+class Kernel:
+    # TODO: Docstrings!!!
+    
+    def __init__(self, dim, res, geometry='disc', b_0=1):
+        # TODO: Docstring!!!
+        def get_elementary_phase(geometry, n, m, res):
+            if geometry == 'slab':
+                def F_h(n, m):
+                    a = np.log(res**2 * (n**2 + m**2))
+                    b = np.arctan(n / m)
+                    return n*a - 2*n + 2*m*b
+                return 0.5 * (F_h(n-0.5, m-0.5) - F_h(n+0.5, m-0.5)
+                            - F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5))
+            elif geometry == 'disc':
+                in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
+                return m / (n**2 + m**2 + 1E-30) * in_or_out
+        self.dim = dim  # !!! size of the FOV, kernel is bigger!
+        self.res = res
+        self.geometry = geometry
+        self.b_0 = b_0
+        coeff = -res**2 / (2*PHI_0)
+        v_dim, u_dim = dim
+        u = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
+        v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
+        uu, vv = np.meshgrid(u, v)
+        self.u = coeff * get_elementary_phase(geometry, uu, vv, res)
+        self.v = coeff * get_elementary_phase(geometry, vv, uu, res)
+        size = 3*np.array(dim) - 1  # dim + (2*dim - 1) magnetisation + kernel
+        fsize = 2 ** np.ceil(np.log2(size)).astype(int)  # next multiple of 2
+        self.u_fft = np.fft.rfftn(self.u, fsize)
+        self.v_fft = np.fft.rfftn(self.v, fsize)
 
-    Returns
-    -------
-    phase : :class:`~numpy.ndarray` (N=2)
-        The phase as a 2-dimensional array.
+    def get_jacobi(self):
+        # TODO: Docstring!!!
+        '''CAUTIOUS! Just use for small dimensions or computer will explode violently!'''
+        v_dim, u_dim = self.dim
+        jacobi = np.zeros((v_dim*u_dim, 2*v_dim*u_dim))  
+    #    nc.get_jacobi_core(dim[0], dim[1], v_phi, u_phi, jacobi)
+    #    return jacobi
+        for j in range(v_dim):
+            for i in range(u_dim):
+                u_column = i + u_dim*j
+                v_column = i + u_dim*j + u_dim*v_dim
+                u_min = (u_dim-1) - i
+                u_max = (2*u_dim-1) - i
+                v_min = (v_dim-1) - j
+                v_max = (2*v_dim-1) - j
+                # u_dim*v_dim columns for the u-component:
+                jacobi[:, u_column] = self.u[v_min:v_max, u_min:u_max].reshape(-1)
+                # u_dim*v_dim columns for the v-component (note the minus!):
+                jacobi[:, v_column] = -self.v[v_min:v_max, u_min:u_max].reshape(-1)
+        return jacobi
 
-    '''
-    v_dim, u_dim = np.shape(projection[0])
-    v_mag, u_mag = projection[:-1]
-    # Create zero padded matrices:
-    u_pad = u_dim/2 * padding
-    v_pad = v_dim/2 * padding
-    u_mag_big = np.zeros(((1 + padding) * v_dim, (1 + padding) * u_dim))
-    v_mag_big = np.zeros(((1 + padding) * v_dim, (1 + padding) * u_dim))
-    u_mag_big[v_pad:v_pad+v_dim, u_pad:u_pad+u_dim] = u_mag
-    v_mag_big[v_pad:v_pad+v_dim, u_pad:u_pad+u_dim] = v_mag
-    # Fourier transform of the two components:
-    u_mag_fft = np.fft.fftshift(np.fft.rfft2(u_mag_big), axes=0)
-    v_mag_fft = np.fft.fftshift(np.fft.rfft2(v_mag_big), axes=0)
-    # Calculate the Fourier transform of the phase:
-    nyq = 0.5 / res  # nyquist frequency
-    f_u = np.linspace(0, nyq, u_mag_fft.shape[1])
-    f_v = np.linspace(-nyq, nyq, u_mag_fft.shape[0], endpoint=False)
-    f_uu, f_vv = np.meshgrid(f_u, f_v)
-    coeff = (1j*b_0) / (2*PHI_0)
-    phase_fft = coeff * res * (u_mag_fft*f_vv - v_mag_fft*f_uu) / (f_uu**2 + f_vv**2 + 1e-30) #* (8*(res/2)**3)*np.sinc(res/2*f_uu)*np.sinc(res/2*f_vv) * np.exp(2*pi*1j*())
-    # Transform to real space and revert padding:
-    phase_big = np.fft.irfft2(np.fft.ifftshift(phase_fft, axes=0))
-    phase = phase_big[v_pad:v_pad+v_dim, u_pad:u_pad+u_dim]
-    return phase
+    def multiply_jacobi(self, vector):
+        # TODO: Docstring!!!
+        # vector: v_dim*u_dim elements for u_mag and v_dim*u_dim elements for v_mag
+        v_dim, u_dim = self.dim
+        size = v_dim * u_dim
+        assert len(vector) == 2*size, 'vector size not compatible!'
+        result = np.zeros(size)
+        for s in range(size):  # column-wise (two columns at a time, u- and v-component)
+            i = s % u_dim
+            j = int(s/u_dim)
+            u_min = (u_dim-1) - i
+            u_max = (2*u_dim-1) - i
+            v_min = (v_dim-1) - j
+            v_max = (2*v_dim-1) - j
+            result += vector[s]*self.u[v_min:v_max, u_min:u_max].reshape(-1)  # u
+            result += vector[s+size]*-self.v[v_min:v_max, u_min:u_max].reshape(-1)  # v        
+        return result
+
+    def multiply_jacobi_T(self, vector):
+        # TODO: Docstring!!!
+        # vector: v_dim*u_dim elements for u_mag and v_dim*u_dim elements for v_mag
+        v_dim, u_dim = self.dim
+        size = v_dim * u_dim
+        assert len(vector) == size, 'vector size not compatible!'
+        result = np.zeros(2*size)
+        for s in range(size):  # row-wise (two rows at a time, u- and v-component)
+            i = s % u_dim
+            j = int(s/u_dim)
+            u_min = (u_dim-1) - i
+            u_max = (2*u_dim-1) - i
+            v_min = (v_dim-1) - j
+            v_max = (2*v_dim-1) - j
+            result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))  # u
+            result[s+size] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))  # v        
+        return result
 
 
-def phase_mag_real(res, projection, method='discs', b_0=1, jacobi=None):
+def phase_mag_real(res, projection, geometry='disc', b_0=1, jacobi=None):
     '''Calculate the magnetic phase from magnetization data (real space approach).
 
     Parameters
@@ -84,7 +128,7 @@ def phase_mag_real(res, projection, method='discs', b_0=1, jacobi=None):
     projection : tuple (N=3) of :class:`~numpy.ndarray` (N=2)
         The in-plane projection of the magnetization as a tuple, storing the `u`- and `v`-component
         of the magnetization and the thickness projection for the resulting 2D-grid.
-    method : {'disc', 'slab'}, optional
+    geometry : {'disc', 'slab'}, optional
         Specifies the elemental geometry to use for the pixel field.
         The default is 'disc', because of the smaller computational overhead.
     b_0 : float, optional
@@ -104,9 +148,10 @@ def phase_mag_real(res, projection, method='discs', b_0=1, jacobi=None):
     dim = np.shape(projection[0])
     v_mag, u_mag = projection[:-1]
 
-    # Get lookup-tables for the phase of one pixel:
-    u_phi = get_kernel(method, 'u', dim, res, b_0)
-    v_phi = get_kernel(method, 'v', dim, res, b_0)
+    # Create kernel (lookup-tables for the phase of one pixel):
+    kernel = Kernel(dim, res, geometry, b_0)
+    u_phi = kernel.u
+    v_phi = kernel.v
 
     # Calculation of the phase:
     phase = np.zeros(dim)
@@ -211,41 +256,99 @@ def phase_mag_real_fast(res, projection, kernels_fourier, b_0=1):
     u_phase = np.fft.irfftn(u_mag_f * u_kern_f, fsize)[fslice].copy()
     v_phase = np.fft.irfftn(v_mag_f * v_kern_f, fsize)[fslice].copy()
     return u_phase - v_phase
-    
-    
-def get_kernel_fourier(method, orientation, dim, res, b_0=1):
 
-    kernel = get_kernel(method, orientation, dim, res, b_0)
- 
+
+def phase_mag_fourier(res, projection, padding=0, b_0=1):
+    '''Calculate the magnetic phase from magnetization data (Fourier space approach).
+
+    Parameters
+    ----------
+    res : float
+        The resolution of the grid (grid spacing) in nm.
+    projection : tuple (N=3) of :class:`~numpy.ndarray` (N=2)
+        The in-plane projection of the magnetization as a tuple, storing the `u`- and `v`-component
+        of the magnetization and the thickness projection for the resulting 2D-grid.
+    padding : int, optional
+        Factor for the zero padding. The default is 0 (no padding). For a factor of n the number
+        of pixels is increase by ``(1+n)**2``. Padded zeros are cropped at the end.
+    b_0 : float, optional
+        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The default is 1.
+
+    Returns
+    -------
+    phase : :class:`~numpy.ndarray` (N=2)
+        The phase as a 2-dimensional array.
+
+    '''
+    v_dim, u_dim = np.shape(projection[0])
+    v_mag, u_mag = projection[:-1]
+    # Create zero padded matrices:
+    u_pad = u_dim/2 * padding
+    v_pad = v_dim/2 * padding
+    u_mag_big = np.zeros(((1 + padding) * v_dim, (1 + padding) * u_dim))
+    v_mag_big = np.zeros(((1 + padding) * v_dim, (1 + padding) * u_dim))
+    u_mag_big[v_pad:v_pad+v_dim, u_pad:u_pad+u_dim] = u_mag
+    v_mag_big[v_pad:v_pad+v_dim, u_pad:u_pad+u_dim] = v_mag
+    # Fourier transform of the two components:
+    u_mag_fft = np.fft.fftshift(np.fft.rfft2(u_mag_big), axes=0)
+    v_mag_fft = np.fft.fftshift(np.fft.rfft2(v_mag_big), axes=0)
+    # Calculate the Fourier transform of the phase:
+    nyq = 0.5 / res  # nyquist frequency
+    f_u = np.linspace(0, nyq, u_mag_fft.shape[1])
+    f_v = np.linspace(-nyq, nyq, u_mag_fft.shape[0], endpoint=False)
+    f_uu, f_vv = np.meshgrid(f_u, f_v)
+    coeff = (1j*b_0) / (2*PHI_0)
+    phase_fft = coeff * res * (u_mag_fft*f_vv - v_mag_fft*f_uu) / (f_uu**2 + f_vv**2 + 1e-30) #* (8*(res/2)**3)*np.sinc(res/2*f_uu)*np.sinc(res/2*f_vv) * np.exp(2*pi*1j*())
+    # Transform to real space and revert padding:
+    phase_big = np.fft.irfft2(np.fft.ifftshift(phase_fft, axes=0))
+    phase = phase_big[v_pad:v_pad+v_dim, u_pad:u_pad+u_dim]
+    return phase
+
+
+def phase_mag(res, projection, kernel, b_0=1):
+    '''Calculate the magnetic phase from magnetization data (real space approach).
+
+    Parameters
+    ----------
+    res : float
+        The resolution of the grid (grid spacing) in nm.
+    projection : tuple (N=3) of :class:`~numpy.ndarray` (N=2)
+        The in-plane projection of the magnetization as a tuple, storing the `u`- and `v`-component
+        of the magnetization and the thickness projection for the resulting 2D-grid.
+    method : {'disc', 'slab'}, optional
+        Specifies the elemental geometry to use for the pixel field.
+        The default is 'disc', because of the smaller computational overhead.
+    b_0 : float, optional
+        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The default is 1.
+    jacobi : :class:`~numpy.ndarray` (N=2), optional
+        Specifies the matrix in which to save the jacobi matrix. The jacobi matrix will not be
+        calculated, if no matrix is specified (default), resulting in a faster computation.
+
+    Returns
+    -------
+    phase : :class:`~numpy.ndarray` (N=2)
+        The phase as a 2-dimensional array.
+
+    '''  # TODO: Docstring!!!
+    # Process input parameters:
+    v_mag, u_mag = projection[:-1]
+    dim = np.shape(u_mag)
+
     size = 3*np.array(dim) - 1  # dim + (2*dim - 1) magnetisation + kernel
     fsize = 2 ** np.ceil(np.log2(size)).astype(int)
+    fslice = tuple([slice(0, int(sz)) for sz in size])
 
-    return np.fft.rfftn(kernel, fsize)
+    u_mag_f = np.fft.rfftn(u_mag, fsize)
+    v_mag_f = np.fft.rfftn(v_mag, fsize)
 
+    v_kern_f, u_kern_f = kernels_fourier
 
-def get_kernel(method, orientation, dim, res, b_0=1):
-    
-    def get_elementary_phase(method, n, m, res):
-        if method == 'slab':
-            def F_h(n, m):
-                a = np.log(res**2 * (n**2 + m**2))
-                b = np.arctan(n / m)
-                return n*a - 2*n + 2*m*b
-            return 0.5 * (F_h(n-0.5, m-0.5) - F_h(n+0.5, m-0.5)
-                        - F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5))
-        elif method == 'disc':
-            in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
-            return m / (n**2 + m**2 + 1E-30) * in_or_out
-    
-    coeff = -b_0 * res**2 / (2*PHI_0)
-    v_dim, u_dim = dim
-    u = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
-    v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
-    uu, vv = np.meshgrid(u, v)
-    if orientation == 'u':
-        return coeff * get_elementary_phase(method, uu, vv, res)
-    elif orientation == 'v':
-        return coeff * get_elementary_phase(method, vv, uu, res)
+    fslice = (slice(dim[0]-1, 2*dim[0]-1), slice(dim[1]-1, 2*dim[1]-1))
+    u_phase = np.fft.irfftn(u_mag_f * u_kern_f, fsize)[fslice].copy()
+    v_phase = np.fft.irfftn(v_mag_f * v_kern_f, fsize)[fslice].copy()
+    return u_phase - v_phase
 
 
 def phase_elec(res, projection, v_0=1, v_acc=30000):

@@ -34,7 +34,7 @@ def create_core_shell_disc():
     filename = directory + '/mag_dist_core_shell_disc.txt'
     res = 1.0  # in nm
     density = 1
-    dim = (64, 64, 64)
+    dim = (32, 32, 32)
     center = (dim[0]/2-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
     radius_core = dim[1]/8
     radius_shell = dim[1]/4

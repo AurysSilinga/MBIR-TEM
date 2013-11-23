@@ -33,7 +33,7 @@ def compare_pixel_fields():
     # Input parameters:
     res = 1.0  # in nm
     phi = 0  # in rad
-    dim = (1, 32, 32)
+    dim = (1, 64, 64)
     pixel = (0,  int(dim[1]/2),  int(dim[2]/2))
     limit = 0.35
 
@@ -57,37 +57,37 @@ def compare_pixel_fields():
     projection = pj.simple_axis_projection(mag_data)
     # Kernel of a disc in real space:
     phase_map_disc = PhaseMap(res, pm.phase_mag_real(res, projection, 'disc'), 'mrad')
-    phase_map_disc.display('Phase of one Pixel (Disc)', limit=limit)
+#    phase_map_disc.display('Phase of one Pixel (Disc)', limit=limit)
     # Kernel of a slab in real space:
     phase_map_slab = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'), 'mrad')
-    phase_map_slab.display('Phase of one Pixel (Slab)', limit=limit)
+#    phase_map_slab.display('Phase of one Pixel (Slab)', limit=limit)
     # Kernel of the Fourier method:
     phase_map_fft = PhaseMap(res, pm.phase_mag_fourier(res, projection, padding=0), 'mrad')
     phase_map_fft.display('Phase of one Pixel (Fourier)', limit=limit)
     
     # Kernel of the Fourier method, calculated directly:
     phase_map_fft_kernel = PhaseMap(res, get_fourier_kernel(), 'mrad')
-    phase_map_fft_kernel.display('Phase of one Pixel (Fourier Kernel)', limit=limit)
+#    phase_map_fft_kernel.display('Phase of one Pixel (Fourier Kernel)', limit=limit)
     # Kernel differences:
     print 'Fourier Kernel, direct and indirect method are identical:', \
           np.all(phase_map_fft_kernel.phase - phase_map_fft.phase) == 0
     phase_map_diff = PhaseMap(res, phase_map_disc.phase - phase_map_fft.phase, 'mrad')
-    phase_map_diff.display('Phase difference of one Pixel (Disc - Fourier)')
+#    phase_map_diff.display('Phase difference of one Pixel (Disc - Fourier)')
 
     phase_inv_fft = np.abs(np.fft.ifftshift(np.fft.rfft2(phase_map_fft.phase), axes=0))**2
     phase_map_inv_fft = PhaseMap(res, phase_inv_fft)
-    phase_map_inv_fft.display('FT of the Phase of one Pixel (Fourier, Power)')
+#    phase_map_inv_fft.display('FT of the Phase of one Pixel (Fourier, Power)')
 
     phase_inv_disc = np.abs(np.fft.ifftshift(np.fft.rfft2(phase_map_disc.phase), axes=0))**2
     phase_map_inv_disc = PhaseMap(res, phase_inv_disc)
-    phase_map_inv_disc.display('FT of the Phase of one Pixel (Disc, Power)')
+#    phase_map_inv_disc.display('FT of the Phase of one Pixel (Disc, Power)')
     
     import matplotlib.pyplot as plt
     from matplotlib.ticker import IndexLocator 
     
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
-    x = range(dim[1])
+    x = np.linspace(-dim[1]/res/2, dim[1]/res/2-1, dim[1])
     y_ft = phase_map_fft.phase[:, dim[1]/2]
     y_re = phase_map_disc.phase[:, dim[1]/2]
     axis.axhline(0, color='k')
@@ -97,8 +97,9 @@ def compare_pixel_fields():
     axis.grid()
     axis.legend()
     axis.set_title('Real Space Kernel')
-    axis.set_xlim(0, dim[1]-1)
+    axis.set_xlim(-dim[1]/2, dim[1]/2-1)
     axis.xaxis.set_major_locator(IndexLocator(base=dim[1]/8, offset=0))
+
     
     fig = plt.figure()
     axis = fig.add_subplot(1, 1, 1)
