@@ -99,6 +99,22 @@ class Kernel:
             result += vector[s+size]*-self.v[v_min:v_max, u_min:u_max].reshape(-1)  # v        
         return result
 
+    def multiply_jacobi_core(self, vector):
+        v_dim, u_dim = self.dim
+        size = v_dim * u_dim
+        result = np.zeros(size)
+        nc.multiply_jacobi_core(
+            v_dim, u_dim, self.v, self.u, vector, result)
+        return result
+
+    def multiply_jacobi_core2(self, vector):
+        v_dim, u_dim = self.dim
+        size = v_dim * u_dim
+        result = np.zeros(size)
+        nc.multiply_jacobi_core2(
+            v_dim, u_dim, self.v, self.u, vector, result)
+        return result
+
     def multiply_jacobi_T(self, vector):
         # TODO: Docstring!!!
         # vector: v_dim*u_dim elements for u_mag and v_dim*u_dim elements for v_mag
