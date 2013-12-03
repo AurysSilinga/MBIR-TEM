@@ -22,7 +22,7 @@ class Shapes:
 
     '''Class containing functions for generating magnetic shapes.
 
-    The :class:`~.Shapes` class is a collection of some mehtods that return a 3-dimensional
+    The :class:`~.Shapes` class is a collection of some methods that return a 3-dimensional
     matrix that represents the magnetized volume and consists of values between 0 and 1.
     This matrix is used in the functions of the :mod:`~.magcreator` module to create
     :class:`~pyramid.magdata.MagData` objects which store the magnetic informations.
@@ -61,7 +61,7 @@ class Shapes:
 
     @classmethod
     def disc(cls, dim, center, radius, height, axis='z'):
-        '''Create the shape of a zylindrical disc in x-, y-, or z-direction.
+        '''Create the shape of a cylindrical disc in x-, y-, or z-direction.
 
         Parameters
         ----------
@@ -139,7 +139,7 @@ class Shapes:
 
     @classmethod
     def ellipsoid(cls, dim, center, width):
-        '''Create the shape of a sphere.
+        '''Create the shape of an ellipsoid.
 
         Parameters
         ----------
@@ -147,8 +147,8 @@ class Shapes:
             The dimensions of the grid `(z, y, x)`.
         center : tuple (N=3)
             The center of the sphere in pixel coordinates `(z, y, x)`.
-        radius : float
-            The radius of the sphere in pixel coordinates.
+        width : tuple (N=3)
+            The width of the ellipsoid `(z, y, x)`.
 
         Returns
         -------
@@ -158,7 +158,7 @@ class Shapes:
         '''
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
-#        assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'  # TODO: change
+        assert np.shape(width) == (3,), 'Parameter width has to be a a tuple of length 3!'
         mag_shape = np.array([[[np.sqrt((x-center[2])**2/(width[2]/2)**2
                                       + (y-center[1])**2/(width[1]/2)**2
                                       + (z-center[0])**2/(width[0]/2)**2) <= 1

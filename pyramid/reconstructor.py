@@ -49,17 +49,17 @@ def reconstruct_simple_leastsq(phase_map, mask, b_0=1):
     '''
     # Read in parameters:
     y_m = phase_map.phase.reshape(-1)  # Measured phase map as a vector
-    res = phase_map.res  # Resolution
+    a = phase_map.a  # Grid spacing
     dim = mask.shape  # Dimensions of the mag. distr.
     count = mask.sum()  # Number of pixels with magnetization
     lam = 1e-6  # Regularisation parameter
     # Create empty MagData object for the reconstruction:
-    mag_data_rec = MagData(res, (np.zeros(dim), np.zeros(dim), np.zeros(dim)))
+    mag_data_rec = MagData(a, (np.zeros(dim), np.zeros(dim), np.zeros(dim)))
 
     # Function that returns the phase map for a magnetic configuration x:
     def F(x):
         mag_data_rec.set_vector(mask, x)
-        phase = pm.phase_mag_real(res, pj.simple_axis_projection(mag_data_rec), 'slab', b_0)
+        phase = pm.phase_mag_real(a, pj.simple_axis_projection(mag_data_rec), b_0)
         return phase.reshape(-1)
 
     # Cost function which should be minimized:

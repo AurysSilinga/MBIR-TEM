@@ -66,8 +66,22 @@ def get_jacobi_core(
     unsigned int v_dim, unsigned int u_dim,
     double[:, :] v_phi, double[:, :] u_phi,
     double[:, :] jacobi):
-    '''DOCSTRING!'''
-    # TODO: Docstring!!!
+    '''Numerical core routine for the jacobi matrix calculation.
+
+    Parameters
+    ----------
+    v_dim, u_dim : int
+        Dimensions of the projection along the two major axes.
+    v_phi, u_phi : :class:`~numpy.ndarray` (N=2)
+        Lookup tables for the pixel fields oriented in `u`- and `v`-direction.
+    jacobi : :class:`~numpy.ndarray` (N=2)
+        Jacobi matrix which is filled by this routine.
+
+    Returns
+    -------
+    None
+
+    '''
     cdef unsigned int i, j, p, q, p_min, p_max, q_min, q_max, u_column, v_column, row
     for j in range(v_dim):
         for i in range(u_dim):
@@ -86,22 +100,3 @@ def get_jacobi_core(
                     jacobi[row, u_column] =  u_phi[q, p]
                     # v-component (note the minus!):
                     jacobi[row, v_column] = -v_phi[q, p]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def get_jacobi_core(
-    unsigned int v_dim, unsigned int u_dim,
-    np.ndarray v_phi, np.ndarray u_phi,
-    np.ndarray jacobi):
-    '''DOCSTRING!'''
-    # TODO: Docstring!!!
-    cdef unsigned int i, j, p, q, p_min, p_max, q_min, q_max, u_column, v_column, row
-    for j in range(v_dim):
-        for i in range(u_dim):
-            # v_dim*u_dim columns for the u-component:
-            jacobi[:, i+u_dim*j] = \
-                np.reshape(u_phi[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i], -1)
-            # v_dim*u_dim columns for the v-component (note the minus!):
-            jacobi[:, u_dim*v_dim+i+u_dim*j] = \
-                -np.reshape(v_phi[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i], -1)

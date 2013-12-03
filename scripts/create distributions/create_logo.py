@@ -27,7 +27,7 @@ def create_logo():
 
     '''
     # Input parameters:
-    res = 10.0  # in nm
+    a = 10.0  # in nm
     phi = -pi/2  # in rad
     density = 10
     dim = (1, 128, 128)
@@ -41,10 +41,10 @@ def create_logo():
     right = np.fliplr(left)
     mag_shape[0, ...] = np.logical_and(np.logical_and(left, right), bottom)
     # Create magnetic data, project it, get the phase map and display the holography image:
-    mag_data = MagData(res, mc.create_mag_dist_homog(mag_shape, phi))
+    mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
     mag_data.quiver_plot()
     projection = pj.simple_axis_projection(mag_data)
-    phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))
+    phase_map = PhaseMap(a, pm.phase_mag(a, projection))
     hi.display(hi.holo_image(phase_map, density), 'PYRAMID - LOGO', interpolation='bilinear')
 
 

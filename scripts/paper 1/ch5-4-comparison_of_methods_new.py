@@ -24,6 +24,7 @@ import pyramid.projector as pj
 import pyramid.phasemapper as pm
 import pyramid.analytic as an
 from pyramid.magdata import MagData
+from pyramid.kernel import Kernel
 import shelve
 
 
@@ -50,7 +51,7 @@ def run():
     else:
         # Input parameters:
         steps = 5
-        res = 0.25  # in nm
+        a = 0.25  # in nm
         phi = pi/2
         dim = (64, 512, 512)  # in px (z, y, x)
         center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts at 0!
@@ -61,9 +62,9 @@ def run():
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
         # Create MagData (4 times the size):
         print '--CREATE MAG. DIST. HOMOG. MAGN. DISC'
-        mag_data_disc = MagData(res, mc.create_mag_dist_homog(mag_shape, phi))
+        mag_data_disc = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
         print '--CREATE MAG. DIST. VORTEX STATE DISC'
-        mag_data_vort = MagData(res, mc.create_mag_dist_vortex(mag_shape, center))
+        mag_data_vort = MagData(a, mc.create_mag_dist_vortex(mag_shape, center))
 
         # Create Data Arrays:
         dim_list = [dim[2]/2**i for i in np.linspace(1, steps, steps)]
@@ -79,26 +80,26 @@ def run():
         data_vort_real_d = np.vstack((dim_list, np.zeros((2, steps))))
 
         for i in range(steps):
-            # Scale mag_data, resolution and dimensions:
+            # Scale mag_data, grid spacing and dimensions:
             mag_data_disc.scale_down()
             mag_data_vort.scale_down()
             dim = mag_data_disc.dim
-            res = mag_data_disc.res
+            a = mag_data_disc.a
             center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px, index starts at 0!
             radius = dim[1]/4  # in px
             height = dim[0]/2  # in px
 
-            print '--res =', res, 'nm', 'dim =', dim
+            print '--a =', a, 'nm', 'dim =', dim
 
             print '----CALCULATE RMS/DURATION HOMOG. MAGN. DISC'
             # Create projections along z-axis:
             projection_disc = pj.simple_axis_projection(mag_data_disc)
             # Analytic solution:
-            phase_ana_disc = an.phase_mag_disc(dim, res, phi, center, radius, height)
+            phase_ana_disc = an.phase_mag_disc(dim, a, phi, center, radius, height)
             # Fourier unpadded:
             padding = 0
             start_time = time.clock()
-            phase_num_disc = pm.phase_mag_fourier(res, projection_disc, padding=padding)
+            phase_num_disc = pm.phase_mag_fourier(a, projection_disc, padding=padding)
             data_disc_fourier0[2, i] = time.clock() - start_time
             print '------time (disc, fourier0) =', data_disc_fourier0[2, i]
             phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
@@ -106,7 +107,7 @@ def run():
             # Fourier padding 3:
             padding = 3
             start_time = time.clock()
-            phase_num_disc = pm.phase_mag_fourier(res, projection_disc, padding=padding)
+            phase_num_disc = pm.phase_mag_fourier(a, projection_disc, padding=padding)
             data_disc_fourier3[2, i] = time.clock() - start_time
             print '------time (disc, fourier3) =', data_disc_fourier3[2, i]
             phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
@@ -114,25 +115,23 @@ def run():
             # Fourier padding 10:
             padding = 10
             start_time = time.clock()
-            phase_num_disc = pm.phase_mag_fourier(res, projection_disc, padding=padding)
+            phase_num_disc = pm.phase_mag_fourier(a, projection_disc, padding=padding)
             data_disc_fourier10[2, i] = time.clock() - start_time
             print '------time (disc, fourier10) =', data_disc_fourier10[2, i]
             phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
             data_disc_fourier10[1, i] = np.sqrt(np.mean(phase_diff_disc**2))
             # Real space slab:
-            u_kern_f = pm.get_kernel_fourier('slab', 'u', np.shape(projection_disc[0]), res)
-            v_kern_f = pm.get_kernel_fourier('slab', 'v', np.shape(projection_disc[0]), res)
+            kernel = Kernel((dim[1], dim[2]), a, geometry='slab')
             start_time = time.clock()
-            phase_num_disc = pm.phase_mag_real_fast(res, projection_disc, (v_kern_f, u_kern_f))
+            phase_num_disc = pm.phase_mag(a, projection_disc, kernel=kernel)
             data_disc_real_s[2, i] = time.clock() - start_time
             print '------time (disc, real slab) =', data_disc_real_s[2, i]
             phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
             data_disc_real_s[1, i] = np.sqrt(np.mean(phase_diff_disc**2))
             # Real space disc:
-            u_kern_f = pm.get_kernel_fourier('disc', 'u', np.shape(projection_disc[0]), res)
-            v_kern_f = pm.get_kernel_fourier('disc', 'v', np.shape(projection_disc[0]), res)
+            kernel = Kernel((dim[1], dim[2]), a, geometry='slab')
             start_time = time.clock()
-            phase_num_disc = pm.phase_mag_real_fast(res, projection_disc, (v_kern_f, u_kern_f))
+            phase_num_disc = pm.phase_mag(a, projection_disc, kernel=kernel)
             data_disc_real_d[2, i] = time.clock() - start_time
             print '------time (disc, real disc) =', data_disc_real_d[2, i]
             phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
@@ -142,11 +141,11 @@ def run():
             # Create projections along z-axis:
             projection_vort = pj.simple_axis_projection(mag_data_vort)
             # Analytic solution:
-            phase_ana_vort = an.phase_mag_vortex(dim, res, center, radius, height)
+            phase_ana_vort = an.phase_mag_vortex(dim, a, center, radius, height)
             # Fourier unpadded:
             padding = 0
             start_time = time.clock()
-            phase_num_vort = pm.phase_mag_fourier(res, projection_vort, padding=padding)
+            phase_num_vort = pm.phase_mag_fourier(a, projection_vort, padding=padding)
             data_vort_fourier0[2, i] = time.clock() - start_time
             print '------time (vortex, fourier0) =', data_vort_fourier0[2, i]
             phase_diff_vort = (phase_ana_vort-phase_num_vort) * 1E3  # in mrad -> *1000
@@ -154,7 +153,7 @@ def run():
             # Fourier padding 3:
             padding = 3
             start_time = time.clock()
-            phase_num_vort = pm.phase_mag_fourier(res, projection_vort, padding=padding)
+            phase_num_vort = pm.phase_mag_fourier(a, projection_vort, padding=padding)
             data_vort_fourier3[2, i] = time.clock() - start_time
             print '------time (vortex, fourier3) =', data_vort_fourier3[2, i]
             phase_diff_vort = (phase_ana_vort-phase_num_vort) * 1E3  # in mrad -> *1000
@@ -162,25 +161,23 @@ def run():
             # Fourier padding 10:
             padding = 10
             start_time = time.clock()
-            phase_num_vort = pm.phase_mag_fourier(res, projection_vort, padding=padding)
+            phase_num_vort = pm.phase_mag_fourier(a, projection_vort, padding=padding)
             data_vort_fourier10[2, i] = time.clock() - start_time
             print '------time (vortex, fourier10) =', data_vort_fourier10[2, i]
             phase_diff_vort = (phase_ana_vort-phase_num_vort) * 1E3  # in mrad -> *1000
             data_vort_fourier10[1, i] = np.sqrt(np.mean(phase_diff_vort**2))
             # Real space slab:
-            u_kern_f = pm.get_kernel_fourier('slab', 'u', np.shape(projection_vort[0]), res)
-            v_kern_f = pm.get_kernel_fourier('slab', 'v', np.shape(projection_vort[0]), res)
+            kernel = Kernel((dim[1], dim[2]), a, geometry='slab')
             start_time = time.clock()
-            phase_num_vort = pm.phase_mag_real_fast(res, projection_vort, (v_kern_f, u_kern_f))
+            phase_num_vort = pm.phase_mag(a, projection_vort, kernel=kernel)
             data_vort_real_s[2, i] = time.clock() - start_time
             print '------time (vortex, real slab) =', data_vort_real_s[2, i]
             phase_diff_vort = (phase_ana_vort-phase_num_vort) * 1E3  # in mrad -> *1000
             data_vort_real_s[1, i] = np.sqrt(np.mean(phase_diff_vort**2))
             # Real space disc:
-            u_kern_f = pm.get_kernel_fourier('disc', 'u', np.shape(projection_vort[0]), res)
-            v_kern_f = pm.get_kernel_fourier('disc', 'v', np.shape(projection_vort[0]), res)
+            kernel = Kernel((dim[1], dim[2]), a, geometry='disc')
             start_time = time.clock()
-            phase_num_vort = pm.phase_mag_real_fast(res, projection_vort, (v_kern_f, u_kern_f))
+            phase_num_vort = pm.phase_mag(a, projection_vort, kernel=kernel)
             data_vort_real_d[2, i] = time.clock() - start_time
             print '------time (vortex, real disc) =', data_vort_real_d[2, i]
             phase_diff_vort = (phase_ana_vort-phase_num_vort) * 1E3  # in mrad -> *1000
@@ -200,7 +197,7 @@ def run():
     fig.tight_layout(rect=(0.05, 0.05, 0.95, 0.95))
     fig.suptitle('Method Comparison', fontsize=20)
 
-    # Plot duration against res (disc) [top/left]:
+    # Plot duration against a (disc) [top/left]:
     axes[1, 0].set_xscale('log')
     axes[1, 0].set_yscale('log')
     axes[1, 0].plot(data_disc_fourier0[0], data_disc_fourier0[1], ':bs')
@@ -217,7 +214,7 @@ def run():
     axes[1, 0].xaxis.set_minor_locator(NullLocator())
     axes[1, 0].grid()
 
-    # Plot RMS against res (disc) [bottom/left]:
+    # Plot RMS against a (disc) [bottom/left]:
     plt.tick_params(axis='both', which='major', labelsize=14)
     axes[0, 0].set_xscale('log')
     axes[0, 0].set_yscale('log')
@@ -235,7 +232,7 @@ def run():
     axes[0, 0].xaxis.set_minor_locator(NullLocator())
     axes[0, 0].grid()
 
-    # Plot duration against res (vortex) [top/right]:
+    # Plot duration against a (vortex) [top/right]:
     axes[1, 1].set_xscale('log')
     axes[1, 1].set_yscale('log')
     axes[1, 1].plot(data_vort_fourier0[0], data_vort_fourier0[1], ':bs',
@@ -256,7 +253,7 @@ def run():
     axes[1, 1].xaxis.set_minor_locator(NullLocator())
     axes[1, 1].grid()
 
-    # Plot RMS against res (vortex) [bottom/right]:
+    # Plot RMS against a (vortex) [bottom/right]:
     axes[0, 1].set_xscale('log')
     axes[0, 1].set_yscale('log')
     axes[0, 1].plot(data_vort_fourier0[0], data_vort_fourier0[2], ':bs',

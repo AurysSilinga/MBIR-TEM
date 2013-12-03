@@ -1,3 +1,4 @@
+#! python
 # -*- coding: utf-8 -*-
 """Create random magnetic distributions."""
 
@@ -7,7 +8,6 @@ import traceback
 import sys
 import os
 
-import numpy as np
 from numpy import pi
 
 import pyramid.magcreator as mc
@@ -33,11 +33,11 @@ def create_random_slabs():
     filename = directory + '/mag_dist_random_pixels.txt'
     count = 10
     dim = (1, 128, 128)
-    res = 10  # in nm
+    a = 10  # in nm
     rnd.seed(42)
     w_max = 10
     # Create empty MagData object and add slabs:
-    mag_data = MagData(res)
+    mag_data = MagData(a)
     for i in range(count):
         width = (1, rnd.randint(1, w_max), rnd.randint(1, w_max))
         center = (rnd.randrange(int(width[0]/2), dim[0]-int(width[0]/2)),
@@ -51,7 +51,7 @@ def create_random_slabs():
     mag_data.quiver_plot()
     mag_data.save_to_llg(filename)
     projection = pj.simple_axis_projection(mag_data)
-    phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))
+    phase_map = PhaseMap(a, pm.phase_mag(a, projection))
     hi.display(hi.holo_image(phase_map, 10))
 
 

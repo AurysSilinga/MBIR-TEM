@@ -1,3 +1,4 @@
+#! python
 # -*- coding: utf-8 -*-
 """Create magnetic distributions with simple geometries."""
 
@@ -26,10 +27,10 @@ def create_sample():
     if not os.path.exists(directory):
         os.makedirs(directory)
     # Input parameters:
-    key = 'pixel'
+    key = 'sphere'
     filename = directory + '/mag_dist_' + key + '.txt'
-    dim = (1, 1, 5)  # in px (z, y, x)
-    res = 1.0  # in nm
+    dim = (64, 64, 64)  # in px (z, y, x)
+    a = 1.0  # in nm
     phi = pi/2
     # Geometry parameters:
     center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2-0.5)  # in px (z, y, x), index starts with 0!
@@ -51,7 +52,7 @@ def create_sample():
         mag_shape = mc.Shapes.pixel(dim, pixel)
     # Create magnetic distribution
     magnitude = mc.create_mag_dist_homog(mag_shape, phi)
-    mag_data = MagData(res, magnitude)
+    mag_data = MagData(a, magnitude)
     mag_data.quiver_plot()
     mag_data.save_to_llg(filename)
 

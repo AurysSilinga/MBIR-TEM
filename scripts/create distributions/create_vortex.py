@@ -1,3 +1,4 @@
+#! python
 # -*- coding: utf-8 -*-
 """Create the Pyramid-Logo."""
 
@@ -30,7 +31,7 @@ def create_vortex():
         os.makedirs(directory)
     # Input parameters:
     filename = directory + '/mag_dist_vortex.txt'
-    res = 10.0  # in nm
+    a = 10.0  # in nm
     density = 1
     dim = (64, 64, 64)
     center = (int(dim[0]/2)-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
@@ -38,12 +39,11 @@ def create_vortex():
     height = dim[0]/4
     # Create magnetic shape:
     mag_shape = mc.Shapes.disc(dim, center, radius, height)
-    mag_data = MagData(res, mc.create_mag_dist_vortex(mag_shape))
+    mag_data = MagData(a, mc.create_mag_dist_vortex(mag_shape))
     mag_data.quiver_plot()
-    mag_data.quiver_plot3d()
     mag_data.save_to_llg(filename)
     projection = pj.simple_axis_projection(mag_data)
-    phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))
+    phase_map = PhaseMap(a, pm.phase_mag(a, projection))
     hi.display_combined(phase_map, density, 'Vortex State')
     phase_slice = phase_map.phase[dim[1]/2, :]
     fig = plt.figure()

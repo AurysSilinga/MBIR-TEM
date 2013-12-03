@@ -21,7 +21,7 @@ from pyramid.magdata import MagData
 
 import matplotlib.pyplot as plt
 
-from matplotlib.ticker import FixedFormatter, IndexLocator, LinearLocator
+from matplotlib.ticker import FixedFormatter, IndexLocator
 
 
 def run():
@@ -60,7 +60,7 @@ def run():
     else:
         print '--CREATE MAGNETIC DISTRIBUTIONS'
         # Input parameters:
-        res = 1.0  # in nm
+        a = 1.0  # in nm
         phi = pi/2
         dim = (16, 128, 128)  # in px (z, y, x)
         # Create magnetic shape:
@@ -69,10 +69,10 @@ def run():
         height = dim[0]/2  # in px
         mag_shape = mc.Shapes.disc(dim, center, radius, height)
         print '--CREATE MAGN. DISTR. OF HOMOG. MAG. DISC'
-        mag_data_disc = MagData(res, mc.create_mag_dist_homog(mag_shape, phi))
+        mag_data_disc = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
         mag_data_disc.scale_down(2)
         print '--CREATE MAGN. DISTR. OF VORTEX STATE DISC'
-        mag_data_vort = MagData(res, mc.create_mag_dist_vortex(mag_shape, center))
+        mag_data_vort = MagData(a, mc.create_mag_dist_vortex(mag_shape, center))
         mag_data_vort.scale_down(2)
         # Mayavi-Plots:
         mag_data_disc.quiver_plot3d()

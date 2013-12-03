@@ -28,11 +28,11 @@ def create_alternating_filaments():
     # Input parameters:
     filename = directory + '/mag_dist_alt_filaments.txt'
     dim = (1, 21, 21)  # in px (z, y, x)
-    res = 10.0  # in nm
+    a = 10.0  # in nm
     phi = pi/2
     spacing = 5
     # Create empty MagData object:
-    mag_data = MagData(res)
+    mag_data = MagData(a)
     count = int((dim[1]-1) / spacing) + 1
     for i in range(count):
         pos = i * spacing

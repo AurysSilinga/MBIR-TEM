@@ -19,6 +19,15 @@ pyramid Package
     :show-inheritance:
 	:special-members:
 
+:mod:`kernel` Module
+-----------------------
+
+.. automodule:: pyramid.kernel
+    :members:
+    :undoc-members:
+    :show-inheritance:
+	:special-members:
+
 :mod:`magcreator` Module
 ------------------------
 

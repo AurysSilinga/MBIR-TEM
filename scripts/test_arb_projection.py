@@ -5,7 +5,6 @@ Created on Tue Sep 03 12:55:40 2013
 @author: Jan
 """
 
-'''2D Case Bresenham's line algorithm'''
 
 import numpy as np
 from numpy import pi

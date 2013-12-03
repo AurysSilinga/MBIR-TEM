@@ -2,9 +2,9 @@
 """Class for the storage of magnetizatin data.
 
 This module provides the :class:`~.MagData` class whose instances can be used to store
-magnetization data for 3 components for a 3-dimensional grid. It is possible to load data from
-NetCDF4 or LLG (.txt) files or to save the data in these formats. Also plotting methods are
-provided. See :class:`~.MagData` for further information.
+magnetization distributions with 3 components for a 3-dimensional grid. It is possible to load 
+data from NetCDF4 or LLG (.txt) files or to save the data in these formats. Plotting methods
+are also provided. See :class:`~.MagData` for further information.
 
 """
 
@@ -29,12 +29,13 @@ class MagData:
     This is useful, if the `magnitude` is more complex and more than one magnetized object should
     be represented by the :class:`~.MagData` object, which can be added one after another by the
     :func:`~.add_magnitude` function. The dimensions `dim` of the grid will be set as soon as the
-    magnitude is specified. However, `res` has to be always specified at construction time.
+    magnitude is specified. However, the grid spacding `a` has to be always specified at
+    construction time.
 
     Attributes
     ----------
-    res : float
-        The resolution of the grid (grid spacing in nm)
+    a : float
+        The grid spacing in nm.
     dim : tuple (N=3)
         Dimensions of the grid.
     magnitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3)
@@ -43,21 +44,16 @@ class MagData:
 
     '''
 
-    def __init__(self, res, magnitude=None):
+    def __init__(self, a, magnitude=None):
         '''Constructor for a :class:`~.MagData` object for storing magnetization data.
 
         Parameters
         ----------
-        res : float
-            The resolution of the grid (grid spacing) in nm.
+        a : float
+            The grid spacing in nm.
         magnitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3), optional
             The `z`-, `y`- and `x`-component of the magnetization vector for every 3D-gridpoint
             as a tuple. Is zero everywhere if not specified.
-
-        Returns
-        -------
-        mag_data : :class:`~.MagData`
-            The 3D magnetic distribution as a :class:`~.MagData` object.
 
         '''
         if magnitude is not None:
@@ -70,7 +66,7 @@ class MagData:
         else:
             self.magnitude = None
             self.dim = None
-        self.res = res
+        self.a = a
 
     def add_magnitude(self, magnitude):
         '''Add a given magnitude to the magnitude of the :class:`~.MagData`.
@@ -175,7 +171,7 @@ class MagData:
 
         Notes
         -----
-        Acts in place and changes dimensions and resolution accordingly.
+        Acts in place and changes dimensions and grid spacing accordingly.
         Only possible, if each axis length is a power of 2!
 
         '''
@@ -188,10 +184,45 @@ class MagData:
             y_mag = self.magnitude[1].reshape(self.dim[0]/2, 2, self.dim[1]/2, 2, self.dim[2]/2, 2)
             x_mag = self.magnitude[2].reshape(self.dim[0]/2, 2, self.dim[1]/2, 2, self.dim[2]/2, 2)
             self.dim = (self.dim[0]/2, self.dim[1]/2, self.dim[2]/2)
-            self.res = self.res * 2
+            self.a = self.a * 2
             self.magnitude = (z_mag.mean(axis=5).mean(axis=3).mean(axis=1),
                               y_mag.mean(axis=5).mean(axis=3).mean(axis=1),
                               x_mag.mean(axis=5).mean(axis=3).mean(axis=1))
+
+
+    def save_to_llg(self, filename='..\output\magdata_output.txt'):
+        '''Save magnetization data in a file with LLG-format.
+
+        Parameters
+        ----------
+        filename : string, optional
+            The name of the LLG-file in which to store the magnetization data.
+            The default is '..\output\magdata_output.txt'.
+
+        Returns
+        -------
+        None
+
+        '''
+        dim = self.dim
+        a = self.a * 1.0E-9 / 1.0E-2  # from nm to cm
+        # Create 3D meshgrid and reshape it and the magnetization into a list where x varies first:
+        zz, yy, xx = np.mgrid[a/2:(dim[0]*a-a/2):dim[0]*1j,
+                              a/2:(dim[1]*a-a/2):dim[1]*1j,
+                              a/2:(dim[2]*a-a/2):dim[2]*1j]
+        xx = xx.reshape(-1)
+        yy = yy.reshape(-1)
+        zz = zz.reshape(-1)
+        x_mag = np.reshape(self.magnitude[2], (-1))
+        y_mag = np.reshape(self.magnitude[1], (-1))
+        z_mag = np.reshape(self.magnitude[0], (-1))
+        # Save data to file:
+        data = np.array([xx, yy, zz, x_mag, y_mag, z_mag]).T
+        with open(filename, 'w') as mag_file:
+            mag_file.write('LLGFileCreator: %s\n' % filename.replace('.txt', ''))
+            mag_file.write('    %d    %d    %d\n' % (dim[2], dim[1], dim[0]))
+            mag_file.writelines('\n'.join('   '.join('{:7.6e}'.format(cell)
+                                          for cell in row) for row in data))
 
     @classmethod
     def load_from_llg(cls, filename):
@@ -212,44 +243,37 @@ class MagData:
         data = np.genfromtxt(filename, skip_header=2)
         x_dim, y_dim, z_dim = np.genfromtxt(filename, dtype=int, skip_header=1,
                                             skip_footer=len(data[:, 0]))
-        res = (data[1, 0] - data[0, 0]) / SCALE
+        a = (data[1, 0] - data[0, 0]) / SCALE
         # Reshape in Python and Igor is different, Python fills rows first, Igor columns:
         x_mag, y_mag, z_mag = [data[:, i].reshape(z_dim, y_dim, x_dim) for i in range(3, 6)]
-        return MagData(res, (z_mag, y_mag, x_mag))
+        return MagData(a, (z_mag, y_mag, x_mag))
 
-    def save_to_llg(self, filename='magdata_output.txt'):
-        '''Save magnetization data in a file with LLG-format.
+    def save_to_netcdf4(self, filename='..\output\magdata_output.nc'):
+        '''Save magnetization data in a file with NetCDF4-format.
 
         Parameters
         ----------
         filename : string, optional
-            The name of the LLG-file in which to store the magnetization data.
-            The default is 'magdata_output.txt'.
+            The name of the NetCDF4-file in which to store the magnetization data.
+            The default is '..\output\magdata_output.nc'.
 
         Returns
         -------
         None
 
         '''
-        dim = self.dim
-        res = self.res * 1.0E-9 / 1.0E-2  # from nm to cm
-        # Create 3D meshgrid and reshape it and the magnetization into a list where x varies first:
-        zz, yy, xx = np.mgrid[res/2:(dim[0]*res-res/2):dim[0]*1j,
-                              res/2:(dim[1]*res-res/2):dim[1]*1j,
-                              res/2:(dim[2]*res-res/2):dim[2]*1j]
-        xx = xx.reshape(-1)
-        yy = yy.reshape(-1)
-        zz = zz.reshape(-1)
-        x_mag = np.reshape(self.magnitude[2], (-1))
-        y_mag = np.reshape(self.magnitude[1], (-1))
-        z_mag = np.reshape(self.magnitude[0], (-1))
-        # Save data to file:
-        data = np.array([xx, yy, zz, x_mag, y_mag, z_mag]).T
-        with open(filename, 'w') as mag_file:
-            mag_file.write('LLGFileCreator: %s\n' % filename.replace('.txt', ''))
-            mag_file.write('    %d    %d    %d\n' % (dim[2], dim[1], dim[0]))
-            mag_file.writelines('\n'.join('   '.join('{:7.6e}'.format(cell)
-                                          for cell in row) for row in data))
+        mag_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
+        mag_file.a = self.a
+        mag_file.createDimension('z_dim', self.dim[0])
+        mag_file.createDimension('y_dim', self.dim[1])
+        mag_file.createDimension('x_dim', self.dim[2])
+        z_mag = mag_file.createVariable('z_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
+        y_mag = mag_file.createVariable('y_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
+        x_mag = mag_file.createVariable('x_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
+        z_mag[:] = self.magnitude[0]
+        y_mag[:] = self.magnitude[1]
+        x_mag[:] = self.magnitude[2]
+        mag_file.close()
 
     @classmethod
     def load_from_netcdf4(cls, filename):
@@ -267,40 +291,12 @@ class MagData:
 
         '''
         mag_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
-        res = mag_file.res
+        a = mag_file.a
         z_mag = mag_file.variables['z_mag'][:]
         y_mag = mag_file.variables['y_mag'][:]
         x_mag = mag_file.variables['x_mag'][:]
         mag_file.close()
-        return MagData(res, (z_mag, y_mag, x_mag))
-
-    def save_to_netcdf4(self, filename='..\output\magdata_output.nc'):
-        '''Save magnetization data in a file with NetCDF4-format.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the NetCDF4-file in which to store the magnetization data.
-            The default is 'magdata_output.nc'.
-
-        Returns
-        -------
-        None
-
-        '''
-        mag_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
-        mag_file.res = self.res
-        mag_file.createDimension('z_dim', self.dim[0])
-        mag_file.createDimension('y_dim', self.dim[1])
-        mag_file.createDimension('x_dim', self.dim[2])
-        z_mag = mag_file.createVariable('z_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
-        y_mag = mag_file.createVariable('y_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
-        x_mag = mag_file.createVariable('x_mag', 'f', ('z_dim', 'y_dim', 'x_dim'))
-        z_mag[:] = self.magnitude[0]
-        y_mag[:] = self.magnitude[1]
-        x_mag[:] = self.magnitude[2]
-        print mag_file
-        mag_file.close()
+        return MagData(a, (z_mag, y_mag, x_mag))
 
     def quiver_plot(self, title='Magnetic Distribution', filename=None, axis=None,
                     proj_axis='z', ax_slice=None):
@@ -365,6 +361,7 @@ class MagData:
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         plt.show()
+        return axis
 
     def quiver_plot3d(self):
         '''Plot the magnetization as 3D-vectors in a quiverplot.
@@ -378,12 +375,12 @@ class MagData:
         None
 
         '''
-        res = self.res
+        a = self.a
         dim = self.dim
         # Create points and vector components as lists:
-        zz, yy, xx = np.mgrid[res/2:(dim[0]*res-res/2):dim[0]*1j,
-                              res/2:(dim[1]*res-res/2):dim[1]*1j,
-                              res/2:(dim[2]*res-res/2):dim[2]*1j]
+        zz, yy, xx = np.mgrid[a/2:(dim[0]*a-a/2):dim[0]*1j,
+                              a/2:(dim[1]*a-a/2):dim[1]*1j,
+                              a/2:(dim[2]*a-a/2):dim[2]*1j]
         xx = xx.reshape(-1)
         yy = yy.reshape(-1)
         zz = zz.reshape(-1)

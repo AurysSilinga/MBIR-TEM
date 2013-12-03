@@ -1,3 +1,4 @@
+#! python
 # -*- coding: utf-8 -*-
 """Create random magnetic distributions."""
 
@@ -30,7 +31,7 @@ def create_multiple_samples():
         os.makedirs(directory)
     # Input parameters:
     filename = directory + '/mag_dist_multiple_samples.txt'
-    res = 10.0  # nm
+    a = 10.0  # nm
     dim = (64, 128, 128)
     # Slab:
     center = (32, 32, 32)  # in px (z, y, x), index starts with 0!
@@ -46,7 +47,7 @@ def create_multiple_samples():
     radius = 24  # in px
     mag_shape_sphere = mc.Shapes.sphere(dim, center, radius)
     # Create empty MagData object and add magnetized objects:
-    mag_data = MagData(res)
+    mag_data = MagData(a)
     mag_data.add_magnitude(mc.create_mag_dist_homog(mag_shape_slab, pi/4))
     mag_data.add_magnitude(mc.create_mag_dist_homog(mag_shape_disc, pi/2))
     mag_data.add_magnitude(mc.create_mag_dist_homog(mag_shape_sphere, pi))
@@ -54,7 +55,7 @@ def create_multiple_samples():
     mag_data.quiver_plot()
     mag_data.save_to_llg(filename)
     projection = pj.simple_axis_projection(mag_data)
-    phase_map = PhaseMap(res, pm.phase_mag_real(res, projection, 'slab'))
+    phase_map = PhaseMap(a, pm.phase_mag(a, projection))
     phase_map.display()
     hi.display(hi.holo_image(phase_map, 0.5))
 

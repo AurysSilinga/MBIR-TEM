@@ -2,8 +2,8 @@
 """Class for the storage of phase data.
 
 This module provides the :class:`~.PhaseMap` class whose instances can be used to store
-phase data for a 2-dimensional grid. It is possible to load data from NetCDF4 or LLG (.txt) files
-or to save the data in these formats. Also plotting methods are provided. See :class:`~.PhaseMap`
+phase data for a 2-dimensional grid. It is possible to load data from NetCDF4 or textfiles or to
+save the data in these formats. Also plotting methods are provided. See :class:`~.PhaseMap`
 for further information.
 
 """
@@ -23,13 +23,13 @@ class PhaseMap:
     '''Class for storing phase map data.
 
     Represents 2-dimensional phase maps. the phase information itself is stored in `phase`.
-    The dimensions `dim` of the grid with resolution `res` will be calculated at construction
-    time, but `res` has to be specified.
+    The dimensions `dim` of the grid with grid spacing `a` will be calculated at construction
+    time, but `a` has to be specified.
 
     Attributes
     ----------
-    res : float
-        The resolution of the grid (grid spacing in nm)
+    a : float
+        The grid spacing in nm.
     dim : tuple (N=2)
         Dimensions of the grid.
     phase : :class:`~numpy.ndarray` (N=2)
@@ -45,13 +45,13 @@ class PhaseMap:
                 'mrad': 1E3,
                 'µrad': 1E6}
 
-    def __init__(self, res, phase, unit='rad'):
+    def __init__(self, a, phase, unit='rad'):
         '''Constructor for a :class:`~.PhaseMap` object for storing phase data.
 
         Parameters
         ----------
-        res : float
-            The resolution of the grid (grid spacing) in nm.
+        a : float
+            The grid spacing in nm.
         phase : :class:`~numpy.ndarray` (N=2)
             Matrix containing the phase shift.
         unit : {'rad', 'mrad', 'µrad'}, optional
@@ -59,15 +59,10 @@ class PhaseMap:
             because the phase is scaled accordingly. Does not change the phase itself, which is
             always in `rad`.
 
-        Returns
-        -------
-        phase_map : :class:`~.PhaseMap`
-            The 2D phase shift as a :class:`~.PhaseMap` object.
-
         '''
         dim = np.shape(phase)
         assert len(dim) == 2, 'Phasemap has to be 2-dimensional!'
-        self.res = res
+        self.a = a
         self.dim = dim
         self.unit = unit
         self.phase = phase
@@ -90,6 +85,25 @@ class PhaseMap:
         assert unit in ['rad', 'mrad']
         self.unit = unit
 
+    def save_to_txt(self, filename='..\output\phasemap_output.txt'):
+        '''Save :class:`~.PhaseMap` data in a file with txt-format.
+
+        Parameters
+        ----------
+        filename : string
+            The name of the file in which to store the phase map data.
+            The default is '..\output\phasemap_output.txt'.
+
+        Returns
+        -------
+        None
+
+        '''
+        with open(filename, 'w') as phase_file:
+            phase_file.write('{}\n'.format(filename.replace('.txt', '')))
+            phase_file.write('grid spacing = {} nm\n'.format(self.a))
+            np.savetxt(phase_file, self.phase, fmt='%7.6e', delimiter='\t')
+
     @classmethod
     def load_from_txt(cls, filename):
         '''Construct :class:`~.PhaseMap` object from a human readable txt-file.
@@ -107,28 +121,31 @@ class PhaseMap:
         '''
         with open(filename, 'r') as phase_file:
             phase_file.readline()  # Headerline is not used
-            res = float(phase_file.readline()[13:-4])
+            a = float(phase_file.readline()[15:-4])
             phase = np.loadtxt(filename, delimiter='\t', skiprows=2)
-        return PhaseMap(res, phase)
+        return PhaseMap(a, phase)
 
-    def save_to_txt(self, filename='..\output\phasemap_output.txt'):
-        '''Save :class:`~.PhaseMap` data in a file with txt-format.
+    def save_to_netcdf4(self, filename='..\output\phasemap_output.nc'):
+        '''Save :class:`~.PhaseMap` data in a file with NetCDF4-format.
 
         Parameters
         ----------
-        filename : string
-            The name of the file in which to store the phase map data.
-            The default is 'phasemap_output.txt'.
+        filename : string, optional
+            The name of the NetCDF4-file in which to store the phase data.
+            The default is '..\output\phasemap_output.nc'.
 
         Returns
         -------
         None
 
         '''
-        with open(filename, 'w') as phase_file:
-            phase_file.write('{}\n'.format(filename.replace('.txt', '')))
-            phase_file.write('resolution = {} nm\n'.format(self.res))
-            np.savetxt(phase_file, self.phase, fmt='%7.6e', delimiter='\t')
+        phase_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
+        phase_file.a = self.a
+        phase_file.createDimension('v_dim', self.dim[0])
+        phase_file.createDimension('u_dim', self.dim[1])
+        phase = phase_file.createVariable('phase', 'f', ('v_dim', 'u_dim'))
+        phase[:] = self.phase
+        phase_file.close()
 
     @classmethod
     def load_from_netcdf4(cls, filename):
@@ -146,33 +163,10 @@ class PhaseMap:
 
         '''
         phase_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
-        res = phase_file.res
+        a = phase_file.a
         phase = phase_file.variables['phase'][:]
         phase_file.close()
-        return PhaseMap(res, phase)
-
-    def save_to_netcdf4(self, filename='..\output\phasemap_output.nc'):
-        '''Save :class:`~.PhaseMap` data in a file with NetCDF4-format.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the NetCDF4-file in which to store the phase data.
-            The default is 'phasemap_output.nc'.
-
-        Returns
-        -------
-        None
-
-        '''
-        phase_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
-        phase_file.res = self.res
-        phase_file.createDimension('v_dim', self.dim[0])
-        phase_file.createDimension('u_dim', self.dim[1])
-        phase = phase_file.createVariable('phase', 'f', ('v_dim', 'u_dim'))
-        phase[:] = self.phase
-        print phase_file
-        phase_file.close()
+        return PhaseMap(a, phase)
 
     def display(self, title='Phase Map', cmap='RdBu', limit=None, norm=None, axis=None):
         '''Display the phasemap as a colormesh.
@@ -214,8 +208,8 @@ class PhaseMap:
         axis.set_ylim(0, np.shape(phase)[0])
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
-        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.res)))
-        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.res)))
+        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.a)))
+        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.a)))
         axis.tick_params(axis='both', which='major', labelsize=14)
         axis.set_title(title, fontsize=18)
         axis.set_xlabel('x [nm]', fontsize=15)

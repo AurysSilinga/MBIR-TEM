@@ -1,3 +1,4 @@
+#! python
 # -*- coding: utf-8 -*-
 """Create a core-shell disc."""
 
@@ -32,7 +33,7 @@ def create_core_shell_disc():
         os.makedirs(directory)
     # Input parameters:
     filename = directory + '/mag_dist_core_shell_disc.txt'
-    res = 1.0  # in nm
+    a = 1.0  # in nm
     density = 1
     dim = (32, 32, 32)
     center = (dim[0]/2-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
@@ -43,7 +44,7 @@ def create_core_shell_disc():
     mag_shape_core = mc.Shapes.disc(dim, center, radius_core, height)
     mag_shape_outer = mc.Shapes.disc(dim, center, radius_shell, height)
     mag_shape_shell = np.logical_xor(mag_shape_outer, mag_shape_core)
-    mag_data = MagData(res, mc.create_mag_dist_vortex(mag_shape_shell, magnitude=0.75))
+    mag_data = MagData(a, mc.create_mag_dist_vortex(mag_shape_shell, magnitude=0.75))
     mag_data.add_magnitude(mc.create_mag_dist_homog(mag_shape_core, phi=0, theta=0))
     mag_data.quiver_plot('z-projection', proj_axis='z')
     mag_data.quiver_plot('x-projection', proj_axis='x')
@@ -51,8 +52,8 @@ def create_core_shell_disc():
     mag_data.save_to_llg(filename)
     projection_z = pj.simple_axis_projection(mag_data, axis='z')
     projection_x = pj.simple_axis_projection(mag_data, axis='x')
-    phase_map_z = PhaseMap(res, pm.phase_mag_real(res, projection_z, 'slab'))
-    phase_map_x = PhaseMap(res, pm.phase_mag_real(res, projection_x, 'slab'))
+    phase_map_z = PhaseMap(a, pm.phase_mag(a, projection_z))
+    phase_map_x = PhaseMap(a, pm.phase_mag(a, projection_x))
     hi.display_combined(phase_map_z, density, 'Core-Shell structure (z-projection)')
     phase_axis, holo_axis = hi.display_combined(phase_map_x, density, 
                                                 'Core-Shell structure (x-projection)')

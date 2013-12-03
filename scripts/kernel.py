@@ -5,11 +5,13 @@ Created on Fri Sep 27 14:35:46 2013
 @author: Jan
 """
 
+
 import numpy as np
 from numpy import pi
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import IndexLocator 
+
 
 N = 16
 T = 1
@@ -27,7 +29,6 @@ Y[0] = 0
 y_ft = np.fft.fftshift(np.fft.irfft(Y))
 
 #np.abs(np.fft.ifftshift(np.fft.rfft2(phase_map_disc.phase), axes=0))[:, 0]**2
-
 
 fig = plt.figure()
 axis = fig.add_subplot(1, 1, 1)

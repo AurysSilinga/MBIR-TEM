@@ -47,7 +47,7 @@ def run():
     print 'CH5-1 PHASE SLICES FOURIER SPACE'
 
     # Input parameters:
-    res = 0.25  # in nm
+    a = 0.25  # in nm
     phi = pi/2
     density = 100
     dim = (64, 512, 512)  # in px (z, y, x)
@@ -72,8 +72,8 @@ def run():
         dy_d0 = []
         dy_d10 = []
         # Analytic solution:
-        L = dim[1] * res  # in px/nm
-        Lz = 0.5 * dim[0] * res  # in px/nm
+        L = dim[1] * a  # in px/nm
+        Lz = 0.5 * dim[0] * a  # in px/nm
         R = 0.25 * L  # in px/nm
         x0 = L / 2  # in px/nm
 
@@ -89,23 +89,23 @@ def run():
         dy_d0.append(np.zeros_like(x_d[0]))
         dy_d10.append(np.zeros_like(x_d[0]))
         # Create MagData (Disc):
-        mag_data_disc = MagData(res, mc.create_mag_dist_homog(mag_shape, phi))
+        mag_data_disc = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
         for i in range(5):
             mag_data_disc.scale_down()
-            print '----res =', mag_data_disc.res, 'nm', 'dim =', mag_data_disc.dim
+            print '----a =', mag_data_disc.a, 'nm', 'dim =', mag_data_disc.dim
             projection = pj.simple_axis_projection(mag_data_disc)
-            phase_map0 = PhaseMap(mag_data_disc.res,
-                                  pm.phase_mag_fourier(mag_data_disc.res, projection,
+            phase_map0 = PhaseMap(mag_data_disc.a,
+                                  pm.phase_mag_fourier(mag_data_disc.a, projection,
                                                        padding=0), 'mrad')
-            phase_map10 = PhaseMap(mag_data_disc.res,
-                                   pm.phase_mag_fourier(mag_data_disc.res, projection,
+            phase_map10 = PhaseMap(mag_data_disc.a,
+                                   pm.phase_mag_fourier(mag_data_disc.a, projection,
                                                         padding=10), 'mrad')
             hi.display_combined(phase_map0, density,
-                                'Disc, res = {} nm'.format(mag_data_disc.res))
+                                'Disc, a = {} nm'.format(mag_data_disc.a))
             hi.display_combined(phase_map10, density,
-                                'Disc, res = {} nm'.format(mag_data_disc.res))
-            x_d.append(np.linspace(mag_data_disc.res * 0.5,
-                                   mag_data_disc.res * (mag_data_disc.dim[1]-0.5),
+                                'Disc, a = {} nm'.format(mag_data_disc.a))
+            x_d.append(np.linspace(mag_data_disc.a * 0.5,
+                                   mag_data_disc.a * (mag_data_disc.dim[1]-0.5),
                                    mag_data_disc.dim[1]))
             slice_pos = int(mag_data_disc.dim[1]/2)
             y_d0.append(phase_map0.phase[slice_pos, :]*1E3)  # *1E3: rad to mrad
@@ -120,8 +120,8 @@ def run():
         dy_v0 = []
         dy_v10 = []
         # Analytic solution:
-        L = dim[1] * res  # in px/nm
-        Lz = 0.5 * dim[0] * res  # in px/nm
+        L = dim[1] * a  # in px/nm
+        Lz = 0.5 * dim[0] * a  # in px/nm
         R = 0.25 * L  # in px/nm
         x0 = L / 2  # in px/nm
 
@@ -136,23 +136,23 @@ def run():
         dy_v0.append(np.zeros_like(x_v[0]))
         dy_v10.append(np.zeros_like(x_v[0]))
         # Create MagData (Vortex):
-        mag_data_vort = MagData(res, mc.create_mag_dist_vortex(mag_shape))
+        mag_data_vort = MagData(a, mc.create_mag_dist_vortex(mag_shape))
         for i in range(5):
             mag_data_vort.scale_down()
-            print '----res =', mag_data_vort.res, 'nm', 'dim =', mag_data_vort.dim
+            print '----a =', mag_data_vort.a, 'nm', 'dim =', mag_data_vort.dim
             projection = pj.simple_axis_projection(mag_data_vort)
-            phase_map0 = PhaseMap(mag_data_vort.res,
-                                  pm.phase_mag_fourier(mag_data_vort.res, projection,
+            phase_map0 = PhaseMap(mag_data_vort.a,
+                                  pm.phase_mag_fourier(mag_data_vort.a, projection,
                                                        padding=0), 'mrad')
-            phase_map10 = PhaseMap(mag_data_vort.res,
-                                   pm.phase_mag_fourier(mag_data_vort.res, projection,
+            phase_map10 = PhaseMap(mag_data_vort.a,
+                                   pm.phase_mag_fourier(mag_data_vort.a, projection,
                                                         padding=10), 'mrad')
             hi.display_combined(phase_map0, density,
-                                'Disc, res = {} nm'.format(mag_data_vort.res))
+                                'Disc, a = {} nm'.format(mag_data_vort.a))
             hi.display_combined(phase_map10, density,
-                                'Disc, res = {} nm'.format(mag_data_vort.res))
-            x_v.append(np.linspace(mag_data_vort.res * 0.5,
-                                   mag_data_vort.res * (mag_data_vort.dim[1]-0.5),
+                                'Disc, a = {} nm'.format(mag_data_vort.a))
+            x_v.append(np.linspace(mag_data_vort.a * 0.5,
+                                   mag_data_vort.a * (mag_data_vort.dim[1]-0.5),
                                    mag_data_vort.dim[1]))
             slice_pos = int(mag_data_vort.dim[1]/2)
             y_v0.append(phase_map0.phase[slice_pos, :]*1E3)  # *1E3: rad to mrad
@@ -400,7 +400,7 @@ def run():
     print 'CH5-2 PHASE DIFFERENCES FOURIER SPACE'
 
     # Input parameters:
-    res = 1.0  # in nm
+    a = 1.0  # in nm
     phi = pi/2
     dim = (16, 128, 128)  # in px (z, y, x)
     center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
@@ -414,16 +414,16 @@ def run():
     else:
         print '--CREATE MAGNETIC DISTRIBUTIONS'
         # Create magnetic shape (4 times the size):
-        res_big = res / 2
+        a_big = a / 2
         dim_big = (dim[0]*2, dim[1]*2, dim[2]*2)
         center_big = (dim_big[0]/2-0.5, dim_big[1]/2.-0.5, dim_big[2]/2.-0.5)
         radius_big = dim_big[1]/4  # in px
         height_big = dim_big[0]/2  # in px
         mag_shape = mc.Shapes.disc(dim_big, center_big, radius_big, height_big)
         # Create MagData (4 times the size):
-        mag_data_disc = MagData(res_big, mc.create_mag_dist_homog(mag_shape, phi))
-        mag_data_vort = MagData(res_big, mc.create_mag_dist_vortex(mag_shape, center_big))
-        # Scale mag_data, resolution and dimensions:
+        mag_data_disc = MagData(a_big, mc.create_mag_dist_homog(mag_shape, phi))
+        mag_data_vort = MagData(a_big, mc.create_mag_dist_vortex(mag_shape, center_big))
+        # Scale mag_data, grid spacing and dimensions:
         mag_data_disc.scale_down()
         mag_data_vort.scale_down()
         print '--SAVE MAGNETIC DISTRIBUTIONS'
@@ -435,8 +435,8 @@ def run():
     projection_disc = pj.simple_axis_projection(mag_data_disc)
     projection_vort = pj.simple_axis_projection(mag_data_vort)
     # Get analytic solutions:
-    phase_ana_disc = an.phase_mag_disc(dim, res, phi, center, radius, height)
-    phase_ana_vort = an.phase_mag_vortex(dim, res, center, radius, height)
+    phase_ana_disc = an.phase_mag_disc(dim, a, phi, center, radius, height)
+    phase_ana_vort = an.phase_mag_vortex(dim, a, center, radius, height)
 
     # Create figure:
     fig, axes = plt.subplots(1, 2, figsize=(16, 7))
@@ -445,15 +445,15 @@ def run():
     bounds = np.array([-100, -50, -25, -5, 0, 5, 25, 50, 100])
     norm = BoundaryNorm(bounds, RdBu.N)
     # Disc:
-    phase_num_disc = pm.phase_mag_fourier(res, projection_disc, padding=0)
-    phase_diff_disc = PhaseMap(res, (phase_num_disc-phase_ana_disc), 'mrad')
+    phase_num_disc = pm.phase_mag_fourier(a, projection_disc, padding=0)
+    phase_diff_disc = PhaseMap(a, (phase_num_disc-phase_ana_disc), 'mrad')
     RMS_disc = np.sqrt(np.mean(phase_diff_disc.phase**2))
     phase_diff_disc.display('Homog. magn. disc, RMS = {:3.2f} mrad'.format(RMS_disc),
                             axis=axes[0], limit=np.max(bounds), norm=norm)
     axes[0].set_aspect('equal')
     # Vortex:
-    phase_num_vort = pm.phase_mag_fourier(res, projection_vort, padding=0)
-    phase_diff_vort = PhaseMap(res, (phase_num_vort-phase_ana_vort), 'mrad')
+    phase_num_vort = pm.phase_mag_fourier(a, projection_vort, padding=0)
+    phase_diff_vort = PhaseMap(a, (phase_num_vort-phase_ana_vort), 'mrad')
     RMS_vort = np.sqrt(np.mean(phase_diff_vort.phase**2))
     phase_diff_vort.display('Vortex state disc, RMS = {:3.2f} mrad'.format(RMS_vort),
                             axis=axes[1], limit=np.max(bounds), norm=norm)
@@ -471,15 +471,15 @@ def run():
     bounds = np.array([-3, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 3])
     norm = BoundaryNorm(bounds, RdBu.N)
     # Disc:
-    phase_num_disc = pm.phase_mag_fourier(res, projection_disc, padding=10)
-    phase_diff_disc = PhaseMap(res, (phase_num_disc-phase_ana_disc), 'mrad')
+    phase_num_disc = pm.phase_mag_fourier(a, projection_disc, padding=10)
+    phase_diff_disc = PhaseMap(a, (phase_num_disc-phase_ana_disc), 'mrad')
     RMS_disc = np.sqrt(np.mean(phase_diff_disc.phase**2))
     phase_diff_disc.display('Homog. magn. disc, RMS = {:3.2f} mrad'.format(RMS_disc),
                             axis=axes[0], limit=np.max(bounds), norm=norm)
     axes[0].set_aspect('equal')
     # Vortex:
-    phase_num_vort = pm.phase_mag_fourier(res, projection_vort, padding=10)
-    phase_diff_vort = PhaseMap(res, (phase_num_vort-phase_ana_vort), 'mrad')
+    phase_num_vort = pm.phase_mag_fourier(a, projection_vort, padding=10)
+    phase_diff_vort = PhaseMap(a, (phase_num_vort-phase_ana_vort), 'mrad')
     RMS_vort = np.sqrt(np.mean(phase_diff_vort.phase**2))
     phase_diff_vort.display('Vortex state disc, RMS = {:3.2f} mrad'.format(RMS_vort),
                             axis=axes[1], limit=np.max(bounds), norm=norm)
@@ -494,7 +494,7 @@ def run():
     print 'CH5-2 FOURIER PADDING VARIATION'
 
     # Input parameters:
-    res = 1.0  # in nm
+    a = 1.0  # in nm
     phi = pi/2
     dim = (16, 128, 128)  # in px (z, y, x)
     center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
@@ -508,16 +508,16 @@ def run():
     else:
         print '--CREATE MAGNETIC DISTRIBUTIONS'
         # Create magnetic shape (4 times the size):
-        res_big = res / 2
+        a_big = a / 2
         dim_big = (dim[0]*2, dim[1]*2, dim[2]*2)
         center_big = (dim_big[0]/2-0.5, dim_big[1]/2.-0.5, dim_big[2]/2.-0.5)
         radius_big = dim_big[1]/4  # in px
         height_big = dim_big[0]/2  # in px
         mag_shape = mc.Shapes.disc(dim_big, center_big, radius_big, height_big)
         # Create MagData (4 times the size):
-        mag_data_disc = MagData(res_big, mc.create_mag_dist_homog(mag_shape, phi))
-        mag_data_vort = MagData(res_big, mc.create_mag_dist_vortex(mag_shape, center_big))
-        # Scale mag_data, resolution and dimensions:
+        mag_data_disc = MagData(a_big, mc.create_mag_dist_homog(mag_shape, phi))
+        mag_data_vort = MagData(a_big, mc.create_mag_dist_vortex(mag_shape, center_big))
+        # Scale mag_data, grid spacing and dimensions:
         mag_data_disc.scale_down()
         mag_data_vort.scale_down()
         print '--SAVE MAGNETIC DISTRIBUTIONS'
@@ -528,8 +528,8 @@ def run():
     projection_disc = pj.simple_axis_projection(mag_data_disc)
     projection_vort = pj.simple_axis_projection(mag_data_vort)
     # Get analytic solutions:
-    phase_ana_disc = an.phase_mag_disc(dim, res, phi, center, radius, height)
-    phase_ana_vort = an.phase_mag_vortex(dim, res, center, radius, height)
+    phase_ana_disc = an.phase_mag_disc(dim, a, phi, center, radius, height)
+    phase_ana_vort = an.phase_mag_vortex(dim, a, center, radius, height)
 
     # List of applied paddings:
     padding_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
@@ -539,16 +539,16 @@ def run():
     data_disc[0, :] = padding_list
     for (i, padding) in enumerate(padding_list):
         key = ', '.join(['Padding->RMS|duration', 'Fourier', 'padding={}'.format(padding_list[i]),
-                        'res={}'.format(res), 'dim={}'.format(dim), 'phi={}'.format(phi), 'disc'])
+                        'a={}'.format(a), 'dim={}'.format(dim), 'phi={}'.format(phi), 'disc'])
         if key in data_shelve:
             data_disc[:, i] = data_shelve[key]
         else:
             print '----calculate and save padding =', padding_list[i]
             start_time = time.time()
-            phase_num_disc = pm.phase_mag_fourier(res, projection_disc, padding=padding_list[i])
+            phase_num_disc = pm.phase_mag_fourier(a, projection_disc, padding=padding_list[i])
             data_disc[2, i] = time.time() - start_time
             phase_diff = (phase_num_disc-phase_ana_disc)
-            phase_map_diff = PhaseMap(res, phase_diff, 'mrad')
+            phase_map_diff = PhaseMap(a, phase_diff, 'mrad')
             phase_map_diff.display()
             data_disc[1, i] = np.sqrt(np.mean(phase_map_diff.phase**2))*1E3  # *1E3: rad to mraddd
             data_shelve[key] = data_disc[:, i]
@@ -580,7 +580,7 @@ def run():
     axes[1].set_xlabel('padding', fontsize=15)
     axes[1].set_ylabel('duration [s]', fontsize=15)
     axes[1].set_xlim(-0.5, 16.5)
-    axes[1].set_ylim(-0.05, 1.5)
+    axes[1].set_ylim(-0.05, 3)
     axes[1].xaxis.set_major_locator(MaxNLocator(nbins=10, integer=True))
     axes[1].yaxis.set_major_locator(MaxNLocator(nbins=10))
     axes[1].tick_params(axis='both', which='major', labelsize=14)
@@ -595,16 +595,16 @@ def run():
     data_vort[0, :] = padding_list
     for (i, padding) in enumerate(padding_list):
         key = ', '.join(['Padding->RMS|duration', 'Fourier', 'padding={}'.format(padding_list[i]),
-                        'res={}'.format(res), 'dim={}'.format(dim), 'phi={}'.format(phi), 'vort'])
+                        'a={}'.format(a), 'dim={}'.format(dim), 'phi={}'.format(phi), 'vort'])
         if key in data_shelve:
             data_vort[:, i] = data_shelve[key]
         else:
             print '----calculate and save padding =', padding_list[i]
             start_time = time.time()
-            phase_num_vort = pm.phase_mag_fourier(res, projection_vort, padding=padding_list[i])
+            phase_num_vort = pm.phase_mag_fourier(a, projection_vort, padding=padding_list[i])
             data_vort[2, i] = time.time() - start_time
             phase_diff = (phase_num_vort-phase_ana_vort)
-            phase_map_diff = PhaseMap(res, phase_diff, 'mrad')
+            phase_map_diff = PhaseMap(a, phase_diff, 'mrad')
             phase_map_diff.display()
             data_vort[1, i] = np.sqrt(np.mean(phase_map_diff.phase**2))*1E3  # *1E3: rad to mrad
             data_shelve[key] = data_vort[:, i]
@@ -636,7 +636,7 @@ def run():
     axes[1].set_xlabel('padding', fontsize=15)
     axes[1].set_ylabel('duration [s]', fontsize=15)
     axes[1].set_xlim(-0.5, 16.5)
-    axes[1].set_ylim(-0.05, 1.5)
+    axes[1].set_ylim(-0.05, 3)
     axes[1].xaxis.set_major_locator(MaxNLocator(nbins=10, integer=True))
     axes[1].yaxis.set_major_locator(MaxNLocator(nbins=10))
     axes[1].tick_params(axis='both', which='major', labelsize=14)

@@ -64,7 +64,7 @@ def holo_image(phase_map, density=1):
     # Calculate the holography image intensity:
     img_holo = (1 + np.cos(density * phase_map.phase)) / 2
     # Calculate the phase gradients, expressed by magnitude and angle:
-    phase_grad_y, phase_grad_x = np.gradient(phase_map.phase, phase_map.res, phase_map.res)
+    phase_grad_y, phase_grad_x = np.gradient(phase_map.phase, phase_map.a, phase_map.a)
     phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
     phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)
     if phase_magnitude.max() != 0:
