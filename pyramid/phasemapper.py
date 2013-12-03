@@ -25,6 +25,22 @@ C = 2.998E8        # speed of light in m/s
 
 def phase_mag(a, projection, b_0=1, kernel=None):
     '''Calculate the magnetic phase from magnetization data.
+    def multiply_jacobi_core(self, vector):
+        v_dim, u_dim = self.dim
+        size = v_dim * u_dim
+        result = np.zeros(size)
+        nc.multiply_jacobi_core(
+            v_dim, u_dim, self.v, self.u, vector, result)
+        return result
+
+    def multiply_jacobi_core2(self, vector):
+        v_dim, u_dim = self.dim
+        size = v_dim * u_dim
+        result = np.zeros(size)
+        nc.multiply_jacobi_core2(
+            v_dim, u_dim, self.v, self.u, vector, result)
+        return result
+
 
     Parameters
     ----------

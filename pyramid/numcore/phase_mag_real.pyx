@@ -100,3 +100,81 @@ def get_jacobi_core(
                     jacobi[row, u_column] =  u_phi[q, p]
                     # v-component (note the minus!):
                     jacobi[row, v_column] = -v_phi[q, p]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_jacobi_core(
+    unsigned int v_dim, unsigned int u_dim,
+    double[:, :] v_phi, double[:, :] u_phi,
+    double[:, :] jacobi):
+    '''DOCSTRING!'''
+    # TODO: Docstring!!!
+    cdef unsigned int i, j, p, q, p_min, p_max, q_min, q_max, u_column, v_column, row
+    for j in range(v_dim):
+        for i in range(u_dim):
+            # v_dim*u_dim columns for the u-component:
+            jacobi[:, i+u_dim*j] = \
+                np.reshape(u_phi[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i], -1)
+            # v_dim*u_dim columns for the v-component (note the minus!):
+            jacobi[:, u_dim*v_dim+i+u_dim*j] = \
+                -np.reshape(v_phi[v_dim-1-j:(2*v_dim-1)-j, u_dim-1-i:(2*u_dim-1)-i], -1)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def multiply_jacobi_core(
+    unsigned int v_dim, unsigned int u_dim,
+    double[:, :] v_phi, double[:, :] u_phi,
+    double[:] vector,
+    double[:] result):
+
+    cdef unsigned int s, i, j, u_min, u_max, v_min, v_max, ri, u, v, siz
+    cdef double v0, v1
+    siz = u_dim * v_dim
+
+    s = 0
+    for i in range(u_dim):
+        for j in range(v_dim):
+            u_min = (u_dim - 1) - i
+            v_min = (v_dim - 1) - j
+
+            ri = 0
+            for v in range(v_min, v_min + v_dim):
+                for u in range(u_min, u_min + u_dim):
+                    result[ri] += vector[s] * u_phi[v, u]
+                    result[ri] -= vector[s + siz] * v_phi[v, u]
+                    ri += 1
+            s += 1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def multiply_jacobi_core2(
+    int v_dim, int u_dim,
+    double[:, :] v_phi, double[:, :] u_phi,
+    double[:] vector,
+    double[:] result):
+
+    cdef int s1, s2, i, j, u_min, u_max, v_min, v_max, ri, u, v, siz, j_min, j_max, i_min, i_max
+
+    siz = u_dim * v_dim
+
+    for v in range(2 * v_dim - 1):
+        for u in range(2 * u_dim - 1):
+            i_min = max(0, (u_dim - 1) - u)
+            i_max = min(u_dim, ((2 * u_dim) - 1) - u)
+            for i in range(i_min, i_max):
+                s1 = i * u_dim
+                s2 = s1 + siz
+
+                j_min = max(0, (v_dim - 1) - v)
+                j_max = min(v_dim, ((2 * v_dim) - 1) - v)
+
+                u_min = (u_dim - 1) - i
+                v_min = (v_dim - 1) - j_min
+                ri = (v - ((v_dim - 1) - j_min)) * u_dim + (u - u_min)
+                for j in range(j_min, j_max):
+                    result[ri] += vector[s1 + j] * u_phi[v, u]
+                    result[ri] -= vector[s2 + j] * v_phi[v, u]
+                    ri += u_dim
