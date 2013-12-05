@@ -19,6 +19,8 @@ from scipy.optimize import leastsq
 import pyramid.projector as pj
 import pyramid.phasemapper as pm
 from pyramid.magdata import MagData
+from pyramid.projector import Projection
+from pyramid.kernel import Kernel
 
 
 def reconstruct_simple_leastsq(phase_map, mask, b_0=1):
@@ -73,3 +75,7 @@ def reconstruct_simple_leastsq(phase_map, mask, b_0=1):
     x_rec, _ = leastsq(J, np.zeros(3*count))
     mag_data_rec.set_vector(mask, x_rec)
     return mag_data_rec
+
+def reconstruct_test():
+    product = (kernel.multiply_jacobi_T(projection.multiply_jacobi_T(x))
+             * kernel.multiply_jacobi(projection.multiply_jacobi(x)))

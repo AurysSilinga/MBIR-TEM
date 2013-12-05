@@ -5,7 +5,7 @@ Provides a helper function to speed up :func:`~pyramid.phasemapper.phase_mag_rea
 :mod:`~pyramid.phasemapper`, by using C-speed for the for-loops and by omitting boundary and
 wraparound checks.
 
-"""
+""" # TODO: Docstring!
 
 
 import numpy as np
@@ -104,7 +104,7 @@ def get_jacobi_core(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_jacobi_core(
+def get_jacobi_core2(
     unsigned int v_dim, unsigned int u_dim,
     double[:, :] v_phi, double[:, :] u_phi,
     double[:, :] jacobi):
@@ -128,22 +128,23 @@ def multiply_jacobi_core(
     double[:, :] v_phi, double[:, :] u_phi,
     double[:] vector,
     double[:] result):
-
-    cdef unsigned int s, i, j, u_min, u_max, v_min, v_max, ri, u, v, siz
+    '''DOCSTRING!'''
+    # TODO: Docstring!!! Iterate over magnetization and then kernel
+    cdef unsigned int s, i, j, u_min, u_max, v_min, v_max, ri, u, v, size
     cdef double v0, v1
-    siz = u_dim * v_dim
-
-    s = 0
+    size = u_dim * v_dim  # Number of pixels
+    s = 0  # Current pixel (numbered consecutively)
+    # Go over all pixels:
     for i in range(u_dim):
         for j in range(v_dim):
-            u_min = (u_dim - 1) - i
-            v_min = (v_dim - 1) - j
-
-            ri = 0
+            u_min = (u_dim - 1) - i  # u_max = u_min + u_dim
+            v_min = (v_dim - 1) - j  # v_max = v_min + v_dim
+            ri = 0  # Current result component (numbered consecutively)
+            # Go over the current kernel cutout [v_min:v_max, u_min:u_max]:
             for v in range(v_min, v_min + v_dim):
                 for u in range(u_min, u_min + u_dim):
                     result[ri] += vector[s] * u_phi[v, u]
-                    result[ri] -= vector[s + siz] * v_phi[v, u]
+                    result[ri] -= vector[s + size] * v_phi[v, u]
                     ri += 1
             s += 1
 
@@ -155,22 +156,21 @@ def multiply_jacobi_core2(
     double[:, :] v_phi, double[:, :] u_phi,
     double[:] vector,
     double[:] result):
-
-    cdef int s1, s2, i, j, u_min, u_max, v_min, v_max, ri, u, v, siz, j_min, j_max, i_min, i_max
-
-    siz = u_dim * v_dim
-
+    '''DOCSTRING!'''
+    # TODO: Docstring!!! Iterate over kernel and then magnetization
+    cdef int s1, s2, i, j, u_min, u_max, v_min, v_max, ri, u, v, size, j_min, j_max, i_min, i_max
+    size = u_dim * v_dim  # Number of pixels
+    # Go over complete kernel:
     for v in range(2 * v_dim - 1):
         for u in range(2 * u_dim - 1):
             i_min = max(0, (u_dim - 1) - u)
             i_max = min(u_dim, ((2 * u_dim) - 1) - u)
+            j_min = max(0, (v_dim - 1) - v)
+            j_max = min(v_dim, ((2 * v_dim) - 1) - v)
+            # Iterate over 
             for i in range(i_min, i_max):
-                s1 = i * u_dim
-                s2 = s1 + siz
-
-                j_min = max(0, (v_dim - 1) - v)
-                j_max = min(v_dim, ((2 * v_dim) - 1) - v)
-
+                s1 = i * u_dim  # u-column
+                s2 = s1 + size  # v-column
                 u_min = (u_dim - 1) - i
                 v_min = (v_dim - 1) - j_min
                 ri = (v - ((v_dim - 1) - j_min)) * u_dim + (u - u_min)

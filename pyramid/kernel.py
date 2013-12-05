@@ -16,6 +16,8 @@ information.
 
 import numpy as np
 
+import pyramid.numcore as nc
+
 
 PHI_0 = -2067.83    # magnetic flux in T*nm²
 
@@ -166,11 +168,11 @@ class Kernel:
             i = s % u_dim
             j = int(s/u_dim)
             u_min = (u_dim-1) - i
-            u_max = (2*u_dim-1) - i
+            u_max = (2*u_dim-1) - i  # = u_min + u_dim
             v_min = (v_dim-1) - j
-            v_max = (2*v_dim-1) - j
+            v_max = (2*v_dim-1) - j  # = v_min + v_dim
             result += vector[s]*self.u[v_min:v_max, u_min:u_max].reshape(-1)  # u
-            result += vector[s+size]*-self.v[v_min:v_max, u_min:u_max].reshape(-1)  # v        
+            result -= vector[s+size]*self.v[v_min:v_max, u_min:u_max].reshape(-1)  # v        
         return result
 
     def multiply_jacobi_T(self, vector):
@@ -203,4 +205,20 @@ class Kernel:
             v_max = (2*v_dim-1) - j
             result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))  # u
             result[s+size] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))  # v        
+        return result
+
+    def multiply_jacobi_core(self, vector):
+        # TODO: Docstring!
+        v_dim, u_dim = self.dim
+        size = v_dim * u_dim
+        result = np.zeros(size)
+        nc.multiply_jacobi_core(v_dim, u_dim, self.v, self.u, vector, result)
+        return result
+
+    def multiply_jacobi_core2(self, vector):
+        # TODO: Docstring!
+        v_dim, u_dim = self.dim
+        size = v_dim * u_dim
+        result = np.zeros(size)
+        nc.multiply_jacobi_core2(v_dim, u_dim, self.v, self.u, vector, result)
         return result
