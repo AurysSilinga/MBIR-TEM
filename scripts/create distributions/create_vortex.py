@@ -11,11 +11,10 @@ import os
 import matplotlib.pyplot as plt
 
 import pyramid.magcreator as mc
-import pyramid.projector as pj
-import pyramid.phasemapper as pm
-import pyramid.holoimage as hi
+from pyramid.projector import SimpleProjector
+from pyramid.phasemapper import PMAdapterFM
+#import pyramid.holoimage as hi
 from pyramid.magdata import MagData
-from pyramid.phasemap import PhaseMap
 
 
 def create_vortex():
@@ -32,7 +31,7 @@ def create_vortex():
     # Input parameters:
     filename = directory + '/mag_dist_vortex.txt'
     a = 10.0  # in nm
-    density = 1
+#    density = 1
     dim = (64, 64, 64)
     center = (int(dim[0]/2)-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
     radius = 0.25 * dim[1]
@@ -42,9 +41,10 @@ def create_vortex():
     mag_data = MagData(a, mc.create_mag_dist_vortex(mag_shape))
     mag_data.quiver_plot()
     mag_data.save_to_llg(filename)
-    projection = pj.simple_axis_projection(mag_data)
-    phase_map = PhaseMap(a, pm.phase_mag(a, projection))
-    hi.display_combined(phase_map, density, 'Vortex State')
+    projector = SimpleProjector(dim)
+    phase_map = PMAdapterFM(a, projector)(mag_data)
+    phase_map.display_combined()
+#    hi.display_combined(phase_map, density, 'Vortex State')
     phase_slice = phase_map.phase[dim[1]/2, :]
     fig = plt.figure()
     fig.add_subplot(111)

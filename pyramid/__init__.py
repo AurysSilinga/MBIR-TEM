@@ -28,3 +28,15 @@ numcore
     Provides fast numerical functions for core routines.
 
 """
+
+
+import logging, logging.config
+import os
+
+LOGGING_CONF = os.path.join(os.path.dirname(__file__), 'logging.ini')
+
+logging.config.fileConfig(LOGGING_CONF)
+
+
+log = logging.getLogger(__name__)
+log.info('imported package, log:'+log.name)

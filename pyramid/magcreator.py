@@ -18,7 +18,7 @@ import numpy as np
 from numpy import pi
 
 
-class Shapes:
+class Shapes(object):
 
     '''Class containing functions for generating magnetic shapes.
 
@@ -28,6 +28,7 @@ class Shapes:
     :class:`~pyramid.magdata.MagData` objects which store the magnetic informations.
 
     '''
+    #TODO: Abstract class (test if this works!)
 
     @classmethod
     def slab(cls, dim, center, width):
@@ -251,7 +252,7 @@ def create_mag_dist_homog(mag_shape, phi, theta=pi/2, magnitude=1):
     z_mag = np.ones(dim) * np.cos(theta) * mag_shape * magnitude
     y_mag = np.ones(dim) * np.sin(theta) * np.sin(phi) * mag_shape * magnitude
     x_mag = np.ones(dim) * np.sin(theta) * np.cos(phi) * mag_shape * magnitude
-    return z_mag, y_mag, x_mag
+    return np.array([x_mag, y_mag, z_mag])  # TODO: Better implementation!
 
 
 def create_mag_dist_vortex(mag_shape, center=None, magnitude=1):
@@ -289,4 +290,4 @@ def create_mag_dist_vortex(mag_shape, center=None, magnitude=1):
     z_mag = np.zeros(dim)
     y_mag = -np.ones(dim) * np.sin(phi) * mag_shape * magnitude
     x_mag = -np.ones(dim) * np.cos(phi) * mag_shape * magnitude
-    return z_mag, y_mag, x_mag
+    return np.array([x_mag, y_mag, z_mag])  # TODO: Better implementation!

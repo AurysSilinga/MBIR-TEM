@@ -20,6 +20,7 @@ import pyramid.numcore as nc
 
 
 PHI_0 = -2067.83    # magnetic flux in T*nm²
+# TODO: sign?
 
 
 class Kernel:
@@ -57,38 +58,40 @@ class Kernel:
         A tuple of :class:`slice` objects to extract the original field of view from the increased
         size (size_fft) of the grid for the FFT-convolution.
 
-    '''
+    '''# TODO: Can be used for several PhaseMappers via the fft arguments or via calling!
     
-    def __init__(self, dim, a, b_0=1, geometry='disc'):
+    def __init__(self, a, dim, b_0=1, numcore=True, geometry='disc'):
         '''Constructor for a :class:`~.Kernel` object for representing a kernel matrix.
 
         Parameters
         ----------
-        dim : tuple (N=2)
-            Dimensions of the projected magnetization grid.
         a : float
             The grid spacing in nm.
+        dim : tuple (N=2)
+            Dimensions of the projected magnetization grid.
         b_0 : float, optional
             The saturation magnetic induction. Default is 1.
         geometry : {'disc', 'slab'}, optional
             The elementary geometry of the single magnetized pixel.
 
-        '''
+        ''' # TODO: Docstring
+        # TODO: Check if b_0 has an influence or is forgotten
         # Function for the phase of an elementary geometry:
-        def get_elementary_phase(geometry, n, m, res):
+        def get_elementary_phase(geometry, n, m, a):
             if geometry == 'disc':
                 in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
                 return m / (n**2 + m**2 + 1E-30) * in_or_out
             elif geometry == 'slab':
-                def F_h(n, m):
-                    a = np.log(res**2 * (n**2 + m**2))
-                    b = np.arctan(n / m)
-                    return n*a - 2*n + 2*m*b
-                return 0.5 * (F_h(n-0.5, m-0.5) - F_h(n+0.5, m-0.5)
-                            - F_h(n-0.5, m+0.5) + F_h(n+0.5, m+0.5))
+                def F_a(n, m):
+                    A = np.log(a**2 * (n**2 + m**2))
+                    B = np.arctan(n / m)
+                    return n*A - 2*n + 2*m*B
+                return 0.5 * (F_a(n-0.5, m-0.5) - F_a(n+0.5, m-0.5)
+                            - F_a(n-0.5, m+0.5) + F_a(n+0.5, m+0.5))
         # Set basic properties:
         self.dim = dim  # !!! size of the FOV, not the kernel (kernel is bigger)!
         self.a = a
+        self.numcore = numcore
         self.geometry = geometry
         self.b_0 = b_0
         # Calculate kernel (single pixel phase):
@@ -106,45 +109,24 @@ class Kernel:
         self.u_fft = np.fft.rfftn(self.u, self.dim_fft)
         self.v_fft = np.fft.rfftn(self.v, self.dim_fft)
 
-    def get_jacobi(self):
-        '''Calculate the Jacobi matrix for the phase calculation from a projected magnetization.
+    def __call__(self, x):
+        if self.numcore:
+            return self._multiply_jacobi_core(x)
+        else:
+            return self._multiply_jacobi(x)
+        # TODO: Bei __init__ variable auf die entsprechende Funktion setzen.
 
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        jacobi : :class:`~numpy.ndarray` (N=2)
-            Jacobi matrix containing the derivatives of the phase at every pixel with respect to
-            the projected magetization. Has `N` columns for the `u`-component of the magnetization
-            and `N` columns for the `v`-component (from left to right) and ``N**2`` rows for the
-            phase at every pixel.
 
-        Notes
-        -----
-        Just use for small dimensions, Jacobi Matrix scales with order of ``N**4``.
+    def jac_dot(self, vector): 
+        if self.numcore:
+            return self._multiply_jacobi_core(vector)
+        else:
+            return self._multiply_jacobi(vector)
 
-        '''
-        v_dim, u_dim = self.dim
-        jacobi = np.zeros((v_dim*u_dim, 2*v_dim*u_dim))  
-#       nc.get_jacobi_core(dim[0], dim[1], v_phi, u_phi, jacobi)
-#       return jacobi
-        for j in range(v_dim):
-            for i in range(u_dim):
-                u_column = i + u_dim*j
-                v_column = i + u_dim*j + u_dim*v_dim
-                u_min = (u_dim-1) - i
-                u_max = (2*u_dim-1) - i
-                v_min = (v_dim-1) - j
-                v_max = (2*v_dim-1) - j
-                # u_dim*v_dim columns for the u-component:
-                jacobi[:, u_column] = self.u[v_min:v_max, u_min:u_max].reshape(-1)
-                # u_dim*v_dim columns for the v-component (note the minus!):
-                jacobi[:, v_column] = -self.v[v_min:v_max, u_min:u_max].reshape(-1)
-        return jacobi
+    def jac_T_dot(self, vector):
+        return self._multiply_jacobi_T(vector)
 
-    def multiply_jacobi(self, vector):
+    def _multiply_jacobi(self, vector):
         '''Calculate the product of the Jacobi matrix with a given `vector`.
 
         Parameters
@@ -171,11 +153,11 @@ class Kernel:
             u_max = (2*u_dim-1) - i  # = u_min + u_dim
             v_min = (v_dim-1) - j
             v_max = (2*v_dim-1) - j  # = v_min + v_dim
-            result += vector[s]*self.u[v_min:v_max, u_min:u_max].reshape(-1)  # u
-            result -= vector[s+size]*self.v[v_min:v_max, u_min:u_max].reshape(-1)  # v        
+            result += vector[s] * self.u[v_min:v_max, u_min:u_max].reshape(-1)  # u
+            result -= vector[s+size] * self.v[v_min:v_max, u_min:u_max].reshape(-1)  # v
         return result
 
-    def multiply_jacobi_T(self, vector):
+    def _multiply_jacobi_T(self, vector):
         '''Calculate the product of the transposed Jacobi matrix with a given `vector`.
 
         Parameters
@@ -203,22 +185,12 @@ class Kernel:
             u_max = (2*u_dim-1) - i
             v_min = (v_dim-1) - j
             v_max = (2*v_dim-1) - j
-            result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))  # u
-            result[s+size] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))  # v        
+            result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))
+            result[s+size] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))
         return result
 
-    def multiply_jacobi_core(self, vector):
+    def _multiply_jacobi_core(self, vector):
         # TODO: Docstring!
-        v_dim, u_dim = self.dim
-        size = v_dim * u_dim
-        result = np.zeros(size)
-        nc.multiply_jacobi_core(v_dim, u_dim, self.v, self.u, vector, result)
-        return result
-
-    def multiply_jacobi_core2(self, vector):
-        # TODO: Docstring!
-        v_dim, u_dim = self.dim
-        size = v_dim * u_dim
-        result = np.zeros(size)
-        nc.multiply_jacobi_core2(v_dim, u_dim, self.v, self.u, vector, result)
+        result = np.zeros(np.prod(self.dim))
+        nc.multiply_jacobi_core(self.dim[0], self.dim[1], self.u, self.v, vector, result)
         return result

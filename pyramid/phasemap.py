@@ -1,30 +1,36 @@
 # -*- coding: utf-8 -*-
-"""Class for the storage of phase data.
-
-This module provides the :class:`~.PhaseMap` class whose instances can be used to store
-phase data for a 2-dimensional grid. It is possible to load data from NetCDF4 or textfiles or to
-save the data in these formats. Also plotting methods are provided. See :class:`~.PhaseMap`
-for further information.
-
-"""
+"""Class for the storage of phase data."""
 
 
 import numpy as np
+from numpy import pi
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.ticker import MaxNLocator, FuncFormatter
+from matplotlib.ticker import NullLocator, MaxNLocator, FuncFormatter
+from PIL import Image
+
+from numbers import Number
 
 import netCDF4
 
 
-class PhaseMap:
+class PhaseMap(object):
 
     '''Class for storing phase map data.
 
-    Represents 2-dimensional phase maps. the phase information itself is stored in `phase`.
-    The dimensions `dim` of the grid with grid spacing `a` will be calculated at construction
-    time, but `a` has to be specified.
+    Represents 2-dimensional phase maps. The phase information itself is stored as a 2-dimensional
+    matrix in `phase`, but can also be accessed as a vector via `phase_vec`. :class:`~.PhaseMap`
+    objects support arithmetic operators (``+``, ``-``, ``*``, ``/``) and their augmented 
+    counterparts (``+=``, ``-=``, ``*=``, ``/=``), with numbers and other :class:`~.PhaseMap`
+    objects, if their dimensions and grid spacings match. It is possible to load data from NetCDF4
+    or textfiles or to save the data in these formats. Methods for plotting the phase or a
+    corresponding holographic contour map are provided. Holographic contour maps are created by
+    taking the cosine of the (optionally amplified) phase and encoding the direction of the
+    2-dimensional gradient via color. The directional encoding can be seen by using the
+    :func:`~.make_color_wheel` function. Use the :func:`~.display_combined` function to plot the
+    phase map and the holographic contour map next to each other.
 
     Attributes
     ----------
@@ -34,6 +40,8 @@ class PhaseMap:
         Dimensions of the grid.
     phase : :class:`~numpy.ndarray` (N=2)
         Matrix containing the phase shift.
+    phase_vec: :class:`~numpy.ndarray` (N=2)
+        Vector containing the phase shift.
     unit : {'rad', 'mrad', 'µrad'}, optional
         Set the unit of the phase map. This is important for the :func:`~.display` function,
         because the phase is scaled accordingly. Does not change the phase itself, which is
@@ -45,45 +53,119 @@ class PhaseMap:
                 'mrad': 1E3,
                 'µrad': 1E6}
 
+    CDICT = {'red':   [(0.00, 1.0, 0.0),
+                       (0.25, 1.0, 1.0),
+                       (0.50, 1.0, 1.0),
+                       (0.75, 0.0, 0.0),
+                       (1.00, 0.0, 1.0)],
+
+             'green': [(0.00, 0.0, 0.0),
+                       (0.25, 0.0, 0.0),
+                       (0.50, 1.0, 1.0),
+                       (0.75, 1.0, 1.0),
+                       (1.00, 0.0, 1.0)],
+
+             'blue':  [(0.00, 1.0, 1.0),
+                       (0.25, 0.0, 0.0),
+                       (0.50, 0.0, 0.0),
+                       (0.75, 0.0, 0.0),
+                       (1.00, 1.0, 1.0)]}
+    
+    HOLO_CMAP = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT, 256)
+    
+    @property
+    def a(self):
+        return self._a
+
+    @a.setter
+    def a(self, a):
+        assert isinstance(a, Number), 'Grid spacing has to be a number!'
+        assert a >= 0, 'Grid spacing has to be a positive number!'
+        self._a = a
+    
+    @property
+    def dim(self):
+        return self._dim
+
+    @property
+    def phase(self):
+        return self._phase
+
+    @phase.setter
+    def phase(self, phase):
+        assert isinstance(phase, np.ndarray), 'Phase has to be a numpy array!'
+        assert len(phase.shape) == 2, 'Phase has to be 2-dimensional!'
+        self._phase = phase
+        self._dim = phase.shape
+
+    @property
+    def phase_vec(self):
+        return np.reshape(self.phase, -1)
+
+    @phase_vec.setter
+    def phase_vec(self, phase_vec):
+        assert isinstance(phase_vec, np.ndarray), 'Vector has to be a numpy array!'
+        assert np.size(phase_vec) == np.prod(self.dim), 'Vector size has to match phase!'
+        self.phase = phase_vec.reshape(self.dim)
+
+    @property
+    def unit(self):
+        return self._unit
+
+    @unit.setter
+    def unit(self, unit):
+        assert unit in self.UNITDICT, 'Unit not supported!'
+        self._unit = unit
+
     def __init__(self, a, phase, unit='rad'):
-        '''Constructor for a :class:`~.PhaseMap` object for storing phase data.
-
-        Parameters
-        ----------
-        a : float
-            The grid spacing in nm.
-        phase : :class:`~numpy.ndarray` (N=2)
-            Matrix containing the phase shift.
-        unit : {'rad', 'mrad', 'µrad'}, optional
-            Set the unit of the phase map. This is important for the :func:`~.display` function,
-            because the phase is scaled accordingly. Does not change the phase itself, which is
-            always in `rad`.
-
-        '''
-        dim = np.shape(phase)
-        assert len(dim) == 2, 'Phasemap has to be 2-dimensional!'
         self.a = a
-        self.dim = dim
-        self.unit = unit
         self.phase = phase
-
-    def set_unit(self, unit):
-        '''Set the unit for the phase map.
-
-        Parameters
-        ----------
-        unit : {'rad', 'mrad'}, optional
-            Set the unit of the phase map. This is important for the :func:`~.display` function,
-            because the phase is scaled accordingly. Does not change the phase itself, which is
-            always in `rad`.
-
-        Returns
-        -------
-        None
-
-        '''
-        assert unit in ['rad', 'mrad']
         self.unit = unit
+
+    def __neg__(self):  # -self
+        return PhaseMap(self.a, -self.phase, self.unit)
+        
+    def __add__(self, other):  # self + other
+        assert isinstance(other, (PhaseMap, Number)), \
+            'Only PhaseMap objects and scalar numbers (as offsets) can be added/subtracted!'
+        if isinstance(other, PhaseMap):
+            assert other.a == self.a, 'Added phase has to have the same grid spacing!'
+            assert other.phase.shape == self.dim, \
+                'Added magnitude has to have the same dimensions!'
+            return PhaseMap(self.a, self.phase+other.phase, self.unit)
+        else:  # other is a Number
+            return PhaseMap(self.a, self.phase+other, self.unit)
+
+    def __sub__(self, other):  # self - other
+        return self.__add__(-other)
+
+    def __mul__(self, other):  # self * other
+        assert isinstance(other, Number), 'PhaseMap objects can only be multiplied by numbers!'
+        return PhaseMap(self.a, other*self.phase, self.unit)
+
+    def __div__(self, other):  # self / other
+        return self.__mul__(1.0/other)
+
+    def __radd__(self, other):  # other + self
+        return self.__add__(other)
+
+    def __rsub__(self, other):  # other - self
+        return -self.__sub__(other)
+
+    def __rmul__(self, other):  # other * self
+        return self.__mul__(other)
+    
+    def __iadd__(self, other):  # self += other
+        return self.__add__(other)
+
+    def __isub__(self, other):  # self -= other
+        return self.__sub__(other)
+
+    def __imul__(self, other):  # self *= other
+        return self.__mul__(other)
+
+    def __idiv__(self, other):  # self /= other
+        return self.__div__(other)
 
     def save_to_txt(self, filename='..\output\phasemap_output.txt'):
         '''Save :class:`~.PhaseMap` data in a file with txt-format.
@@ -168,7 +250,7 @@ class PhaseMap:
         phase_file.close()
         return PhaseMap(a, phase)
 
-    def display(self, title='Phase Map', cmap='RdBu', limit=None, norm=None, axis=None):
+    def display_phase(self, title='Phase Map', cmap='RdBu', limit=None, norm=None, axis=None):
         '''Display the phasemap as a colormesh.
 
         Parameters
@@ -204,8 +286,8 @@ class PhaseMap:
         # Plot the phasemap:
         im = axis.pcolormesh(phase, cmap=cmap, vmin=-limit, vmax=limit, norm=norm)
         # Set the axes ticks and labels:
-        axis.set_xlim(0, np.shape(phase)[1])
-        axis.set_ylim(0, np.shape(phase)[0])
+        axis.set_xlim(0, self.dim[1])
+        axis.set_ylim(0, self.dim[0])
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.a)))
@@ -223,8 +305,10 @@ class PhaseMap:
         cbar.set_label('phase shift [{}]'.format(self.unit), fontsize=15)
         # Show plot:
         plt.show()
+        # Return plotting axis:
+        return axis
 
-    def display3d(self, title='Phase Map', cmap='RdBu'):
+    def display_phase3d(self, title='Phase Map', cmap='RdBu'):
         '''Display the phasemap as a 3-D surface with contourplots.
 
         Parameters
@@ -259,3 +343,123 @@ class PhaseMap:
         axis.set_zlabel('phase shift [{}]'.format(self.unit))
         # Show Plot:
         plt.show()
+        # Return plotting axis:
+        return axis
+    
+    def display_holo(self, density=1, title='Holographic Contour Map',
+                     axis=None, interpolation='none'):
+        '''Display the color coded holography image.
+    
+        Parameters
+        ----------
+        density : float, optional
+            The gain factor for determining the number of contour lines. The default is 1.
+        title : string, optional
+            The title of the plot. The default is 'Holographic Contour Map'.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
+            Defines the interpolation method. No interpolation is used in the default case.
+    
+        Returns
+        -------
+        axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted.
+    
+        '''
+        # Calculate the holography image intensity:
+        img_holo = (1 + np.cos(density * self.phase)) / 2
+        # Calculate the phase gradients, expressed by magnitude and angle:
+        phase_grad_y, phase_grad_x = np.gradient(self.phase, self.a, self.a)
+        phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
+        phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)
+        if phase_magnitude.max() != 0:
+            phase_magnitude = np.sin(phase_magnitude/phase_magnitude.max() * pi / 2)
+        # Color code the angle and create the holography image:
+        rgba = self.HOLO_CMAP(phase_angle)
+        rgb = (255.999 * img_holo.T * phase_magnitude.T * rgba[:, :, :3].T).T.astype(np.uint8)
+        holo_image = Image.fromarray(rgb) 
+        # If no axis is specified, a new figure is created:
+        if axis is None:
+            fig = plt.figure()
+            axis = fig.add_subplot(1, 1, 1, aspect='equal')
+        # Plot the image on a black background and set axes:
+        axis.patch.set_facecolor('black')
+        axis.imshow(holo_image, origin='lower', interpolation=interpolation)
+        # Set the title and the axes labels:
+        axis.set_title(title)
+        plt.tick_params(axis='both', which='major', labelsize=14)
+        axis.set_title(title, fontsize=18)
+        axis.set_xlabel('x-axis [px]', fontsize=15)
+        axis.set_ylabel('y-axis [px]', fontsize=15)
+        axis.set_xlim(0, self.dim[1])
+        axis.set_ylim(0, self.dim[0])
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+        axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+        # Show Plot:
+        plt.show()
+        # Return plotting axis:
+        return axis
+    
+    def display_combined(self, density=1, title='Combined Plot', interpolation='none'):
+        '''Display the phase map and the resulting color coded holography image in one plot.
+    
+        Parameters
+        ----------
+        density : float, optional
+            The gain factor for determining the number of contour lines. The default is 1.
+        title : string, optional
+            The title of the plot. The default is 'Combined Plot'.
+        interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
+            Defines the interpolation method for the holographic contour map.
+            No interpolation is used in the default case.
+    
+        Returns
+        -------
+        phase_axis, holo_axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axes on which the graphs are plotted.
+    
+        '''
+        # Create combined plot and set title:
+        fig = plt.figure(figsize=(16, 7))
+        fig.suptitle(title, fontsize=20)
+        # Plot holography image:
+        holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
+        self.display_holo(density=density, axis=holo_axis, interpolation=interpolation)
+        # Plot phase map:
+        phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
+        fig.subplots_adjust(right=0.85)
+        self.display_phase(axis=phase_axis)
+        # Return the plotting axes:
+        return phase_axis, holo_axis
+
+    def make_color_wheel(self):
+        '''Display a color wheel to illustrate the color coding of the gradient direction.
+    
+        Parameters
+        ----------
+        None
+    
+        Returns
+        -------
+        None
+    
+        '''
+        x = np.linspace(-256, 256, num=512)
+        y = np.linspace(-256, 256, num=512)
+        xx, yy = np.meshgrid(x, y)
+        r = np.sqrt(xx ** 2 + yy ** 2)
+        # Create the wheel:
+        color_wheel_magnitude = (1 - np.cos(r * pi/360)) / 2
+        color_wheel_magnitude *= 0 * (r > 256) + 1 * (r <= 256)
+        color_wheel_angle = (1 - np.arctan2(xx, -yy)/pi) / 2
+        # Color code the angle and create the holography image:
+        rgba = self.HOLO_CMAP(color_wheel_angle)
+        rgb = (255.999 * color_wheel_magnitude.T * rgba[:, :, :3].T).T.astype(np.uint8)
+        color_wheel = Image.fromarray(rgb)
+        # Plot the color wheel:
+        fig = plt.figure(figsize=(4, 4))
+        axis = fig.add_subplot(1, 1, 1, aspect='equal')
+        axis.imshow(color_wheel, origin='lower')
+        axis.xaxis.set_major_locator(NullLocator())
+        axis.yaxis.set_major_locator(NullLocator())
