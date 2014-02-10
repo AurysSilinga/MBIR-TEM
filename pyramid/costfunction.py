@@ -14,12 +14,14 @@ class Costfunction:
     # TODO: Docstring!
     
     def __init__(self, y, F):
+        '''TEST DOCSTRING FOR INIT'''
         # TODO: Docstring!
         self.y = y  # TODO: get y from phasemaps!
         self.F = F  # Forward Model
         self.Se_inv = np.eye(len(y))
 
     def __call__(self, x):
+        '''TEST DOCSTRING FOR CALL'''
         # TODO: Docstring!
         y = self.y
         F = self.F

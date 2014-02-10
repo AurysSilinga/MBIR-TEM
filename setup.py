@@ -67,7 +67,7 @@ setup(
 
       ext_package = 'pyramid/numcore',
       ext_modules = [
-          Extension('phase_mag_real', ['pyramid/numcore/phase_mag_real.pyx'],
+          Extension('kernel_core', ['pyramid/numcore/kernel_core.pyx'],
                     include_dirs = [numpy.get_include(), numpy.get_numarray_include()],
                     extra_compile_args=['-march=native', '-mtune=native']
                     )

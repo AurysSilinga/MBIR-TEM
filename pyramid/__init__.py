@@ -6,9 +6,9 @@ Modules
 magcreator
     Create simple magnetic distributions.
 magdata
-    Class for the storage of magnetizatin data.
+    Class for the storage of magnetization data.
 projector
-    Create projections of a given magnetization distribution.
+    Class for projections of given magnetization distribution.
 kernel
     Class for the kernel matrix representing one magnetized pixel.
 phasemapper
@@ -17,8 +17,14 @@ phasemap
     Class for the storage of phase data.
 analytic
     Create phase maps for magnetic distributions with analytic solutions.
-holoimage
-    Create holographic contour maps from a given phase map.
+datacollection
+    Class for collecting pairs of phase maps and corresponding projectors.
+forwardmodel
+    Class which represents a phase mapping strategy.
+costfunction
+    Class for the evaluation of the cost of a function.
+optimizer
+    Provides strategies for optimizing first guess magnetic distributions.
 reconstructor
     Reconstruct magnetic distributions from given phasemaps.
 
@@ -33,10 +39,8 @@ numcore
 import logging, logging.config
 import os
 
-LOGGING_CONF = os.path.join(os.path.dirname(__file__), 'logging.ini')
+
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logging.ini')
+
 
 logging.config.fileConfig(LOGGING_CONF)
-
-
-log = logging.getLogger(__name__)
-log.info('imported package, log:'+log.name)

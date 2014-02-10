@@ -6,25 +6,38 @@ pyramid Package
 
 .. automodule:: pyramid.analytic
     :members:
-    :undoc-members:
     :show-inheritance:
 	:special-members:
 
-:mod:`holoimage` Module
------------------------
+:mod:`costfunction` Module
+--------------------------
 
-.. automodule:: pyramid.holoimage
+.. automodule:: pyramid.costfunction
     :members:
-    :undoc-members:
+    :show-inheritance:
+	:special-members:
+
+:mod:`datacollection` Module
+----------------------------
+
+.. automodule:: pyramid.datacollection
+    :members:
+    :show-inheritance:
+	:special-members:
+
+:mod:`forwardmodel` Module
+--------------------------
+
+.. automodule:: pyramid.forwardmodel
+    :members:
     :show-inheritance:
 	:special-members:
 
 :mod:`kernel` Module
------------------------
+--------------------
 
 .. automodule:: pyramid.kernel
     :members:
-    :undoc-members:
     :show-inheritance:
 	:special-members:
 
@@ -33,7 +46,6 @@ pyramid Package
 
 .. automodule:: pyramid.magcreator
     :members:
-    :undoc-members:
     :show-inheritance:
 	:special-members:
 
@@ -42,7 +54,14 @@ pyramid Package
 
 .. automodule:: pyramid.magdata
     :members:
-    :undoc-members:
+    :show-inheritance:
+	:special-members:
+
+:mod:`optimizer` Module
+-----------------------
+
+.. automodule:: pyramid.optimizer
+    :members:
     :show-inheritance:
 	:special-members:
 
@@ -51,7 +70,6 @@ pyramid Package
 
 .. automodule:: pyramid.phasemap
     :members:
-    :undoc-members:
     :show-inheritance:
 	:special-members:
 
@@ -60,7 +78,6 @@ pyramid Package
 
 .. automodule:: pyramid.phasemapper
     :members:
-    :undoc-members:
     :show-inheritance:
 	:special-members:
 
@@ -69,16 +86,6 @@ pyramid Package
 
 .. automodule:: pyramid.projector
     :members:
-    :undoc-members:
-    :show-inheritance:
-	:special-members:
-
-:mod:`reconstructor` Module
----------------------------
-
-.. automodule:: pyramid.reconstructor
-    :members:
-    :undoc-members:
     :show-inheritance:
 	:special-members:
 

@@ -1,36 +1,53 @@
 # -*- coding: utf-8 -*-
-"""Class for the calculation and storage of kernel.
+"""This module provides the :class:`~.Kernel` class, representing the phase contribution of one
+single magnetized pixel."""
 
-This module provides the :class:`~.Kernel` class whose instances can be used to calculate and
-store the kernel matrix representing the phase of a single pixel for the convolution used in the
-phase calculation. The phasemap of a single pixel for two orthogonal directions (`u` and `v`) are
-stored seperately as 2-dimensional matrices. The Jacobi matrix of the phasemapping just depends
-on the kernel and can be calculated via the :func:`~.get_jacobi` function. Storing the Jacobi
-matrix uses much memory, thus it is also possible to directly get the multiplication of a given
-vector with the (transposed) Jacobi matrix without explicit calculation of the latter.
-It is possible to load data from and save them to NetCDF4 files. See :class:`~.Kernel` for further
-information.
 
-"""
-
+import logging
 
 import numpy as np
 
-import pyramid.numcore as nc
+import pyramid.numcore.kernel_core as core
 
 
 PHI_0 = -2067.83    # magnetic flux in T*nm²
 # TODO: sign?
 
 
-class Kernel:
+class Kernel(object):
+
     '''Class for calculating kernel matrices for the phase calculation.
+    
+    
+    
+    This module provides the :class:`~.Kernel` class whose instances can be used to calculate and
+    store the kernel matrix representing the phase of a single pixel for the convolution used in the
+    phase calculation. The phasemap of a single pixel for two orthogonal directions (`u` and `v`) are
+    stored seperately as 2-dimensional matrices. The Jacobi matrix of the phasemapping just depends
+    on the kernel and can be calculated via the :func:`~.get_jacobi` function. Storing the Jacobi
+    matrix uses much memory, thus it is also possible to directly get the multiplication of a given
+    vector with the (transposed) Jacobi matrix without explicit calculation of the latter.
+    It is possible to load data from and save them to NetCDF4 files. See :class:`~.Kernel` for further
+    information.
+    
 
     Represents the phase of a single magnetized pixel for two orthogonal directions (`u` and `v`),
     which can be accessed via the corresponding attributes. The default elementary geometry is
     `disc`, but can also be specified as the phase of a `slab` representation of a single
     magnetized pixel. During the construction, a few attributes are calculated that are used in
     the convolution during phase calculation.
+
+
+    An instance `kernel` of the :class:`~.Kernel` class is callable via:
+    
+    .. :function:: kernel(vector)
+        
+        do stuff
+        
+        :param str sender: do other stuff
+        :return: nix
+
+    with `vector` being a :class:`~numpy.ndarray` (N=1).
 
     Attributes
     ----------
@@ -56,7 +73,7 @@ class Kernel:
         and increasing to the next multiple of 2 (for faster FFT).
     slice_fft : tuple (N=2) of :class:`slice`
         A tuple of :class:`slice` objects to extract the original field of view from the increased
-        size (size_fft) of the grid for the FFT-convolution.
+        size (`size_fft`) of the grid for the FFT-convolution.
 
     '''# TODO: Can be used for several PhaseMappers via the fft arguments or via calling!
     
@@ -75,6 +92,8 @@ class Kernel:
             The elementary geometry of the single magnetized pixel.
 
         ''' # TODO: Docstring
+        self.log = logging.getLogger(__name__)
+        self.log.info('Calling __init__')
         # TODO: Check if b_0 has an influence or is forgotten
         # Function for the phase of an elementary geometry:
         def get_elementary_phase(geometry, n, m, a):
@@ -95,7 +114,7 @@ class Kernel:
         self.geometry = geometry
         self.b_0 = b_0
         # Calculate kernel (single pixel phase):
-        coeff = -a**2 / (2*PHI_0)
+        coeff = -a**2 * b_0 / (2*PHI_0)
         v_dim, u_dim = dim
         u = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
         v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
@@ -108,22 +127,33 @@ class Kernel:
         self.slice_fft = (slice(dim[0]-1, 2*dim[0]-1), slice(dim[1]-1, 2*dim[1]-1))
         self.u_fft = np.fft.rfftn(self.u, self.dim_fft)
         self.v_fft = np.fft.rfftn(self.v, self.dim_fft)
+        self.log.info('Created '+str(self))
 
     def __call__(self, x):
+        '''Test'''
+        self.log.info('Calling __call__')
         if self.numcore:
             return self._multiply_jacobi_core(x)
         else:
             return self._multiply_jacobi(x)
         # TODO: Bei __init__ variable auf die entsprechende Funktion setzen.
 
+    def __repr__(self):
+        self.log.info('Calling __repr__')
+        return '%s(a=%r, dim=%r, b_0=%r, numcore=%r, geometry=%r)' % \
+            (self.__class__, self.a, self.dim, self.b_0, self.numcore, self.geometry)
 
-    def jac_dot(self, vector): 
+    def jac_dot(self, vector):
+        '''TEST'''# TODO: Docstring
+        self.log.info('Calling jac_dot')
         if self.numcore:
             return self._multiply_jacobi_core(vector)
         else:
             return self._multiply_jacobi(vector)
 
     def jac_T_dot(self, vector):
+        # TODO: Docstring
+        self.log.info('Calling jac_dot_T')
         return self._multiply_jacobi_T(vector)
 
     def _multiply_jacobi(self, vector):
@@ -141,7 +171,8 @@ class Kernel:
         result : :class:`~numpy.ndarray` (N=1)
             Product of the Jacobi matrix (which is not explicitely calculated) with the vector.
 
-        '''
+        '''# TODO: move!
+        self.log.info('Calling _multiply_jacobi')
         v_dim, u_dim = self.dim
         size = v_dim * u_dim
         assert len(vector) == 2*size, 'vector size not compatible!'
@@ -173,7 +204,8 @@ class Kernel:
             Product of the transposed Jacobi matrix (which is not explicitely calculated) with
             the vector.
 
-        '''
+        '''# TODO: move!
+        self.log.info('Calling _multiply_jacobi_T')
         v_dim, u_dim = self.dim
         size = v_dim * u_dim
         assert len(vector) == size, 'vector size not compatible!'
@@ -190,7 +222,7 @@ class Kernel:
         return result
 
     def _multiply_jacobi_core(self, vector):
-        # TODO: Docstring!
+        self.log.info('Calling _multiply_jacobi_core')
         result = np.zeros(np.prod(self.dim))
-        nc.multiply_jacobi_core(self.dim[0], self.dim[1], self.u, self.v, vector, result)
+        core.multiply_jacobi_core(self.dim[0], self.dim[1], self.u, self.v, vector, result)
         return result

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Class for the storage of phase data."""
+"""This module provides the :class:`~.PhaseMap` class for storing phase map data."""
 
+
+import logging
 
 import numpy as np
 from numpy import pi
@@ -22,8 +24,8 @@ class PhaseMap(object):
 
     Represents 2-dimensional phase maps. The phase information itself is stored as a 2-dimensional
     matrix in `phase`, but can also be accessed as a vector via `phase_vec`. :class:`~.PhaseMap`
-    objects support arithmetic operators (``+``, ``-``, ``*``, ``/``) and their augmented 
-    counterparts (``+=``, ``-=``, ``*=``, ``/=``), with numbers and other :class:`~.PhaseMap`
+    objects support negation, arithmetic operators (``+``, ``-``, ``*``) and their augmented 
+    counterparts (``+=``, ``-=``, ``*=``), with numbers and other :class:`~.PhaseMap`
     objects, if their dimensions and grid spacings match. It is possible to load data from NetCDF4
     or textfiles or to save the data in these formats. Methods for plotting the phase or a
     corresponding holographic contour map are provided. Holographic contour maps are created by
@@ -34,44 +36,65 @@ class PhaseMap(object):
 
     Attributes
     ----------
-    a : float
+    a: float
         The grid spacing in nm.
-    dim : tuple (N=2)
+    dim: tuple (N=2)
         Dimensions of the grid.
-    phase : :class:`~numpy.ndarray` (N=2)
+    phase: :class:`~numpy.ndarray` (N=2)
         Matrix containing the phase shift.
     phase_vec: :class:`~numpy.ndarray` (N=2)
         Vector containing the phase shift.
-    unit : {'rad', 'mrad', 'µrad'}, optional
-        Set the unit of the phase map. This is important for the :func:`~.display` function,
+    unit: {'rad', 'mrad'}, optional
+        Set the unit of the phase map. This is important for the :func:`display` function,
         because the phase is scaled accordingly. Does not change the phase itself, which is
         always in `rad`.
 
     '''
 
-    UNITDICT = {'rad': 1E0,
-                'mrad': 1E3,
-                'µrad': 1E6}
+    log = logging.getLogger(__name__)
 
-    CDICT = {'red':   [(0.00, 1.0, 0.0),
-                       (0.25, 1.0, 1.0),
-                       (0.50, 1.0, 1.0),
-                       (0.75, 0.0, 0.0),
-                       (1.00, 0.0, 1.0)],
+    UNITDICT = {u'rad': 1E0,
+                u'mrad': 1E3,
+                u'µrad': 1E6}
 
-             'green': [(0.00, 0.0, 0.0),
-                       (0.25, 0.0, 0.0),
-                       (0.50, 1.0, 1.0),
-                       (0.75, 1.0, 1.0),
-                       (1.00, 0.0, 1.0)],
+    CDICT =     {'red':   [(0.00, 1.0, 0.0),
+                           (0.25, 1.0, 1.0),
+                           (0.50, 1.0, 1.0),
+                           (0.75, 0.0, 0.0),
+                           (1.00, 0.0, 1.0)],
 
-             'blue':  [(0.00, 1.0, 1.0),
-                       (0.25, 0.0, 0.0),
-                       (0.50, 0.0, 0.0),
-                       (0.75, 0.0, 0.0),
-                       (1.00, 1.0, 1.0)]}
+                 'green': [(0.00, 0.0, 0.0),
+                           (0.25, 0.0, 0.0),
+                           (0.50, 1.0, 1.0),
+                           (0.75, 1.0, 1.0),
+                           (1.00, 0.0, 1.0)],
+
+                 'blue':  [(0.00, 1.0, 1.0),
+                           (0.25, 0.0, 0.0),
+                           (0.50, 0.0, 0.0),
+                           (0.75, 0.0, 0.0),
+                           (1.00, 1.0, 1.0)]}
+
+    CDICT_INV = {'red':   [(0.00, 0.0, 1.0),
+                           (0.25, 0.0, 0.0),
+                           (0.50, 0.0, 0.0),
+                           (0.75, 1.0, 1.0),
+                           (1.00, 1.0, 0.0)],
+
+                 'green': [(0.00, 1.0, 1.0),
+                           (0.25, 1.0, 1.0),
+                           (0.50, 0.0, 0.0),
+                           (0.75, 0.0, 0.0),
+                           (1.00, 1.0, 0.0)],
+
+                 'blue':  [(0.00, 0.0, 0.0),
+                           (0.25, 1.0, 1.0),
+                           (0.50, 1.0, 1.0),
+                           (0.75, 1.0, 1.0),
+                           (1.00, 0.0, 0.0)]}
     
     HOLO_CMAP = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT, 256)
+    HOLO_CMAP_INV = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT_INV, 256)
     
     @property
     def a(self):
@@ -121,51 +144,68 @@ class PhaseMap(object):
         self.a = a
         self.phase = phase
         self.unit = unit
+        self.log = logging.getLogger(__name__)
+        self.log.info('Created '+str(self))
+
+    def __repr__(self):
+        self.log.info('Calling __repr__')
+        return '%s(a=%r, phase=%r, unit=&r)' % \
+            (self.__class__, self.a, self.phase, self.unit)
+
+    def __str__(self):
+        self.log.info('Calling __str__')
+        return 'PhaseMap(a=%s, dim=%s)' % (self.a, self.dim)
 
     def __neg__(self):  # -self
+        self.log.info('Calling __neg__')
         return PhaseMap(self.a, -self.phase, self.unit)
         
     def __add__(self, other):  # self + other
+        self.log.info('Calling __add__')
         assert isinstance(other, (PhaseMap, Number)), \
             'Only PhaseMap objects and scalar numbers (as offsets) can be added/subtracted!'
         if isinstance(other, PhaseMap):
+            self.log.info('Adding two PhaseMap objects')
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
             assert other.phase.shape == self.dim, \
                 'Added magnitude has to have the same dimensions!'
             return PhaseMap(self.a, self.phase+other.phase, self.unit)
         else:  # other is a Number
+            self.log.info('Adding an offset')
             return PhaseMap(self.a, self.phase+other, self.unit)
 
     def __sub__(self, other):  # self - other
+        self.log.info('Calling __sub__')
         return self.__add__(-other)
 
     def __mul__(self, other):  # self * other
+        self.log.info('Calling __mul__')
         assert isinstance(other, Number), 'PhaseMap objects can only be multiplied by numbers!'
         return PhaseMap(self.a, other*self.phase, self.unit)
 
-    def __div__(self, other):  # self / other
-        return self.__mul__(1.0/other)
-
     def __radd__(self, other):  # other + self
+        self.log.info('Calling __radd__')
         return self.__add__(other)
 
     def __rsub__(self, other):  # other - self
+        self.log.info('Calling __rsub__')
         return -self.__sub__(other)
 
     def __rmul__(self, other):  # other * self
+        self.log.info('Calling __rmul__')
         return self.__mul__(other)
     
     def __iadd__(self, other):  # self += other
+        self.log.info('Calling __iadd__')
         return self.__add__(other)
 
     def __isub__(self, other):  # self -= other
+        self.log.info('Calling __isub__')
         return self.__sub__(other)
 
     def __imul__(self, other):  # self *= other
+        self.log.info('Calling __imul__')
         return self.__mul__(other)
-
-    def __idiv__(self, other):  # self /= other
-        return self.__div__(other)
 
     def save_to_txt(self, filename='..\output\phasemap_output.txt'):
         '''Save :class:`~.PhaseMap` data in a file with txt-format.
@@ -181,6 +221,7 @@ class PhaseMap(object):
         None
 
         '''
+        self.log.info('Calling save_to_txt')
         with open(filename, 'w') as phase_file:
             phase_file.write('{}\n'.format(filename.replace('.txt', '')))
             phase_file.write('grid spacing = {} nm\n'.format(self.a))
@@ -201,6 +242,7 @@ class PhaseMap(object):
             A :class:`~.PhaseMap` object containing the loaded data.
 
         '''
+        cls.log.info('Calling load_from_txt')
         with open(filename, 'r') as phase_file:
             phase_file.readline()  # Headerline is not used
             a = float(phase_file.readline()[15:-4])
@@ -221,6 +263,7 @@ class PhaseMap(object):
         None
 
         '''
+        self.log.info('Calling save_to_netcdf4')
         phase_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
         phase_file.a = self.a
         phase_file.createDimension('v_dim', self.dim[0])
@@ -244,13 +287,15 @@ class PhaseMap(object):
             A :class:`~.PhaseMap` object containing the loaded data.
 
         '''
+        cls.log.info('Calling load_from_netcdf4')
         phase_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = phase_file.a
         phase = phase_file.variables['phase'][:]
         phase_file.close()
         return PhaseMap(a, phase)
 
-    def display_phase(self, title='Phase Map', cmap='RdBu', limit=None, norm=None, axis=None):
+    def display_phase(self, title='Phase Map', cmap='RdBu',
+                      limit=None, norm=None, axis=None, show=True):
         '''Display the phasemap as a colormesh.
 
         Parameters
@@ -268,6 +313,8 @@ class PhaseMap(object):
             If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
+        show : bool, optional
+            A switch which determines if the plot is shown at the end of plotting.
 
         Returns
         -------
@@ -275,6 +322,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         '''
+        self.log.info('Calling display_phase')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[self.unit]
         if limit is None:
@@ -302,9 +350,10 @@ class PhaseMap(object):
         cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
         cbar = fig.colorbar(im, cax=cbar_ax)
         cbar.ax.tick_params(labelsize=14)
-        cbar.set_label('phase shift [{}]'.format(self.unit), fontsize=15)
+        cbar.set_label(u'phase shift [{}]'.format(self.unit), fontsize=15)
         # Show plot:
-        plt.show()
+        if show:
+            plt.show()
         # Return plotting axis:
         return axis
 
@@ -325,6 +374,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         '''
+        self.log.info('Calling display_phase3d')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[self.unit]
         # Create figure and axis:
@@ -347,7 +397,7 @@ class PhaseMap(object):
         return axis
     
     def display_holo(self, density=1, title='Holographic Contour Map',
-                     axis=None, interpolation='none'):
+                     axis=None, grad_encode='dark', interpolation='none', show=True):
         '''Display the color coded holography image.
     
         Parameters
@@ -360,13 +410,16 @@ class PhaseMap(object):
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method. No interpolation is used in the default case.
+        show: bool, optional
+            A switch which determines if the plot is shown at the end of plotting.
     
         Returns
         -------
         axis: :class:`~matplotlib.axes.AxesSubplot`
             The axis on which the graph is plotted.
     
-        '''
+        '''# TODO: Docstring saturation!
+        self.log.info('Calling display_holo')
         # Calculate the holography image intensity:
         img_holo = (1 + np.cos(density * self.phase)) / 2
         # Calculate the phase gradients, expressed by magnitude and angle:
@@ -374,11 +427,24 @@ class PhaseMap(object):
         phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
         phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)
         if phase_magnitude.max() != 0:
-            phase_magnitude = np.sin(phase_magnitude/phase_magnitude.max() * pi / 2)
+            saturation = np.sin(phase_magnitude/phase_magnitude.max() * pi / 2)
+            phase_saturation = np.dstack((saturation,)*4)
         # Color code the angle and create the holography image:
-        rgba = self.HOLO_CMAP(phase_angle)
-        rgb = (255.999 * img_holo.T * phase_magnitude.T * rgba[:, :, :3].T).T.astype(np.uint8)
-        holo_image = Image.fromarray(rgb) 
+        if grad_encode == 'dark':
+            rgba = self.HOLO_CMAP(phase_angle)
+            rgb = (255.999 * img_holo.T * saturation.T * rgba[:, :, :3].T).T.astype(np.uint8)
+        elif grad_encode == 'bright':
+            rgba = self.HOLO_CMAP(phase_angle)+(1-phase_saturation)*self.HOLO_CMAP_INV(phase_angle)
+            rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
+        elif grad_encode == 'color':
+            rgba = self.HOLO_CMAP(phase_angle)
+            rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
+        elif grad_encode == 'none':
+            rgba = self.HOLO_CMAP(phase_angle)+self.HOLO_CMAP_INV(phase_angle)
+            rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
+        else:
+            raise AssertionError('Gradient encoding not recognized!') 
+        holo_image = Image.fromarray(rgb)
         # If no axis is specified, a new figure is created:
         if axis is None:
             fig = plt.figure()
@@ -397,11 +463,13 @@ class PhaseMap(object):
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         # Show Plot:
-        plt.show()
+        if show:
+            plt.show()
         # Return plotting axis:
         return axis
     
-    def display_combined(self, density=1, title='Combined Plot', interpolation='none'):
+    def display_combined(self, density=1, title='Combined Plot', interpolation='none',
+                         grad_encode='dark'):
         '''Display the phase map and the resulting color coded holography image in one plot.
     
         Parameters
@@ -419,21 +487,25 @@ class PhaseMap(object):
         phase_axis, holo_axis: :class:`~matplotlib.axes.AxesSubplot`
             The axes on which the graphs are plotted.
     
-        '''
+        '''# TODO: Docstring grad_encode!
+        self.log.info('Calling display_combined')
         # Create combined plot and set title:
         fig = plt.figure(figsize=(16, 7))
         fig.suptitle(title, fontsize=20)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-        self.display_holo(density=density, axis=holo_axis, interpolation=interpolation)
+        self.display_holo(density=density, axis=holo_axis, interpolation=interpolation,
+                          show=False, grad_encode=grad_encode)
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         fig.subplots_adjust(right=0.85)
-        self.display_phase(axis=phase_axis)
+        self.display_phase(axis=phase_axis, show=False)
+        plt.show()
         # Return the plotting axes:
         return phase_axis, holo_axis
 
-    def make_color_wheel(self):
+    @classmethod
+    def make_color_wheel(cls):
         '''Display a color wheel to illustrate the color coding of the gradient direction.
     
         Parameters
@@ -445,6 +517,7 @@ class PhaseMap(object):
         None
     
         '''
+        cls.log.info('Calling make_color_wheel')
         x = np.linspace(-256, 256, num=512)
         y = np.linspace(-256, 256, num=512)
         xx, yy = np.meshgrid(x, y)
@@ -454,7 +527,7 @@ class PhaseMap(object):
         color_wheel_magnitude *= 0 * (r > 256) + 1 * (r <= 256)
         color_wheel_angle = (1 - np.arctan2(xx, -yy)/pi) / 2
         # Color code the angle and create the holography image:
-        rgba = self.HOLO_CMAP(color_wheel_angle)
+        rgba = cls.HOLO_CMAP(color_wheel_angle)
         rgb = (255.999 * color_wheel_magnitude.T * rgba[:, :, :3].T).T.astype(np.uint8)
         color_wheel = Image.fromarray(rgb)
         # Plot the color wheel:
@@ -463,3 +536,7 @@ class PhaseMap(object):
         axis.imshow(color_wheel, origin='lower')
         axis.xaxis.set_major_locator(NullLocator())
         axis.yaxis.set_major_locator(NullLocator())
+        plt.show()
+
+
+PhaseMap.make_color_wheel()

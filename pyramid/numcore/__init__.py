@@ -11,5 +11,3 @@ Notes
 Packages are written in `pyx`-format for the use with :mod:`~cython`.
 
 """
-
-from phase_mag_real import *

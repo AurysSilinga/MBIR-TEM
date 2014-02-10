@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Class for the storage of magnetizatin data."""
+"""This module provides the :class:`~.MagData` class for storing of magnetization data."""
 
 
+import logging
 import numpy as np
+from scipy.ndimage.interpolation import zoom
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
-
 from mayavi import mlab
 
 from numbers import Number
@@ -20,30 +21,28 @@ class MagData(object):
 
     Represents 3-dimensional magnetic distributions with 3 components which are stored as a
     2-dimensional numpy array in `magnitude`, but which can also be accessed as a vector via
-    `mag_vec`. :class:`~.MagData` objects support arithmetic operators (``+``, ``-``, ``*``, ``/``)
-    and their augmented counterparts (``+=``, ``-=``, ``*=``, ``/=``), with numbers and other
-    :class:`~.MagData` objects, if their dimensions and grid spacings match. It is possible to load
-    data from NetCDF4 or LLG (.txt) files or to save the data in these formats. Plotting methods 
-    are also provided.
+    `mag_vec`. :class:`~.MagData` objects support negation, arithmetic operators 
+    (``+``, ``-``, ``*``) and their augmented counterparts (``+=``, ``-=``, ``*=``), with numbers
+    and other :class:`~.MagData` objects, if their dimensions and grid spacings match. It is
+    possible to load data from NetCDF4 or LLG (.txt) files or to save the data in these formats.
+    Plotting methods are also provided.
 
     Attributes
     ----------
-    a : float
+    a: float
         The grid spacing in nm.
-    dim : tuple (N=3)
+    dim: tuple (N=3)
         Dimensions (z, y, x) of the grid.
-    magnitude : :class:`~numpy.ndarray` (N=4)
+    magnitude: :class:`~numpy.ndarray` (N=4)
         The `x`-, `y`- and `z`-component of the magnetization vector for every 3D-gridpoint
         as a 4-dimensional numpy array (first dimension has to be 3, because of the 3 components).
     mag_vec: :class:`~numpy.ndarray` (N=1)
         Vector containing the magnetic distribution.
 
     '''
-
-    # TODO: Implement: __str__ or __repr__
-
-    # TODO: Implement: logging
-
+    
+    log = logging.getLogger()
+    
     @property
     def a(self):
         return self._a
@@ -81,57 +80,94 @@ class MagData(object):
         self.magnitude = mag_vec.reshape((3,)+self.dim)
 
     def __init__(self, a, magnitude):
+        self.log = logging.getLogger(__name__)
+        self.log.info('Calling __init__')
         self.a = a
-        self.magnitude = magnitude
+        self.magnitude = magnitude        
+        self.log.info('Created '+str(self))
+
+    def __getstate__(self):
+        d = dict(self.__dict__)
+        del d['log']
+        return d
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+        self.log = logging.getLogger(__name__)
+
+    def __repr__(self):
+        self.log.info('Calling __repr__')
+        return '%s(a=%r, magnitude=%r)' % (self.__class__, self.a, self.magnitude)
+
+    def __str__(self):
+        self.log.info('Calling __str__')
+        return 'MagData(a=%s, dim=%s)' % (self.a, self.dim)
 
     def __neg__(self):  # -self
+        self.log.info('Calling __neg__')
         return MagData(self.a, -self.magnitude)
         
     def __add__(self, other):  # self + other
+        self.log.info('Calling __add__')
         assert isinstance(other, (MagData, Number)), \
             'Only MagData objects and scalar numbers (as offsets) can be added/subtracted!'
         if isinstance(other, MagData):
+            self.log.info('Adding two MagData objects')
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
             assert other.magnitude.shape == (3,)+self.dim, \
                 'Added magnitude has to have the same dimensions!'
             return MagData(self.a, self.magnitude+other.magnitude)
         else:  # other is a Number
+            self.log.info('Adding an offset')
             return MagData(self.a, self.magnitude+other)
 
     def __sub__(self, other):  # self - other
+        self.log.info('Calling __sub__')
         return self.__add__(-other)
 
     def __mul__(self, other):  # self * other
+        self.log.info('Calling __mul__')
         assert isinstance(other, Number), 'MagData objects can only be multiplied by numbers!'
         return MagData(self.a, other*self.magnitude)
 
-    def __div__(self, other):  # self / other 
-        assert other != 0, 'Division by zero!'
-        return self.__mul__(1./other)
-        # TODO: Does not work, but why?
-
     def __radd__(self, other):  # other + self
+        self.log.info('Calling __radd__')
         return self.__add__(other)
 
     def __rsub__(self, other):  # other - self
+        self.log.info('Calling __rsub__')
         return -self.__sub__(other)
 
     def __rmul__(self, other):  # other * self
+        self.log.info('Calling __rmul__')
         return self.__mul__(other)
     
     def __iadd__(self, other):  # self += other
+        self.log.info('Calling __iadd__')
         return self.__add__(other)
 
     def __isub__(self, other):  # self -= other
+        self.log.info('Calling __isub__')
         return self.__sub__(other)
 
     def __imul__(self, other):  # self *= other
+        self.log.info('Calling __imul__')
         return self.__mul__(other)
-
-    def __idiv__(self, other):  # self /= other
-        return self.__div__(other)
     
     def copy(self):
+        '''Returns a copy of the :class:`~.MagData` object
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        mag_data: :class:`~.MagData`
+            A copy of the :class:`~.MagData`.
+
+        '''
+        self.log.info('Calling copy7')
         return MagData(self.a, self.magnitude.copy())
 
     def scale_down(self, n=1):
@@ -152,12 +188,32 @@ class MagData(object):
         Only possible, if each axis length is a power of 2!
 
         '''
+        self.log.info('Calling scale_down')
         assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
         assert np.all([d % 2**n == 0 for d in self.dim]), 'Dimensions must a multiples of 2!'
+        self.a = self.a * 2**n
         for t in range(n):
             # Create coarser grid for the magnetization:
             self.magnitude = self.magnitude.reshape(
                 3, self.dim[0]/2, 2, self.dim[1]/2, 2, self.dim[2]/2, 2).mean(axis=(6, 4, 2))
+            
+
+    def scale_up(self, n=1, order=0):
+        # TODO: Docstring!
+        self.log.info('Calling scale_up')
+        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
+        assert 5 > order >= 0 and isinstance(order, (int, long)), \
+            'order must be a positive integer between 0 and 5!'
+        self.a = self.a / 2**n
+        self.magnitude = np.array((zoom(self.magnitude[0], zoom=2**n, order=order),
+                                   zoom(self.magnitude[1], zoom=2**n, order=order),
+                                   zoom(self.magnitude[2], zoom=2**n, order=order)))
+
+    def pad(self, x_pad, y_pad, z_pad):
+        # TODO: Docstring!
+        self.magnitude = np.pad(self.magnitude,
+                                ((0, 0), (z_pad, z_pad), (y_pad, y_pad), (x_pad, x_pad)),
+                                mode='constant', constant_values=0)
 
     def save_to_llg(self, filename='..\output\magdata_output.txt'):
         '''Save magnetization data in a file with LLG-format.
@@ -173,6 +229,7 @@ class MagData(object):
         None
 
         '''
+        self.log.info('Calling save_to_llg')
         a = self.a * 1.0E-9 / 1.0E-2  # from nm to cm
         # Create 3D meshgrid and reshape it and the magnetization into a list where x varies first:
         zz, yy, xx = np.mgrid[a/2:(self.dim[0]*a-a/2):self.dim[0]*1j,
@@ -202,6 +259,7 @@ class MagData(object):
             A :class:`~.MagData` object containing the loaded data.
 
         '''
+        cls.log.info('Calling load_from_llg')
         SCALE = 1.0E-9 / 1.0E-2  # From cm to nm
         data = np.genfromtxt(filename, skip_header=2)
         dim = tuple(np.genfromtxt(filename, dtype=int, skip_header=1, skip_footer=len(data[:, 0])))
@@ -223,6 +281,7 @@ class MagData(object):
         None
 
         '''
+        self.log.info('Calling save_to_netcdf4')
         mag_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
         mag_file.a = self.a
         mag_file.createDimension('comp', 3)  # Number of components
@@ -248,6 +307,7 @@ class MagData(object):
             A :class:`~.MagData` object containing the loaded data.
 
         '''
+        cls.log.info('Calling copy')
         mag_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = mag_file.a
         magnitude =  mag_file.variables['magnitude'][...]
@@ -279,24 +339,31 @@ class MagData(object):
             The axis on which the graph is plotted.
 
         '''
+        self.log.info('Calling quiver_plot')
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             'Axis has to be x, y or z (as string).'
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
+            self.log.info('proj_axis == z')
             if ax_slice is None:
+                self.log.info('ax_slice is None')
                 ax_slice = int(self.dim[0]/2)
             mag_slice_u = self.magnitude[0][ax_slice, ...]  # x-component
             mag_slice_v = self.magnitude[1][ax_slice, ...]  # y-component
             u_label = 'x [px]'
             v_label = 'y [px]'
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
+            self.log.info('proj_axis == y')
             if ax_slice is None:
+                self.log.info('ax_slice is None')
                 ax_slice = int(self.dim[1]/2)
             mag_slice_u = self.magnitude[0][:, ax_slice, :]  # x-component
             mag_slice_v = self.magnitude[2][:, ax_slice, :]  # z-component
             u_label = 'x [px]'
             v_label = 'z [px]'
         elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
+            self.log.info('proj_axis == x')
             if ax_slice is None:
+                self.log.info('ax_slice is None')
                 ax_slice = int(self.dim[2]/2)
             mag_slice_u = self.magnitude[1][..., ax_slice]  # y-component
             mag_slice_v = self.magnitude[2][..., ax_slice]  # z-component
@@ -304,6 +371,7 @@ class MagData(object):
             v_label = 'z [px]'
         # If no axis is specified, a new figure is created:
         if axis is None:
+            self.log.info('axis is None')
             fig = plt.figure(figsize=(8.5, 7))
             axis = fig.add_subplot(1, 1, 1, aspect='equal')
         axis.quiver(mag_slice_u, mag_slice_v, pivot='middle', angles='xy', scale_units='xy',
@@ -331,6 +399,7 @@ class MagData(object):
         None
 
         '''
+        self.log.info('Calling quiver_plot3D')
         a = self.a
         dim = self.dim
         # Create points and vector components as lists:
@@ -345,7 +414,7 @@ class MagData(object):
         z_mag = np.reshape(self.magnitude[2], (-1))
         # Plot them as vectors:
         mlab.figure()
-        plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode='arrow')#, scale_factor=5.0)
+        plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode='arrow')
         mlab.outline(plot)
         mlab.axes(plot)
         mlab.colorbar()

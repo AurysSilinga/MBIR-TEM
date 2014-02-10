@@ -14,7 +14,7 @@ from numpy import pi
 
 import abc
 
-import pyramid.numcore as nc
+import pyramid.numcore.kernel_core as nc
 from pyramid.kernel import Kernel
 from pyramid.projector import Projector
 from pyramid.magdata import MagData
@@ -46,13 +46,13 @@ class PMAdapterFM(PhaseMapper):
         assert isinstance(projector, Projector), 'Argument has to be a Projector object!'
         self.a = a
         self.projector = projector
-        self.fwd_model = ForwardModel([projector], Kernel(a, projector.dim, b_0, geometry))
+        self.fwd_model = ForwardModel([projector], Kernel(a, projector.dim_2d, b_0, geometry))
 
     def __call__(self, mag_data):
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert  mag_data.a == self.a, 'Grid spacing has to match!'
         # TODO: test if mag_data fits in all aspects
-        phase_map = PhaseMap(self.a, np.zeros(self.projector.dim))
+        phase_map = PhaseMap(self.a, np.zeros(self.projector.dim_2d))
         phase_map.phase_vec = self.fwd_model(mag_data.mag_vec)
         return phase_map
 
@@ -94,11 +94,12 @@ class PMFourier(PhaseMapper):
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert  mag_data.a == self.a, 'Grid spacing has to match!'
         # TODO: test if mag_data fits in all aspects (especially with projector)
-        v_dim, u_dim = self.projector.dim
-        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+self.projector.dim)
+        v_dim, u_dim = self.projector.dim_2d
+        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+self.projector.dim_2d)
         # Create zero padded matrices:
         u_pad = u_dim/2 * self.padding
         v_pad = v_dim/2 * self.padding
+        # TODO: use mag_data.padding or np.pad(...)
         u_mag_big = np.zeros(((1 + self.padding) * v_dim, (1 + self.padding) * u_dim))
         v_mag_big = np.zeros(((1 + self.padding) * v_dim, (1 + self.padding) * u_dim))
         u_mag_big[v_pad:v_pad+v_dim, u_pad:u_pad+u_dim] = u_mag
@@ -218,12 +219,12 @@ class PMConvolve(PhaseMapper):
         self.a = a
         self.projector = projector
         self.threshold = threshold
-        self.kernel = Kernel(a, projector.dim, b_0, geometry)
+        self.kernel = Kernel(a, projector.dim_2d, b_0, geometry)
 
     def __call__(self, mag_data):
         # Docstring!
         # Process input parameters:
-        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+self.projector.dim)    
+        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+self.projector.dim_2d)    
         # Fourier transform the projected magnetisation:
         kernel = self.kernel
         u_mag_fft = np.fft.rfftn(u_mag, kernel.dim_fft)
@@ -267,15 +268,14 @@ class PMReal(PhaseMapper):
         self.a = a
         self.projector = projector
         self.threshold = threshold
-        self.kernel = Kernel(a, projector.dim, b_0, geometry)
+        self.kernel = Kernel(a, projector.dim_2d, b_0, geometry)
         self.numcore = numcore
 
     def __call__(self, mag_data):
         # TODO: Docstring
         # Process input parameters: 
-        dim = self.projector.dim
+        dim = self.projector.dim_2d
         threshold = self.threshold
-        v_dim, u_dim = self.projector.dim
         u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+dim)
         # Create kernel (lookup-tables for the phase of one pixel):
         u_phi = self.kernel.u
