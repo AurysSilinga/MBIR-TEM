@@ -85,18 +85,18 @@ class Projector(object):
         self.log.info('Calling _vector_field_projection_T')
         size_2d, size_3d = self.size_2d, self.size_3d
         result = np.zeros(3*size_3d)
-        # Go over all possible component projections (z, y, x) to (u, v):
-        if self.coeff[0][0] != 0:  # x to u
+        # Go over all possible component projections (u, v) to (z, y, x):
+        if self.coeff[0][0] != 0:  # u to x
             result[:size_3d] += self.coeff[0][0] * self.weight.T.dot(vector[:size_2d])
-        if self.coeff[0][1] != 0:  # y to u
-            result[:size_3d] += self.coeff[0][1] * self.weight.T.dot(vector[size_2d:])
-        if self.coeff[0][2] != 0:  # z to u
-            result[size_3d:2*size_3d] += self.coeff[0][2] * self.weight.T.dot(vector[:size_2d])
-        if self.coeff[1][0] != 0:  # x to v
-            result[size_3d:2*size_3d] += self.coeff[1][0] * self.weight.T.dot(vector[size_2d:])
-        if self.coeff[1][1] != 0:  # y to v
-            result[2*size_3d:] += self.coeff[1][1] * self.weight.T.dot(vector[:size_2d])
-        if self.coeff[1][2] != 0:  # z to v
+        if self.coeff[0][1] != 0:  # u to y
+            result[size_3d:2*size_3d] += self.coeff[0][1] * self.weight.T.dot(vector[:size_2d])
+        if self.coeff[0][2] != 0:  # u to z
+            result[2*size_3d:] += self.coeff[0][2] * self.weight.T.dot(vector[:size_2d])
+        if self.coeff[1][0] != 0:  # v to x
+            result[:size_3d] += self.coeff[1][0] * self.weight.T.dot(vector[size_2d:])
+        if self.coeff[1][1] != 0:  # v to y
+            result[size_3d:2*size_3d] += self.coeff[1][1] * self.weight.T.dot(vector[size_2d:])
+        if self.coeff[1][2] != 0:  # v to z
             result[2*size_3d:] += self.coeff[1][2] * self.weight.T.dot(vector[size_2d:])
         return result
 

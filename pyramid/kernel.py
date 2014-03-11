@@ -76,7 +76,7 @@ class Kernel(object):
 
     '''# TODO: Can be used for several PhaseMappers via the fft arguments or via calling!
     
-    def __init__(self, a, dim_uv, numcore=True, geometry='disc'):
+    def __init__(self, a, dim_uv, b_0=1., numcore=True, geometry='disc'):
         '''Constructor for a :class:`~.Kernel` object for representing a kernel matrix.
 
         Parameters
@@ -109,7 +109,7 @@ class Kernel(object):
         self.numcore = numcore
         self.geometry = geometry
         # Calculate kernel (single pixel phase):
-        coeff = -a**2 / (2*PHI_0)
+        coeff = -b_0 * a**2 / (2*PHI_0)
         v_dim, u_dim = dim_uv
         u = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
         v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)

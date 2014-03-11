@@ -46,7 +46,7 @@ class PMAdapterFM(PhaseMapper):
         assert isinstance(projector, Projector), 'Argument has to be a Projector object!'
         self.a = a
         self.projector = projector
-        self.fwd_model = ForwardModel([projector], Kernel(a, projector.dim_uv, geometry), b_0)
+        self.fwd_model = ForwardModel([projector], Kernel(a, projector.dim_uv, b_0, geometry))
 
     def __call__(self, mag_data):
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
@@ -221,7 +221,7 @@ class PMConvolve(PhaseMapper):
         self.projector = projector
         self.b_0 = b_0
         self.threshold = threshold
-        self.kernel = Kernel(a, projector.dim_uv, geometry)
+        self.kernel = Kernel(a, projector.dim_uv, b_0, geometry)
 
     def __call__(self, mag_data):
         # Docstring!
@@ -235,7 +235,7 @@ class PMConvolve(PhaseMapper):
         u_phase = np.fft.irfftn(u_mag_fft * kernel.u_fft, kernel.dim_fft)[kernel.slice_fft].copy()
         v_phase = np.fft.irfftn(v_mag_fft * kernel.v_fft, kernel.dim_fft)[kernel.slice_fft].copy()
         # Return the result:
-        return PhaseMap(self.a, self.b_0*(u_phase-v_phase))
+        return PhaseMap(self.a, u_phase-v_phase)
 
 
 class PMReal(PhaseMapper):
@@ -271,7 +271,7 @@ class PMReal(PhaseMapper):
         self.projector = projector
         self.b_0 = b_0
         self.threshold = threshold
-        self.kernel = Kernel(a, projector.dim_uv, geometry)
+        self.kernel = Kernel(a, projector.dim_uv, b_0, geometry)
         self.numcore = numcore
 
     def __call__(self, mag_data):
@@ -281,8 +281,8 @@ class PMReal(PhaseMapper):
         threshold = self.threshold
         u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+dim_uv)
         # Create kernel (lookup-tables for the phase of one pixel):
-        u_phi = self.b_0 * self.kernel.u
-        v_phi = self.b_0 * self.kernel.v
+        u_phi = self.kernel.u
+        v_phi = self.kernel.v
         # Calculation of the phase:
         phase = np.zeros(dim_uv)
         if self.numcore:

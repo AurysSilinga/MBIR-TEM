@@ -33,10 +33,9 @@ class ForwardModel:
         assert isinstance(kernel, Kernel), 'A Kernel object has to be provided!'
         self._kernel = kernel
 
-    def __init__(self, projectors, kernel, b_0):
+    def __init__(self, projectors, kernel):
         # TODO: Docstring!
         self.kernel = kernel
-        self.b_0 = b_0
         self.a = kernel.a
         self.dim_uv = kernel.dim_uv
         self.projectors = projectors
@@ -45,7 +44,7 @@ class ForwardModel:
         # TODO: Docstring!
 #        print 'FWD Model - __call__ -  input: ', len(x)
         result = [self.kernel.jac_dot(projector.jac_dot(x)) for projector in self.projectors]
-        result = self.b_0 * np.reshape(result, -1)
+        result = np.reshape(result, -1)
 #        print 'FWD Model - __call__ -  output:', len(result)
         return result
 
