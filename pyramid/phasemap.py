@@ -38,7 +38,7 @@ class PhaseMap(object):
     ----------
     a: float
         The grid spacing in nm.
-    dim: tuple (N=2)
+    dim_uv: tuple (N=2)
         Dimensions of the grid.
     phase: :class:`~numpy.ndarray` (N=2)
         Matrix containing the phase shift.
@@ -107,8 +107,8 @@ class PhaseMap(object):
         self._a = a
     
     @property
-    def dim(self):
-        return self._dim
+    def dim_uv(self):
+        return self._dim_uv
 
     @property
     def phase(self):
@@ -119,7 +119,7 @@ class PhaseMap(object):
         assert isinstance(phase, np.ndarray), 'Phase has to be a numpy array!'
         assert len(phase.shape) == 2, 'Phase has to be 2-dimensional!'
         self._phase = phase
-        self._dim = phase.shape
+        self._dim_uv = phase.shape
 
     @property
     def phase_vec(self):
@@ -128,8 +128,8 @@ class PhaseMap(object):
     @phase_vec.setter
     def phase_vec(self, phase_vec):
         assert isinstance(phase_vec, np.ndarray), 'Vector has to be a numpy array!'
-        assert np.size(phase_vec) == np.prod(self.dim), 'Vector size has to match phase!'
-        self.phase = phase_vec.reshape(self.dim)
+        assert np.size(phase_vec) == np.prod(self.dim_uv), 'Vector size has to match phase!'
+        self.phase = phase_vec.reshape(self.dim_uv)
 
     @property
     def unit(self):
@@ -154,7 +154,7 @@ class PhaseMap(object):
 
     def __str__(self):
         self.log.info('Calling __str__')
-        return 'PhaseMap(a=%s, dim=%s)' % (self.a, self.dim)
+        return 'PhaseMap(a=%s, dim_uv=%s)' % (self.a, self.dim_uv)
 
     def __neg__(self):  # -self
         self.log.info('Calling __neg__')
@@ -167,7 +167,7 @@ class PhaseMap(object):
         if isinstance(other, PhaseMap):
             self.log.info('Adding two PhaseMap objects')
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
-            assert other.phase.shape == self.dim, \
+            assert other.phase.shape == self.dim_uv, \
                 'Added magnitude has to have the same dimensions!'
             return PhaseMap(self.a, self.phase+other.phase, self.unit)
         else:  # other is a Number
@@ -266,8 +266,8 @@ class PhaseMap(object):
         self.log.info('Calling save_to_netcdf4')
         phase_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
         phase_file.a = self.a
-        phase_file.createDimension('v_dim', self.dim[0])
-        phase_file.createDimension('u_dim', self.dim[1])
+        phase_file.createDimension('v_dim', self.dim_uv[0])
+        phase_file.createDimension('u_dim', self.dim_uv[1])
         phase = phase_file.createVariable('phase', 'f', ('v_dim', 'u_dim'))
         phase[:] = self.phase
         phase_file.close()
@@ -334,8 +334,8 @@ class PhaseMap(object):
         # Plot the phasemap:
         im = axis.pcolormesh(phase, cmap=cmap, vmin=-limit, vmax=limit, norm=norm)
         # Set the axes ticks and labels:
-        axis.set_xlim(0, self.dim[1])
-        axis.set_ylim(0, self.dim[0])
+        axis.set_xlim(0, self.dim_uv[1])
+        axis.set_ylim(0, self.dim_uv[0])
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.a)))
@@ -381,8 +381,8 @@ class PhaseMap(object):
         fig = plt.figure()
         axis = Axes3D(fig)
         # Plot surface and contours:
-        u = range(self.dim[1])
-        v = range(self.dim[0])
+        u = range(self.dim_uv[1])
+        v = range(self.dim_uv[0])
         uu, vv = np.meshgrid(u, v)
         axis.plot_surface(uu, vv, phase, rstride=4, cstride=4, alpha=0.7, cmap=cmap,
                         linewidth=0, antialiased=False)
@@ -458,8 +458,8 @@ class PhaseMap(object):
         axis.set_title(title, fontsize=18)
         axis.set_xlabel('x-axis [px]', fontsize=15)
         axis.set_ylabel('y-axis [px]', fontsize=15)
-        axis.set_xlim(0, self.dim[1])
-        axis.set_ylim(0, self.dim[0])
+        axis.set_xlim(0, self.dim_uv[1])
+        axis.set_ylim(0, self.dim_uv[0])
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         # Show Plot:
@@ -467,9 +467,9 @@ class PhaseMap(object):
             plt.show()
         # Return plotting axis:
         return axis
-    
-    def display_combined(self, density=1, title='Combined Plot', interpolation='none',
-                         grad_encode='dark'):
+
+    def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
+                         density=1, interpolation='none', grad_encode='dark'):
         '''Display the phase map and the resulting color coded holography image in one plot.
     
         Parameters
@@ -499,7 +499,7 @@ class PhaseMap(object):
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         fig.subplots_adjust(right=0.85)
-        self.display_phase(axis=phase_axis, show=False)
+        self.display_phase(cmap='RdBu', limit=limit, norm=norm, axis=phase_axis, show=False)
         plt.show()
         # Return the plotting axes:
         return phase_axis, holo_axis
@@ -537,6 +537,3 @@ class PhaseMap(object):
         axis.xaxis.set_major_locator(NullLocator())
         axis.yaxis.set_major_locator(NullLocator())
         plt.show()
-
-
-PhaseMap.make_color_wheel()

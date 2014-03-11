@@ -46,13 +46,13 @@ class PMAdapterFM(PhaseMapper):
         assert isinstance(projector, Projector), 'Argument has to be a Projector object!'
         self.a = a
         self.projector = projector
-        self.fwd_model = ForwardModel([projector], Kernel(a, projector.dim_2d, b_0, geometry))
+        self.fwd_model = ForwardModel([projector], Kernel(a, projector.dim_uv, geometry), b_0)
 
     def __call__(self, mag_data):
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert  mag_data.a == self.a, 'Grid spacing has to match!'
         # TODO: test if mag_data fits in all aspects
-        phase_map = PhaseMap(self.a, np.zeros(self.projector.dim_2d))
+        phase_map = PhaseMap(self.a, np.zeros(self.projector.dim_uv))
         phase_map.phase_vec = self.fwd_model(mag_data.mag_vec)
         return phase_map
 
@@ -94,8 +94,8 @@ class PMFourier(PhaseMapper):
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert  mag_data.a == self.a, 'Grid spacing has to match!'
         # TODO: test if mag_data fits in all aspects (especially with projector)
-        v_dim, u_dim = self.projector.dim_2d
-        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+self.projector.dim_2d)
+        v_dim, u_dim = self.projector.dim_uv
+        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+self.projector.dim_uv)
         # Create zero padded matrices:
         u_pad = u_dim/2 * self.padding
         v_pad = v_dim/2 * self.padding
@@ -183,7 +183,7 @@ class PMElectric(PhaseMapper):
         # Calculate mask:
         mask = np.sqrt(np.sum(np.array(mag_data.magnitude)**2, axis=0)) > self.threshold
         # Project and calculate phase:
-        projection = self.projector(mask.reshape(-1)).reshape(self.projector.dim)
+        projection = self.projector(mask.reshape(-1)).reshape(self.projector.dim_uv)
         phase = v_0 * Ce * projection * self.a*1E-9
         return PhaseMap(self.a, phase)
 
@@ -200,14 +200,15 @@ class PMConvolve(PhaseMapper):
         a : float
             The grid spacing in nm.
         projection : tuple (N=3) of :class:`~numpy.ndarray` (N=2)
-            The in-plane projection of the magnetization as a tuple, storing the `u`- and `v`-component
-            of the magnetization and the thickness projection for the resulting 2D-grid.
+            The in-plane projection of the magnetization as a tuple, storing the `u`- and
+            `v`-component of the magnetization and the thickness projection for the resulting
+            2D-grid.
         b_0 : float, optional
             The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
             The default is 1.
         kernel : :class:`~pyramid.kernel.Kernel`, optional
-            Specifies the kernel for the convolution with the magnetization data. If none is specified,
-            one will be created with `disc` as the default geometry.
+            Specifies the kernel for the convolution with the magnetization data. If none is
+            specified, one will be created with `disc` as the default geometry.
 
         Returns
         -------
@@ -218,13 +219,14 @@ class PMConvolve(PhaseMapper):
         assert isinstance(projector, Projector), 'Argument has to be a Projector object!'
         self.a = a
         self.projector = projector
+        self.b_0 = b_0
         self.threshold = threshold
-        self.kernel = Kernel(a, projector.dim_2d, b_0, geometry)
+        self.kernel = Kernel(a, projector.dim_uv, geometry)
 
     def __call__(self, mag_data):
         # Docstring!
         # Process input parameters:
-        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+self.projector.dim_2d)    
+        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+self.projector.dim_uv)    
         # Fourier transform the projected magnetisation:
         kernel = self.kernel
         u_mag_fft = np.fft.rfftn(u_mag, kernel.dim_fft)
@@ -233,7 +235,7 @@ class PMConvolve(PhaseMapper):
         u_phase = np.fft.irfftn(u_mag_fft * kernel.u_fft, kernel.dim_fft)[kernel.slice_fft].copy()
         v_phase = np.fft.irfftn(v_mag_fft * kernel.v_fft, kernel.dim_fft)[kernel.slice_fft].copy()
         # Return the result:
-        return PhaseMap(self.a, u_phase - v_phase)
+        return PhaseMap(self.a, self.b_0*(u_phase-v_phase))
 
 
 class PMReal(PhaseMapper):
@@ -267,30 +269,34 @@ class PMReal(PhaseMapper):
         assert isinstance(projector, Projector), 'Argument has to be a Projector object!'
         self.a = a
         self.projector = projector
+        self.b_0 = b_0
         self.threshold = threshold
-        self.kernel = Kernel(a, projector.dim_2d, b_0, geometry)
+        self.kernel = Kernel(a, projector.dim_uv, geometry)
         self.numcore = numcore
 
     def __call__(self, mag_data):
         # TODO: Docstring
         # Process input parameters: 
-        dim = self.projector.dim_2d
+        dim_uv = self.projector.dim_uv
         threshold = self.threshold
-        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+dim)
+        u_mag, v_mag = self.projector(mag_data.mag_vec).reshape((2,)+dim_uv)
         # Create kernel (lookup-tables for the phase of one pixel):
-        u_phi = self.kernel.u
-        v_phi = self.kernel.v
+        u_phi = self.b_0 * self.kernel.u
+        v_phi = self.b_0 * self.kernel.v
         # Calculation of the phase:
-        phase = np.zeros(dim)
+        phase = np.zeros(dim_uv)
         if self.numcore:
-            nc.phase_mag_real_core(dim[0], dim[1], v_phi, u_phi, v_mag, u_mag, phase, threshold)
+            nc.phase_mag_real_core(dim_uv[0], dim_uv[1], v_phi, u_phi,
+                                   v_mag, u_mag, phase, threshold)
         else:
-            for j in range(dim[0]):
-                for i in range(dim[1]):
-                    u_phase = u_phi[dim[0]-1-j:(2*dim[0]-1)-j, dim[1]-1-i:(2*dim[1]-1)-i]
+            for j in range(dim_uv[0]):
+                for i in range(dim_uv[1]):
+                    u_phase = u_phi[dim_uv[0]-1-j:(2*dim_uv[0]-1)-j,
+                                    dim_uv[1]-1-i:(2*dim_uv[1]-1)-i]
                     if abs(u_mag[j, i]) > threshold:
                         phase += u_mag[j, i] * u_phase
-                    v_phase = v_phi[dim[0]-1-j:(2*dim[0]-1)-j, dim[1]-1-i:(2*dim[1]-1)-i]
+                    v_phase = v_phi[dim_uv[0]-1-j:(2*dim_uv[0]-1)-j,
+                                    dim_uv[1]-1-i:(2*dim_uv[1]-1)-i]
                     if abs(v_mag[j, i]) > threshold:
                         phase -= v_mag[j, i] * v_phase
         # Return the phase:

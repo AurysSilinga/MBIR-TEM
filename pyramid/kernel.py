@@ -51,14 +51,12 @@ class Kernel(object):
 
     Attributes
     ----------
-    dim : tuple (N=2)
+    dim_uv : tuple (N=2)
         Dimensions of the projected magnetization grid.
     a : float
         The grid spacing in nm.
     geometry : {'disc', 'slab'}, optional
         The elementary geometry of the single magnetized pixel.
-    b_0 : float, optional
-        The saturation magnetic induction. Default is 1.
     u : :class:`~numpy.ndarray` (N=3)
         The phase contribution of one pixel magnetized in u-direction.
     v : :class:`~numpy.ndarray` (N=3)
@@ -69,7 +67,8 @@ class Kernel(object):
         The real FFT of the phase contribution of one pixel magnetized in v-direction.
     dim_fft : tuple (N=2)
         Dimensions of the grid, which is used for the FFT. Calculated by adding the dimensions
-        `dim` of the magnetization grid and the dimensions of the kernel (given by ``2*dim-1``)
+        `dim_uv` of the magnetization grid and the dimensions of the kernel (given by
+        ``2*dim_uv-1``)
         and increasing to the next multiple of 2 (for faster FFT).
     slice_fft : tuple (N=2) of :class:`slice`
         A tuple of :class:`slice` objects to extract the original field of view from the increased
@@ -77,24 +76,21 @@ class Kernel(object):
 
     '''# TODO: Can be used for several PhaseMappers via the fft arguments or via calling!
     
-    def __init__(self, a, dim, b_0=1, numcore=True, geometry='disc'):
+    def __init__(self, a, dim_uv, numcore=True, geometry='disc'):
         '''Constructor for a :class:`~.Kernel` object for representing a kernel matrix.
 
         Parameters
         ----------
         a : float
             The grid spacing in nm.
-        dim : tuple (N=2)
+        dim_uv : tuple (N=2)
             Dimensions of the projected magnetization grid.
-        b_0 : float, optional
-            The saturation magnetic induction. Default is 1.
         geometry : {'disc', 'slab'}, optional
             The elementary geometry of the single magnetized pixel.
 
         ''' # TODO: Docstring
         self.log = logging.getLogger(__name__)
         self.log.info('Calling __init__')
-        # TODO: Check if b_0 has an influence or is forgotten
         # Function for the phase of an elementary geometry:
         def get_elementary_phase(geometry, n, m, a):
             if geometry == 'disc':
@@ -108,23 +104,22 @@ class Kernel(object):
                 return 0.5 * (F_a(n-0.5, m-0.5) - F_a(n+0.5, m-0.5)
                             - F_a(n-0.5, m+0.5) + F_a(n+0.5, m+0.5))
         # Set basic properties:
-        self.dim = dim  # !!! size of the FOV, not the kernel (kernel is bigger)!
+        self.dim_uv = dim_uv  # !!! size of the FOV, not the kernel (kernel is bigger)!
         self.a = a
         self.numcore = numcore
         self.geometry = geometry
-        self.b_0 = b_0
         # Calculate kernel (single pixel phase):
-        coeff = -a**2 * b_0 / (2*PHI_0)
-        v_dim, u_dim = dim
+        coeff = -a**2 / (2*PHI_0)
+        v_dim, u_dim = dim_uv
         u = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
         v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
         uu, vv = np.meshgrid(u, v)
         self.u = coeff * get_elementary_phase(geometry, uu, vv, a)
         self.v = coeff * get_elementary_phase(geometry, vv, uu, a)
         # Calculate Fourier trafo of kernel components:
-        dim_combined = 3*np.array(dim) - 1  # dim + (2*dim - 1) magnetisation + kernel
+        dim_combined = 3*np.array(dim_uv) - 1  # dim_uv + (2*dim_uv - 1) magnetisation + kernel
         self.dim_fft = 2 ** np.ceil(np.log2(dim_combined)).astype(int)  # next multiple of 2
-        self.slice_fft = (slice(dim[0]-1, 2*dim[0]-1), slice(dim[1]-1, 2*dim[1]-1))
+        self.slice_fft = (slice(dim_uv[0]-1, 2*dim_uv[0]-1), slice(dim_uv[1]-1, 2*dim_uv[1]-1))
         self.u_fft = np.fft.rfftn(self.u, self.dim_fft)
         self.v_fft = np.fft.rfftn(self.v, self.dim_fft)
         self.log.info('Created '+str(self))
@@ -132,6 +127,7 @@ class Kernel(object):
     def __call__(self, x):
         '''Test'''
         self.log.info('Calling __call__')
+#        print 'Kernel - __call__:', len(x)
         if self.numcore:
             return self._multiply_jacobi_core(x)
         else:
@@ -140,12 +136,13 @@ class Kernel(object):
 
     def __repr__(self):
         self.log.info('Calling __repr__')
-        return '%s(a=%r, dim=%r, b_0=%r, numcore=%r, geometry=%r)' % \
-            (self.__class__, self.a, self.dim, self.b_0, self.numcore, self.geometry)
+        return '%s(a=%r, dim_uv=%r, numcore=%r, geometry=%r)' % \
+            (self.__class__, self.a, self.dim_uv, self.numcore, self.geometry)
 
     def jac_dot(self, vector):
         '''TEST'''# TODO: Docstring
         self.log.info('Calling jac_dot')
+#        print 'Kernel - jac_dot:', len(vector)
         if self.numcore:
             return self._multiply_jacobi_core(vector)
         else:
@@ -154,6 +151,7 @@ class Kernel(object):
     def jac_T_dot(self, vector):
         # TODO: Docstring
         self.log.info('Calling jac_dot_T')
+#        print 'Kernel - jac_T_dot:', len(vector)
         return self._multiply_jacobi_T(vector)
 
     def _multiply_jacobi(self, vector):
@@ -173,8 +171,8 @@ class Kernel(object):
 
         '''# TODO: move!
         self.log.info('Calling _multiply_jacobi')
-        v_dim, u_dim = self.dim
-        size = v_dim * u_dim
+        v_dim, u_dim = self.dim_uv
+        size = np.prod(self.dim_uv)
         assert len(vector) == 2*size, 'vector size not compatible!'
         result = np.zeros(size)
         for s in range(size):  # column-wise (two columns at a time, u- and v-component)
@@ -206,9 +204,9 @@ class Kernel(object):
 
         '''# TODO: move!
         self.log.info('Calling _multiply_jacobi_T')
-        v_dim, u_dim = self.dim
-        size = v_dim * u_dim
-        assert len(vector) == size, 'vector size not compatible!'
+        v_dim, u_dim = self.dim_uv
+        size = np.prod(self.dim_uv)
+        assert len(vector) == size, 'vector size not compatible! vector: {}, size: {}'.format(len(vector),size)
         result = np.zeros(2*size)
         for s in range(size):  # row-wise (two rows at a time, u- and v-component)
             i = s % u_dim
@@ -223,6 +221,6 @@ class Kernel(object):
 
     def _multiply_jacobi_core(self, vector):
         self.log.info('Calling _multiply_jacobi_core')
-        result = np.zeros(np.prod(self.dim))
-        core.multiply_jacobi_core(self.dim[0], self.dim[1], self.u, self.v, vector, result)
+        result = np.zeros(np.prod(self.dim_uv))
+        core.multiply_jacobi_core(self.dim_uv[0], self.dim_uv[1], self.u, self.v, vector, result)
         return result

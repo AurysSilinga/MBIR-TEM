@@ -30,7 +30,7 @@ class Projector(object):
 
     Attributes
     ----------
-    dim_2d : tuple (N=2)
+    dim_uv : tuple (N=2)
         Dimensions (v, u) of the projected grid.
     size_3d : int
         Number of voxels of the 3-dimensional grid.
@@ -48,26 +48,19 @@ class Projector(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def __init__(self, (dim_v, dim_u), weight, coeff):
+    def __init__(self, dim_uv, weight, coeff):
         self.log = logging.getLogger(__name__)
         self.log.info('Calling __init__')
-        self.dim_2d = (dim_v, dim_u)
+        self.dim_uv = dim_uv
         self.weight = weight
         self.coeff = coeff
         self.size_2d, self.size_3d = weight.shape
         self.log.info('Created '+str(self))
 
     def __call__(self, vector):
-        self.log.info('Calling as function')         
-        if len(vector) == 3*self.size_3d:  # mode == 'vector'
-            self.log.info('mode == vector')
-            return self._vector_field_projection(vector)
-        elif len(vector) == self.size_3d:  # mode == 'scalar'
-            self.log.info('mode == scalar')
-            return self._scalar_field_projection(vector)
-        else:
-            raise AssertionError('Vector size has to be suited either for ' \
-                                 'vector- or scalar-field-projection!')
+        self.log.info('Calling as function')
+#        print 'Projector - __call__:', len(vector)
+        return self.jac_dot(vector)
 
     def _vector_field_projection(self, vector):
         self.log.info('Calling _vector_field_projection')
@@ -79,18 +72,41 @@ class Projector(object):
         if self.coeff[0][1] != 0:  # y to u
             result[:size_2d] += self.coeff[0][1] * self.weight.dot(vector[size_3d:2*size_3d])
         if self.coeff[0][2] != 0:  # z to u
-            result[:size_2d] += self.coeff[0][2] * self.weight.dot(vector[2*size_3d])
+            result[:size_2d] += self.coeff[0][2] * self.weight.dot(vector[2*size_3d:])
         if self.coeff[1][0] != 0:  # x to v
             result[size_2d:] += self.coeff[1][0] * self.weight.dot(vector[:size_3d])
         if self.coeff[1][1] != 0:  # y to v
             result[size_2d:] += self.coeff[1][1] * self.weight.dot(vector[size_3d:2*size_3d])
         if self.coeff[1][2] != 0:  # z to v
-            result[size_2d:] += self.coeff[1][2] * self.weight.dot(vector[2*size_3d])
+            result[size_2d:] += self.coeff[1][2] * self.weight.dot(vector[2*size_3d:])
+        return result
+
+    def _vector_field_projection_T(self, vector):
+        self.log.info('Calling _vector_field_projection_T')
+        size_2d, size_3d = self.size_2d, self.size_3d
+        result = np.zeros(3*size_3d)
+        # Go over all possible component projections (z, y, x) to (u, v):
+        if self.coeff[0][0] != 0:  # x to u
+            result[:size_3d] += self.coeff[0][0] * self.weight.T.dot(vector[:size_2d])
+        if self.coeff[0][1] != 0:  # y to u
+            result[:size_3d] += self.coeff[0][1] * self.weight.T.dot(vector[size_2d:])
+        if self.coeff[0][2] != 0:  # z to u
+            result[size_3d:2*size_3d] += self.coeff[0][2] * self.weight.T.dot(vector[:size_2d])
+        if self.coeff[1][0] != 0:  # x to v
+            result[size_3d:2*size_3d] += self.coeff[1][0] * self.weight.T.dot(vector[size_2d:])
+        if self.coeff[1][1] != 0:  # y to v
+            result[2*size_3d:] += self.coeff[1][1] * self.weight.T.dot(vector[:size_2d])
+        if self.coeff[1][2] != 0:  # z to v
+            result[2*size_3d:] += self.coeff[1][2] * self.weight.T.dot(vector[size_2d:])
         return result
 
     def _scalar_field_projection(self, vector):
         self.log.info('Calling _scalar_field_projection')
         return np.array(self.weight.dot(vector))
+
+    def _scalar_field_projection_T(self, vector):
+        self.log.info('Calling _scalar_field_projection_T')
+        return np.array(self.weight.T.dot(vector))
 
     def jac_dot(self, vector):
         '''Multiply a `vector` with the jacobi matrix of this :class:`~.Projector` object.
@@ -109,7 +125,30 @@ class Projector(object):
 
         '''
         self.log.info('Calling jac_dot')
-        return self(vector)
+#        print 'Projector - jac_dot:', len(vector)
+        if len(vector) == 3*self.size_3d:  # mode == 'vector'
+            self.log.info('mode == vector')
+            return self._vector_field_projection(vector)
+        elif len(vector) == self.size_3d:  # mode == 'scalar'
+            self.log.info('mode == scalar')
+            return self._scalar_field_projection(vector)
+        else:
+            raise AssertionError('Vector size has to be suited either for ' \
+                                 'vector- or scalar-field-projection!')
+
+    def jac_T_dot(self, vector):
+        # TODO: Docstring!
+        self.log.info('Calling jac_T_dot') 
+#        print 'Projector - jac_T_dot:', len(vector)        
+        if len(vector) == 2*self.size_2d:  # mode == 'vector'
+            self.log.info('mode == vector')
+            return self._vector_field_projection_T(vector)
+        elif len(vector) == self.size_2d:  # mode == 'scalar'
+            self.log.info('mode == scalar')
+            return self._scalar_field_projection_T(vector)
+        else:
+            raise AssertionError('Vector size has to be suited either for ' \
+                                 'vector- or scalar-field-projection!')
 
 
 
@@ -124,7 +163,7 @@ class YTiltProjector(Projector):
 #
 #    Attributes
 #    ----------
-#    dim_2d : tuple (N=2)
+#    dim_uv : tuple (N=2)
 #        Dimensions (v, u) of the projected grid.
 #    size_3d : int
 #        Number of voxels of the 3-dimensional grid.
@@ -239,7 +278,7 @@ class SimpleProjector(Projector):
 #
 #    Attributes
 #    ----------
-#    dim_2d : tuple (N=2)
+#    dim_uv : tuple (N=2)
 #        Dimensions (v, u) of the projected grid.
 #    weight : :class:`~scipy.sparse.csr_matrix` (N=2)
 #        The weight matrix containing the weighting coefficients which determine the influence of

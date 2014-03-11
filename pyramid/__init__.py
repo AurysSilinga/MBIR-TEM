@@ -8,7 +8,7 @@ magcreator
 magdata
     Class for the storage of magnetization data.
 projector
-    Class for projections of given magnetization distribution.
+    Class for projecting given magnetization distributions.
 kernel
     Class for the kernel matrix representing one magnetized pixel.
 phasemapper

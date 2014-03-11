@@ -25,7 +25,7 @@ from pyramid.phasemapper import PMConvolve, PMFourier
 import shelve
 
 
-force_calculation = False
+force_calculation = True
 
 
 print '\nACCESS SHELVE'
@@ -133,6 +133,8 @@ else:
         print '------time (disc, real disc) =', data_disc_real_d[2, i]
         phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
         data_disc_real_d[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
+        print 'TIME:', data_disc_real_d[2, i]
+        print 'RMS%:', np.sqrt(np.mean(((phase_ana_disc-phase_num_disc).phase/phase_ana_disc.phase)**2))*100, '%'
 
         print '----CALCULATE RMS/DURATION HOMOG. MAGN. DISC'
         # Analytic solution:

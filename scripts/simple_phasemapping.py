@@ -15,7 +15,7 @@ from time import clock
 #import cProfile
 
 
-mag_data = MagData.load_from_netcdf4('../output/vtk data/rect_500x125x3.nc')
+mag_data = MagData.load_from_netcdf4('../output/vtk data/tube_90x30x30.nc')
 
 projector = SimpleProjector(mag_data.dim)
 

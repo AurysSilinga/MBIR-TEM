@@ -34,21 +34,24 @@ from pyramid.magdata import MagData
 
 
 
-def optimize_cg(self, data_collection, first_guess):
+def optimize_cg(data_collection, first_guess):
     # TODO: where should data_collection and first_guess go? here or __init__?
-    data = data_collection
+    data = data_collection  # TODO: name the parameter 'data' directly...
     mag_0 = first_guess
     x_0 = first_guess.mag_vec
     y = data.phase_vec
-    kern = Kernel(data.dim, data.a, data.b_0)
-    F = ForwardModel(data, kern)
+    kern = Kernel(data.a, data.dim_uv)
+    F = ForwardModel(data.projectors, kern, data.b_0)
     C = Costfunction(y, F)
 
-    result = minimize(C, x_0, method='CG', jac=C.jac, hessp=C.hess_dot)
+    result = minimize(C, x_0, method='Newton-CG', jac=C.jac, hessp=C.hess_dot,
+                      options={'maxiter':200, 'disp':True})
 
     x_opt = result.x
 
-    mag_opt = MagData(mag_0.a, np.zeros((3,)+mag_0.dim)).mag_vec = x_opt
+    mag_opt = MagData(mag_0.a, np.zeros((3,)+mag_0.dim))
+    
+    mag_opt.mag_vec = x_opt
 
     return mag_opt
 
