@@ -10,15 +10,17 @@ import numpy as np
 from numpy import pi
 
 from pyramid.magdata import MagData
-from pyramid.projector import YTiltProjector
+from pyramid.projector import YTiltProjector, XTiltProjector
 from pyramid.phasemapper import PMConvolve
-from pyramid.datacollection import DataCollection
+from pyramid.dataset import DataSet
+import pyramid.magcreator as mc
 
 from pyramid.kernel import Kernel
 from pyramid.forwardmodel import ForwardModel
 from pyramid.costfunction import Costfunction
+import pyramid.reconstruction as rc
 
-from scipy.sparse.linalg import cg
+from scipy.sparse.linalg import cg, LinearOperator
 
 
 ###################################################################################################
@@ -41,7 +43,7 @@ phase_maps = [pm(mag_data) for pm in phasemappers]
 
 dim_uv = dim[1:3]
 
-data_collection = DataCollection(a, dim_uv, b_0)
+data_collection = DataSet(a, dim_uv, b_0)
 
 [data_collection.append((phase_maps[i], projectors[i])) for i in range(count)]
 
@@ -100,7 +102,7 @@ phase_maps = [pm(mag_data) for pm in phasemappers]
 
 dim_uv = dim[1:3]
 
-data_collection = DataCollection(a, dim_uv, b_0)
+data_collection = DataSet(a, dim_uv, b_0)
 
 [data_collection.append((phase_maps[i], projectors[i])) for i in range(count)]
 
@@ -166,35 +168,40 @@ print('--STARTING RECONSTRUCTION')
 ###################################################################################################
 print('--Generating input phase_maps')
 
-a = 1.
+a = 10.
 b_0 = 1000.
-dim = (9, 9, 9)
-count = 8
+dim = (8, 8, 8)
+count = 32
 
 magnitude = np.zeros((3,)+dim)
-magnitude[0, int(dim[0]/2), int(dim[1]/2), int(dim[2]/2)] = 1.
+magnitude[:, 3:6, 3:6, 3:6] = 1# int(dim[0]/2), int(dim[1]/2), int(dim[2]/2)] = 1.
+magnitude = mc.create_mag_dist_vortex(mc.Shapes.disc(dim, (3.5, 3.5, 3.5), 3, 4))
 
 mag_data = MagData(a, magnitude)
 mag_data.quiver_plot3d()
 
-tilts = np.linspace(0, 2*pi, num=count, endpoint=False)
-projectors = [YTiltProjector(mag_data.dim, tilt) for tilt in tilts]
+tilts = np.linspace(0, 2*pi, num=count/2, endpoint=False)
+projectors = []
+projectors.extend([XTiltProjector(mag_data.dim, tilt) for tilt in tilts])
+projectors.extend([YTiltProjector(mag_data.dim, tilt) for tilt in tilts])
 phasemappers = [PMConvolve(mag_data.a, projector, b_0) for projector in projectors]
 phase_maps = [pm(mag_data) for pm in phasemappers]
 
-[phase_map.display_phase(title=u'Tilt series $(\phi = {:2.1f} \pi)$'.format(tilts[i]/pi))
-                         for i, phase_map in enumerate(phase_maps)]
+#[phase_map.display_phase(title=u'Tilt series $(\phi = {:2.1f} \pi)$'.format(tilts[i%(count/2)]/pi))
+#                         for i, phase_map in enumerate(phase_maps)]
 
 ###################################################################################################
 print('--Setting up data collection')
 
 dim_uv = dim[1:3]
 
+lam =  10. ** -10
+
 size_2d = np.prod(dim_uv)
 size_3d = np.prod(dim)
 
 
-data_collection = DataCollection(a, dim_uv, b_0)
+data_collection = DataSet(a, dim_uv, b_0)
 
 [data_collection.append((phase_maps[i], projectors[i])) for i in range(count)]
 
@@ -202,37 +209,62 @@ data = data_collection
 y = data.phase_vec
 kern = Kernel(data.a, data.dim_uv, data.b_0)
 F = ForwardModel(data.projectors, kern)
-C = Costfunction(y, F)
+C = Costfunction(y, F, lam)
 
 ###################################################################################################
 print('--Test simple solver')
 
-M = np.asmatrix([F.jac_dot(None, np.eye(3*size_3d)[:, i]) for i in range(3*size_3d)]).T
-lam = 1*10. ** -10
-MTM = M.T * M + lam * np.asmatrix(np.eye(3*size_3d))
+#M = np.asmatrix([F.jac_dot(None, np.eye(3*size_3d)[:, i]) for i in range(3*size_3d)]).T
+#MTM = M.T * M + lam * np.asmatrix(np.eye(3*size_3d))
+#A = MTM#np.array([F(np.eye(81)[:, i]) for i in range(81)])
 
-A = MTM#np.array([F(np.eye(81)[:, i]) for i in range(81)])
-
-b = F.jac_T_dot(None, y)
-
-b_test = np.asarray((M.T.dot(y)).T)[0]
-
-x_f = cg(A, b)[0]
-
-mag_data_rec = MagData(a, np.zeros((3,)+dim))
-
-mag_data_rec.mag_vec = x_f
-
-mag_data_rec.quiver_plot3d()
-
-phase_maps_rec = [pm(mag_data_rec) for pm in phasemappers]
-[phase_map.display_phase(title=u'Tilt series (rec.) $(\phi = {:2.1f} \pi)$'.format(tilts[i]/pi))
-                         for i, phase_map in enumerate(phase_maps_rec)]
-
-
-
-
+#class A_adapt(LinearOperator):
 #
+#    def __init__(self, FwdModel, lam, shape):
+#        self.fwd = FwdModel
+#        self.lam = lam
+#        self.shape = shape
+#
+#    def matvec(self, vector):
+#        return self.fwd.jac_T_dot(None, self.fwd.jac_dot(None, vector)) + self.lam*vector
+#
+#    @property
+#    def shape(self):
+#        return self.shape
+#
+#    @property
+#    def dtype(self):
+#        return np.dtype("d") # None #np.ones(1).dtype
+#
+## TODO: .shape in F und C
+#
+#b = F.jac_T_dot(None, y)
+#
+#A_fast = A_adapt(F, lam, (3*size_3d, 3*size_3d))
+#
+#i = 0
+#def printit(_):
+#    global i
+#    i += 1
+#    print i
+#
+#x_f, info = cg(A_fast, b, callback=printit)
+#
+#mag_data_rec = MagData(a, np.zeros((3,)+dim))
+#
+#mag_data_rec.mag_vec = x_f
+#
+#mag_data_rec.quiver_plot3d()
+
+#phase_maps_rec = [pm(mag_data_rec) for pm in phasemappers]
+#[phase_map.display_phase(title=u'Tilt series (rec.) $(\phi = {:2.1f} \pi)$'.format(tilts[i%(count/2)]/pi))
+#                         for i, phase_map in enumerate(phase_maps_rec)]
+
+mag_data_opt = rc.optimize_sparse_cg(data_collection)
+
+mag_data_opt.quiver_plot3d()
+
+
 #first_guess = MagData(a, np.zeros((3,)+dim))
 #
 #first_guess.magnitude[1, int(dim[0]/2), int(dim[1]/2), int(dim[2]/2)] = 1
@@ -252,6 +284,77 @@ phase_maps_rec = [pm(mag_data_rec) for pm in phasemappers]
 #
 #phase_opt.display_phase()
 
+
+
+###################################################################################################
+print('--Singular value decomposition')
+
+#a = 1.
+#b_0 = 1000.
+#dim = (3, 3, 3)
+#count = 8
+#
+#magnitude = np.zeros((3,)+dim)
+#magnitude[:, int(dim[0]/2), int(dim[1]/2), int(dim[2]/2)] = 1.
+#
+#mag_data = MagData(a, magnitude)
+#mag_data.quiver_plot3d()
+#
+#tilts = np.linspace(0, 2*pi, num=count/2, endpoint=False)
+#projectors = []
+#projectors.extend([XTiltProjector(mag_data.dim, tilt) for tilt in tilts])
+#projectors.extend([YTiltProjector(mag_data.dim, tilt) for tilt in tilts])
+#phasemappers = [PMConvolve(mag_data.a, projector, b_0) for projector in projectors]
+#phase_maps = [pm(mag_data) for pm in phasemappers]
+#
+##[phase_map.display_phase(title=u'Tilt series $(\phi = {:2.1f} \pi)$'.format(tilts[i%(count/2)]/pi))
+##                         for i, phase_map in enumerate(phase_maps)]
+#
+#dim_uv = dim[1:3]
+#
+#lam =  10. ** -10
+#
+#size_2d = np.prod(dim_uv)
+#size_3d = np.prod(dim)
+#
+#
+#data_collection = DataCollection(a, dim_uv, b_0)
+#
+#[data_collection.append((phase_maps[i], projectors[i])) for i in range(count)]
+#
+#data = data_collection
+#y = data.phase_vec
+#kern = Kernel(data.a, data.dim_uv, data.b_0)
+#F = ForwardModel(data.projectors, kern)
+#C = Costfunction(y, F, lam)
+#
+#mag_data_opt = opt.optimize_sparse_cg(data_collection)
+#mag_data_opt.quiver_plot3d()
+
+
+
+#M = np.asmatrix([F.jac_dot(None, np.eye(3*size_3d)[:, i]) for i in range(3*size_3d)]).T
+#MTM = M.T * M + lam * np.asmatrix(np.eye(3*size_3d))
+#A = MTM#np.array([F(np.eye(81)[:, i]) for i in range(81)])
+#
+#
+#
+#U, s, V = np.linalg.svd(M)
+##np.testing.assert_almost_equal(U.T, V, decimal=5)
+#
+#for value in range(20):
+#    print 'Singular value:', s[value]
+#    MagData(data.a, np.array(V[value,:]).reshape((3,)+dim)).quiver_plot3d()
+#
+#
+#for value in range(-10,0):
+#    print 'Singular value:', s[value]
+#    MagData(data.a, np.array(V[value,:]).reshape((3,)+dim)).quiver_plot3d()
+
+
+# TODO: print all singular vectors for a 2x2x2 distribution for each single and both tilt series!
+
+# TODO: Separate the script for SVD and compliance tests
 
 ####################################################################################################
 #print('--Further testing')
@@ -281,7 +384,7 @@ phase_maps_rec = [pm(mag_data_rec) for pm in phasemappers]
 #K = np.asmatrix(K)
 #lam = 10. ** -10
 #KTK = K.T * K + lam * np.asmatrix(np.eye(81))
-#print lam, 
+#print lam,
 ##print pylab.cond(KTK),
 #x_f = KTK.I * K.T * y
 #print (np.asarray(K * x_f - y) ** 2).sum(),

@@ -13,7 +13,10 @@ from numpy import pi
 
 from pyramid.phasemap import PhaseMap
 
+import logging
 
+
+LOG = logging.getLogger(__name__)
 PHI_0 = -2067.83  # magnetic flux in T*nm²
 
 
@@ -42,7 +45,7 @@ def phase_mag_slab(dim, a, phi, center, width, b_0=1):
         The phase as a 2-dimensional array.
 
     '''
-
+    LOG.debug('Calling phase_mag_slab')
     # Function for the phase:
     def phi_mag(x,  y):
         def F_0(x, y):
@@ -98,6 +101,7 @@ def phase_mag_disc(dim, a, phi, center, radius, height, b_0=1):
         The phase as a 2-dimensional array.
 
     '''
+    LOG.debug('Calling phase_mag_disc')
     # Function for the phase:
     def phi_mag(x, y):
         r = np.hypot(x - x0, y - y0)
@@ -145,6 +149,7 @@ def phase_mag_sphere(dim, a, phi, center, radius, b_0=1):
         The phase as a 2-dimensional array.
 
     '''
+    LOG.debug('Calling phase_mag_sphere')
     # Function for the phase:
     def phi_mag(x, y):
         r = np.hypot(x - x0, y - y0)
@@ -191,6 +196,7 @@ def phase_mag_vortex(dim, a, center, radius, height, b_0=1):
         The phase as a 2-dimensional array.
 
     '''
+    LOG.debug('Calling phase_mag_vortex')
     # Function for the phase:
     def phi_mag(x, y):
         r = np.hypot(x - x0, y - y0)

@@ -2,8 +2,6 @@
 """This module provides the :class:`~.PhaseMap` class for storing phase map data."""
 
 
-import logging
-
 import numpy as np
 from numpy import pi
 
@@ -17,6 +15,8 @@ from numbers import Number
 
 import netCDF4
 
+import logging
+
 
 class PhaseMap(object):
 
@@ -24,7 +24,7 @@ class PhaseMap(object):
 
     Represents 2-dimensional phase maps. The phase information itself is stored as a 2-dimensional
     matrix in `phase`, but can also be accessed as a vector via `phase_vec`. :class:`~.PhaseMap`
-    objects support negation, arithmetic operators (``+``, ``-``, ``*``) and their augmented 
+    objects support negation, arithmetic operators (``+``, ``-``, ``*``) and their augmented
     counterparts (``+=``, ``-=``, ``*=``), with numbers and other :class:`~.PhaseMap`
     objects, if their dimensions and grid spacings match. It is possible to load data from NetCDF4
     or textfiles or to save the data in these formats. Methods for plotting the phase or a
@@ -51,7 +51,7 @@ class PhaseMap(object):
 
     '''
 
-    log = logging.getLogger(__name__)
+    LOG = logging.getLogger(__name__)
 
     UNITDICT = {u'rad': 1E0,
                 u'mrad': 1E3,
@@ -92,10 +92,10 @@ class PhaseMap(object):
                            (0.50, 1.0, 1.0),
                            (0.75, 1.0, 1.0),
                            (1.00, 0.0, 0.0)]}
-    
+
     HOLO_CMAP = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT, 256)
     HOLO_CMAP_INV = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT_INV, 256)
-    
+
     @property
     def a(self):
         return self._a
@@ -104,8 +104,8 @@ class PhaseMap(object):
     def a(self, a):
         assert isinstance(a, Number), 'Grid spacing has to be a number!'
         assert a >= 0, 'Grid spacing has to be a positive number!'
-        self._a = a
-    
+        self._a = float(a)
+
     @property
     def dim_uv(self):
         return self._dim_uv
@@ -141,70 +141,70 @@ class PhaseMap(object):
         self._unit = unit
 
     def __init__(self, a, phase, unit='rad'):
+        self.LOG.debug('Calling __init__')
         self.a = a
         self.phase = phase
         self.unit = unit
-        self.log = logging.getLogger(__name__)
-        self.log.info('Created '+str(self))
+        self.LOG.debug('Created '+str(self))
 
     def __repr__(self):
-        self.log.info('Calling __repr__')
+        self.LOG.debug('Calling __repr__')
         return '%s(a=%r, phase=%r, unit=&r)' % \
             (self.__class__, self.a, self.phase, self.unit)
 
     def __str__(self):
-        self.log.info('Calling __str__')
+        self.LOG.debug('Calling __str__')
         return 'PhaseMap(a=%s, dim_uv=%s)' % (self.a, self.dim_uv)
 
     def __neg__(self):  # -self
-        self.log.info('Calling __neg__')
+        self.LOG.debug('Calling __neg__')
         return PhaseMap(self.a, -self.phase, self.unit)
-        
+
     def __add__(self, other):  # self + other
-        self.log.info('Calling __add__')
+        self.LOG.debug('Calling __add__')
         assert isinstance(other, (PhaseMap, Number)), \
             'Only PhaseMap objects and scalar numbers (as offsets) can be added/subtracted!'
         if isinstance(other, PhaseMap):
-            self.log.info('Adding two PhaseMap objects')
+            self.LOG.debug('Adding two PhaseMap objects')
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
             assert other.phase.shape == self.dim_uv, \
                 'Added magnitude has to have the same dimensions!'
             return PhaseMap(self.a, self.phase+other.phase, self.unit)
         else:  # other is a Number
-            self.log.info('Adding an offset')
+            self.LOG.debug('Adding an offset')
             return PhaseMap(self.a, self.phase+other, self.unit)
 
     def __sub__(self, other):  # self - other
-        self.log.info('Calling __sub__')
+        self.LOG.debug('Calling __sub__')
         return self.__add__(-other)
 
     def __mul__(self, other):  # self * other
-        self.log.info('Calling __mul__')
+        self.LOG.debug('Calling __mul__')
         assert isinstance(other, Number), 'PhaseMap objects can only be multiplied by numbers!'
         return PhaseMap(self.a, other*self.phase, self.unit)
 
     def __radd__(self, other):  # other + self
-        self.log.info('Calling __radd__')
+        self.LOG.debug('Calling __radd__')
         return self.__add__(other)
 
     def __rsub__(self, other):  # other - self
-        self.log.info('Calling __rsub__')
+        self.LOG.debug('Calling __rsub__')
         return -self.__sub__(other)
 
     def __rmul__(self, other):  # other * self
-        self.log.info('Calling __rmul__')
+        self.LOG.debug('Calling __rmul__')
         return self.__mul__(other)
-    
+
     def __iadd__(self, other):  # self += other
-        self.log.info('Calling __iadd__')
+        self.LOG.debug('Calling __iadd__')
         return self.__add__(other)
 
     def __isub__(self, other):  # self -= other
-        self.log.info('Calling __isub__')
+        self.LOG.debug('Calling __isub__')
         return self.__sub__(other)
 
     def __imul__(self, other):  # self *= other
-        self.log.info('Calling __imul__')
+        self.LOG.debug('Calling __imul__')
         return self.__mul__(other)
 
     def save_to_txt(self, filename='..\output\phasemap_output.txt'):
@@ -221,7 +221,7 @@ class PhaseMap(object):
         None
 
         '''
-        self.log.info('Calling save_to_txt')
+        self.LOG.debug('Calling save_to_txt')
         with open(filename, 'w') as phase_file:
             phase_file.write('{}\n'.format(filename.replace('.txt', '')))
             phase_file.write('grid spacing = {} nm\n'.format(self.a))
@@ -242,7 +242,7 @@ class PhaseMap(object):
             A :class:`~.PhaseMap` object containing the loaded data.
 
         '''
-        cls.log.info('Calling load_from_txt')
+        cls.LOG.debug('Calling load_from_txt')
         with open(filename, 'r') as phase_file:
             phase_file.readline()  # Headerline is not used
             a = float(phase_file.readline()[15:-4])
@@ -263,7 +263,7 @@ class PhaseMap(object):
         None
 
         '''
-        self.log.info('Calling save_to_netcdf4')
+        self.LOG.debug('Calling save_to_netcdf4')
         phase_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
         phase_file.a = self.a
         phase_file.createDimension('v_dim', self.dim_uv[0])
@@ -287,7 +287,7 @@ class PhaseMap(object):
             A :class:`~.PhaseMap` object containing the loaded data.
 
         '''
-        cls.log.info('Calling load_from_netcdf4')
+        cls.LOG.debug('Calling load_from_netcdf4')
         phase_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = phase_file.a
         phase = phase_file.variables['phase'][:]
@@ -307,7 +307,7 @@ class PhaseMap(object):
             The default is 'RdBu'.
         limit : float, optional
             Plotlimit for the phase in both negative and positive direction (symmetric around 0).
-            If not specified, the maximum amplitude the phase is used.
+            If not specified, the maximum amplitude of the phase is used.
         norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
             Norm, which is used to determine the colors to encode the phase information.
             If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
@@ -322,7 +322,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         '''
-        self.log.info('Calling display_phase')
+        self.LOG.debug('Calling display_phase')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[self.unit]
         if limit is None:
@@ -374,7 +374,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         '''
-        self.log.info('Calling display_phase3d')
+        self.LOG.debug('Calling display_phase3d')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[self.unit]
         # Create figure and axis:
@@ -395,11 +395,11 @@ class PhaseMap(object):
         plt.show()
         # Return plotting axis:
         return axis
-    
+
     def display_holo(self, density=1, title='Holographic Contour Map',
-                     axis=None, grad_encode='dark', interpolation='none', show=True):
+                     axis=None, grad_encode='bright', interpolation='none', show=True):
         '''Display the color coded holography image.
-    
+
         Parameters
         ----------
         density : float, optional
@@ -408,42 +408,51 @@ class PhaseMap(object):
             The title of the plot. The default is 'Holographic Contour Map'.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
+        grad_encode: {'bright', 'dark', 'color', 'none'}, optional
+            Encoding mode of the phase gradient. 'none' produces a black-white image, 'color' just
+            encodes the direction (without gradient strength), 'dark' modulates the gradient
+            strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
+            the gradient strength with color saturation.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method. No interpolation is used in the default case.
         show: bool, optional
             A switch which determines if the plot is shown at the end of plotting.
-    
+
         Returns
         -------
         axis: :class:`~matplotlib.axes.AxesSubplot`
             The axis on which the graph is plotted.
-    
-        '''# TODO: Docstring saturation!
-        self.log.info('Calling display_holo')
+
+        '''
+        self.LOG.debug('Calling display_holo')
         # Calculate the holography image intensity:
         img_holo = (1 + np.cos(density * self.phase)) / 2
         # Calculate the phase gradients, expressed by magnitude and angle:
         phase_grad_y, phase_grad_x = np.gradient(self.phase, self.a, self.a)
         phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
         phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)
-        if phase_magnitude.max() != 0:
+        if phase_magnitude.max() != 0:  # Take care of phase maps with only zeros
             saturation = np.sin(phase_magnitude/phase_magnitude.max() * pi / 2)
             phase_saturation = np.dstack((saturation,)*4)
         # Color code the angle and create the holography image:
         if grad_encode == 'dark':
+            self.LOG.debug('gradient encoding: dark')
             rgba = self.HOLO_CMAP(phase_angle)
             rgb = (255.999 * img_holo.T * saturation.T * rgba[:, :, :3].T).T.astype(np.uint8)
         elif grad_encode == 'bright':
+            self.LOG.debug('gradient encoding: bright')
             rgba = self.HOLO_CMAP(phase_angle)+(1-phase_saturation)*self.HOLO_CMAP_INV(phase_angle)
             rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
         elif grad_encode == 'color':
+            self.LOG.debug('gradient encoding: color')
             rgba = self.HOLO_CMAP(phase_angle)
             rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
         elif grad_encode == 'none':
+            self.LOG.debug('gradient encoding: none')
             rgba = self.HOLO_CMAP(phase_angle)+self.HOLO_CMAP_INV(phase_angle)
             rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
         else:
-            raise AssertionError('Gradient encoding not recognized!') 
+            raise AssertionError('Gradient encoding not recognized!')
         holo_image = Image.fromarray(rgb)
         # If no axis is specified, a new figure is created:
         if axis is None:
@@ -469,26 +478,41 @@ class PhaseMap(object):
         return axis
 
     def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
-                         density=1, interpolation='none', grad_encode='dark'):
+                         density=1, interpolation='none', grad_encode='bright'):
         '''Display the phase map and the resulting color coded holography image in one plot.
-    
+
         Parameters
         ----------
-        density : float, optional
-            The gain factor for determining the number of contour lines. The default is 1.
         title : string, optional
             The title of the plot. The default is 'Combined Plot'.
+        cmap : string, optional
+            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
+            The default is 'RdBu'.
+        limit : float, optional
+            Plotlimit for the phase in both negative and positive direction (symmetric around 0).
+            If not specified, the maximum amplitude of the phase is used.
+        norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
+            Norm, which is used to determine the colors to encode the phase information.
+            If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
+        density : float, optional
+            The gain factor for determining the number of contour lines in the holographic
+            contour map. The default is 1.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method for the holographic contour map.
             No interpolation is used in the default case.
-    
+        grad_encode: {'bright', 'dark', 'color', 'none'}, optional
+            Encoding mode of the phase gradient. 'none' produces a black-white image, 'color' just
+            encodes the direction (without gradient strength), 'dark' modulates the gradient
+            strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
+            the gradient strength with color saturation.
+
         Returns
         -------
         phase_axis, holo_axis: :class:`~matplotlib.axes.AxesSubplot`
             The axes on which the graphs are plotted.
-    
-        '''# TODO: Docstring grad_encode!
-        self.log.info('Calling display_combined')
+
+        '''
+        self.LOG.debug('Calling display_combined')
         # Create combined plot and set title:
         fig = plt.figure(figsize=(16, 7))
         fig.suptitle(title, fontsize=20)
@@ -507,17 +531,17 @@ class PhaseMap(object):
     @classmethod
     def make_color_wheel(cls):
         '''Display a color wheel to illustrate the color coding of the gradient direction.
-    
+
         Parameters
         ----------
         None
-    
+
         Returns
         -------
         None
-    
+
         '''
-        cls.log.info('Calling make_color_wheel')
+        cls.LOG.debug('Calling make_color_wheel')
         x = np.linspace(-256, 256, num=512)
         y = np.linspace(-256, 256, num=512)
         xx, yy = np.meshgrid(x, y)

@@ -5,10 +5,10 @@
 import os
 import unittest
 
-import pyramid.reconstructor as rc
+import pyramid.reconstruction as rc
 
 
-class TestCaseReconstructor(unittest.TestCase):
+class TestCaseReconstruction(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
@@ -21,5 +21,5 @@ class TestCaseReconstructor(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseReconstructor)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseReconstruction)
     unittest.TextTestRunner(verbosity=2).run(suite)

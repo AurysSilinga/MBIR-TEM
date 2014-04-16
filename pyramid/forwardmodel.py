@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Jan 06 14:02:18 2014
-
-@author: Jan
-"""
+"""This module provides the :class:`~.ForwardModel` class which represents a strategy to map a
+threedimensional magnetization distribution onto a two-dimensional phase map."""
 
 
 import numpy as np
@@ -11,8 +8,40 @@ import numpy as np
 from pyramid.kernel import Kernel
 from pyramid.projector import Projector
 
+import logging
+
+
 class ForwardModel:
-    # TODO: Docstring!
+
+    '''Class for mapping 3D magnetic distributions to 2D phase maps.
+
+    Represents a strategy for the mapping of a 3D magnetic distribution to two-dimensional
+    phase maps. Can handle a list of `projectors` of :class:`~.Projector` objects, which describe
+    different projection angles, so many phase_maps can be created from one magnetic distribution.
+
+    Attributes
+    ----------
+    projectors : list of :class:`~.Projector`
+        A list of all :class:`~.Projector` objects representing the projection directions.
+    kernel : :class:`~.Kernel`
+        A kernel which describes the phasemapping of the 2D projected magnetization distribution.
+    a : float
+        The grid spacing in nm. Will be extracted from the `kernel`.
+    dim : tuple (N=3)
+        Dimensions of the 3D magnetic distribution. Is extracted from the first projector of the
+        `projectors` list.
+    dim_uv: tuple (N=2)
+        Dimensions of the projected grid. Is extracted from the `kernel`.
+    size_3d : int
+        Number of voxels of the 3-dimensional grid. Is extracted from the first projector of the
+        `projectors` list. Is extracted from the first projector of the `projectors` list.
+    size_2d : int
+        Number of pixels of the 2-dimensional projected grid. Is extracted from the first projector
+        of the `projectors` list. Is extracted from the first projector of the `projectors` list.
+
+    '''
+
+    LOG = logging.getLogger(__name__+'.ForwardModel')
 
     @property
     def projectors(self):
@@ -34,40 +63,80 @@ class ForwardModel:
         self._kernel = kernel
 
     def __init__(self, projectors, kernel):
-        # TODO: Docstring!
+        self.LOG.debug('Calling __init__')
         self.kernel = kernel
         self.a = kernel.a
-        self.dim_uv = kernel.dim_uv
         self.projectors = projectors
+        self.dim = self.projectors[0].dim
+        self.dim_uv = kernel.dim_uv
+        self.size_2d = self.projectors[0].size_2d
+        self.size_3d = self.projectors[0].size_3d
+        self.LOG.debug('Creating '+str(self))
 
     def __call__(self, x):
-        # TODO: Docstring!
-#        print 'FWD Model - __call__ -  input: ', len(x)
-        result = [self.kernel.jac_dot(projector.jac_dot(x)) for projector in self.projectors]
-        result = np.reshape(result, -1)
-#        print 'FWD Model - __call__ -  output:', len(result)
-        return result
-
-    # TODO: jac_dot ausschreiben!!!
+        self.LOG.debug('Calling __call__')
+        result = [self.kernel(projector(x)) for projector in self.projectors]
+        return np.reshape(result, -1)
 
     def jac_dot(self, x, vector):
-        # TODO: Docstring! multiplication with the jacobi-matrix (may depend on x)
-#        print 'FWD Model - jac_dot - input: ', len(vector)
+        '''Calculate the product of the Jacobi matrix with a given `vector`.
+
+        Parameters
+        ----------
+        x : :class:`~numpy.ndarray` (N=1)
+            Evaluation point of the jacobi-matrix. The Jacobi matrix is constant for a linear
+            problem, thus `x` can be set to None (it is not used int the computation). It is
+            implemented for the case that in the future nonlinear problems have to be solved.
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vectorized form of the 3D magnetization distribution. First the `x`, then the `y` and
+            lastly the `z` components are listed.
+
+        Returns
+        -------
+        result_vector : :class:`~numpy.ndarray` (N=1)
+            Product of the Jacobi matrix (which is not explicitely calculated) with the input
+            `vector`.
+
+        '''
+        self.LOG.debug('Calling jac_dot')
+        result = [self.kernel.jac_dot(projector.jac_dot(x)) for projector in self.projectors]
+        result = np.reshape(result, -1)
+        return result
         result = self(vector)
-#        print 'FWD Model - jac_dot - output:', len(result)
-        return result  # The jacobi-matrix does not depend on x in a linear problem
-    
+        return result
+
     def jac_T_dot(self, x, vector):
-        # TODO: Docstring! multiplication with the jacobi-matrix (may depend on x)
-        # The jacobi-matrix does not depend on x in a linear problem
-#        print 'FWD Model - jac_T_dot - input: ', len(vector)
+        ''''Calculate the product of the transposed Jacobi matrix with a given `vector`.
+
+        Parameters
+        ----------
+        x : :class:`~numpy.ndarray` (N=1)
+            Evaluation point of the jacobi-matrix. The jacobi matrix is constant for a linear
+            problem, thus `x` can be set to None (it is not used int the computation). Is used
+            for the case that in the future nonlinear problems have to be solved.
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vectorized form of all 2D phase maps one after another in one vector.
+
+        Returns
+        -------
+        result_vector : :class:`~numpy.ndarray` (N=1)
+            Product of the transposed Jacobi matrix (which is not explicitely calculated) with
+            the input `vector`.
+
+        '''
+        self.LOG.debug('Calling jac_T_dot')
         size_3d = self.projectors[0].size_3d
         size_2d = np.prod(self.dim_uv)
         result = np.zeros(3*size_3d)
         for (i, projector) in enumerate(self.projectors):
             result += projector.jac_T_dot(self.kernel.jac_T_dot(vector[i*size_2d:(i+1)*size_2d]))
-#        result = [projector.jac_T_dot(self.kernel.jac_T_dot(vector[i*size_2d:(i+1)*size_2d]))
-#                  for (i, projector) in enumerate(self.projectors)]
-        result = np.reshape(result, -1)
-#        print 'FWD Model - jac_T_dot - output:', len(result)
-        return result
+        return np.reshape(result, -1)
+
+    def __repr__(self):
+        self.LOG.debug('Calling __repr__')
+        return '%s(projectors=%r, kernel=%r)' % (self.__class__, self.projectors, self.kernel)
+
+    def __str__(self):
+        self.LOG.debug('Calling __str__')
+        return 'ForwardModel(%s -> %s, %s projections, kernel=%s)' % \
+            (self.dim, self.dim_uv, len(self.projectors), self.kernel)

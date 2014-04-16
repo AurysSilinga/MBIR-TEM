@@ -9,7 +9,7 @@ Created on Tue Jan 28 15:15:08 2014
 import numpy as np
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMAdapterFM
+from pyramid.phasemapper import PMAdapterFM, PMFourier
 from matplotlib.ticker import FuncFormatter
 
 data = np.loadtxt('../output/data from Edinburgh/long_grain_remapped_0p0035.txt', delimiter=',')
@@ -28,17 +28,18 @@ magnitude = np.array((x_mag, y_mag, z_mag))
 
 mag_data = MagData(a, magnitude)
 
-mag_data.pad(30, 20, 0)
-
-mag_data.scale_up()
-
-mag_data.quiver_plot()
+#mag_data.pad(30, 20, 0)
+#
+#mag_data.scale_up()
+#
+#mag_data.quiver_plot()
 
 #mag_data.quiver_plot3d()
 
 projector = SimpleProjector(mag_data.dim)
 
 phasemapper = PMAdapterFM(mag_data.a, projector)
+phasemapper = PMFourier(mag_data.a, projector, padding = 1)
 
 phase_map = phasemapper(mag_data)
 

@@ -17,10 +17,10 @@ pyramid Package
     :show-inheritance:
 	:special-members:
 
-:mod:`datacollection` Module
+:mod:`dataset` Module
 ----------------------------
 
-.. automodule:: pyramid.datacollection
+.. automodule:: pyramid.dataset
     :members:
     :show-inheritance:
 	:special-members:

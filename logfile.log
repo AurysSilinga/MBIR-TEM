@@ -1,0 +1,3 @@
+2014-04-10 16:49:29: DEBUG    @ <apptools.preferences.preferences>:    loading preferences from <C:\Users\Jan\AppData\Roaming\Enthought\mayavi_e3\preferences.ini>
+2014-04-10 16:49:29: DEBUG    @ <apptools.preferences.preferences>:    loading preferences from <<open file 'C:\\Python27\\lib\\site-packages\\mayavi\\preferences\\preferences.ini', mode 'rb' at 0x04D00F98>>
+2014-04-10 16:49:29: DEBUG    @ <apptools.preferences.preferences>:    loading preferences from <<open file 'C:\\Python27\\lib\\site-packages\\tvtk\\plugins\\scene\\preferences.ini', mode 'rb' at 0x050F85A0>>

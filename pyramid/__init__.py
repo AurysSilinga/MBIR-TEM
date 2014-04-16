@@ -17,15 +17,13 @@ phasemap
     Class for the storage of phase data.
 analytic
     Create phase maps for magnetic distributions with analytic solutions.
-datacollection
+dataset
     Class for collecting pairs of phase maps and corresponding projectors.
 forwardmodel
     Class which represents a phase mapping strategy.
 costfunction
     Class for the evaluation of the cost of a function.
-optimizer
-    Provides strategies for optimizing first guess magnetic distributions.
-reconstructor
+reconstruction
     Reconstruct magnetic distributions from given phasemaps.
 
 Subpackages
@@ -35,6 +33,8 @@ numcore
 
 """
 
+# TODO: logging setup at script level, only logging itself should be done in the package
+# maybe include in startup script!
 
 import logging, logging.config
 import os
@@ -43,4 +43,4 @@ import os
 LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logging.ini')
 
 
-logging.config.fileConfig(LOGGING_CONF)
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)

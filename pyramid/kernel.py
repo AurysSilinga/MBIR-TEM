@@ -3,58 +3,40 @@
 single magnetized pixel."""
 
 
-import logging
-
 import numpy as np
 
 import pyramid.numcore.kernel_core as core
 
+import logging
+
 
 PHI_0 = -2067.83    # magnetic flux in T*nm²
-# TODO: sign?
 
 
 class Kernel(object):
 
     '''Class for calculating kernel matrices for the phase calculation.
-    
-    
-    
-    This module provides the :class:`~.Kernel` class whose instances can be used to calculate and
-    store the kernel matrix representing the phase of a single pixel for the convolution used in the
-    phase calculation. The phasemap of a single pixel for two orthogonal directions (`u` and `v`) are
-    stored seperately as 2-dimensional matrices. The Jacobi matrix of the phasemapping just depends
-    on the kernel and can be calculated via the :func:`~.get_jacobi` function. Storing the Jacobi
-    matrix uses much memory, thus it is also possible to directly get the multiplication of a given
-    vector with the (transposed) Jacobi matrix without explicit calculation of the latter.
-    It is possible to load data from and save them to NetCDF4 files. See :class:`~.Kernel` for further
-    information.
-    
 
     Represents the phase of a single magnetized pixel for two orthogonal directions (`u` and `v`),
     which can be accessed via the corresponding attributes. The default elementary geometry is
     `disc`, but can also be specified as the phase of a `slab` representation of a single
     magnetized pixel. During the construction, a few attributes are calculated that are used in
-    the convolution during phase calculation.
-
-
-    An instance `kernel` of the :class:`~.Kernel` class is callable via:
-    
-    .. :function:: kernel(vector)
-        
-        do stuff
-        
-        :param str sender: do other stuff
-        :return: nix
-
-    with `vector` being a :class:`~numpy.ndarray` (N=1).
+    the convolution during phase calculation in the different :class:`~Phasemapper` classes.
+    An instance of the :class:`~.Kernel` class can be called as a function with a `vector`,
+    which represents the projected magnetization onto a 2-dimensional grid.
 
     Attributes
     ----------
-    dim_uv : tuple (N=2)
-        Dimensions of the projected magnetization grid.
     a : float
         The grid spacing in nm.
+    dim_uv : tuple of int (N=2)
+        Dimensions of the 2-dimensional projected magnetization grid from which the phase should
+        be calculated.
+    b_0 : float, optional
+        Saturation magnetization in Tesla, which is used for the phase calculation. Default is 1.
+    numcore : boolean, optional
+        Boolean choosing if Cython enhanced routines from the :module:`~.pyramid.numcore` module
+        should be used. Default is True.
     geometry : {'disc', 'slab'}, optional
         The elementary geometry of the single magnetized pixel.
     u : :class:`~numpy.ndarray` (N=3)
@@ -65,7 +47,7 @@ class Kernel(object):
         The real FFT of the phase contribution of one pixel magnetized in u-direction.
     v_fft : :class:`~numpy.ndarray` (N=3)
         The real FFT of the phase contribution of one pixel magnetized in v-direction.
-    dim_fft : tuple (N=2)
+    dim_fft : tuple of int (N=2)
         Dimensions of the grid, which is used for the FFT. Calculated by adding the dimensions
         `dim_uv` of the magnetization grid and the dimensions of the kernel (given by
         ``2*dim_uv-1``)
@@ -74,23 +56,12 @@ class Kernel(object):
         A tuple of :class:`slice` objects to extract the original field of view from the increased
         size (`size_fft`) of the grid for the FFT-convolution.
 
-    '''# TODO: Can be used for several PhaseMappers via the fft arguments or via calling!
-    
+    '''
+
+    LOG = logging.getLogger(__name__+'.Kernel')
+
     def __init__(self, a, dim_uv, b_0=1., numcore=True, geometry='disc'):
-        '''Constructor for a :class:`~.Kernel` object for representing a kernel matrix.
-
-        Parameters
-        ----------
-        a : float
-            The grid spacing in nm.
-        dim_uv : tuple (N=2)
-            Dimensions of the projected magnetization grid.
-        geometry : {'disc', 'slab'}, optional
-            The elementary geometry of the single magnetized pixel.
-
-        ''' # TODO: Docstring
-        self.log = logging.getLogger(__name__)
-        self.log.info('Calling __init__')
+        self.LOG.debug('Calling __init__')
         # Function for the phase of an elementary geometry:
         def get_elementary_phase(geometry, n, m, a):
             if geometry == 'disc':
@@ -104,7 +75,7 @@ class Kernel(object):
                 return 0.5 * (F_a(n-0.5, m-0.5) - F_a(n+0.5, m-0.5)
                             - F_a(n-0.5, m+0.5) + F_a(n+0.5, m+0.5))
         # Set basic properties:
-        self.dim_uv = dim_uv  # !!! size of the FOV, not the kernel (kernel is bigger)!
+        self.dim_uv = dim_uv  # Size of the FOV, not the kernel (kernel is bigger)!
         self.a = a
         self.numcore = numcore
         self.geometry = geometry
@@ -122,39 +93,30 @@ class Kernel(object):
         self.slice_fft = (slice(dim_uv[0]-1, 2*dim_uv[0]-1), slice(dim_uv[1]-1, 2*dim_uv[1]-1))
         self.u_fft = np.fft.rfftn(self.u, self.dim_fft)
         self.v_fft = np.fft.rfftn(self.v, self.dim_fft)
-        self.log.info('Created '+str(self))
-
-    def __call__(self, x):
-        '''Test'''
-        self.log.info('Calling __call__')
-#        print 'Kernel - __call__:', len(x)
-        if self.numcore:
-            return self._multiply_jacobi_core(x)
+        if numcore:
+            self.LOG.debug('numcore activated')
+            self._multiply_jacobi_method = self._multiply_jacobi_core
         else:
-            return self._multiply_jacobi(x)
-        # TODO: Bei __init__ variable auf die entsprechende Funktion setzen.
+            self._multiply_jacobi_method = self._multiply_jacobi
+        self.LOG.debug('Created '+str(self))
+
 
     def __repr__(self):
-        self.log.info('Calling __repr__')
+        self.LOG.debug('Calling __repr__')
         return '%s(a=%r, dim_uv=%r, numcore=%r, geometry=%r)' % \
             (self.__class__, self.a, self.dim_uv, self.numcore, self.geometry)
 
+    def __str__(self):
+        self.LOG.debug('Calling __str__')
+        return 'Kernel(a=%s, dim_uv=%s, numcore=%s, geometry=%s)' % \
+            (self.a, self.dim_uv, self.numcore, self.geometry)
+
+    def __call__(self, x):
+        '''Test'''
+        self.LOG.debug('Calling __call__')
+        return self._multiply_jacobi_method(x)
+
     def jac_dot(self, vector):
-        '''TEST'''# TODO: Docstring
-        self.log.info('Calling jac_dot')
-#        print 'Kernel - jac_dot:', len(vector)
-        if self.numcore:
-            return self._multiply_jacobi_core(vector)
-        else:
-            return self._multiply_jacobi(vector)
-
-    def jac_T_dot(self, vector):
-        # TODO: Docstring
-        self.log.info('Calling jac_dot_T')
-#        print 'Kernel - jac_T_dot:', len(vector)
-        return self._multiply_jacobi_T(vector)
-
-    def _multiply_jacobi(self, vector):
         '''Calculate the product of the Jacobi matrix with a given `vector`.
 
         Parameters
@@ -163,14 +125,38 @@ class Kernel(object):
             Vectorized form of the magnetization in `u`- and `v`-direction of every pixel
             (row-wise). The first ``N**2`` elements have to correspond to the `u`-, the next
             ``N**2`` elements to the `v`-component of the magnetization.
-        
+
         Returns
         -------
         result : :class:`~numpy.ndarray` (N=1)
             Product of the Jacobi matrix (which is not explicitely calculated) with the vector.
 
-        '''# TODO: move!
-        self.log.info('Calling _multiply_jacobi')
+        '''
+        self.LOG.debug('Calling jac_dot')
+        return self._multiply_jacobi_method(vector)
+
+    def jac_T_dot(self, vector):
+        '''Calculate the product of the transposed Jacobi matrix with a given `vector`.
+
+        Parameters
+        ----------
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vectorized form of the magnetization in `u`- and `v`-direction of every pixel
+            (row-wise). The first ``N**2`` elements have to correspond to the `u`-, the next
+            ``N**2`` elements to the `v`-component of the magnetization.
+
+        Returns
+        -------
+        result : :class:`~numpy.ndarray` (N=1)
+            Product of the transposed Jacobi matrix (which is not explicitely calculated) with
+            the vector.
+
+        '''
+        self.LOG.debug('Calling jac_dot_T')
+        return self._multiply_jacobi_T(vector)
+
+    def _multiply_jacobi(self, vector):
+        self.LOG.debug('Calling _multiply_jacobi')
         v_dim, u_dim = self.dim_uv
         size = np.prod(self.dim_uv)
         assert len(vector) == 2*size, 'vector size not compatible!'
@@ -187,26 +173,11 @@ class Kernel(object):
         return result
 
     def _multiply_jacobi_T(self, vector):
-        '''Calculate the product of the transposed Jacobi matrix with a given `vector`.
-
-        Parameters
-        ----------
-        vector : :class:`~numpy.ndarray` (N=1)
-            Vectorized form of the magnetization in `u`- and `v`-direction of every pixel
-            (row-wise). The first ``N**2`` elements have to correspond to the `u`-, the next
-            ``N**2`` elements to the `v`-component of the magnetization.
-        
-        Returns
-        -------
-        result : :class:`~numpy.ndarray` (N=1)
-            Product of the transposed Jacobi matrix (which is not explicitely calculated) with
-            the vector.
-
-        '''# TODO: move!
-        self.log.info('Calling _multiply_jacobi_T')
+        self.LOG.debug('Calling _multiply_jacobi_T')
         v_dim, u_dim = self.dim_uv
         size = np.prod(self.dim_uv)
-        assert len(vector) == size, 'vector size not compatible! vector: {}, size: {}'.format(len(vector),size)
+        assert len(vector) == size, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector),size)
         result = np.zeros(2*size)
         for s in range(size):  # row-wise (two rows at a time, u- and v-component)
             i = s % u_dim
@@ -220,7 +191,7 @@ class Kernel(object):
         return result
 
     def _multiply_jacobi_core(self, vector):
-        self.log.info('Calling _multiply_jacobi_core')
+        self.LOG.debug('Calling _multiply_jacobi_core')
         result = np.zeros(np.prod(self.dim_uv))
         core.multiply_jacobi_core(self.dim_uv[0], self.dim_uv[1], self.u, self.v, vector, result)
         return result
