@@ -3,52 +3,40 @@
 """Create magnetic distribution of alternating filaments"""
 
 
-import pdb
-import traceback
-import sys
 import os
 
+import numpy as np
 from numpy import pi
 
+import pyramid
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
 
-
-def create_alternating_filaments():
-    '''Calculate, display and save the magnetic distribution of alternating filaments to file.
-    Arguments:
-        None
-    Returns:
-        None
-
-    '''
-    directory = '../../output/magnetic distributions'
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    # Input parameters:
-    filename = directory + '/mag_dist_alt_filaments.txt'
-    dim = (1, 21, 21)  # in px (z, y, x)
-    a = 10.0  # in nm
-    phi = pi/2
-    spacing = 5
-    # Create empty MagData object:
-    mag_data = MagData(a)
-    count = int((dim[1]-1) / spacing) + 1
-    for i in range(count):
-        pos = i * spacing
-        mag_shape = mc.Shapes.filament(dim, (0, pos))
-        mag_data.add_magnitude(mc.create_mag_dist_homog(mag_shape, phi))
-        phi *= -1  # Switch the angle
-    # Plot magnetic distribution
-    mag_data.quiver_plot()
-    mag_data.save_to_llg(filename)
-#    print np.max(mag_data.magnitude)
+import logging
+import logging.config
 
 
-if __name__ == "__main__":
-    try:
-        create_alternating_filaments()
-    except:
-        type, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
+
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
+directory = '../../output/magnetic distributions'
+if not os.path.exists(directory):
+    os.makedirs(directory)
+# Input parameters:
+filename = directory + '/mag_dist_alt_filaments.txt'
+dim = (1, 21, 21)  # in px (z, y, x)
+a = 10.0  # in nm
+phi = pi/2
+spacing = 5
+# Create empty MagData object:
+mag_data = MagData(a, np.zeros((3,)+dim))
+count = int((dim[1]-1) / spacing) + 1
+for i in range(count):
+    pos = i * spacing
+    mag_shape = mc.Shapes.filament(dim, (0, pos))
+    mag_data += MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
+    phi *= -1  # Switch the angle
+# Plot magnetic distribution
+mag_data.quiver_plot()
+mag_data.save_to_llg(filename)

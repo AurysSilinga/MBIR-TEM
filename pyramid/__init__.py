@@ -33,14 +33,4 @@ numcore
 
 """
 
-# TODO: logging setup at script level, only logging itself should be done in the package
-# maybe include in startup script!
-
-import logging, logging.config
-import os
-
-
-LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logging.ini')
-
-
-logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
+from _version import __version__

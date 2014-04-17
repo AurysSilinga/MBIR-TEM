@@ -18,7 +18,7 @@ pyramid Package
 	:special-members:
 
 :mod:`dataset` Module
-----------------------------
+---------------------
 
 .. automodule:: pyramid.dataset
     :members:
@@ -57,10 +57,10 @@ pyramid Package
     :show-inheritance:
 	:special-members:
 
-:mod:`optimizer` Module
------------------------
+:mod:`reconstruction` Module
+----------------------------
 
-.. automodule:: pyramid.optimizer
+.. automodule:: pyramid.reconstruction
     :members:
     :show-inheritance:
 	:special-members:

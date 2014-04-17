@@ -39,8 +39,7 @@ class Projector(object):
     size_2d : int
         Number of pixels of the 2-dimensional projected grid.
     weight : :class:`~scipy.sparse.csr_matrix` (N=2)
-        The weight matrix containing the weighting coefficients describing the influence of all
-        3-dimensional voxels on the 2-dimensional pixels of the projection.
+        The weight matrix containing the weighting coefficients for the 3D to 2D mapping.
     coeff : list (N=2)
         List containing the six weighting coefficients describing the influence of the 3 components
         of a 3-dimensional vector field on the 2 projected components.
@@ -77,8 +76,8 @@ class Projector(object):
     def get_info(self):
         '''Get specific information about the projector as a string.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         None
 
         Returns
@@ -283,8 +282,8 @@ class XTiltProjector(Projector):
     def get_info(self):
         '''Get specific information about the projector as a string.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         None
 
         Returns
@@ -385,8 +384,8 @@ class YTiltProjector(Projector):
     def get_info(self):
         '''Get specific information about the projector as a string.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         None
 
         Returns
@@ -451,8 +450,8 @@ class SimpleProjector(Projector):
     def get_info(self):
         '''Get specific information about the projector as a string.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         None
 
         Returns

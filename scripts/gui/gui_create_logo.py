@@ -8,13 +8,11 @@ from numpy import pi
 from PyQt4 import QtCore, QtGui, uic
 
 import pyramid.magcreator as mc
-import pyramid.projector as pj
-import pyramid.phasemapper as pm
-import pyramid.holoimage as hi
+from pyramid.projector import SimpleProjector
+from pyramid.phasemapper import PMConvolve
 from pyramid.magdata import MagData
-from pyramid.phasemap import PhaseMap
 
-from gui.create_logo import Ui_CreateLogoWidget
+from create_logo import Ui_CreateLogoWidget
 
 
 class Overlay(QtGui.QWidget):
@@ -99,13 +97,7 @@ class WorkerThread(QtCore.QThread):
 
 
 def create_logo(dim, axis):
-    '''Calculate and display the Pyramid-Logo.
-    Arguments:
-        None
-    Returns:
-        None
-
-    '''
+    '''Calculate and display the Pyramid-Logo.'''
     # Input parameters:
     a = 10.0  # in nm
     phi = -pi/2  # in rad
@@ -121,9 +113,9 @@ def create_logo(dim, axis):
     mag_shape[0, ...] = np.logical_and(np.logical_and(left, right), bottom)
     # Create magnetic data, project it, get the phase map and display the holography image:
     mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
-    projection = pj.simple_axis_projection(mag_data)
-    phase_map = PhaseMap(a, pm.phase_mag_real(a, projection, 'slab'))
-    hi.display(hi.holo_image(phase_map, density), 'PYRAMID - LOGO', axis)
+    phase_map = PMConvolve(a, SimpleProjector(dim))(mag_data)
+    phase_map.display_holo(density, 'PYRAMID - LOGO', interpolation='bilinear',
+                           axis=axis, show=False)
 
 
 if __name__ == '__main__':

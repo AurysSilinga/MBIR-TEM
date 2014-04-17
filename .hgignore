@@ -11,4 +11,4 @@ syntax: glob
 output*
 build*
 Pyramid.egg-info*
-scripts/dyn_0090mT_dyn.h5_dat.h5
+logfile.log

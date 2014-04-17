@@ -3,10 +3,6 @@
 the so called `cost` of a threedimensional magnetization distribution."""
 
 
-# TODO: better names for variables (no uppercase, more than one letter)
-
-# TODO: Regularisation Class?
-
 import numpy as np
 
 from scipy.sparse.linalg import LinearOperator
@@ -15,7 +11,7 @@ from scipy.sparse import eye
 import logging
 
 
-class Costfunction:
+class Costfunction(object):
 
     '''Class for calculating the cost of a 3D magnetic distributions in relation to 2D phase maps.
 
@@ -29,8 +25,7 @@ class Costfunction:
     Attributes
     ----------
     y : :class:`~numpy.ndarray` (N=1)
-        Vector which lists all pixel values of all phase maps one after another. Usually gotten
-        via the :class:`~.DataSet` classes `phase_vec` property.
+        Vector which lists all pixel values of all phase maps one after another.
     fwd_model : :class:`~.ForwardModel`
         The Forward model instance which should be used for the simulation of the phase maps which
         will be compared to `y`.
@@ -123,8 +118,7 @@ class CFAdapterScipyCG(LinearOperator):
     Attributes
     ----------
     cost : :class:`~.Costfunction`
-        :class:`~.Costfunction` class which should be made usable in the
-        :func:`~.scipy.sparse.linalg.cg` function.
+        Costfunction which should be made usable in the :func:`~.scipy.sparse.linalg.cg` function.
 
     '''
 

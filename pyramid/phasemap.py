@@ -397,7 +397,7 @@ class PhaseMap(object):
         return axis
 
     def display_holo(self, density=1, title='Holographic Contour Map',
-                     axis=None, grad_encode='bright', interpolation='none', show=True):
+                     axis=None, grad_encode='dark', interpolation='none', show=True):
         '''Display the color coded holography image.
 
         Parameters
@@ -408,7 +408,7 @@ class PhaseMap(object):
             The title of the plot. The default is 'Holographic Contour Map'.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
-        grad_encode: {'bright', 'dark', 'color', 'none'}, optional
+        grad_encode: {'dark', 'bright', 'color', 'none'}, optional
             Encoding mode of the phase gradient. 'none' produces a black-white image, 'color' just
             encodes the direction (without gradient strength), 'dark' modulates the gradient
             strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
@@ -478,7 +478,7 @@ class PhaseMap(object):
         return axis
 
     def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
-                         density=1, interpolation='none', grad_encode='bright'):
+                         density=1, interpolation='none', grad_encode='dark'):
         '''Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -500,7 +500,7 @@ class PhaseMap(object):
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method for the holographic contour map.
             No interpolation is used in the default case.
-        grad_encode: {'bright', 'dark', 'color', 'none'}, optional
+        grad_encode: {'dark', 'bright', 'color', 'none'}, optional
             Encoding mode of the phase gradient. 'none' produces a black-white image, 'color' just
             encodes the direction (without gradient strength), 'dark' modulates the gradient
             strength with a factor between 0 and 1 and 'bright' (which is the default) encodes

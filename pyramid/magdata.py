@@ -245,6 +245,63 @@ class MagData(object):
                                 ((0, 0), (z_pad, z_pad), (y_pad, y_pad), (x_pad, x_pad)),
                                 mode='constant', constant_values=0)
 
+    def get_mask(self, threshold=0):
+        '''Mask all pixels where the amplitude of the magnetization lies above `threshold`.
+
+        Parameters
+        ----------
+        threshold : float, optional
+            A pixel only gets masked, if it lies above this threshold . The default is 0.
+
+        Returns
+        -------
+        mask : :class:`~numpy.ndarray` (N=3, boolean)
+            Mask of the pixels where the amplitude of the magnetization lies above `threshold`.
+
+        '''
+        return np.sqrt(np.sum(np.array(self.magnitude)**2, axis=0)) > threshold
+
+    def get_vector(self, mask):
+        '''Returns the magnetic components arranged in a vector, specified by a mask.
+
+        Parameters
+        ----------
+        mask : :class:`~numpy.ndarray` (N=3, boolean)
+            Masks the pixels from which the components should be taken.
+
+        Returns
+        -------
+        vector : :class:`~numpy.ndarray` (N=1)
+            The vector containing magnetization components of the specified pixels.
+            Order is: first all `x`-, then all `y`-, then all `z`-components.
+
+        '''
+        return np.concatenate([self.magnitude[2][mask],
+                               self.magnitude[1][mask],
+                               self.magnitude[0][mask]])
+
+    def set_vector(self, mask, vector):
+        '''Set the magnetic components of the masked pixels to the values specified by `vector`.
+
+        Parameters
+        ----------
+        mask : :class:`~numpy.ndarray` (N=3, boolean)
+            Masks the pixels from which the components should be taken.
+        vector : :class:`~numpy.ndarray` (N=1)
+            The vector containing magnetization components of the specified pixels.
+            Order is: first all `x`-, then all `y-, then all `z`-components.
+
+        Returns
+        -------
+        None
+
+        '''
+        assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
+        count = np.size(vector)/3
+        self.magnitude[2][mask] = vector[:count]  # x-component
+        self.magnitude[1][mask] = vector[count:2*count]  # y-component
+        self.magnitude[0][mask] = vector[2*count:]  # z-component
+
     def save_to_llg(self, filename='..\output\magdata_output.txt'):
         '''Save magnetization data in a file with LLG-format.
 

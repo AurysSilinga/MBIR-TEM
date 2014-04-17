@@ -13,8 +13,11 @@ the distribution.
 import numpy as np
 
 from scipy.sparse.linalg import cg
+from scipy.optimize import minimize, leastsq
 
 from pyramid.kernel import Kernel
+from pyramid.projector import SimpleProjector
+from pyramid.phasemapper import PMConvolve
 from pyramid.forwardmodel import ForwardModel
 from pyramid.costfunction import Costfunction, CFAdapterScipyCG
 from pyramid.magdata import MagData
@@ -115,3 +118,94 @@ def optimize_sparse_cg(data, verbosity=2):
     mag_opt = MagData(fwd_model.a, np.zeros((3,)+fwd_model.dim))
     mag_opt.mag_vec = x_opt
     return mag_opt
+
+
+def optimize_cg(data, first_guess):
+    '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
+    conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
+
+    Parameters
+    ----------
+    data : :class:`~.DataSet`
+        :class:`~.DataSet` object containing all phase maps in :class:`~.PhaseMap` objects and all
+        projection directions in :class:`~.Projector` objects. These provide the essential
+        information for the reconstruction.
+    verbosity : {2, 1, 0}, optional
+        Parameter defining the verposity of the output. `2` is the default and will show the
+        current number of the iteration and the cost of the current distribution. `2` will just
+        show the iteration number and `0` will prevent output all together.
+
+    Returns
+    -------
+    mag_data : :class:`~pyramid.magdata.MagData`
+        The reconstructed magnetic distribution as a :class:`~.MagData` object.
+
+    '''
+    LOG.debug('Calling optimize_cg')
+    mag_0 = first_guess
+    x_0 = first_guess.mag_vec
+    y = data.phase_vec
+    kernel = Kernel(data.a, data.dim_uv)
+    fwd_model = ForwardModel(data.projectors, kernel, data.b_0)
+    cost = Costfunction(y, fwd_model)
+    # Optimize:
+    result = minimize(cost, x_0, method='Newton-CG', jac=cost.jac, hessp=cost.hess_dot,
+                      options={'maxiter':200, 'disp':True})
+    # Create optimized MagData object:
+    x_opt = result.x
+    mag_opt = MagData(mag_0.a, np.zeros((3,)+mag_0.dim))
+    mag_opt.mag_vec = x_opt
+    return mag_opt
+
+
+def optimize_simple_leastsq(phase_map, mask, b_0=1):
+    '''Reconstruct a magnetic distribution for a 2-D problem with known pixel locations.
+
+    Parameters
+    ----------
+    phase_map : :class:`~pyramid.phasemap.PhaseMap`
+        A :class:`~pyramid.phasemap.PhaseMap` object, representing the phase from which to
+        reconstruct the magnetic distribution.
+    mask : :class:`~numpy.ndarray` (N=3)
+        A boolean matrix (or a matrix consisting of ones and zeros), representing the
+        positions of the magnetized voxels in 3 dimensions.
+    b_0 : float, optional
+        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The default is 1.
+    Returns
+    -------
+    mag_data : :class:`~pyramid.magdata.MagData`
+        The reconstructed magnetic distribution as a :class:`~.MagData` object.
+
+    Notes
+    -----
+    Only works for a single phase_map, if the positions of the magnetized voxels are known and
+    for slice thickness of 1 (constraint for the `z`-dimension).
+
+    '''
+    # Read in parameters:
+    y_m = phase_map.phase_vec  # Measured phase map as a vector
+    a = phase_map.a  # Grid spacing
+    dim = mask.shape  # Dimensions of the mag. distr.
+    count = mask.sum()  # Number of pixels with magnetization
+    lam = 1e-6  # Regularisation parameter
+    # Create empty MagData object for the reconstruction:
+    mag_data_rec = MagData(a, np.zeros((3,)+dim))
+
+    # Function that returns the phase map for a magnetic configuration x:
+    def F(x):
+        mag_data_rec.set_vector(mask, x)
+        phase_map = PMConvolve(a, SimpleProjector(dim), b_0)(mag_data_rec)
+        return phase_map.phase_vec
+
+    # Cost function which should be minimized:
+    def J(x_i):
+        y_i = F(x_i)
+        term1 = (y_i - y_m)
+        term2 = lam * x_i
+        return np.concatenate([term1, term2])
+
+    # Reconstruct the magnetization components:
+    x_rec, _ = leastsq(J, np.zeros(3*count))
+    mag_data_rec.set_vector(mask, x_rec)
+    return mag_data_rec

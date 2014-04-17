@@ -11,7 +11,7 @@ from pyramid.projector import Projector
 import logging
 
 
-class ForwardModel:
+class ForwardModel(object):
 
     '''Class for mapping 3D magnetic distributions to 2D phase maps.
 
@@ -26,44 +26,25 @@ class ForwardModel:
     kernel : :class:`~.Kernel`
         A kernel which describes the phasemapping of the 2D projected magnetization distribution.
     a : float
-        The grid spacing in nm. Will be extracted from the `kernel`.
+        The grid spacing in nm. Extracted from the `kernel`.
     dim : tuple (N=3)
-        Dimensions of the 3D magnetic distribution. Is extracted from the first projector of the
-        `projectors` list.
+        Dimensions of the 3D magnetic distribution. Extracted from the `projectors` list.
     dim_uv: tuple (N=2)
         Dimensions of the projected grid. Is extracted from the `kernel`.
     size_3d : int
-        Number of voxels of the 3-dimensional grid. Is extracted from the first projector of the
-        `projectors` list. Is extracted from the first projector of the `projectors` list.
+        Number of voxels of the 3-dimensional grid. Extracted from the `projectors` list.
     size_2d : int
-        Number of pixels of the 2-dimensional projected grid. Is extracted from the first projector
-        of the `projectors` list. Is extracted from the first projector of the `projectors` list.
+        Number of pixels of the 2-dimensional projected grid. Extracted from the `projectors` list.
 
     '''
 
     LOG = logging.getLogger(__name__+'.ForwardModel')
 
-    @property
-    def projectors(self):
-        return self._projectors
-
-    @projectors.setter
-    def projectors(self, projectors):
-        assert np.all([isinstance(projector, Projector) for projector in projectors]), \
-            'List has to consist of Projector objects!'
-        self._projectors = projectors
-
-    @property
-    def kernel(self):
-        return self._kernel
-
-    @kernel.setter
-    def kernel(self, kernel):
-        assert isinstance(kernel, Kernel), 'A Kernel object has to be provided!'
-        self._kernel = kernel
-
     def __init__(self, projectors, kernel):
         self.LOG.debug('Calling __init__')
+        assert np.all([isinstance(projector, Projector) for projector in projectors]), \
+            'List has to consist of Projector objects!'
+        assert isinstance(kernel, Kernel), 'A Kernel object has to be provided!'
         self.kernel = kernel
         self.a = kernel.a
         self.projectors = projectors

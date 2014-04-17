@@ -35,7 +35,7 @@ class Kernel(object):
     b_0 : float, optional
         Saturation magnetization in Tesla, which is used for the phase calculation. Default is 1.
     numcore : boolean, optional
-        Boolean choosing if Cython enhanced routines from the :module:`~.pyramid.numcore` module
+        Boolean choosing if Cython enhanced routines from the :mod:`~.pyramid.numcore` module
         should be used. Default is True.
     geometry : {'disc', 'slab'}, optional
         The elementary geometry of the single magnetized pixel.

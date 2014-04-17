@@ -12,7 +12,7 @@ from numpy import pi
 
 import abc
 
-import pyramid.numcore.kernel_core as nc
+import pyramid.numcore.phasemapper_core as nc
 from pyramid.kernel import Kernel
 from pyramid.projector import Projector
 from pyramid.magdata import MagData
@@ -54,7 +54,7 @@ class PMAdapterFM(PhaseMapper):
     '''Class representing a phase mapping strategy adapting the :class:`~.ForwardModel` class.
 
     The :class:`~.PMAdapterFM` class is an adapter class to incorporate the forward model from the
-    :module:`~.ForwardModel` module without the need of vector input and output. It directly takes
+    :mod:`~.ForwardModel` module without the need of vector input and output. It directly takes
     :class:`~.MagData` objects and returns :class:`~.PhaseMap` objects.
 
     Attributes
@@ -83,6 +83,8 @@ class PMAdapterFM(PhaseMapper):
         assert isinstance(projector, Projector), 'Argument has to be a Projector object!'
         self.a = a
         self.projector = projector
+        self.b_0 = b_0
+        self.geometry = geometry
         self.fwd_model = ForwardModel([projector], Kernel(a, projector.dim_uv, b_0, geometry))
         self.LOG.debug('Created '+str(self))
 
@@ -282,6 +284,7 @@ class PMConvolve(PhaseMapper):
         self.a = a
         self.projector = projector
         self.b_0 = b_0
+        self.geometry = geometry
         self.kernel = Kernel(a, projector.dim_uv, b_0, geometry)
         self.LOG.debug('Created '+str(self))
 
@@ -339,7 +342,7 @@ class PMReal(PhaseMapper):
         Elementary geometry which is used for the phase contribution of one pixel.
         Default is 'disc'.
     numcore : boolean, optional
-        Boolean choosing if Cython enhanced routines from the :module:`~.pyramid.numcore` module
+        Boolean choosing if Cython enhanced routines from the :mod:`~.pyramid.numcore` module
         should be used. Default is True.
 
     '''
@@ -353,6 +356,7 @@ class PMReal(PhaseMapper):
         self.projector = projector
         self.b_0 = b_0
         self.threshold = threshold
+        self.geometry = geometry
         self.kernel = Kernel(a, projector.dim_uv, b_0, geometry)
         self.numcore = numcore
         self.LOG.debug('Created '+str(self))
