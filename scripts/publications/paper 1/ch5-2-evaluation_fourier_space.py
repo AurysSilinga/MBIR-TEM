@@ -1,34 +1,38 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jul 26 14:37:30 2013
-
-@author: Jan
-"""
+"""Created on Fri Jul 26 14:37:30 2013 @author: Jan"""
 
 
-import time
 import os
 
 import numpy as np
 from numpy import pi
-
-import shelve
-
-import pyramid.magcreator as mc
-import pyramid.analytic as an
-from pyramid.magdata import MagData
-from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMFourier
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.cm import RdBu
 
+import pyramid
+import pyramid.magcreator as mc
+import pyramid.analytic as an
+from pyramid.magdata import MagData
+from pyramid.projector import SimpleProjector
+from pyramid.phasemapper import PMFourier
 
-force_calculation = False
+import time
+import shelve
+
+import logging
+import logging.config
+
+
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
 PHI_0 = -2067.83  # magnetic flux in T*nm²
 
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
+
+force_calculation = False
 
 print '\nACCESS SHELVE'
 # Create / Open databank:
@@ -101,7 +105,8 @@ else:
         y_d10.append(phase_map10.phase[slice_pos, :]*1E3)  # *1E3: rad to mrad
         dy_d0.append(phase_map0.phase[slice_pos, :]*1E3 - F_disc(x_d[-1]))  # *1E3: in mrad
         dy_d10.append(phase_map10.phase[slice_pos, :]*1E3 - F_disc(x_d[-1]))  # *1E3: in mrad
-        if i < 4: mag_data_disc.scale_down()
+        if i < 4:
+            mag_data_disc.scale_down()
 
     print '--CREATE PHASE SLICES VORTEX STATE DISC'
     x_v = []
@@ -147,7 +152,8 @@ else:
         y_v10.append(phase_map10.phase[slice_pos, :]*1E3)  # *1E3: rad to mrad
         dy_v0.append(phase_map0.phase[slice_pos, :]*1E3 - F_vort(x_v[-1]))  # *1E3: in mrad
         dy_v10.append(phase_map10.phase[slice_pos, :]*1E3 - F_vort(x_v[-1]))  # *1E3: in mrad
-        if i < 4: mag_data_vort.scale_down()
+        if i < 4:
+            mag_data_vort.scale_down()
 
     # Shelve x, y and dy:
     print '--SAVE PHASE SLICES'

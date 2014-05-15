@@ -39,7 +39,7 @@ class PrintIterator(object):
         distribution. This should decrease per iteration if the algorithm converges and is only
         printed for a `verbosity` of 2.
     verbosity : {2, 1, 0}, optional
-        Parameter defining the verposity of the output. `2` is the default and will show the
+        Parameter defining the verbosity of the output. `2` is the default and will show the
         current number of the iteration and the cost of the current distribution. `2` will just
         show the iteration number and `0` will prevent output all together.
 
@@ -150,7 +150,7 @@ def optimize_cg(data, first_guess):
     cost = Costfunction(y, fwd_model)
     # Optimize:
     result = minimize(cost, x_0, method='Newton-CG', jac=cost.jac, hessp=cost.hess_dot,
-                      options={'maxiter':200, 'disp':True})
+                      options={'maxiter': 200, 'disp': True})
     # Create optimized MagData object:
     x_opt = result.x
     mag_opt = MagData(mag_0.a, np.zeros((3,)+mag_0.dim))

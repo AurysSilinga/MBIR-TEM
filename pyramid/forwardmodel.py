@@ -80,10 +80,8 @@ class ForwardModel(object):
 
         '''
         self.LOG.debug('Calling jac_dot')
-        result = [self.kernel.jac_dot(projector.jac_dot(x)) for projector in self.projectors]
+        result = [self.kernel.jac_dot(projector.jac_dot(vector)) for projector in self.projectors]
         result = np.reshape(result, -1)
-        return result
-        result = self(vector)
         return result
 
     def jac_T_dot(self, x, vector):

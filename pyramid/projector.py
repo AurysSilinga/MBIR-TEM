@@ -88,7 +88,6 @@ class Projector(object):
         '''
         raise NotImplementedError()
 
-
     def _vector_field_projection(self, vector):
         self.LOG.debug('Calling _vector_field_projection')
         size_2d, size_3d = self.size_2d, self.size_3d
@@ -159,7 +158,7 @@ class Projector(object):
             self.LOG.debug('mode == scalar')
             return self._scalar_field_projection(vector)
         else:
-            raise AssertionError('Vector size has to be suited either for ' \
+            raise AssertionError('Vector size has to be suited either for '
                                  'vector- or scalar-field-projection!')
 
     def jac_T_dot(self, vector):
@@ -186,7 +185,7 @@ class Projector(object):
             self.LOG.debug('mode == scalar')
             return self._scalar_field_projection_T(vector)
         else:
-            raise AssertionError('Vector size has to be suited either for ' \
+            raise AssertionError('Vector size has to be suited either for '
                                  'vector- or scalar-field-projection!')
 
 
@@ -247,7 +246,7 @@ class XTiltProjector(Projector):
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-y-plane
         # Calculate positions along the projected pixel coordinate system:
         center = (dim_proj/2., dim_perp/2.)
-        m = np.where(tilt<=pi, -1/np.tan(tilt+1E-30), 1/np.tan(tilt+1E-30))
+        m = np.where(tilt <= pi, -1/np.tan(tilt+1E-30), 1/np.tan(tilt+1E-30))
         b = center[0] - m * center[1]
         positions = get_position(voxels, m, b, dim_perp)
         # Calculate weight-matrix:
@@ -273,7 +272,7 @@ class XTiltProjector(Projector):
             rows = np.hstack((np.array(rows), np.array(row)+i))
         # Calculate weight matrix and coefficients for jacobi matrix:
         weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)),
-                                                shape = (size_2d, size_3d)))
+                                       shape=(size_2d, size_3d)))
         dim_v, dim_u = dim_perp, dim_rot
         coeff = [[1, 0, 0], [0, np.cos(tilt), np.sin(tilt)]]
         super(XTiltProjector, self).__init__(dim, (dim_v, dim_u), weight, coeff)
@@ -349,7 +348,7 @@ class YTiltProjector(Projector):
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-x-plane
         # Calculate positions along the projected pixel coordinate system:
         center = (dim_proj/2., dim_perp/2.)
-        m = np.where(tilt<=pi, -1/np.tan(tilt+1E-30), 1/np.tan(tilt+1E-30))
+        m = np.where(tilt <= pi, -1/np.tan(tilt+1E-30), 1/np.tan(tilt+1E-30))
         b = center[0] - m * center[1]
         positions = get_position(voxels, m, b, dim_perp)
         # Calculate weight-matrix:
@@ -375,7 +374,7 @@ class YTiltProjector(Projector):
             rows = np.hstack((np.array(rows), np.array(row)+i*dim_perp))
         # Calculate weight matrix and coefficients for jacobi matrix:
         weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)),
-                                                shape = (size_2d, size_3d)))
+                                       shape=(size_2d, size_3d)))
         dim_v, dim_u = dim_rot, dim_perp
         coeff = [[np.cos(tilt), 0, np.sin(tilt)], [0, 1, 0]]
         super(YTiltProjector, self).__init__(dim, (dim_v, dim_u), weight, coeff)
@@ -443,7 +442,7 @@ class SimpleProjector(Projector):
             coeff = [[0, 1, 0], [0, 0, 1]]
             indices = np.array([np.arange(dim_proj) + row*dim_proj
                                 for row in range(size_2d)]).reshape(-1)
-        weight = csr_matrix((data, indices, indptr), shape = (size_2d, size_3d))
+        weight = csr_matrix((data, indices, indptr), shape=(size_2d, size_3d))
         super(SimpleProjector, self).__init__(dim, (dim_v, dim_u), weight, coeff)
         self.LOG.debug('Created '+str(self))
 

@@ -1,17 +1,26 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Sep 03 12:55:40 2013
+"""Created on Tue Sep 03 12:55:40 2013 @author: Jan"""
 
-@author: Jan
-"""
 
+import os
 
 import numpy as np
 from numpy import pi
-import itertools
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, NullLocator
 
+import pyramid
+
+import itertools
+
+import logging
+import logging.config
+
+
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
+
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 
 dim = (8, 8)
 offset = (dim[0]/2., dim[1]/2.)

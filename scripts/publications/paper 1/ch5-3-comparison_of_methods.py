@@ -1,13 +1,7 @@
-#! python
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jul 26 14:37:30 2013
-
-@author: Jan
-"""
+"""Created on Fri Jul 26 14:37:30 2013 @author: Jan"""
 
 
-import time
 import os
 
 import numpy as np
@@ -16,13 +10,24 @@ from numpy import pi
 import matplotlib.pyplot as plt
 from matplotlib.ticker import IndexLocator
 
+import pyramid
 import pyramid.magcreator as mc
 import pyramid.projector as pj
 import pyramid.phasemapper as pm
 import pyramid.analytic as an
 from pyramid.magdata import MagData
+
+import time
 import shelve
 
+import logging
+import logging.config
+
+
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
+
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 
 print '\nACCESS SHELVE'
 # Create / Open databank:

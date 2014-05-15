@@ -47,7 +47,7 @@ class Costfunction(object):
     def __call__(self, x):
         self.LOG.debug('Calling __call__')
         y = self.y
-        F = self.F
+        F = self.fwd_model
         Se_inv = self.Se_inv
         return (F(x)-y).dot(Se_inv.dot(F(x)-y))
 
@@ -57,7 +57,7 @@ class Costfunction(object):
 
     def __str__(self):
         self.LOG.debug('Calling __str__')
-        return 'Costfunction(fwd_model=%s, lam=%s)' % (self.__class__, self.fwd_model, self.lam)
+        return 'Costfunction(fwd_model=%s, lam=%s)' % (self.fwd_model, self.lam)
 
     def jac(self, x):
         '''Calculate the derivative of the costfunction for a given magnetization distribution.

@@ -1,36 +1,38 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jan 24 11:17:11 2014
+"""Created on Fri Jan 24 11:17:11 2014 @author: Jan"""
 
-@author: Jan
-"""
 
+import os
 
 import numpy as np
-import vtk
-import logging
-import os
-import sys
-import pickle
-from tqdm import tqdm
-from pyramid.magdata import MagData
 import matplotlib.pyplot as plt
 from pylab import griddata
+
+import pickle
+import vtk
+from tqdm import tqdm
+
+import pyramid
+from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
 from pyramid.phasemapper import PMAdapterFM
 
+import logging
+import logging.config
+
+
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
+
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 ###################################################################################################
-PATH = '../output/vtk data/tube_90x30x50_sat_edge_equil.gmr'
+PATH = '../../output/vtk data/tube_90x30x50_sat_edge_equil.gmr'
 b_0 = 1.54
 gain = 12
 force_calculation = False
 ###################################################################################################
-
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s', stream=sys.stdout)
-log = logging.getLogger(__name__)
-
+# Load vtk-data:
 if force_calculation or not os.path.exists(PATH+'.pickle'):
-    log.info('Reading data from vtk-file')
     # Setting up reader:
     reader = vtk.vtkDataSetReader()
     reader.SetFileName(PATH+'.vtk')
@@ -53,25 +55,20 @@ if force_calculation or not os.path.exists(PATH+'.pickle'):
     vector_array = np.reshape(vector_array, (-1, 3))
     # Combining data:
     data = np.hstack((point_array, vector_array))
-    log.info('Data reading complete!')
-    log.info('Pickling data!')
     with open(PATH+'.pickle', 'w') as pf:
         pickle.dump(data, pf)
-    log.info('Pickling complete!')
 else:
-    log.info('Loading pickled data!')
     with open(PATH+'.pickle') as pf:
         data = pickle.load(pf)
-    log.info('Loading complete!')
 # Scatter plot of all x-y-coordinates
 axis = plt.figure().add_subplot(1, 1, 1)
 axis.scatter(data[:, 0], data[:, 1])
 plt.show()
-
+###################################################################################################
+# Interpolate on regular grid:
 if force_calculation or not os.path.exists(PATH+'.nc'):
-    log.info('Arranging data in z-slices!')
     # Find unique z-slices:
-    zs =  np.unique(data[:, 2])
+    zs = np.unique(data[:, 2])
     # Determine the grid spacing:
     a = zs[1] - zs[0]
     # Determine the size of object:
@@ -81,19 +78,19 @@ if force_calculation or not os.path.exists(PATH+'.nc'):
     x_diff, y_diff, z_diff = np.ptp(data[:, 0]), np.ptp(data[:, 1]), np.ptp(data[:, 2])
     x_cent, y_cent, z_cent = x_min+x_diff/2., y_min+y_diff/2., z_min+z_diff/2.
     # Create regular grid
-    xs = np.arange(x_cent-x_diff, x_cent+x_diff, a)    #linspace(-8.5*2, 8.5*2, 256)
-    ys = np.arange(y_cent-y_diff, y_cent+y_diff, a)    #linspace(-9.5*2, 9.5*2, 256)
+    xs = np.arange(x_cent-x_diff, x_cent+x_diff, a)
+    ys = np.arange(y_cent-y_diff, y_cent+y_diff, a)
     o, p = np.meshgrid(xs, ys)
     # Create empty magnitude:
     magnitude = np.zeros((3, len(zs), len(ys), len(xs)))
-    
+
     # WITH MASKING OF THE CENTER (SYMMETRIC):
     iz_x = np.concatenate([np.linspace(-4.95, -4.95, 50),
                            np.linspace(-4.95, 0, 50),
                            np.linspace(0, 4.95, 50),
                            np.linspace(4.95, 4.95, 50),
                            np.linspace(-4.95, 0, 50),
-                           np.linspace(0, 4.95, 50),])
+                           np.linspace(0, 4.95, 50), ])
     iz_y = np.concatenate([np.linspace(-2.88, 2.88, 50),
                            np.linspace(2.88, 5.7, 50),
                            np.linspace(5.7, 2.88, 50),
@@ -104,7 +101,7 @@ if force_calculation or not os.path.exists(PATH+'.nc'):
         subdata = data[data[:, 2] == z, :]
         for j in range(3):  # For all 3 components!
             gridded_subdata = griddata(np.concatenate([subdata[:, 0], iz_x]),
-                                       np.concatenate([subdata[:, 1], iz_y]), 
+                                       np.concatenate([subdata[:, 1], iz_y]),
                                        np.concatenate([subdata[:, 3 + j], np.zeros(len(iz_x))]),
                                        o, p)
             magnitude[j, i, :, :] = gridded_subdata.filled(fill_value=0)
@@ -126,11 +123,11 @@ if force_calculation or not os.path.exists(PATH+'.nc'):
 #        subdata = data[data[:, 2] == z, :]
 #        for j in range(3):  # For all 3 components!
 #            gridded_subdata = griddata(np.concatenate([subdata[:, 0], iz_x]),
-#                                       np.concatenate([subdata[:, 1], iz_y]), 
+#                                       np.concatenate([subdata[:, 1], iz_y]),
 #                                       np.concatenate([subdata[:, 3 + j], np.zeros(len(iz_x))]),
 #                                       o, p)
 #            magnitude[j, i, :, :] = gridded_subdata.filled(fill_value=0)
-    
+
 #    # WITHOUT MASKING OF THE CENTER:
 #    for i, z in tqdm(enumerate(zs), total=len(zs)):
 #        subdata = data[data[:, 2] == z, :]
@@ -141,13 +138,11 @@ if force_calculation or not os.path.exists(PATH+'.nc'):
     # Creating MagData object:
     mag_data = MagData(0.2*10, magnitude)
     mag_data.save_to_netcdf4(PATH+'.nc')
-    log.info('MagData created!')
 else:
-    log.info('Loading MagData!')
     mag_data = MagData.load_from_netcdf4(PATH+'.nc')
-    log.info('Loading complete!')
 mag_data.quiver_plot()
-
+###################################################################################################
+# Phasemapping:
 projector = SimpleProjector(mag_data.dim)
 phasemapper = PMAdapterFM(mag_data.a, projector)
 phase_map = phasemapper(mag_data)

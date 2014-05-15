@@ -1,32 +1,34 @@
-#! python
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jul 26 14:37:30 2013
-
-@author: Jan
-"""
+"""Created on Fri Jul 26 14:37:30 2013 @author: Jan"""
 
 
-import time
 import os
 
 import numpy as np
 from numpy import pi
-
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullLocator, LogLocator, LogFormatter
 
+import pyramid
 import pyramid.magcreator as mc
 import pyramid.analytic as an
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
 from pyramid.phasemapper import PMConvolve, PMFourier
 
+import time
 import shelve
 
+import logging
+import logging.config
+
+
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
+
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 
 force_calculation = True
-
 
 print '\nACCESS SHELVE'
 # Create / Open databank:
@@ -86,7 +88,7 @@ else:
         height = dim[0]/2  # in px
 
         print '--a =', a, 'nm', 'dim =', dim
-        
+
         # Create projector along z-axis and phasemapper:
         projector = SimpleProjector(dim)
         pm_fourier0 = PMFourier(a, projector, padding=0)
@@ -134,7 +136,8 @@ else:
         phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
         data_disc_real_d[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
         print 'TIME:', data_disc_real_d[2, i]
-        print 'RMS%:', np.sqrt(np.mean(((phase_ana_disc-phase_num_disc).phase/phase_ana_disc.phase)**2))*100, '%'
+        print 'RMS%:', np.sqrt(np.mean(((phase_ana_disc-phase_num_disc).phase /
+                                        phase_ana_disc.phase)**2))*100, '%'
 
         print '----CALCULATE RMS/DURATION HOMOG. MAGN. DISC'
         # Analytic solution:
@@ -272,7 +275,7 @@ axes[0, 1].grid()
 
 # Add legend:
 axes[1, 1].legend(bbox_to_anchor=(0, 0, 0.955, 0.615), bbox_transform=fig.transFigure,
-                  prop={'size':12})
+                  prop={'size': 12})
 
 # Save figure as .png:
 plt.show()
@@ -286,5 +289,3 @@ plt.savefig(directory + '/ch5-3-method comparison.png', bbox_inches='tight')
 print 'CLOSING SHELVE\n'
 # Close shelve:
 data_shelve.close()
-
-###############################################################################################

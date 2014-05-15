@@ -1,6 +1,6 @@
 #! python
 # -*- coding: utf-8 -*-
-"""Create random magnetic distributions."""
+"""Create multiple magnetic distributions."""
 
 
 import os

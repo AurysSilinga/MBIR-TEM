@@ -1,21 +1,29 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 17 14:28:10 2014
+"""Created on Mon Mar 17 14:28:10 2014 @author: Jan"""
 
-@author: Jan
-"""
 
+import os
 
 from numpy import pi
 import numpy as np
+
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
+import pyramid
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector, YTiltProjector
 from pyramid.phasemapper import PMConvolve
 
+import logging
+import logging.config
+
+
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
+
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 
 ###################################################################################################
 print('Jan')
@@ -112,4 +120,3 @@ axis.tick_params(axis='both', which='major', labelsize=18)
 axis.set_title('Phase map', fontsize=24)
 axis.set_xlabel('x [nm]', fontsize=18)
 axis.set_ylabel('y [nm]', fontsize=18)
-

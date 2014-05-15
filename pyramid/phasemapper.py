@@ -165,8 +165,8 @@ class PMFourier(PhaseMapper):
         f_u = np.linspace(0, f_nyq, u_mag_fft.shape[1])
         f_v = np.linspace(-f_nyq, f_nyq, u_mag_fft.shape[0], endpoint=False)
         f_uu, f_vv = np.meshgrid(f_u, f_v)
-        coeff = (1j*self.b_0) / (2*self.PHI_0)
-        phase_fft = coeff*self.a * (u_mag_fft*f_vv - v_mag_fft*f_uu) / (f_uu**2 + f_vv**2 + 1e-30)
+        coeff = (1j*self.b_0*self.a) / (2*self.PHI_0)
+        phase_fft = coeff * (u_mag_fft*f_vv - v_mag_fft*f_uu) / (f_uu**2 + f_vv**2 + 1e-30)
         # Transform to real space and revert padding:
         phase_pad = np.fft.irfft2(np.fft.ifftshift(phase_fft, axes=0))
         phase = phase_pad[v_pad:v_pad+v_dim, u_pad:u_pad+u_dim]
@@ -181,6 +181,7 @@ class PMFourier(PhaseMapper):
         self.LOG.debug('Calling __str__')
         return 'PMFourier(a=%s, projector=%s, b_0=%s, padding=%s)' % \
             (self.a, self.projector, self.b_0, self.padding)
+
 
 class PMElectric(PhaseMapper):
 
@@ -250,6 +251,7 @@ class PMElectric(PhaseMapper):
         self.LOG.debug('Calling __str__')
         return 'PMElectric(a=%s, projector=%s, v_0=%s, v_acc=%s, threshold=%s)' % \
             (self.a, self.projector, self.v_0, self.v_acc, self.threshold)
+
 
 class PMConvolve(PhaseMapper):
 

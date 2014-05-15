@@ -62,6 +62,7 @@ class Kernel(object):
 
     def __init__(self, a, dim_uv, b_0=1., numcore=True, geometry='disc'):
         self.LOG.debug('Calling __init__')
+
         # Function for the phase of an elementary geometry:
         def get_elementary_phase(geometry, n, m, a):
             if geometry == 'disc':
@@ -73,7 +74,8 @@ class Kernel(object):
                     B = np.arctan(n / m)
                     return n*A - 2*n + 2*m*B
                 return 0.5 * (F_a(n-0.5, m-0.5) - F_a(n+0.5, m-0.5)
-                            - F_a(n-0.5, m+0.5) + F_a(n+0.5, m+0.5))
+                              - F_a(n-0.5, m+0.5) + F_a(n+0.5, m+0.5))
+
         # Set basic properties:
         self.dim_uv = dim_uv  # Size of the FOV, not the kernel (kernel is bigger)!
         self.a = a
@@ -86,7 +88,7 @@ class Kernel(object):
         v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
         uu, vv = np.meshgrid(u, v)
         self.u = coeff * get_elementary_phase(geometry, uu, vv, a)
-        self.v = coeff * get_elementary_phase(geometry, vv, uu, a)
+        self.v = coeff * get_elementary_phase(geometry, vv, uu, a)  # TODO: v = np.swapaxes(u, 0,1)
         # Calculate Fourier trafo of kernel components:
         dim_combined = 3*np.array(dim_uv) - 1  # dim_uv + (2*dim_uv - 1) magnetisation + kernel
         self.dim_fft = 2 ** np.ceil(np.log2(dim_combined)).astype(int)  # next multiple of 2
@@ -99,7 +101,6 @@ class Kernel(object):
         else:
             self._multiply_jacobi_method = self._multiply_jacobi
         self.LOG.debug('Created '+str(self))
-
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')
@@ -177,7 +178,7 @@ class Kernel(object):
         v_dim, u_dim = self.dim_uv
         size = np.prod(self.dim_uv)
         assert len(vector) == size, \
-            'vector size not compatible! vector: {}, size: {}'.format(len(vector),size)
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), size)
         result = np.zeros(2*size)
         for s in range(size):  # row-wise (two rows at a time, u- and v-component)
             i = s % u_dim

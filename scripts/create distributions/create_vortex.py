@@ -1,6 +1,6 @@
 #! python
 # -*- coding: utf-8 -*-
-"""Create the Pyramid-Logo."""
+"""Create a magnetic vortex distribution."""
 
 
 import os

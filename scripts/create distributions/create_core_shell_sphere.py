@@ -1,6 +1,6 @@
 #! python
 # -*- coding: utf-8 -*-
-"""Create a core-shell disc."""
+"""Create a core-shell sphere."""
 
 
 import os
@@ -21,14 +21,15 @@ import logging.config
 
 LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
 
+
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 directory = '../../output/magnetic distributions'
 if not os.path.exists(directory):
     os.makedirs(directory)
 # Input parameters:
 filename = directory + '/mag_dist_core_shell_sphere.txt'
-a = 1.0  # in nm
-density = 1
+a = 50.0  # in nm
+density = 500
 dim = (32, 32, 32)
 center = (dim[0]/2-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
 radius_core = dim[1]/8

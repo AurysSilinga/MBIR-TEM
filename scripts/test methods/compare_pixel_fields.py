@@ -32,8 +32,9 @@ if not os.path.exists(directory):
 a = 1.0  # in nm
 phi = 0  # in rad
 dim = (1, 32, 32)
-pixel = (0,  int(dim[1]/2),  int(dim[2]/2))
+pixel = (0, int(dim[1]/2), int(dim[2]/2))
 limit = 0.35
+
 
 def get_fourier_kernel():
     PHI_0 = 2067.83    # magnetic flux in T*nm²
@@ -43,11 +44,12 @@ def get_fourier_kernel():
     f_u = np.linspace(0, nyq/2, dim[2]/2.+1)
     f_v = np.linspace(-nyq/2, nyq/2, dim[1], endpoint=False)
     f_uu, f_vv = np.meshgrid(f_u, f_v)
-    phase_fft = coeff * f_vv / (f_uu**2 + f_vv**2 + 1e-30) #* (8*(a/2)**3)*np.sinc(a/2*f_uu)*np.sinc(a/2*f_vv)
+    phase_fft = coeff * f_vv / (f_uu**2 + f_vv**2 + 1e-30)
     # Transform to real space and revert padding:
     phase_fft = np.fft.ifftshift(phase_fft, axes=0)
     phase_fft_kernel = np.fft.fftshift(np.fft.irfft2(phase_fft), axes=(0, 1))
     return phase_fft_kernel
+
 
 # Create magnetic data and projector:
 mag_data = MagData(a, mc.create_mag_dist_homog(mc.Shapes.pixel(dim, pixel), phi))

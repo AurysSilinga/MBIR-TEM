@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jul 26 14:37:20 2013
-
-@author: Jan
-"""
+"""Created on Fri Jul 26 14:37:20 2013 @author: Jan"""
 
 
 import os
@@ -11,18 +7,25 @@ import os
 import numpy as np
 from numpy import pi
 
-import shelve
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FixedFormatter, IndexLocator
 
+import pyramid
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
 
-import matplotlib.pyplot as plt
+import shelve
 
-from matplotlib.ticker import FixedFormatter, IndexLocator
+import logging
+import logging.config
 
+
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
+
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 
 force_calculation = False
-
 
 print '\nACCESS SHELVE'
 # Create / Open databank:
@@ -40,8 +43,8 @@ y_r = x/np.abs(x)**3
 y_k = x/np.abs(x)**2
 fig = plt.figure()
 axis = fig.add_subplot(1, 1, 1, aspect='equal')
-axis.plot(x,y_r, 'r', label=r'$r/|r|^3$')
-axis.plot(x,y_k, 'b', label=r'$k/|k|^2$')
+axis.plot(x, y_r, 'r', label=r'$r/|r|^3$')
+axis.plot(x, y_k, 'b', label=r'$k/|k|^2$')
 axis.set_xlim(-5, 5)
 axis.set_ylim(-5, 5)
 axis.axvline(0, linewidth=2, color='k')

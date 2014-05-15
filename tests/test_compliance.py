@@ -26,8 +26,8 @@ class TestCaseCompliance(unittest.TestCase):
         for root, dirs, files in os.walk(rootdir):
             for filename in files:
                 if ((filename.endswith('.py') or filename.endswith('.pyx'))
-                and root != os.path.join(self.path, 'scripts', 'gui')):
-                    filepaths.append(os.path.join(root, filename))
+                    and root != os.path.join(self.path, 'scripts', 'gui')):
+                        filepaths.append(os.path.join(root, filename))
         return filepaths
 
     def test_pep8(self):
@@ -35,7 +35,7 @@ class TestCaseCompliance(unittest.TestCase):
         files = self.get_files_to_check(os.path.join(self.path, 'pyramid')) \
             + self.get_files_to_check(os.path.join(self.path, 'scripts')) \
             + self.get_files_to_check(os.path.join(self.path, 'tests'))
-        ignores = ('E226', 'E128')
+        ignores = ('E125', 'E226', 'E228')
         pep8.MAX_LINE_LENGTH = 99
         pep8style = pep8.StyleGuide(quiet=False)
         pep8style.options.ignore = ignores
@@ -57,10 +57,10 @@ class TestCaseCompliance(unittest.TestCase):
             todo_count = 0
             regex = ur'# TODO: (.*)'
             for py_file in files:
-                with open (py_file) as f:
+                with open(py_file) as f:
                     for line in f:
                         todo = re.findall(regex, line)
-                        if todo and not todo[0]=="(.*)'":
+                        if todo and not todo[0] == "(.*)'":
                             todos_found = True
                             todo_count += 1
                             print '{}: {}'.format(f.name, todo[0])

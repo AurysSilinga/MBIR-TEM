@@ -188,7 +188,6 @@ class MagData(object):
             self.magnitude = self.magnitude.reshape(
                 3, self.dim[0]/2, 2, self.dim[1]/2, 2, self.dim[2]/2, 2).mean(axis=(6, 4, 2))
 
-
     def scale_up(self, n=1, order=0):
         '''Scale up the magnetic distribution using spline interpolation of the requested order.
 
@@ -397,11 +396,11 @@ class MagData(object):
         cls.LOG.debug('Calling copy')
         mag_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = mag_file.a
-        magnitude =  mag_file.variables['magnitude'][...]
+        magnitude = mag_file.variables['magnitude'][...]
         mag_file.close()
         return MagData(a, magnitude)
 
-    def quiver_plot(self, title='Magnetic Distribution', filename=None, axis=None,
+    def quiver_plot(self, title='Magnetization Distribution', filename=None, axis=None,
                     proj_axis='z', ax_slice=None):
         '''Plot a slice of the magnetization as a quiver plot.
 
@@ -462,7 +461,7 @@ class MagData(object):
             fig = plt.figure(figsize=(8.5, 7))
             axis = fig.add_subplot(1, 1, 1, aspect='equal')
         axis.quiver(mag_slice_u, mag_slice_v, pivot='middle', angles='xy', scale_units='xy',
-                   scale=1, headwidth=6, headlength=7)
+                    scale=1, headwidth=6, headlength=7)
         axis.set_xlim(-1, np.shape(mag_slice_u)[1])
         axis.set_ylim(-1, np.shape(mag_slice_u)[0])
         axis.set_title(title, fontsize=18)
@@ -474,7 +473,7 @@ class MagData(object):
         plt.show()
         return axis
 
-    def quiver_plot3d(self):
+    def quiver_plot3d(self, title='Magnetization Distribution'):
         '''Plot the magnetization as 3D-vectors in a quiverplot.
 
         Parameters
@@ -504,5 +503,6 @@ class MagData(object):
         plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode='arrow')
         mlab.outline(plot)
         mlab.axes(plot)
-        mlab.title('TEST', height=0.95, size=0.25)
-        mlab.colorbar(plot, orientation='vertical')
+        mlab.title(title, height=0.95, size=0.35)
+        mlab.colorbar(None, label_fmt='%.2f')
+        mlab.colorbar(None, orientation='vertical')

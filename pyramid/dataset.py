@@ -67,12 +67,12 @@ class DataSet(object):
         assert isinstance(a, Number), 'Grid spacing has to be a number!'
         assert a >= 0, 'Grid spacing has to be a positive number!'
         self._a = a
-        assert isinstance(dim_uv, tuple) and len(dim_uv)==2, \
+        assert isinstance(dim_uv, tuple) and len(dim_uv) == 2, \
             'Dimension has to be a tuple of length 2!'
         self._dim_uv = dim_uv
         self.b_0 = b_0
         self.data = []
-        self.LOG.debug('Created:', str(self))
+        self.LOG.debug('Created: '+str(self))
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')

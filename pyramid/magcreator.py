@@ -62,11 +62,11 @@ class Shapes(object):
         assert np.shape(center) == (3,), 'Parameter center has to be a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a tuple of length 3!'
         mag_shape = np.array([[[abs(x - center[2]) <= width[2] / 2
-                            and abs(y - center[1]) <= width[1] / 2
-                            and abs(z - center[0]) <= width[0] / 2
-                            for x in range(dim[2])]
-                            for y in range(dim[1])]
-                            for z in range(dim[0])])
+                             and abs(y - center[1]) <= width[1] / 2
+                             and abs(z - center[0]) <= width[0] / 2
+                             for x in range(dim[2])]
+                             for y in range(dim[1])]
+                             for z in range(dim[0])])
         return mag_shape
 
     @classmethod
@@ -100,22 +100,22 @@ class Shapes(object):
         assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'
         if axis == 'z':
             mag_shape = np.array([[[np.hypot(x - center[2], y - center[1]) <= radius
-                                and abs(z - center[0]) <= height / 2
-                                for x in range(dim[2])]
-                                for y in range(dim[1])]
-                                for z in range(dim[0])])
+                                 and abs(z - center[0]) <= height / 2
+                                 for x in range(dim[2])]
+                                 for y in range(dim[1])]
+                                 for z in range(dim[0])])
         elif axis == 'y':
             mag_shape = np.array([[[np.hypot(x - center[2], z - center[0]) <= radius
-                                and abs(y - center[1]) <= height / 2
-                                for x in range(dim[2])]
-                                for y in range(dim[1])]
-                                for z in range(dim[0])])
+                                 and abs(y - center[1]) <= height / 2
+                                 for x in range(dim[2])]
+                                 for y in range(dim[1])]
+                                 for z in range(dim[0])])
         elif axis == 'x':
             mag_shape = np.array([[[np.hypot(y - center[1], z - center[0]) <= radius
-                                and abs(x - center[2]) <= height / 2
-                                for x in range(dim[2])]
-                                for y in range(dim[1])]
-                                for z in range(dim[0])])
+                                 and abs(x - center[2]) <= height / 2
+                                 for x in range(dim[2])]
+                                 for y in range(dim[1])]
+                                 for z in range(dim[0])])
         return mag_shape
 
     @classmethod
@@ -149,25 +149,25 @@ class Shapes(object):
         assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'
         if axis == 'z':
             mag_shape = np.array([[[np.hypot((x-center[2])/(width[1]/2.),
-                                             (y-center[1])/(width[0]/2.))<=1
-                                   and abs(z - center[0]) <= height / 2
-                                   for x in range(dim[2])]
-                                   for y in range(dim[1])]
-                                   for z in range(dim[0])])
+                                             (y-center[1])/(width[0]/2.)) <= 1
+                                 and abs(z - center[0]) <= height / 2
+                                 for x in range(dim[2])]
+                                 for y in range(dim[1])]
+                                 for z in range(dim[0])])
         elif axis == 'y':
             mag_shape = np.array([[[np.hypot((x-center[2])/(width[1]/2.),
-                                             (z-center[0])/(width[0]/2.))<=1
-                                   and abs(y-center[1]) <= height / 2
-                                   for x in range(dim[2])]
-                                   for y in range(dim[1])]
-                                   for z in range(dim[0])])
+                                             (z-center[0])/(width[0]/2.)) <= 1
+                                 and abs(y-center[1]) <= height / 2
+                                 for x in range(dim[2])]
+                                 for y in range(dim[1])]
+                                 for z in range(dim[0])])
         elif axis == 'x':
             mag_shape = np.array([[[np.hypot((y-center[1])/(width[1]/2.),
-                                             (z-center[0])/(width[0]/2.))<=1
-                                   and abs(z - center[0]) <= height / 2
-                                   for x in range(dim[2])]
-                                   for y in range(dim[1])]
-                                   for z in range(dim[0])])
+                                             (z-center[0])/(width[0]/2.)) <= 1
+                                 and abs(z - center[0]) <= height / 2
+                                 for x in range(dim[2])]
+                                 for y in range(dim[1])]
+                                 for z in range(dim[0])])
         return mag_shape
 
     @classmethod
@@ -194,11 +194,11 @@ class Shapes(object):
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'
         mag_shape = np.array([[[np.sqrt((x-center[2])**2
-                                      + (y-center[1])**2
-                                      + (z-center[0])**2) <= radius
-                            for x in range(dim[2])]
-                            for y in range(dim[1])]
-                            for z in range(dim[0])])
+                                        + (y-center[1])**2
+                                        + (z-center[0])**2) <= radius
+                             for x in range(dim[2])]
+                             for y in range(dim[1])]
+                             for z in range(dim[0])])
         return mag_shape
 
     @classmethod
@@ -225,11 +225,11 @@ class Shapes(object):
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a a tuple of length 3!'
         mag_shape = np.array([[[np.sqrt((x-center[2])**2/(width[2]/2)**2
-                                      + (y-center[1])**2/(width[1]/2)**2
-                                      + (z-center[0])**2/(width[0]/2)**2) <= 1
-                            for x in range(dim[2])]
-                            for y in range(dim[1])]
-                            for z in range(dim[0])])
+                                        + (y-center[1])**2/(width[1]/2)**2
+                                        + (z-center[0])**2/(width[0]/2)**2) <= 1
+                             for x in range(dim[2])]
+                             for y in range(dim[1])]
+                             for z in range(dim[0])])
         return mag_shape
 
     @classmethod

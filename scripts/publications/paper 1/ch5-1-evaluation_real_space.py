@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jul 26 14:37:30 2013
-
-@author: Jan
-"""
+"""Created on Fri Jul 26 14:37:30 2013 @author: Jan"""
 
 
 import os
@@ -11,8 +7,13 @@ import os
 import numpy as np
 from numpy import pi
 
-import shelve
+import matplotlib.pyplot as plt
+from matplotlib.colors import BoundaryNorm
+from matplotlib.ticker import MaxNLocator
+from matplotlib.cm import RdBu
+from matplotlib.patches import Rectangle
 
+import pyramid
 import pyramid.magcreator as mc
 import pyramid.analytic as an
 from pyramid.projector import SimpleProjector
@@ -20,16 +21,19 @@ from pyramid.phasemapper import PMConvolve
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
 
-import matplotlib.pyplot as plt
-from matplotlib.colors import BoundaryNorm
-from matplotlib.ticker import MaxNLocator
-from matplotlib.cm import RdBu
-from matplotlib.patches import Rectangle
+import shelve
+
+import logging
+import logging.config
 
 
-force_calculation = False
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
 PHI_0 = -2067.83  # magnetic flux in T*nm²
 
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
+
+force_calculation = False
 
 print '\nACCESS SHELVE'
 # Create / Open databank:
@@ -126,7 +130,8 @@ else:
         slice_pos = int(mag_data_disc.dim[1]/2)
         y_d.append(phase_map.phase[slice_pos, :]*1E3)  # *1E3: rad to mrad
         dy_d.append(phase_map.phase[slice_pos, :]*1E3 - F_disc(x_d[-1]))  # *1E3: rad to mrad
-        if i < 4: mag_data_disc.scale_down()
+        if i < 4:
+            mag_data_disc.scale_down()
 
     print '--CREATE PHASE SLICES VORTEX STATE DISC'
     x_v = []
@@ -150,7 +155,7 @@ else:
     mag_data_vort = MagData(a, mc.create_mag_dist_vortex(mag_shape))
     for i in range(5):
         print '----a =', mag_data_vort.a, 'nm', 'dim =', mag_data_vort.dim
-        projector = SimpleProjector(mag_data_vort.dim) 
+        projector = SimpleProjector(mag_data_vort.dim)
         phase_map = PMConvolve(mag_data_vort.a, projector)(mag_data_vort)
         phase_map.display_combined(density, 'Disc, a = {} nm'.format(mag_data_vort.a))
         x_v.append(np.linspace(mag_data_vort.a * 0.5,
@@ -159,7 +164,8 @@ else:
         slice_pos = int(mag_data_vort.dim[1]/2)
         y_v.append(phase_map.phase[slice_pos, :]*1E3)  # *1E3: rad to mrad
         dy_v.append(phase_map.phase[slice_pos, :]*1E3 - F_vort(x_v[-1]))  # *1E3: rad to mrad
-        if i < 4: mag_data_vort.scale_down()
+        if i < 4:
+            mag_data_vort.scale_down()
 
     # Shelve x, y and dy:
     print '--SAVE PHASE SLICES'
@@ -188,7 +194,7 @@ zoom = (23.5, 160, 15, 40)
 rect = Rectangle((zoom[0], zoom[1]), zoom[2], zoom[3], fc='w', ec='k')
 axes[0].add_patch(rect)
 axes[0].arrow(zoom[0]+zoom[2], zoom[1]+zoom[3]/2, 36, 0, length_includes_head=True,
-          head_width=10, head_length=4, fc='k', ec='k')
+              head_width=10, head_length=4, fc='k', ec='k')
 # Plot zoom inset:
 ins_axis_d = plt.axes([0.33, 0.57, 0.14, 0.3])
 ins_axis_d.plot(x_d[0], y_d[0], '-k', linewidth=1.5, label='analytic')
@@ -223,7 +229,7 @@ zoom = (59, 340, 10, 55)
 rect = Rectangle((zoom[0], zoom[1]), zoom[2], zoom[3], fc='w', ec='k')
 axes[1].add_patch(rect)
 axes[1].arrow(zoom[0]+zoom[2]/2, zoom[1], 0, -193, length_includes_head=True,
-          head_width=2, head_length=20, fc='k', ec='k')
+              head_width=2, head_length=20, fc='k', ec='k')
 # Plot zoom inset:
 ins_axis_v = plt.axes([0.695, 0.15, 0.075, 0.3])
 ins_axis_v.plot(x_v[0], y_v[0], '-k', linewidth=1.5, label='analytic')
