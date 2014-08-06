@@ -149,7 +149,7 @@ class PhaseMap(object):
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')
-        return '%s(a=%r, phase=%r, unit=&r)' % \
+        return '%s(a=%r, phase=%r, unit=%r)' % \
             (self.__class__, self.a, self.phase, self.unit)
 
     def __str__(self):
@@ -180,7 +180,9 @@ class PhaseMap(object):
 
     def __mul__(self, other):  # self * other
         self.LOG.debug('Calling __mul__')
-        assert isinstance(other, Number), 'PhaseMap objects can only be multiplied by numbers!'
+        assert (isinstance(other, Number)
+                or (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
+            'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
         return PhaseMap(self.a, other*self.phase, self.unit)
 
     def __radd__(self, other):  # other + self
@@ -397,7 +399,7 @@ class PhaseMap(object):
         return axis
 
     def display_holo(self, density=1, title='Holographic Contour Map',
-                     axis=None, grad_encode='dark', interpolation='none', show=True):
+                     axis=None, grad_encode='bright', interpolation='none', show=True):
         '''Display the color coded holography image.
 
         Parameters
@@ -408,7 +410,7 @@ class PhaseMap(object):
             The title of the plot. The default is 'Holographic Contour Map'.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
-        grad_encode: {'dark', 'bright', 'color', 'none'}, optional
+        grad_encode: {'bright', 'dark', 'color', 'none'}, optional
             Encoding mode of the phase gradient. 'none' produces a black-white image, 'color' just
             encodes the direction (without gradient strength), 'dark' modulates the gradient
             strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
@@ -458,8 +460,7 @@ class PhaseMap(object):
         if axis is None:
             fig = plt.figure()
             axis = fig.add_subplot(1, 1, 1, aspect='equal')
-        # Plot the image on a black background and set axes:
-        axis.patch.set_facecolor('black')
+        # Plot the image and set axes:
         axis.imshow(holo_image, origin='lower', interpolation=interpolation)
         # Set the title and the axes labels:
         axis.set_title(title)
@@ -478,7 +479,7 @@ class PhaseMap(object):
         return axis
 
     def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
-                         density=1, interpolation='none', grad_encode='dark'):
+                         density=1, interpolation='none', grad_encode='bright'):
         '''Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -500,7 +501,7 @@ class PhaseMap(object):
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method for the holographic contour map.
             No interpolation is used in the default case.
-        grad_encode: {'dark', 'bright', 'color', 'none'}, optional
+        grad_encode: {'bright', 'dark', 'color', 'none'}, optional
             Encoding mode of the phase gradient. 'none' produces a black-white image, 'color' just
             encodes the direction (without gradient strength), 'dark' modulates the gradient
             strength with a factor between 0 and 1 and 'bright' (which is the default) encodes

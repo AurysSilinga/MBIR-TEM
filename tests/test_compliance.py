@@ -13,7 +13,7 @@ import pep8
 
 
 class TestCaseCompliance(unittest.TestCase):
-    """Class for checking compliance of pyramid."""  # TODO: Docstring
+    """TestCase for checking the pep8 compliance of the pyramid package."""
 
     def setUp(self):
         self.path = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]  # Pyramid dir
@@ -31,7 +31,7 @@ class TestCaseCompliance(unittest.TestCase):
         return filepaths
 
     def test_pep8(self):
-        # TODO: Docstring
+        '''Test for pep8 compliance.'''
         files = self.get_files_to_check(os.path.join(self.path, 'pyramid')) \
             + self.get_files_to_check(os.path.join(self.path, 'scripts')) \
             + self.get_files_to_check(os.path.join(self.path, 'tests'))

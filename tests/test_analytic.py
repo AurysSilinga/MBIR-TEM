@@ -11,6 +11,7 @@ import pyramid.analytic as an
 
 
 class TestCaseAnalytic(unittest.TestCase):
+    """TestCase for the analytic module."""
 
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_analytic/')
@@ -29,12 +30,14 @@ class TestCaseAnalytic(unittest.TestCase):
         self.radius = None
 
     def test_phase_mag_slab(self):
+        '''Test of the phase_mag_slab method.'''
         width = (self.dim[0]/2, self.dim[1]/2, self.dim[2]/2)
         phase = an.phase_mag_slab(self.dim, self.res, self.phi, self.center, width)
         reference = np.load(os.path.join(self.path, 'ref_phase_slab.npy'))
         np.testing.assert_equal(phase, reference, 'Unexpected behavior in phase_mag_slab()')
 
     def test_phase_mag_disc(self):
+        '''Test of the phase_mag_disc method.'''
         radius = self.dim[2]/4
         height = self.dim[2]/2
         phase = an.phase_mag_disc(self.dim, self.res, self.phi, self.center, radius, height)
@@ -42,12 +45,14 @@ class TestCaseAnalytic(unittest.TestCase):
         np.testing.assert_equal(phase, reference, 'Unexpected behavior in phase_mag_disc()')
 
     def test_phase_mag_sphere(self):
+        '''Test of the phase_mag_sphere method.'''
         radius = self.dim[2]/4
         phase = an.phase_mag_sphere(self.dim, self.res, self.phi, self.center, radius)
         reference = np.load(os.path.join(self.path, 'ref_phase_sphere.npy'))
         np.testing.assert_equal(phase, reference, 'Unexpected behavior in phase_mag_sphere()')
 
     def test_phase_mag_vortex(self):
+        '''Test of the phase_mag_vortex method.'''
         radius = self.dim[2]/4
         height = self.dim[2]/2
         phase = an.phase_mag_vortex(self.dim, self.res, self.center, radius, height)

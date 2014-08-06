@@ -78,6 +78,7 @@ class Kernel(object):
 
         # Set basic properties:
         self.dim_uv = dim_uv  # Size of the FOV, not the kernel (kernel is bigger)!
+        self.size = np.prod(dim_uv)  # Pixel count
         self.a = a
         self.numcore = numcore
         self.geometry = geometry
@@ -88,7 +89,7 @@ class Kernel(object):
         v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
         uu, vv = np.meshgrid(u, v)
         self.u = coeff * get_elementary_phase(geometry, uu, vv, a)
-        self.v = coeff * get_elementary_phase(geometry, vv, uu, a)  # TODO: v = np.swapaxes(u, 0,1)
+        self.v = coeff * get_elementary_phase(geometry, vv, uu, a)
         # Calculate Fourier trafo of kernel components:
         dim_combined = 3*np.array(dim_uv) - 1  # dim_uv + (2*dim_uv - 1) magnetisation + kernel
         self.dim_fft = 2 ** np.ceil(np.log2(dim_combined)).astype(int)  # next multiple of 2
@@ -98,8 +99,11 @@ class Kernel(object):
         if numcore:
             self.LOG.debug('numcore activated')
             self._multiply_jacobi_method = self._multiply_jacobi_core
+            self._multiply_jacobi_T_method = self._multiply_jacobi_T_core
         else:
+            self.LOG.debug('numcore deactivated')
             self._multiply_jacobi_method = self._multiply_jacobi
+            self._multiply_jacobi_T_method = self._multiply_jacobi_T
         self.LOG.debug('Created '+str(self))
 
     def __repr__(self):
@@ -134,6 +138,8 @@ class Kernel(object):
 
         '''
         self.LOG.debug('Calling jac_dot')
+        assert len(vector) == 2 * self.size, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.size)
         return self._multiply_jacobi_method(vector)
 
     def jac_T_dot(self, vector):
@@ -142,53 +148,53 @@ class Kernel(object):
         Parameters
         ----------
         vector : :class:`~numpy.ndarray` (N=1)
-            Vectorized form of the magnetization in `u`- and `v`-direction of every pixel
-            (row-wise). The first ``N**2`` elements have to correspond to the `u`-, the next
-            ``N**2`` elements to the `v`-component of the magnetization.
+            Vector with ``N**2`` entries which represents a matrix with dimensions like a scalar
+            phasemap.
 
         Returns
         -------
         result : :class:`~numpy.ndarray` (N=1)
             Product of the transposed Jacobi matrix (which is not explicitely calculated) with
-            the vector.
+            the vector, which has ``2*N**2`` entries like a 2D magnetic projection.
 
         '''
         self.LOG.debug('Calling jac_dot_T')
-        return self._multiply_jacobi_T(vector)
+        assert len(vector) == self.size, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.size)
+        return self._multiply_jacobi_T_method(vector)
 
     def _multiply_jacobi(self, vector):
         self.LOG.debug('Calling _multiply_jacobi')
         v_dim, u_dim = self.dim_uv
-        size = np.prod(self.dim_uv)
-        assert len(vector) == 2*size, 'vector size not compatible!'
-        result = np.zeros(size)
-        for s in range(size):  # column-wise (two columns at a time, u- and v-component)
-            i = s % u_dim
-            j = int(s/u_dim)
-            u_min = (u_dim-1) - i
+        assert len(vector) == 2 * self.size, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.size)
+        result = np.zeros(self.size)
+        # Iterate over all contributing pixels (numbered consecutively)
+        for s in range(self.size):  # column-wise (two columns at a time, u- and v-component)
+            i = s % u_dim  # u-coordinate of current contributing pixel
+            j = int(s/u_dim)  # v-coordinate of current ccontributing pixel
+            u_min = (u_dim-1) - i  # u_dim-1: center of the kernel
             u_max = (2*u_dim-1) - i  # = u_min + u_dim
-            v_min = (v_dim-1) - j
+            v_min = (v_dim-1) - j  # v_dim-1: center of the kernel
             v_max = (2*v_dim-1) - j  # = v_min + v_dim
             result += vector[s] * self.u[v_min:v_max, u_min:u_max].reshape(-1)  # u
-            result -= vector[s+size] * self.v[v_min:v_max, u_min:u_max].reshape(-1)  # v
+            result -= vector[s+self.size] * self.v[v_min:v_max, u_min:u_max].reshape(-1)  # v
         return result
 
     def _multiply_jacobi_T(self, vector):
         self.LOG.debug('Calling _multiply_jacobi_T')
         v_dim, u_dim = self.dim_uv
-        size = np.prod(self.dim_uv)
-        assert len(vector) == size, \
-            'vector size not compatible! vector: {}, size: {}'.format(len(vector), size)
-        result = np.zeros(2*size)
-        for s in range(size):  # row-wise (two rows at a time, u- and v-component)
-            i = s % u_dim
-            j = int(s/u_dim)
-            u_min = (u_dim-1) - i
-            u_max = (2*u_dim-1) - i
-            v_min = (v_dim-1) - j
-            v_max = (2*v_dim-1) - j
-            result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))
-            result[s+size] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))
+        result = np.zeros(2*self.size)
+        # Iterate over all contributing pixels (numbered consecutively):
+        for s in range(self.size):  # row-wise (two rows at a time, u- and v-component)
+            i = s % u_dim  # u-coordinate of current contributing pixel
+            j = int(s/u_dim)  # v-coordinate of current contributing pixel
+            u_min = (u_dim-1) - i  # u_dim-1: center of the kernel
+            u_max = (2*u_dim-1) - i  # = u_min + u_dim
+            v_min = (v_dim-1) - j  # v_dim-1: center of the kernel
+            v_max = (2*v_dim-1) - j  # = v_min + v_dim
+            result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))  # u
+            result[s+self.size] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))  # v
         return result
 
     def _multiply_jacobi_core(self, vector):
@@ -196,3 +202,29 @@ class Kernel(object):
         result = np.zeros(np.prod(self.dim_uv))
         core.multiply_jacobi_core(self.dim_uv[0], self.dim_uv[1], self.u, self.v, vector, result)
         return result
+
+    def _multiply_jacobi_T_core(self, vector):
+        self.LOG.debug('Calling _multiply_jacobi_T_core')
+        result = np.zeros(2*np.prod(self.dim_uv))
+        core.multiply_jacobi_T_core(self.dim_uv[0], self.dim_uv[1], self.u, self.v, vector, result)
+        return result
+
+    def test(self, vector):
+        result = np.zeros(2*np.prod(self.dim_uv))
+        u_dim, v_dim = self.dim_uv
+        r = 0  # Current result component / contributing pixel (numbered consecutively)
+        # Iterate over all contributingh pixels:
+        for j in range(v_dim):
+            for i in range(u_dim):
+                u_min = (u_dim-1) - i  # u_max = u_min + u_dim
+                v_min = (v_dim-1) - j  # v_max = v_min + v_dim
+                s = 0  # Current affected pixel (numbered consecutively)
+                # Go over the current kernel cutout [v_min:v_max, u_min:u_max]:
+                for v in range(v_min, v_min + v_dim):
+                    for u in range(u_min, u_min + u_dim):
+                        result[r] += vector[s] * self.u[v, u]
+                        result[r+self.size] -= vector[s] * self.v[v, u]
+                        s += 1
+                r += 1
+        return result
+# TODO: delete

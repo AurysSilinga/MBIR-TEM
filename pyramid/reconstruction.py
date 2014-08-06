@@ -38,10 +38,10 @@ class PrintIterator(object):
         :class:`~.Costfunction` class for outputting the `cost` of the current magnetization
         distribution. This should decrease per iteration if the algorithm converges and is only
         printed for a `verbosity` of 2.
-    verbosity : {2, 1, 0}, optional
-        Parameter defining the verbosity of the output. `2` is the default and will show the
-        current number of the iteration and the cost of the current distribution. `2` will just
-        show the iteration number and `0` will prevent output all together.
+    verbosity : {0, 1, 2}, optional
+        Parameter defining the verbosity of the output. `2` will show the current number of the
+        iteration and the cost of the current distribution. `1` will just show the iteration
+        number and `0` will prevent output all together.
 
     Notes
     -----
@@ -52,7 +52,7 @@ class PrintIterator(object):
 
     LOG = logging.getLogger(__name__+'.PrintIterator')
 
-    def __init__(self, cost, verbosity=2):
+    def __init__(self, cost, verbosity):
         self.LOG.debug('Calling __init__')
         self.cost = cost
         self.verbosity = verbosity
@@ -83,7 +83,7 @@ class PrintIterator(object):
         return self.iteration
 
 
-def optimize_sparse_cg(data, verbosity=2):
+def optimize_sparse_cg(data, verbosity=0):
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
 
@@ -93,10 +93,10 @@ def optimize_sparse_cg(data, verbosity=2):
         :class:`~.DataSet` object containing all phase maps in :class:`~.PhaseMap` objects and all
         projection directions in :class:`~.Projector` objects. These provide the essential
         information for the reconstruction.
-    verbosity : {2, 1, 0}, optional
-        Parameter defining the verposity of the output. `2` is the default and will show the
-        current number of the iteration and the cost of the current distribution. `2` will just
-        show the iteration number and `0` will prevent output all together.
+    verbosity : {0, 1, 2}, optional
+        Parameter defining the verposity of the output. `2` will show the current number of the
+        iteration and the cost of the current distribution. `1` will just show the iteration
+        number and `0` is the default and will prevent output all together.
 
     Returns
     -------
@@ -113,7 +113,7 @@ def optimize_sparse_cg(data, verbosity=2):
     # Optimize:
     A = CFAdapterScipyCG(cost)
     b = fwd_model.jac_T_dot(None, y)
-    x_opt, info = cg(A, b, callback=PrintIterator(cost, verbosity))
+    x_opt, info = cg(A, b, callback=PrintIterator(cost, verbosity), maxiter=1000)
     # Create and return fitting MagData object:
     mag_opt = MagData(fwd_model.a, np.zeros((3,)+fwd_model.dim))
     mag_opt.mag_vec = x_opt
@@ -150,7 +150,7 @@ def optimize_cg(data, first_guess):
     cost = Costfunction(y, fwd_model)
     # Optimize:
     result = minimize(cost, x_0, method='Newton-CG', jac=cost.jac, hessp=cost.hess_dot,
-                      options={'maxiter': 200, 'disp': True})
+                      options={'maxiter': 1000, 'disp': True})
     # Create optimized MagData object:
     x_opt = result.x
     mag_opt = MagData(mag_0.a, np.zeros((3,)+mag_0.dim))

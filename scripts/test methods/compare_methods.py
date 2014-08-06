@@ -30,7 +30,7 @@ b_0 = 1.0    # in T
 a = 1.0  # in nm
 phi = pi/4
 numcore = False
-padding = 5
+padding = 10
 density = 10
 dim = (128, 128, 128)  # in px (z, y, x)
 

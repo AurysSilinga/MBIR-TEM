@@ -291,7 +291,7 @@ class XTiltProjector(Projector):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
-        return 'x-tilt: $(\phi = {:2.1f} \pi)$'.format(self.tilt)
+        return 'x-tilt: $(\phi = {:3.2f} \pi)$'.format(self.tilt/pi)
 
 
 class YTiltProjector(Projector):
@@ -393,7 +393,7 @@ class YTiltProjector(Projector):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
-        return 'y-tilt: $(\phi = {:2.1f} \pi)$'.format(self.tilt)
+        return 'y-tilt: $(\phi = {:3.2f} \pi)$'.format(self.tilt/pi)
 
 
 class SimpleProjector(Projector):
@@ -459,4 +459,4 @@ class SimpleProjector(Projector):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
-        return 'projected along {}-axis'.format(self.tilt)
+        return 'projected along {}-axis'.format(self.axis)

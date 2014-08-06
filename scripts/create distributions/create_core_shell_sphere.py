@@ -28,7 +28,7 @@ if not os.path.exists(directory):
     os.makedirs(directory)
 # Input parameters:
 filename = directory + '/mag_dist_core_shell_sphere.txt'
-a = 50.0  # in nm
+a = 1.0  # in nm
 density = 500
 dim = (32, 32, 32)
 center = (dim[0]/2-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)

@@ -2,12 +2,18 @@
 """This module provides the :class:`~.MagData` class for storing of magnetization data."""
 
 
+import os
+
 import numpy as np
+from numpy.linalg import norm
 from scipy.ndimage.interpolation import zoom
 
 import matplotlib.pyplot as plt
+import matplotlib.cm as cmx
 from matplotlib.ticker import MaxNLocator
 from mayavi import mlab
+
+from lxml import etree
 
 from numbers import Number
 
@@ -506,3 +512,55 @@ class MagData(object):
         mlab.title(title, height=0.95, size=0.35)
         mlab.colorbar(None, label_fmt='%.2f')
         mlab.colorbar(None, orientation='vertical')
+
+    def save_to_x3d(self, filename='..\..\output\magdata_output.x3d', maximum=1):
+        # TODO: Docstring!
+        self.LOG.debug('Calling save_to_x3d')
+
+        dim = self.dim
+        # Create points and vector components as lists:
+        zz, yy, xx = np.mgrid[0.5:(dim[0]-0.5):dim[0]*1j,
+                              0.5:(dim[1]-0.5):dim[1]*1j,
+                              0.5:(dim[2]-0.5):dim[2]*1j]
+        xx = xx.reshape(-1)
+        yy = yy.reshape(-1)
+        zz = zz.reshape(-1)
+        x_mag = np.reshape(self.magnitude[0], (-1))
+        y_mag = np.reshape(self.magnitude[1], (-1))
+        z_mag = np.reshape(self.magnitude[2], (-1))
+
+        template = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'template.x3d')
+        parser = etree.XMLParser(remove_blank_text=True)
+        tree = etree.parse(template, parser)
+        scene = tree.find('Scene')
+        etree.SubElement(scene, 'Viewpoint', position='0 0 {}'.format(1.5*dim[0]),
+                         fieldOfView='1')
+
+        for i in range(np.prod(dim)):
+            mag = np.sqrt(x_mag[i]**2+y_mag[i]**2+z_mag[i]**2)
+            if mag != 0:
+                spin_position = (xx[i]-dim[2]/2., yy[i]-dim[1]/2., zz[i]-dim[0]/2.)
+                sx_ref = 0
+                sy_ref = 1
+                sz_ref = 0
+                rot_x = sy_ref*z_mag[i] - sz_ref*y_mag[i]
+                rot_y = sz_ref*x_mag[i] - sx_ref*z_mag[i]
+                rot_z = sx_ref*y_mag[i] - sy_ref*x_mag[i]
+                angle = np.arccos(y_mag[i]/mag)
+                if norm((rot_x, rot_y, rot_z)) < 1E-10:
+                    rot_x, rot_y, rot_z = 1, 0, 0
+                spin_rotation = (rot_x, rot_y, rot_z, angle)
+                spin_color = cmx.RdYlGn(mag/maximum)[:3]
+                spin_scale = (1., 1., 1.)
+                spin = etree.SubElement(scene, 'ProtoInstance',
+                                        DEF='Spin {}'.format(i), name='Spin_Proto')
+                etree.SubElement(spin, 'fieldValue', name='spin_position',
+                                 value='{} {} {}'.format(*spin_position))
+                etree.SubElement(spin, 'fieldValue', name='spin_rotation',
+                                 value='{} {} {} {}'.format(*spin_rotation))
+                etree.SubElement(spin, 'fieldValue', name='spin_color',
+                                 value='{} {} {}'.format(*spin_color))
+                etree.SubElement(spin, 'fieldValue', name='spin_scale',
+                                 value='{} {} {}'.format(*spin_scale))
+
+        tree.write(filename, pretty_print=True)

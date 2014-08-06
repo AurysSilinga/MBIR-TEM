@@ -67,6 +67,9 @@ class PMAdapterFM(PhaseMapper):
     b_0 : float, optional
         The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
         The default is 1.
+    numcore : boolean, optional
+        Boolean choosing if Cython enhanced routines from the :mod:`~.pyramid.numcore` module
+        should be used. Default is True.
     geometry : {'disc', 'slab'}, optional
         Elementary geometry which is used for the phase contribution of one pixel.
         Default is 'disc'.
@@ -78,14 +81,15 @@ class PMAdapterFM(PhaseMapper):
 
     LOG = logging.getLogger(__name__+'.PMAdapterFM')
 
-    def __init__(self, a, projector, b_0=1, geometry='disc'):
+    def __init__(self, a, projector, b_0=1, numcore=True, geometry='disc'):
         self.LOG.debug('Calling __init__')
         assert isinstance(projector, Projector), 'Argument has to be a Projector object!'
         self.a = a
         self.projector = projector
         self.b_0 = b_0
         self.geometry = geometry
-        self.fwd_model = ForwardModel([projector], Kernel(a, projector.dim_uv, b_0, geometry))
+        self.fwd_model = ForwardModel([projector], Kernel(a, projector.dim_uv, b_0,
+                                      numcore, geometry))
         self.LOG.debug('Created '+str(self))
 
     def __call__(self, mag_data):
