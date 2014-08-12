@@ -81,7 +81,7 @@ xx, yy = np.meshgrid(xs, ys)
 
 #test = []
 
-for t in np.arange(900, 1001, 5):
+for t in np.arange(0, 1, 5):
     data = h5file.root.data.fields.m.read(field='m_CoFeb')[t, ...]
 #    if data_old is not None:
 #        np.testing.assert_equal(data, data_old)
@@ -119,8 +119,8 @@ for t in np.arange(900, 1001, 5):
     phase_map.display_combined(density=250, interpolation='bilinear', limit=0.25,
                                grad_encode='bright')[0]
     plt.savefig(PATH+'rueffner/phase_map_t_'+str(t)+'.png')
-    plt.close('all')
+#    plt.close('all')
 #    mag_data.quiver_plot()
 #    mag_data.save_to_x3d('rueffner.x3d')
-#    mag_data.scale_down()
-#    mag_data.quiver_plot3d()
+    mag_data.scale_down()
+    mag_data.quiver_plot3d()

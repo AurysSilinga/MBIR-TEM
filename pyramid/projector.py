@@ -203,12 +203,14 @@ class XTiltProjector(Projector):
         Dimensions (z, y, x) of the magnetization distribution.
     tilt : float
         Angle in `rad` describing the tilt of the beam direction relative to the x-axis.
+    dim_uv : tuple (N=2), optional
+        Dimensions (v, u) of the projection. If not set defaults to the (y, x)-dimensions.
 
     '''
 
     LOG = logging.getLogger(__name__+'.XTiltProjector')
 
-    def __init__(self, dim, tilt):
+    def __init__(self, dim, tilt, dim_uv=None):
 
         def get_position(p, m, b, size):
             self.LOG.debug('Calling get_position')
@@ -240,7 +242,10 @@ class XTiltProjector(Projector):
         # Set starting variables:
         # length along projection (proj, z), perpendicular (perp, y) and rotation (rot, x) axis:
         dim_proj, dim_perp, dim_rot = dim
-        size_2d = dim[1] * dim[2]  # x-y-plane
+        if dim_uv is None:
+            dim_uv = (max(dim_perp, dim_proj), dim_rot)  # x-y-plane
+        dim_v, dim_u = dim_uv  # y, x
+        size_2d = np.prod(dim_uv)
         size_3d = np.prod(dim)
         # Creating coordinate list of all voxels:
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-y-plane
@@ -248,7 +253,7 @@ class XTiltProjector(Projector):
         center = (dim_proj/2., dim_perp/2.)
         m = np.where(tilt <= pi, -1/np.tan(tilt+1E-30), 1/np.tan(tilt+1E-30))
         b = center[0] - m * center[1]
-        positions = get_position(voxels, m, b, dim_perp)
+        positions = get_position(voxels, m, b, dim_v)
         # Calculate weight-matrix:
         r = 1/np.sqrt(np.pi)  # radius of the voxel circle
         rho = 0.5 / r
@@ -257,25 +262,24 @@ class XTiltProjector(Projector):
         data = []
         # one slice:
         for i, voxel in enumerate(voxels):
-            impacts = get_impact(positions[i], r, dim_perp)  # impact along y axis
+            impacts = get_impact(positions[i], r, dim_v)  # impact along projected y-axis
             for impact in impacts:
                 distance = np.abs(impact+0.5 - positions[i])
                 delta = distance / r
-                col.append(voxel[0]*size_2d + voxel[1]*dim_rot)  # 0: z, 1: y
-                row.append(impact*dim_rot)
+                col.append(voxel[0]*dim_rot*dim_perp + voxel[1]*dim_rot)  # 0: z, 1: y
+                row.append(impact*dim_u+int((dim_u-dim_rot)/2))
                 data.append(get_weight(delta, rho))
         # All other slices (along x):
         columns = col
         rows = row
-        for i in np.arange(1, dim_rot):
-            columns = np.hstack((np.array(columns), np.array(col)+i))
-            rows = np.hstack((np.array(rows), np.array(row)+i))
+        for s in np.arange(1, dim_rot):
+            columns = np.hstack((np.array(columns), np.array(col)+s))
+            rows = np.hstack((np.array(rows), np.array(row)+s))
         # Calculate weight matrix and coefficients for jacobi matrix:
         weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)),
                                        shape=(size_2d, size_3d)))
-        dim_v, dim_u = dim_perp, dim_rot
         coeff = [[1, 0, 0], [0, np.cos(tilt), np.sin(tilt)]]
-        super(XTiltProjector, self).__init__(dim, (dim_v, dim_u), weight, coeff)
+        super(XTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
         self.LOG.debug('Created '+str(self))
 
     def get_info(self):
@@ -291,7 +295,7 @@ class XTiltProjector(Projector):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
-        return 'x-tilt: $(\phi = {:3.2f} \pi)$'.format(self.tilt/pi)
+        return 'x-tilt: $\phi = {:3.2f} \pi$'.format(self.tilt/pi)
 
 
 class YTiltProjector(Projector):
@@ -308,12 +312,14 @@ class YTiltProjector(Projector):
         Dimensions (z, y, x) of the magnetization distribution.
     tilt : float
         Angle in `rad` describing the tilt of the beam direction relative to the y-axis.
+    dim_uv : tuple (N=2), optional
+        Dimensions (v, u) of the projection. If not set defaults to the (y, x)-dimensions.
 
     '''
 
     LOG = logging.getLogger(__name__+'.YTiltProjector')
 
-    def __init__(self, dim, tilt):
+    def __init__(self, dim, tilt, dim_uv=None):
 
         def get_position(p, m, b, size):
             y, x = np.array(p)[:, 0]+0.5, np.array(p)[:, 1]+0.5
@@ -342,7 +348,10 @@ class YTiltProjector(Projector):
         # Set starting variables:
         # length along projection (proj, z), rotation (rot, y) and perpendicular (perp, x) axis:
         dim_proj, dim_rot, dim_perp = dim
-        size_2d = dim[1] * dim[2]  # x-y-plane
+        if dim_uv is None:
+            dim_uv = (dim_rot, max(dim_perp, dim_proj))  # x-y-plane
+        dim_v, dim_u = dim_uv  # y, x
+        size_2d = np.prod(dim_uv)
         size_3d = np.prod(dim)
         # Creating coordinate list of all voxels:
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-x-plane
@@ -350,7 +359,7 @@ class YTiltProjector(Projector):
         center = (dim_proj/2., dim_perp/2.)
         m = np.where(tilt <= pi, -1/np.tan(tilt+1E-30), 1/np.tan(tilt+1E-30))
         b = center[0] - m * center[1]
-        positions = get_position(voxels, m, b, dim_perp)
+        positions = get_position(voxels, m, b, dim_u)
         # Calculate weight-matrix:
         r = 1/np.sqrt(np.pi)  # radius of the voxel circle
         rho = 0.5 / r
@@ -359,25 +368,24 @@ class YTiltProjector(Projector):
         data = []
         # one slice:
         for i, voxel in enumerate(voxels):
-            impacts = get_impact(positions[i], r, dim_perp)  # impact along x axis
+            impacts = get_impact(positions[i], r, dim_u)  # impact along projected x-axis
             for impact in impacts:
                 distance = np.abs(impact+0.5 - positions[i])
                 delta = distance / r
-                col.append(voxel[0]*size_2d + voxel[1])  # 0: z, 1: x
-                row.append(impact)
+                col.append(voxel[0]*dim_perp*dim_rot + voxel[1])  # 0: z, 1: x
+                row.append(impact+int((dim_v-dim_rot)/2)*dim_u)
                 data.append(get_weight(delta, rho))
         # All other slices (along y):
         columns = col
         rows = row
-        for i in np.arange(1, dim_rot):
-            columns = np.hstack((np.array(columns), np.array(col)+i*dim_perp))
-            rows = np.hstack((np.array(rows), np.array(row)+i*dim_perp))
+        for s in np.arange(1, dim_rot):
+            columns = np.hstack((np.array(columns), np.array(col)+s*dim_perp))
+            rows = np.hstack((np.array(rows), np.array(row)+s*dim_u))
         # Calculate weight matrix and coefficients for jacobi matrix:
         weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)),
                                        shape=(size_2d, size_3d)))
-        dim_v, dim_u = dim_rot, dim_perp
         coeff = [[np.cos(tilt), 0, np.sin(tilt)], [0, 1, 0]]
-        super(YTiltProjector, self).__init__(dim, (dim_v, dim_u), weight, coeff)
+        super(YTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
         self.LOG.debug('Created '+str(self))
 
     def get_info(self):
@@ -393,7 +401,7 @@ class YTiltProjector(Projector):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
-        return 'y-tilt: $(\phi = {:3.2f} \pi)$'.format(self.tilt/pi)
+        return 'y-tilt: $\phi = {:3.2f} \pi$'.format(self.tilt/pi)
 
 
 class SimpleProjector(Projector):
@@ -417,7 +425,7 @@ class SimpleProjector(Projector):
     LOG = logging.getLogger(__name__+'.SimpleProjector')
     AXIS_DICT = {'z': (0, 1, 2), 'y': (1, 0, 2), 'x': (1, 2, 0)}
 
-    def __init__(self, dim, axis='z'):
+    def __init__(self, dim, axis='z', dim_uv=None):
         self.LOG.debug('Calling __init__')
         assert axis in {'z', 'y', 'x'}, 'Projection axis has to be x, y or z (given as a string)!'
         proj, v, u = self.AXIS_DICT[axis]

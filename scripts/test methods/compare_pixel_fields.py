@@ -31,7 +31,7 @@ if not os.path.exists(directory):
 # Input parameters:
 a = 1.0  # in nm
 phi = 0  # in rad
-dim = (1, 32, 32)
+dim = (1, 7, 5)
 pixel = (0, int(dim[1]/2), int(dim[2]/2))
 limit = 0.35
 
@@ -54,53 +54,53 @@ def get_fourier_kernel():
 # Create magnetic data and projector:
 mag_data = MagData(a, mc.create_mag_dist_homog(mc.Shapes.pixel(dim, pixel), phi))
 mag_data.save_to_llg(directory + '/mag_dist_single_pixel.txt')
-projector = SimpleProjector(dim)
+projector = SimpleProjector(dim, 0, (1.*dim[1], 1.*dim[2]))  # (SimpleProjector(dim)
 # Kernel of a disc in real space:
 phase_map_disc = PMConvolve(a, projector, geometry='disc')(mag_data)
 phase_map_disc.unit = 'mrad'
 phase_map_disc.display_phase('Phase of one Pixel (Disc)', limit=limit)
-# Kernel of a slab in real space:
-phase_map_slab = PMConvolve(a, projector, geometry='slab')(mag_data)
-phase_map_slab.unit = 'mrad'
-phase_map_slab.display_phase('Phase of one Pixel (Slab)', limit=limit)
-# Kernel of the Fourier method:
-phase_map_fft = PMFourier(a, projector, padding=0)(mag_data)
-phase_map_fft.unit = 'mrad'
-phase_map_fft.display_phase('Phase of one Pixel (Fourier)', limit=limit)
-# Kernel of the Fourier method, calculated directly:
-phase_map_fft_kernel = PhaseMap(a, get_fourier_kernel(), 'mrad')
-phase_map_fft_kernel.display_phase('Phase of one Pixel (Fourier Kernel)', limit=limit)
-# Kernel differences:
-print 'Fourier Kernel, direct and indirect method are identical:', \
-      np.all(phase_map_fft_kernel.phase - phase_map_fft.phase) == 0
-(phase_map_disc-phase_map_fft).display_phase('Phase difference of one Pixel (Disc - Fourier)')
-
-# Cross section plots of real space kernels:
-fig = plt.figure()
-axis = fig.add_subplot(1, 1, 1)
-x = np.linspace(-dim[1]/a/2, dim[1]/a/2-1, dim[1])
-y_ft = phase_map_fft.phase[:, dim[1]/2]
-y_re = phase_map_disc.phase[:, dim[1]/2]
-axis.axhline(0, color='k')
-axis.plot(x, y_re, label='Real space method')
-axis.plot(x, y_ft, label='Fourier method')
-axis.grid()
-axis.legend()
-axis.set_title('Real Space Kernel')
-axis.set_xlim(-dim[1]/2, dim[1]/2-1)
-axis.xaxis.set_major_locator(IndexLocator(base=dim[1]/8, offset=0))
-
-# Cross section plots of Fourier space kernels:
-fig = plt.figure()
-axis = fig.add_subplot(1, 1, 1)
-x = range(dim[1])
-k_re = np.abs(np.fft.ifftshift(np.fft.rfft2(phase_map_disc.phase), axes=0))[:, 0]**2
-k_ft = np.abs(np.fft.ifftshift(np.fft.rfft2(phase_map_fft.phase), axes=0))[:, 0]**2
-axis.axhline(0, color='k')
-axis.plot(x, k_re, label='Real space method')
-axis.plot(x, k_ft, label='Fourier method')
-axis.grid()
-axis.legend()
-axis.set_title('Fourier Space Kernel')
-axis.set_xlim(0, dim[1]-1)
-axis.xaxis.set_major_locator(IndexLocator(base=dim[1]/8, offset=0))
+## Kernel of a slab in real space:
+#phase_map_slab = PMConvolve(a, projector, geometry='slab')(mag_data)
+#phase_map_slab.unit = 'mrad'
+#phase_map_slab.display_phase('Phase of one Pixel (Slab)', limit=limit)
+## Kernel of the Fourier method:
+#phase_map_fft = PMFourier(a, projector, padding=0)(mag_data)
+#phase_map_fft.unit = 'mrad'
+#phase_map_fft.display_phase('Phase of one Pixel (Fourier)', limit=limit)
+## Kernel of the Fourier method, calculated directly:
+#phase_map_fft_kernel = PhaseMap(a, get_fourier_kernel(), 'mrad')
+#phase_map_fft_kernel.display_phase('Phase of one Pixel (Fourier Kernel)', limit=limit)
+## Kernel differences:
+#print 'Fourier Kernel, direct and indirect method are identical:', \
+#      np.all(phase_map_fft_kernel.phase - phase_map_fft.phase) == 0
+#(phase_map_disc-phase_map_fft).display_phase('Phase difference of one Pixel (Disc - Fourier)')
+#
+## Cross section plots of real space kernels:
+#fig = plt.figure()
+#axis = fig.add_subplot(1, 1, 1)
+#x = np.linspace(-dim[1]/a/2, dim[1]/a/2-1, dim[1])
+#y_ft = phase_map_fft.phase[:, dim[1]/2]
+#y_re = phase_map_disc.phase[:, dim[1]/2]
+#axis.axhline(0, color='k')
+#axis.plot(x, y_re, label='Real space method')
+#axis.plot(x, y_ft, label='Fourier method')
+#axis.grid()
+#axis.legend()
+#axis.set_title('Real Space Kernel')
+#axis.set_xlim(-dim[1]/2, dim[1]/2-1)
+#axis.xaxis.set_major_locator(IndexLocator(base=dim[1]/8, offset=0))
+#
+## Cross section plots of Fourier space kernels:
+#fig = plt.figure()
+#axis = fig.add_subplot(1, 1, 1)
+#x = range(dim[1])
+#k_re = np.abs(np.fft.ifftshift(np.fft.rfft2(phase_map_disc.phase), axes=0))[:, 0]**2
+#k_ft = np.abs(np.fft.ifftshift(np.fft.rfft2(phase_map_fft.phase), axes=0))[:, 0]**2
+#axis.axhline(0, color='k')
+#axis.plot(x, k_re, label='Real space method')
+#axis.plot(x, k_ft, label='Fourier method')
+#axis.grid()
+#axis.legend()
+#axis.set_title('Fourier Space Kernel')
+#axis.set_xlim(0, dim[1]-1)
+#axis.xaxis.set_major_locator(IndexLocator(base=dim[1]/8, offset=0))

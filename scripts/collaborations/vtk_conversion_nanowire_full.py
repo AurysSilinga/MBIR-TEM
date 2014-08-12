@@ -7,6 +7,7 @@ import os
 import numpy as np
 from numpy import pi
 import matplotlib.pyplot as plt
+from matplotlib._pylab_helpers import Gcf
 from pylab import griddata
 from mayavi import mlab
 
@@ -224,23 +225,31 @@ mag_data.save_to_netcdf4(PATH+'_scaled.nc')
 mag_data_tip = MagData(mag_data.a, mag_data.magnitude[:, 350:, :, :])
 mag_data_tip.save_to_netcdf4(PATH+'_tip_scaled.nc')
 mag_data_tip.quiver_plot3d()
-mag_data_tip.pad(20, 20, 0)
 
 count = 16
+
+dim_uv = (100, 500)
+
+density = 8
 
 tilts_full = np.linspace(-pi/2, pi/2, num=count/2, endpoint=False)
 tilts_miss = np.linspace(-pi/3, pi/3, num=count/2, endpoint=False)
 
-projectors_y = [YTiltProjector(mag_data_tip.dim, tilt) for tilt in tilts_miss]
-projectors_x = [XTiltProjector(mag_data_tip.dim, tilt) for tilt in tilts_miss]
-projectors = np.concatenate((projectors_y, projectors_x))
+projectors_y = [YTiltProjector(mag_data.dim, tilt, dim_uv=dim_uv) for tilt in tilts_miss]
+projectors_x = [XTiltProjector(mag_data.dim, tilt, dim_uv=dim_uv) for tilt in tilts_miss]
+projectors = projectors_y  # np.concatenate((projectors_y, projectors_x))
 phasemappers = [PMConvolve(mag_data.a, proj, b_0) for proj in projectors]
 
-data_set = DataSet(mag_data_tip.a, mag_data_tip.dim[1:], b_0)
-
-gain = 10
+data_set = DataSet(mag_data.a, dim_uv, b_0)
 
 for i, pm in enumerate(phasemappers):
-    data_set.append((pm(mag_data_tip), projectors[i]))
+    data_set.append((pm(mag_data), projectors[i]))
 
-data_set.display()
+plt.close('all')
+
+data_set.display_combined(density=density, interpolation='bilinear')
+
+figures = [manager.canvas.figure for manager in Gcf.get_all_fig_managers()]
+
+for i, figure in enumerate(figures):
+    figure.savefig(PATH+'_figure{}.png'.format(i))

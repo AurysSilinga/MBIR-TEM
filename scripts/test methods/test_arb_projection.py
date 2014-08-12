@@ -53,7 +53,7 @@ b = offset[0] - m * offset[1]
 
 voxels = list(itertools.product(yj, xi))
 
-positions = get_position(voxels, m, b, dim[0])
+positions = get_position(voxels, m, b, 2*dim[0])
 
 weights = []
 for i, voxel in enumerate(voxels):
@@ -110,10 +110,10 @@ fig = plt.figure()
 axis = fig.add_subplot(1, 1, 1, aspect='equal')
 axis.scatter(positions, 0.5*np.ones_like(positions))
 axis.grid(which='both', color='k', linestyle='-')
-axis.vlines((0, dim[0]), 0, 1, colors='r', linewidth=3)
-axis.set_xlim(-int(0.3*dim[0]), int(1.3*dim[0]))
+axis.vlines((0.5*dim[0], 1.5*dim[0]), 0, 1, colors='r', linewidth=3)
+axis.set_xlim(0, 2*dim[0])
 axis.set_ylim(0, 1)
-axis.xaxis.set_major_locator(MaxNLocator(nbins=int(1.6*dim[0]), integer=True))
+axis.xaxis.set_major_locator(MaxNLocator(nbins=2*dim[0], integer=True))
 axis.yaxis.set_major_locator(NullLocator())
 
 for i, px in enumerate(pixel_hits):
