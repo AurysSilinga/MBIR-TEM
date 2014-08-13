@@ -48,8 +48,10 @@ PATH = '../../output/'
 dim = (16, 182+40, 210+40)
 a = 1.
 b_0 = 1.1
-projector = SimpleProjector(dim)
-pm = PMConvolve(a, projector, b_0)
+projector_z = SimpleProjector(dim, axis='z')
+projector_x = SimpleProjector(dim, axis='x')
+pm_z = PMConvolve(a, projector_z, b_0)
+pm_x = PMConvolve(a, projector_z, b_0)
 
 h5file = tables.openFile(PATH+'dyn_0090mT_dyn.h5_dat.h5')
 points = h5file.root.mesh.points.read()
@@ -81,13 +83,15 @@ xx, yy = np.meshgrid(xs, ys)
 
 #test = []
 
-for t in np.arange(0, 1, 5):
-    data = h5file.root.data.fields.m.read(field='m_CoFeb')[t, ...]
+for t in np.arange(0, 1001, 5):
+    print 't =', t
+    vectors = h5file.root.data.fields.m.read(field='m_CoFeb')[t, ...]
+    data = np.hstack((points, vectors))
 #    if data_old is not None:
 #        np.testing.assert_equal(data, data_old)
 #    data_old = np.copy(data)
 
-    zs_unique = np.unique(points[:, 2])
+    zs_unique = np.unique(data[:, 2])  # TODO: not used
 
     # Create empty magnitude:
     magnitude = np.zeros((3, len(zs), len(ys), len(xs)))
@@ -96,7 +100,7 @@ for t in np.arange(0, 1, 5):
     #    print z
     #    print a/2
     #    print np.abs(data[:, 2]-z)
-        z_slice = data[np.abs(points[:, 2]-z) <= a/2., :]
+        z_slice = data[np.abs(data[:, 2]-z) <= a/2., :]
         weights = 1 - np.abs(z_slice[:, 2]-z)*2/a
     #    print z_slice.shape, z
     #    print z_slice
@@ -105,7 +109,7 @@ for t in np.arange(0, 1, 5):
     #        if z <= 0:
             grid_x = np.concatenate([z_slice[:, 0], iz_x])
             grid_y = np.concatenate([z_slice[:, 1], iz_y])
-            grid_z = np.concatenate([weights*z_slice[:, j], iz_z])
+            grid_z = np.concatenate([weights*z_slice[:, 3+j], iz_z])
     #        else:
     #        grid_x = z_slice[:, 0]
     #        grid_y = z_slice[:, 1]
@@ -116,7 +120,8 @@ for t in np.arange(0, 1, 5):
     mag_data = MagData(a, magnitude)
     mag_data.pad(20, 20, 0)
     phase_map = pm(mag_data)
-    phase_map.display_combined(density=250, interpolation='bilinear', limit=0.25,
+    phase_map.unit = 'mrad'
+    phase_map.display_combined(density=100, interpolation='bilinear', limit=None,
                                grad_encode='bright')[0]
     plt.savefig(PATH+'rueffner/phase_map_t_'+str(t)+'.png')
 #    plt.close('all')

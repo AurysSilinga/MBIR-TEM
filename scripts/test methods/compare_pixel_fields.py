@@ -31,8 +31,8 @@ if not os.path.exists(directory):
 # Input parameters:
 a = 1.0  # in nm
 phi = 0  # in rad
-dim = (1, 7, 5)
-pixel = (0, int(dim[1]/2), int(dim[2]/2))
+dim = (5, 5, 5)
+pixel = (int(dim[0]/2), int(dim[1]/2), int(dim[2]/2))
 limit = 0.35
 
 
@@ -52,9 +52,12 @@ def get_fourier_kernel():
 
 
 # Create magnetic data and projector:
-mag_data = MagData(a, mc.create_mag_dist_homog(mc.Shapes.pixel(dim, pixel), phi))
+mag_data = MagData(a, mc.create_mag_dist_homog(mc.Shapes.pixel(dim, pixel), phi, theta=0))
 mag_data.save_to_llg(directory + '/mag_dist_single_pixel.txt')
-projector = SimpleProjector(dim, 0, (1.*dim[1], 1.*dim[2]))  # (SimpleProjector(dim)
+projector_ref = SimpleProjector(dim, 'z', None)  # (SimpleProjector(dim)
+test_ref = np.array(projector_ref.weight.todense())
+projector = SimpleProjector(dim, 'x', (15, 15))  # (SimpleProjector(dim)
+test = np.array(projector.weight.todense())
 # Kernel of a disc in real space:
 phase_map_disc = PMConvolve(a, projector, geometry='disc')(mag_data)
 phase_map_disc.unit = 'mrad'

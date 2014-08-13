@@ -188,7 +188,7 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1):
     a = phase_map.a  # Grid spacing
     dim = mask.shape  # Dimensions of the mag. distr.
     count = mask.sum()  # Number of pixels with magnetization
-    lam = 1e-6  # Regularisation parameter
+    lam = 1e-4  # Regularisation parameter
     # Create empty MagData object for the reconstruction:
     mag_data_rec = MagData(a, np.zeros((3,)+dim))
 
@@ -198,6 +198,8 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1):
         phase_map = PMConvolve(a, SimpleProjector(dim), b_0)(mag_data_rec)
         return phase_map.phase_vec
 
+    # TODO: cleanup
+
     # Cost function which should be minimized:
     def J(x_i):
         y_i = F(x_i)
@@ -205,7 +207,21 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1):
         term2 = lam * x_i
         return np.concatenate([term1, term2])
 
+    def J2(x_i):
+        y_i = F(x_i)
+        term1 = (y_i - y_m)
+        mag_data = mag_data_rec.magnitude
+        term2 = []
+        for i in range(3):
+            component = mag_data[i, ...]
+            for j in range(3):
+                if component.shape[j] > 1:
+                    term2.append(np.diff(component, axis=j).reshape(-1))
+
+        term2 = lam * np.concatenate(term2)
+        return np.concatenate([term1, term2])
+
     # Reconstruct the magnetization components:
-    x_rec, _ = leastsq(J, np.zeros(3*count))
+    x_rec, _ = leastsq(J2, np.zeros(3*count))
     mag_data_rec.set_vector(mask, x_rec)
     return mag_data_rec

@@ -49,7 +49,7 @@ class Costfunction(object):
         y = self.y
         F = self.fwd_model
         Se_inv = self.Se_inv
-        return (F(x)-y).dot(Se_inv.dot(F(x)-y))
+        return (F(x)-y).dot(Se_inv.dot(F(x)-y)) + lam * x.dot(Sa_inv.dot(x))  # TODO: implement
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')

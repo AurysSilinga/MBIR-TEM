@@ -31,7 +31,7 @@ LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)),
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 ###################################################################################################
 PATH = '../../output/zi-an/'
-threshold = 1
+threshold = 3
 a = 1.0  # in nm
 density = 5
 b_0 = 1
@@ -53,7 +53,7 @@ dm3_4_mag = dm3.DM3(PATH+'18a_0102mag_ub140_62k_q3_pha_01_sb180_sc512_vf3_med5.d
 dm3_4_neg = dm3.DM3(PATH+'18a_0102neg_ub140_62k_q3_pha_01_sb180_sc512_vf3_med5.dm3').image
 dm3_4_pos = dm3.DM3(PATH+'18a_0102pos_ub140_62k_q3_pha_01_sb180_sc512_vf3_med5.dm3').image
 
-#phase_map_2 = PhaseMap(a, np.array(im_2_mag.resize(dim_small))/255.-0.32197)
+#phase_map_2 = PhaseMap(a, np.array(im_2_mag.resize(dim_small))/255.-0.09230)
 phase_map_2 = PhaseMap(a, np.array(dm3_2_mag.resize(dim_small))-0.09147)
 phase_map_2.display_combined(density=density, interpolation=inter)
 mask_2 = np.expand_dims(np.where(np.array(dm3_2_ele.resize(dim_small)) > threshold, True, False),
@@ -61,7 +61,7 @@ mask_2 = np.expand_dims(np.where(np.array(dm3_2_ele.resize(dim_small)) > thresho
 #mask_2 = np.expand_dims(np.where(np.array(im_2_ele.resize(dim_small)) > threshold, True, False),
 #                        axis=0)
 
-#phase_map_4 = PhaseMap(a, np.array(im_4_mag.resize(dim_small))/255.-0.09230)
+#phase_map_4 = PhaseMap(a, np.array(im_4_mag.resize(dim_small))/255.-0.32197)
 phase_map_4 = PhaseMap(a, np.array(dm3_4_mag.resize(dim_small))-0.22569)
 phase_map_4.display_combined(density=density, interpolation=inter)
 mask_4 = np.expand_dims(np.where(np.array(dm3_4_ele.resize(dim_small)) > threshold, True, False),

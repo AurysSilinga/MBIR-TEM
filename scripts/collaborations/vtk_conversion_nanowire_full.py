@@ -228,19 +228,20 @@ mag_data_tip.quiver_plot3d()
 
 count = 16
 
-dim_uv = (100, 500)
+dim_uv_x = (500, 100)
+dim_uv_y = (100, 500)
 
 density = 8
 
 tilts_full = np.linspace(-pi/2, pi/2, num=count/2, endpoint=False)
 tilts_miss = np.linspace(-pi/3, pi/3, num=count/2, endpoint=False)
 
-projectors_y = [YTiltProjector(mag_data.dim, tilt, dim_uv=dim_uv) for tilt in tilts_miss]
-projectors_x = [XTiltProjector(mag_data.dim, tilt, dim_uv=dim_uv) for tilt in tilts_miss]
-projectors = projectors_y  # np.concatenate((projectors_y, projectors_x))
+projectors_y = [YiltProjector(mag_data.dim, tilt, dim_uv=dim_uv_y) for tilt in tilts_miss]
+projectors_x = [XTiltProjector(mag_data.dim, tilt, dim_uv=dim_uv_x) for tilt in tilts_miss]
+projectors = np.concatenate((projectors_y, projectors_x))
 phasemappers = [PMConvolve(mag_data.a, proj, b_0) for proj in projectors]
 
-data_set = DataSet(mag_data.a, dim_uv, b_0)
+data_set = DataSet(mag_data.a, dim_uv_x, b_0)
 
 for i, pm in enumerate(phasemappers):
     data_set.append((pm(mag_data), projectors[i]))
