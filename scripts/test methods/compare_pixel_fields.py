@@ -31,8 +31,8 @@ if not os.path.exists(directory):
 # Input parameters:
 a = 1.0  # in nm
 phi = 0  # in rad
-dim = (5, 5, 5)
-pixel = (int(dim[0]/2), int(dim[1]/2), int(dim[2]/2))
+dim = (1, 8, 8)
+pixel = (0, int(dim[1]/2), int(dim[2]/2))
 limit = 0.35
 
 
@@ -52,32 +52,29 @@ def get_fourier_kernel():
 
 
 # Create magnetic data and projector:
-mag_data = MagData(a, mc.create_mag_dist_homog(mc.Shapes.pixel(dim, pixel), phi, theta=0))
+mag_data = MagData(a, mc.create_mag_dist_homog(mc.Shapes.pixel(dim, pixel), phi))
 mag_data.save_to_llg(directory + '/mag_dist_single_pixel.txt')
-projector_ref = SimpleProjector(dim, 'z', None)  # (SimpleProjector(dim)
-test_ref = np.array(projector_ref.weight.todense())
-projector = SimpleProjector(dim, 'x', (15, 15))  # (SimpleProjector(dim)
-test = np.array(projector.weight.todense())
+projector = SimpleProjector(dim)
 # Kernel of a disc in real space:
 phase_map_disc = PMConvolve(a, projector, geometry='disc')(mag_data)
 phase_map_disc.unit = 'mrad'
 phase_map_disc.display_phase('Phase of one Pixel (Disc)', limit=limit)
-## Kernel of a slab in real space:
-#phase_map_slab = PMConvolve(a, projector, geometry='slab')(mag_data)
-#phase_map_slab.unit = 'mrad'
-#phase_map_slab.display_phase('Phase of one Pixel (Slab)', limit=limit)
-## Kernel of the Fourier method:
-#phase_map_fft = PMFourier(a, projector, padding=0)(mag_data)
-#phase_map_fft.unit = 'mrad'
-#phase_map_fft.display_phase('Phase of one Pixel (Fourier)', limit=limit)
-## Kernel of the Fourier method, calculated directly:
-#phase_map_fft_kernel = PhaseMap(a, get_fourier_kernel(), 'mrad')
-#phase_map_fft_kernel.display_phase('Phase of one Pixel (Fourier Kernel)', limit=limit)
-## Kernel differences:
-#print 'Fourier Kernel, direct and indirect method are identical:', \
-#      np.all(phase_map_fft_kernel.phase - phase_map_fft.phase) == 0
-#(phase_map_disc-phase_map_fft).display_phase('Phase difference of one Pixel (Disc - Fourier)')
-#
+# Kernel of a slab in real space:
+phase_map_slab = PMConvolve(a, projector, geometry='slab')(mag_data)
+phase_map_slab.unit = 'mrad'
+phase_map_slab.display_phase('Phase of one Pixel (Slab)', limit=limit)
+# Kernel of the Fourier method:
+phase_map_fft = PMFourier(a, projector, padding=0)(mag_data)
+phase_map_fft.unit = 'mrad'
+phase_map_fft.display_phase('Phase of one Pixel (Fourier)', limit=limit)
+# Kernel of the Fourier method, calculated directly:
+phase_map_fft_kernel = PhaseMap(a, get_fourier_kernel(), 'mrad')
+phase_map_fft_kernel.display_phase('Phase of one Pixel (Fourier Kernel)', limit=limit)
+# Kernel differences:
+print 'Fourier Kernel, direct and indirect method are identical:', \
+      np.all(phase_map_fft_kernel.phase - phase_map_fft.phase) == 0
+(phase_map_disc-phase_map_fft).display_phase('Phase difference of one Pixel (Disc - Fourier)')
+
 ## Cross section plots of real space kernels:
 #fig = plt.figure()
 #axis = fig.add_subplot(1, 1, 1)

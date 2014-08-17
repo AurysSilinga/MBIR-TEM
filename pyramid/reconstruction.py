@@ -158,7 +158,7 @@ def optimize_cg(data, first_guess):
     return mag_opt
 
 
-def optimize_simple_leastsq(phase_map, mask, b_0=1):
+def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
     '''Reconstruct a magnetic distribution for a 2-D problem with known pixel locations.
 
     Parameters
@@ -172,6 +172,11 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1):
     b_0 : float, optional
         The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
         The default is 1.
+    lam : float, optional
+        The regularisation parameter. Defaults to 1E-4.
+    order : int {0, 1}, optional
+        order of the regularisation function. Default is 0 for a Tikhonov regularisation of order
+        zero. A first order regularisation, which uses the derivative is available with value 1.
     Returns
     -------
     mag_data : :class:`~pyramid.magdata.MagData`
@@ -188,7 +193,6 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1):
     a = phase_map.a  # Grid spacing
     dim = mask.shape  # Dimensions of the mag. distr.
     count = mask.sum()  # Number of pixels with magnetization
-    lam = 1e-4  # Regularisation parameter
     # Create empty MagData object for the reconstruction:
     mag_data_rec = MagData(a, np.zeros((3,)+dim))
 
@@ -198,16 +202,15 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1):
         phase_map = PMConvolve(a, SimpleProjector(dim), b_0)(mag_data_rec)
         return phase_map.phase_vec
 
-    # TODO: cleanup
-
-    # Cost function which should be minimized:
-    def J(x_i):
+    # Cost function of order zero which should be minimized:
+    def J_0(x_i):
         y_i = F(x_i)
         term1 = (y_i - y_m)
         term2 = lam * x_i
         return np.concatenate([term1, term2])
 
-    def J2(x_i):
+    # First order cost function which should be minimized:
+    def J_1(x_i):
         y_i = F(x_i)
         term1 = (y_i - y_m)
         mag_data = mag_data_rec.magnitude
@@ -221,7 +224,10 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1):
         term2 = lam * np.concatenate(term2)
         return np.concatenate([term1, term2])
 
+    J_DICT = [J_0, J_1]  # list of cost-functions with different regularisations
+    print J_DICT
+    print J_DICT[order]
     # Reconstruct the magnetization components:
-    x_rec, _ = leastsq(J2, np.zeros(3*count))
+    x_rec, _ = leastsq(J_DICT[order], np.zeros(3*count))
     mag_data_rec.set_vector(mask, x_rec)
     return mag_data_rec

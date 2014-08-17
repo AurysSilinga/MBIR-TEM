@@ -11,7 +11,6 @@ import abc
 import itertools
 
 from scipy.sparse import coo_matrix, csr_matrix
-import scipy.sparse as sp
 
 import logging
 
@@ -246,6 +245,7 @@ class XTiltProjector(Projector):
         if dim_uv is None:
             dim_uv = (max(dim_perp, dim_proj), dim_rot)  # x-y-plane
         dim_v, dim_u = dim_uv  # y, x
+        assert dim_v >= dim_perp and dim_u >= dim_rot, 'Projected dimensions are too small!'
         size_2d = np.prod(dim_uv)
         size_3d = np.prod(dim)
         # Creating coordinate list of all voxels:
@@ -352,6 +352,7 @@ class YTiltProjector(Projector):
         if dim_uv is None:
             dim_uv = (dim_rot, max(dim_perp, dim_proj))  # x-y-plane
         dim_v, dim_u = dim_uv  # y, x
+        assert dim_v >= dim_rot and dim_u >= dim_perp, 'Projected dimensions are too small!'
         size_2d = np.prod(dim_uv)
         size_3d = np.prod(dim)
         # Creating coordinate list of all voxels:
@@ -420,11 +421,13 @@ class SimpleProjector(Projector):
     axis : {'z', 'y', 'x'}, optional
         Main axis along which the magnetic distribution is projected (given as a string). Defaults
         to the z-axis.
+    dim_uv : tuple (N=2), optional
+        Dimensions (v, u) of the projection. If not set it uses the 3D default dimensions.
 
     '''
 
     LOG = logging.getLogger(__name__+'.SimpleProjector')
-    AXIS_DICT = {'z': (0, 1, 2), 'y': (1, 0, 2), 'x': (1, 2, 0)}
+    AXIS_DICT = {'z': (0, 1, 2), 'y': (1, 0, 2), 'x': (2, 1, 0)}  # (0:z, 1:y, 2:x) -> (proj, v, u)
 
     def __init__(self, dim, axis='z', dim_uv=None):
         self.LOG.debug('Calling __init__')
@@ -432,12 +435,6 @@ class SimpleProjector(Projector):
         proj, v, u = self.AXIS_DICT[axis]
         dim_proj, dim_v, dim_u = dim[proj], dim[v], dim[u]
         dim_z, dim_y, dim_x = dim
-
-#        if dim_uv is None:
-#            dim_uv = (dim_rot, max(dim_perp, dim_proj))  # x-y-plane
-#        dim_v, dim_u = dim_uv  # y, x
-#        size_2d = np.prod(dim_uv)
-
         size_2d = dim_u * dim_v
         size_3d = np.prod(dim)
         data = np.repeat(1, size_3d)  # size_3d ones in the matrix (each voxel is projected)
@@ -450,87 +447,32 @@ class SimpleProjector(Projector):
         elif axis == 'y':
             self.LOG.debug('Projection along the y-axis')
             coeff = [[1, 0, 0], [0, 0, 1]]
-            indices = np.array([np.arange(row%dim_x, dim_x*dim_y, dim_x)
-                                + int(row/dim_x)*dim_x*dim_y
+            indices = np.array([np.arange(row%dim_x, dim_x*dim_y, dim_x)+int(row/dim_x)*dim_x*dim_y
                                 for row in range(size_2d)]).reshape(-1)
         elif axis == 'x':
             self.LOG.debug('Projection along the x-axis')
-            coeff = [[0, 1, 0], [0, 0, 1]]
-            indices = np.array([np.arange(dim_proj) + row*dim_proj
+            coeff = [[0, 0, 1], [0, 1, 0]]  # Caution, coordinate switch: u, v --> z, y (not y, z!)
+            #  indices = np.array([np.arange(dim_proj) + row*dim_proj
+            #                      for row in range(size_2d)]).reshape(-1)  # this is u, v --> y, z
+            indices = np.array([np.arange(dim_x) + (row%dim_z)*dim_x*dim_y + int(row/dim_z)*dim_x
                                 for row in range(size_2d)]).reshape(-1)
         if dim_uv is not None:
-            indptr = indptr.tolist()
-            d_v, d_u = int((dim_uv[0]-dim_v)/2), int((dim_uv[1]-dim_u)/2)
-            print d_v, d_u
-            print dim_v*dim_u, '-->', np.prod(dim_uv)
-            print 'before:', indptr
-            for i in range(d_v*dim_uv[1]):  # last v_slices
-                indptr.append(indptr[-1])  # append empty rows
-            print 'last:  ', indptr
+            indptr = indptr.tolist()  # convert to use insert() and append()
+            d_v, d_u = int((dim_uv[0]-dim_v)/2), int((dim_uv[1]-dim_u)/2)  # padding in u and v
+            indptr[-1:-1] = [indptr[-1]] * d_v*dim_uv[1]  # append empty rows at the end
             for i in np.arange(dim_v, 0, -1):  # all slices in between
                 u, l = i*dim_u, (i-1)*dim_u+1  # upper / lower slice end
-                print i, u, l
-                print indptr[u], indptr[l]
                 indptr[u:u] = [indptr[u]] * d_u  # end of the slice
                 indptr[l:l] = [indptr[l]] * d_u  # start of the slice
-                print 'middle:', indptr
-            for i in range(d_v*dim_uv[1]):  # first v_slices
-                indptr.insert(0, 0)  # append empty rows
+            indptr[0:0] = [0] * d_v*dim_uv[1]  # insert empty rows at the beginning
             size_2d = np.prod(dim_uv)  # increase size_2d
-            print 'after: ', indptr
-        else:
+        # Make sure dim_uv is defined (used for the assertion)
+        if dim_uv is None:
             dim_uv = dim_v, dim_u
-
-# TODO: assertions!
-
-#        else:  # dimensions of the projection differ from 3D-distribution
-#            d_v, d_u = int((dim_uv[0]-dim_v)/2), int((dim_uv[1]-dim_u)/2)
-#            filled_rows =
-#            # else --> filled_rows = range(size_2d)
-#            if axis == 'z':
-#                self.LOG.debug('Projecting along the z-axis')
-#                coeff = [[1, 0, 0], [0, 1, 0]]
-#
-#                for i, row in enumerate()
-#                indices = np.array([np.arange(row, size_3d, size_2d)
-#                                    for row in range(size_2d)]).reshape(-1)
-#                print indices.shape
-#            elif axis == 'y':
-#                self.LOG.debug('Projection along the y-axis')
-#                coeff = [[1, 0, 0], [0, 0, 1]]
-#                indices = np.array([np.arange(row%dim_x, dim_x*dim_y, dim_x)
-#                                    + int(row/dim_x)*dim_x*dim_y
-#                                    for row in range(size_2d)]).reshape(-1)
-#            elif axis == 'x':
-#                self.LOG.debug('Projection along the x-axis')
-#                coeff = [[0, 1, 0], [0, 0, 1]]
-#                indices = np.array([np.arange(dim_proj) + row*dim_proj
-#                                    for row in range(size_2d)]).reshape(-1)
-
+        assert dim_uv[0] >= dim_v and dim_uv[1] >= dim_u, 'Projected dimensions are too small!'
+        # Create weight-matrix:
         weight = csr_matrix((data, indices, indptr), shape=(size_2d, size_3d))
-#        print len(data), data
-#        print len(indices), indices
-#        print len(indptr), indptr
-#        print np.prod(dim_uv)
-#        print size_3d
-#        print size_2d
-#        weight = csr_matrix((data, indices, indptr), shape=(size_2d+2*d_u, size_3d))
-#        print dim_uv is not (dim_v, dim_u)
-#        print (dim_uv is not (dim_v, dim_u))
-#        print dim_uv, dim_v, dim_u
-#        print (dim_uv is not None) and (dim_uv is not (dim_v, dim_u))
-#        if (dim_uv is not None) and (dim_uv != (dim_v, dim_u)):
-#            d_v, d_u = int((dim_uv[0]-dim_v)/2), int((dim_uv[1]-dim_u)/2)
-#            print d_v, d_u
-#            print weight.shape
-#            print csr_matrix((d_u, size_2d)).shape
-#            print csr_matrix((np.prod(dim_uv), d_v)).shape
-#            weight = sp.hstack((csr_matrix((size_2d, d_u)), weight,
-#                                csr_matrix((size_2d, d_u))))
-#            weight = sp.vstack((csr_matrix((d_v, np.prod(dim_uv))), weight,
-#                                csr_matrix((d_v, np.prod(dim_uv)))))
-#        print weight.shape
-        super(SimpleProjector, self).__init__(dim, dim_uv, weight, coeff)  # TODO: dim_uv caution
+        super(SimpleProjector, self).__init__(dim, dim_uv, weight, coeff)
         self.LOG.debug('Created '+str(self))
 
     def get_info(self):

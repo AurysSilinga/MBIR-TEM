@@ -22,10 +22,10 @@ logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 directory = '../../output/magnetic distributions'
 if not os.path.exists(directory):
     os.makedirs(directory)
+###################################################################################################
 # Input parameters:
-#--------------------------------------------------------------------------------------------------
 key = 'sphere'
-#--------------------------------------------------------------------------------------------------
+###################################################################################################
 filename = directory + '/mag_dist_' + key + '.txt'
 dim = (64, 64, 64)  # in px (z, y, x)
 a = 1.0  # in nm

@@ -48,7 +48,7 @@ class DataSet(object):
 
     @property
     def dim_uv(self):
-        return self._dim_uv  # TODO: delete
+        return self._dim_uv
 
     @property
     def phase_vec(self):
@@ -99,11 +99,8 @@ class DataSet(object):
         self.LOG.debug('Calling append')
         assert isinstance(phase_map, PhaseMap) and isinstance(projector, Projector),  \
             'Argument has to be a tuple of a PhaseMap and a Projector object!'
-#        assert phase_map.dim_uv == self.dim_uv, 'Added phasemap must have the same dimension!'
-#        assert projector.dim_uv == self.dim_uv, 'Projector dimensions must match!'
-        # TODO: delete
-        assert phase_map.dim_uv == projector.dim_uv, \
-            'PhaseMap and Projector dimensions must match!'
+        assert phase_map.dim_uv == self.dim_uv, 'Added phasemap must have the same dimension!'
+        assert projector.dim_uv == self.dim_uv, 'Projector dimensions must match!'
         self.data.append((phase_map, projector))
 
     def display_phase(self, phase_maps=None, title='Phase Map', cmap='RdBu', limit=None, norm=None):
