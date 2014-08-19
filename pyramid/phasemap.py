@@ -398,16 +398,16 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def display_holo(self, density=1, title='Holographic Contour Map',
+    def display_holo(self, title='Holographic Contour Map', density=1,
                      axis=None, grad_encode='bright', interpolation='none', show=True):
         '''Display the color coded holography image.
 
         Parameters
         ----------
-        density : float, optional
-            The gain factor for determining the number of contour lines. The default is 1.
         title : string, optional
             The title of the plot. The default is 'Holographic Contour Map'.
+        density : float, optional
+            The gain factor for determining the number of contour lines. The default is 1.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         grad_encode: {'bright', 'dark', 'color', 'none'}, optional

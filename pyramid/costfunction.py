@@ -8,11 +8,13 @@ import numpy as np
 from scipy.sparse.linalg import LinearOperator
 from scipy.sparse import eye
 
+from pyramid.regularisator import ZeroOrderRegularisator
+
 import logging
 
 
 class Costfunction(object):
-
+    # TODO: Docstrings!
     '''Class for calculating the cost of a 3D magnetic distributions in relation to 2D phase maps.
 
     Represents a strategy for the calculation of the `cost` of a 3D magnetic distribution in
@@ -36,28 +38,32 @@ class Costfunction(object):
 
     LOG = logging.getLogger(__name__+'.Costfunction')
 
-    def __init__(self, y, fwd_model, lam=0):
+    def __init__(self, y, fwd_model, Se_inv=None, regularisator=None):
         self.LOG.debug('Calling __init__')
         self.y = y
         self.fwd_model = fwd_model
-        self.lam = lam
-        self.Se_inv = eye(len(y))
+        if Se_inv is None:
+            Se_inv = eye(len(y))
+        self.Se_inv = Se_inv
+        if regularisator is None:
+            regularisator = ZeroOrderRegularisator(lam=1E-4, size=3*fwd_model.size_3d)
+        self.regularisator = regularisator
         self.LOG.debug('Created '+str(self))
 
     def __call__(self, x):
         self.LOG.debug('Calling __call__')
-        y = self.y
-        F = self.fwd_model
-        Se_inv = self.Se_inv
-        return (F(x)-y).dot(Se_inv.dot(F(x)-y)) + lam * x.dot(Sa_inv.dot(x))  # TODO: implement
+        return ((self.fwd_model(x)-self.y).dot(self.Se_inv.dot(self.fwd_model(x)-self.y))
+                + self.regularisator(x))
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')
-        return '%s(fwd_model=%r, lam=%r)' % (self.__class__, self.fwd_model, self.lam)
+        return '%s(fwd_model=%r, Se_inv=%r, regularisator=%r)' % \
+            (self.__class__, self.fwd_model, self.Se_inv, self.regularisator)
 
     def __str__(self):
         self.LOG.debug('Calling __str__')
-        return 'Costfunction(fwd_model=%s, lam=%s)' % (self.fwd_model, self.lam)
+        return 'Costfunction(fwd_model=%s, Se_inv=%s, regularisator=%s)' % \
+            (self.fwd_model, self.Se_inv, self.regularisator)
 
     def jac(self, x):
         '''Calculate the derivative of the costfunction for a given magnetization distribution.
@@ -99,10 +105,8 @@ class Costfunction(object):
 
         '''
         self.LOG.debug('Calling hess_dot')
-        F = self.fwd_model
-        Se_inv = self.Se_inv
-        lam = self.lam
-        return F.jac_T_dot(x, Se_inv.dot(F.jac_dot(x, vector))) + lam*vector
+        return (self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model.jac_dot(x, vector)))
+                + self.regularisator.jac_dot(vector))
 
 
 class CFAdapterScipyCG(LinearOperator):

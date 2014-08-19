@@ -83,7 +83,8 @@ class PrintIterator(object):
         return self.iteration
 
 
-def optimize_sparse_cg(data, verbosity=0):
+def optimize_sparse_cg(data, Se_inv=None, regularisator=None, verbosity=0):
+    # TODO: Docstring!
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
 
@@ -109,7 +110,7 @@ def optimize_sparse_cg(data, verbosity=0):
     y = data.phase_vec
     kernel = Kernel(data.a, data.dim_uv, data.b_0)
     fwd_model = ForwardModel(data.projectors, kernel)
-    cost = Costfunction(y, fwd_model, lam=10**-10)
+    cost = Costfunction(y, fwd_model, Se_inv, regularisator)
     # Optimize:
     A = CFAdapterScipyCG(cost)
     b = fwd_model.jac_T_dot(None, y)
@@ -225,8 +226,6 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
         return np.concatenate([term1, term2])
 
     J_DICT = [J_0, J_1]  # list of cost-functions with different regularisations
-    print J_DICT
-    print J_DICT[order]
     # Reconstruct the magnetization components:
     x_rec, _ = leastsq(J_DICT[order], np.zeros(3*count))
     mag_data_rec.set_vector(mask, x_rec)

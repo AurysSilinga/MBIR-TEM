@@ -15,11 +15,8 @@ from pyramid.phasemap import PhaseMap
 from pyramid.projector import YTiltProjector, XTiltProjector
 from pyramid.phasemapper import PMConvolve
 from pyramid.dataset import DataSet
+from pyramid.regularisator import ZeroOrderRegularisator
 import pyramid.magcreator as mc
-
-from pyramid.kernel import Kernel
-from pyramid.forwardmodel import ForwardModel
-from pyramid.costfunction import Costfunction
 import pyramid.reconstruction as rc
 
 import logging
@@ -85,24 +82,25 @@ else:
 print('--Setting up data collection')
 
 dim_uv = dim[1:3]
-
-lam = 10**-10
-
 data = DataSet(a, dim_uv, b_0)
 [data.append((phase_maps[i], projectors[i])) for i in range(len(projectors))]
-y = data.phase_vec
-kern = Kernel(data.a, data.dim_uv, data.b_0)
-F = ForwardModel(data.projectors, kern)
-C = Costfunction(y, F, lam)
-
-data.display()
 
 ###################################################################################################
-#print('--Test simple solver')
-#
-#start = clock()
-#mag_data_opt = rc.optimize_sparse_cg(data, verbosity=1)
-#print 'Time:', str(clock()-start)
-#mag_data_opt.quiver_plot3d()
-#(mag_data_opt - mag_data).quiver_plot3d()
-##data.display(data.create_phase_maps(mag_data_opt))
+print('--Test simple solver')
+
+lam = 1E-10
+reg = ZeroOrderRegularisator(lam, 3*np.prod(dim))
+start = clock()
+mag_data_opt = rc.optimize_sparse_cg(data, regularisator=reg, verbosity=1)
+print 'Time:', str(clock()-start)
+mag_data_opt.quiver_plot3d()
+(mag_data_opt - mag_data).quiver_plot3d()
+
+###################################################################################################
+print('--Plot stuff')
+
+phase_maps_opt = data.create_phase_maps(mag_data_opt)
+#data.display_phase()
+#data.display_phase(phase_maps_opt)
+phase_diffs = [(phase_maps[i]-phase_maps_opt[i]) for i in range(len(data.data))]
+data.display_phase(phase_diffs)

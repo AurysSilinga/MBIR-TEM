@@ -103,7 +103,8 @@ class DataSet(object):
         assert projector.dim_uv == self.dim_uv, 'Projector dimensions must match!'
         self.data.append((phase_map, projector))
 
-    def display_phase(self, phase_maps=None, title='Phase Map', cmap='RdBu', limit=None, norm=None):
+    def display_phase(self, phase_maps=None, title='Phase Map',
+                      cmap='RdBu', limit=None, norm=None):
         '''Display all phasemaps saved in the :class:`~.DataSet` as a colormesh.
 
         Parameters
@@ -134,7 +135,7 @@ class DataSet(object):
             phase_maps = self.phase_maps
         [phase_map.display_phase('{} ({})'.format(title, self.projectors[i].get_info()),
                                  cmap, limit, norm)
-            for (i, phase_map) in enumerate(self.phase_maps)]
+            for (i, phase_map) in enumerate(phase_maps)]
         plt.show()
 
     def display_combined(self, phase_maps=None, title='Combined Plot', cmap='RdBu', limit=None,
@@ -179,7 +180,7 @@ class DataSet(object):
             phase_maps = self.phase_maps
         [phase_map.display_combined('{} ({})'.format(title, self.projectors[i].get_info()),
                                     cmap, limit, norm, density, interpolation, grad_encode)
-            for (i, phase_map) in enumerate(self.phase_maps)]
+            for (i, phase_map) in enumerate(phase_maps)]
         plt.show()
 
     def create_phase_maps(self, mag_data):

@@ -49,9 +49,9 @@ class ForwardModel(object):
         self.a = kernel.a
         self.projectors = projectors
         self.dim = self.projectors[0].dim
-        self.dim_uv = kernel.dim_uv
-        self.size_2d = self.projectors[0].size_2d
         self.size_3d = self.projectors[0].size_3d
+        self.dim_uv = kernel.dim_uv
+        self.size_2d = kernel.size
         self.LOG.debug('Creating '+str(self))
 
     def __call__(self, x):

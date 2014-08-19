@@ -65,8 +65,9 @@ xs = np.arange(-dim[2]/2, dim[2]/2)
 ys = np.arange(-dim[1]/2, dim[1]/2)
 zs = np.arange(-dim[0]/2, dim[0]/2)
 xx, yy = np.meshgrid(xs, ys)
-# Interpolation and phase calculation for all timesteps:
-for t in np.arange(865, 1001, 5):
+
+
+def calculate(t):  # TODO: Somehow avoid memory error :-(...
     print 't =', t
     vectors = h5file.root.data.fields.m.read(field='m_CoFeb')[t, ...]
     data = np.hstack((points, vectors))
@@ -92,5 +93,12 @@ for t in np.arange(865, 1001, 5):
     plt.savefig(PATH+'rueffner/phase_map_z_t_'+str(t)+'.png')
     phase_map_x.display_combined(density=dens_x, interpolation='bilinear', limit=lim_x)
     plt.savefig(PATH+'rueffner/phase_map_x_t_'+str(t)+'.png')
+    vectors, data, magnitude, z_slice, weights, grid_x, grid_y, grid_z, grid, mag_data, \
+        phase_map_z, phase_map_x = [None] * 12
     # Close all plots to avoid clutter:
     plt.close('all')
+
+
+# Interpolation and phase calculation for all timesteps:
+for t in np.arange(0, 1001, 5):
+    calculate(t)
