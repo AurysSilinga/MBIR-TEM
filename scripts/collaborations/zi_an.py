@@ -46,21 +46,23 @@ order = 1
 if smoothed_pictures:
     dm3_2_mag = dm3.DM3(PATH+'Output333_hw512.dm3').image
     dm3_4_mag = dm3.DM3(PATH+'Output334_hw512.dm3').image
+    dm3_2_ele = dm3.DM3(PATH+'Output335.dm3').image
+    dm3_4_ele = dm3.DM3(PATH+'Output336.dm3').image
 else:
     dm3_2_mag = dm3.DM3(PATH+'07_0102mag60_q3_pha_01_sb280_sc512_vf3_med5.dm3').image
     dm3_4_mag = dm3.DM3(PATH+'18a_0102mag_ub140_62k_q3_pha_01_sb180_sc512_vf3_med5.dm3').image
-dm3_2_ele = dm3.DM3(PATH+'07_0102ele60_q3_pha_01_sb280_sc512_vf3_med5.dm3').image
-dm3_4_ele = dm3.DM3(PATH+'18a_0102ele_ub140_62k_q3_pha_01_sb180_sc512_vf3_med5.dm3').image
+    dm3_2_ele = dm3.DM3(PATH+'07_0102ele60_q3_pha_01_sb280_sc512_vf3_med5.dm3').image
+    dm3_4_ele = dm3.DM3(PATH+'18a_0102ele_ub140_62k_q3_pha_01_sb180_sc512_vf3_med5.dm3').image
 # Construct phase maps and masks
 phase_map_2 = PhaseMap(a, np.array(dm3_2_mag.resize(dim_small))+0.101)
 phase_map_2.display_combined(density=density, interpolation=inter)
 plt.savefig(PATH+'phase_map_2part.png')
-mask_2 = np.expand_dims(np.where(np.array(dm3_2_ele.resize(dim_small)) > threshold,
+mask_2 = np.expand_dims(np.where(np.array(dm3_2_ele.resize(dim_small)) >= threshold,
                                  True, False), axis=0)
 phase_map_4 = PhaseMap(a, np.array(dm3_4_mag.resize(dim_small))-2.546)
 phase_map_4.display_combined(density=density, interpolation=inter)
 plt.savefig(PATH+'phase_map_4part.png')
-mask_4 = np.expand_dims(np.where(np.array(dm3_4_ele.resize(dim_small)) > threshold,
+mask_4 = np.expand_dims(np.where(np.array(dm3_4_ele.resize(dim_small)) >= threshold,
                                  True, False), axis=0)
 # Reconstruct the magnetic distribution:
 tic = clock()
@@ -78,12 +80,12 @@ phase_map_rec_4.display_combined('Reconstr. Distribution', density=density, inte
 plt.savefig(PATH+'phase_map_4part_rec.png')
 # Plot the magnetization:
 axis = (mag_data_rec_2*(1/mag_data_rec_2.magnitude.max())).quiver_plot()
-axis.set_xlim(20, 45)
-axis.set_ylim(20, 45)
+#axis.set_xlim(20, 45)
+#axis.set_ylim(20, 45)
 plt.savefig(PATH+'mag_data_2part.png')
 axis = (mag_data_rec_4*(1/mag_data_rec_4.magnitude.max())).quiver_plot()
-axis.set_xlim(20, 45)
-axis.set_ylim(20, 45)
+#axis.set_xlim(20, 45)
+#axis.set_ylim(20, 45)
 plt.savefig(PATH+'mag_data_4part.png')
 # Display the Phase:
 phase_diff_2 = phase_map_rec_2-phase_map_2
@@ -96,13 +98,13 @@ plt.savefig(PATH+'phase_map_4part_diff.png')
 print 'Average difference (2 cubes):', np.average(phase_diff_2.phase)
 print 'Average difference (4 cubes):', np.average(phase_diff_4.phase)
 # Plot holographic contour maps with overlayed magnetic distributions:
-axis = phase_map_rec_2.display_holo('Magnetization Overlay', density=density, interpolation=inter)
+axis = phase_map_rec_2.display_holo('Magnetization Overlay', density=0.1, interpolation=inter)
 (mag_data_rec_2*(1/mag_data_rec_2.magnitude.max())).quiver_plot(axis=axis)
 axis = plt.gca()
 axis.set_xlim(20, 45)
 axis.set_ylim(20, 45)
 plt.savefig(PATH+'phase_map_2part_holo.png')
-axis = phase_map_rec_4.display_holo('Magnetization Overlay', density=density, interpolation=inter)
+axis = phase_map_rec_4.display_holo('Magnetization Overlay', density=0.1, interpolation=inter)
 (mag_data_rec_4*(1/mag_data_rec_4.magnitude.max())).quiver_plot(axis=axis)
 axis = plt.gca()
 axis.set_xlim(20, 45)

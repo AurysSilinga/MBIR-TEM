@@ -66,6 +66,22 @@ class FirstOrderRegularisator(Regularisator):
     # TODO: Docstring!
 
     def __init__(self, lam, size, x_a=None):
+
         Sa_inv = lam * eye(size)
+
+
+
+
+
+        csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=(size_2d, size_3d)))
+
+        term2 = []
+        for i in range(3):
+            component = mag_data[i, ...]
+            for j in range(3):
+                if component.shape[j] > 1:
+                    term2.append(np.diff(component, axis=j).reshape(-1))
+
+
         super(FirstOrderRegularisator, self).__init__(Sa_inv, x_a)
         self.LOG.debug('Created '+str(self))
