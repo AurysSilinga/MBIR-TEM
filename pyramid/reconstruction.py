@@ -84,7 +84,6 @@ class PrintIterator(object):
 
 
 def optimize_sparse_cg(data, Se_inv=None, regularisator=None, verbosity=0):
-    # TODO: Docstring!
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
 
@@ -94,6 +93,13 @@ def optimize_sparse_cg(data, Se_inv=None, regularisator=None, verbosity=0):
         :class:`~.DataSet` object containing all phase maps in :class:`~.PhaseMap` objects and all
         projection directions in :class:`~.Projector` objects. These provide the essential
         information for the reconstruction.
+    Se_inv : :class:`~numpy.ndarray` (N=2), optional
+        Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
+        being the length of the targetvector y (vectorized phase map information). Defaults to
+        an appropriate unity matrix if none is provided.
+    regularisator : :class:`~.Regularisator`, optional
+        Regularisator class that's responsible for the regularisation term. Defaults to zero
+        order Tikhonov if none is provided.
     verbosity : {0, 1, 2}, optional
         Parameter defining the verposity of the output. `2` will show the current number of the
         iteration and the cost of the current distribution. `1` will just show the iteration

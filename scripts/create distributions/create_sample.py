@@ -24,12 +24,12 @@ if not os.path.exists(directory):
     os.makedirs(directory)
 ###################################################################################################
 # Input parameters:
-key = 'sphere'
+key = 'slab'
 ###################################################################################################
 filename = directory + '/mag_dist_' + key + '.txt'
-dim = (64, 64, 64)  # in px (z, y, x)
+dim = (32, 32, 32)  # in px (z, y, x)
 a = 1.0  # in nm
-phi = pi/2
+phi = pi/4
 # Geometry parameters:
 center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2-0.5)  # in px (z, y, x), index starts with 0!
 width = (dim[0]/2, dim[1]/2, dim[2]/2)  # in px (z, y, x)
@@ -49,7 +49,7 @@ elif key == 'filament':
 elif key == 'pixel':
     mag_shape = mc.Shapes.pixel(dim, pixel)
 # Create magnetic distribution
-magnitude = mc.create_mag_dist_homog(mag_shape, phi)
-mag_data = MagData(a, magnitude)
-mag_data.quiver_plot()
+mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, phi, magnitude=0.75))
 mag_data.save_to_llg(filename)
+mag_data.quiver_plot()
+mag_data.quiver_plot3d()

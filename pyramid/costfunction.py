@@ -14,7 +14,6 @@ import logging
 
 
 class Costfunction(object):
-    # TODO: Docstrings!
     '''Class for calculating the cost of a 3D magnetic distributions in relation to 2D phase maps.
 
     Represents a strategy for the calculation of the `cost` of a 3D magnetic distribution in
@@ -31,8 +30,13 @@ class Costfunction(object):
     fwd_model : :class:`~.ForwardModel`
         The Forward model instance which should be used for the simulation of the phase maps which
         will be compared to `y`.
-    lam : float, optional
-        Regularization parameter used in the Hessian matrix multiplication. Default is 0.
+    Se_inv : :class:`~numpy.ndarray` (N=2), optional
+        Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
+        being the length of the targetvector y (vectorized phase map information). Defaults to
+        an appropriate unity matrix if none is provided.
+    regularisator : :class:`~.Regularisator`, optional
+        Regularisator class that's responsible for the regularisation term. Defaults to zero
+        order Tikhonov if none is provided.
 
     '''
 

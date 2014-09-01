@@ -28,17 +28,17 @@ class Regularisator(object):
     LOG = logging.getLogger(__name__+'.Regularisator')
 
     @abc.abstractmethod
-    def __init__(self, Sa_inv, x_a=None):
+    def __init__(self, Sa_sqrt_inv, x_a=None):
         self.LOG.debug('Calling __init__')
-        self.Sa_inv = Sa_inv
+        self.Sa_sqrt_inv = Sa_sqrt_inv
         if x_a is None:
-            x_a = np.zeros(np.shape(Sa_inv)[1])
+            x_a = np.zeros(np.shape(Sa_sqrt_inv)[1])
         self.x_a = x_a
         self.LOG.debug('Created '+str(self))
 
     def __call__(self, x, x_a=None):
         self.LOG.debug('Calling __call__')
-        return (x-self.x_a).dot(self.Sa_inv.dot(x-self.x_a))
+        return (x-self.x_a).dot(self.Sa_sqrt_inv.dot(x-self.x_a))
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')

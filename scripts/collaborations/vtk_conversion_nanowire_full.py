@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 import pyramid
 from pyramid.magdata import MagData
-from pyramid.projector import SimpleProjector, YTiltProjector, XTiltProjector
+from pyramid.projector import YTiltProjector, XTiltProjector
 from pyramid.phasemapper import PMConvolve
 from pyramid.phasemap import PhaseMap
 from pyramid.dataset import DataSet
@@ -151,16 +151,48 @@ for i, figure in enumerate(figures):
 plt.close('all')
 ###################################################################################################
 # Close ups:
-dim_uv = (600, 200)
-mag_data_tip = MagData(mag_data.a, mag_data.magnitude[:, 600:, ...])
-pm = PMConvolve(mag_data.a, SimpleProjector(mag_data_tip.dim, 'y', dim_uv))
-phase_map_tip = PhaseMap(mag_data.a, pm(mag_data_tip).phase[350:, :])
-phase_map_tip.display_combined('Phase Map Nanowire Tip', density=density,
-                               interpolation='bilinear')
-plt.savefig(PATH+'_nanowire_tip.png')
-mag_data_bot = MagData(mag_data.a, mag_data.magnitude[:, :300, ...])
-pm = PMConvolve(mag_data.a, SimpleProjector(mag_data_bot.dim, 'y', dim_uv))
-phase_map_tip = PhaseMap(mag_data.a, pm(mag_data_bot).phase[:250, :])
-phase_map_tip.display_combined('Phase Map Nanowire Bottom', density=density,
-                               interpolation='bilinear')
-plt.savefig(PATH+'_nanowire_bot.png')
+dim = (300, 72, 72)
+dim_uv = (600, 150)
+angles = [0, 20, 40, 60, -20, -40, -60]
+for angle in angles:
+    angle_rad = angle * np.pi/180
+    shift = int(np.abs(80*np.sin(angle_rad)))
+    projector = XTiltProjector(dim, np.pi/2+angle_rad, dim_uv)
+    projector_scaled = XTiltProjector((dim[0]/2, dim[1]/2, dim[2]/2), np.pi/2+angle_rad,
+                                      (dim_uv[0]/2, dim_uv[1]/2))
+    # Tip:
+    mag_data_tip = MagData(mag_data.a, mag_data.magnitude[:, 608:, ...])
+    pm = PMConvolve(mag_data.a, projector)
+    phase_map_tip = PhaseMap(mag_data.a, pm(mag_data_tip).phase[350-shift:530-shift, :])
+    phase_map_tip.display_combined('Phase Map Nanowire Tip', density=density,
+                                   interpolation='bilinear')
+    plt.savefig(PATH+'_nanowire_tip_xtilt_{}.png'.format(angle))
+    mag_data_tip.scale_down()
+    mag_proj_tip = projector_scaled.to_mag_data(mag_data_tip)
+    axis = mag_proj_tip.quiver_plot()
+    axis.set_xlim(17, 55)
+    axis.set_ylim(180-shift/2, 240-shift/2)
+    plt.savefig(PATH+'_nanowire_tip_mag_xtilt_{}.png'.format(angle))
+    axis = mag_proj_tip.quiver_plot(log=True)
+    axis.set_xlim(17, 55)
+    axis.set_ylim(180-shift/2, 240-shift/2)
+    plt.savefig(PATH+'_nanowire_tip_mag_log_xtilt_{}.png'.format(angle))
+    # Bottom:
+    mag_data_bot = MagData(mag_data.a, mag_data.magnitude[:, :300, ...])
+    pm = PMConvolve(mag_data.a, projector)
+    phase_map_tip = PhaseMap(mag_data.a, pm(mag_data_bot).phase[50+shift:225+shift, :])
+    phase_map_tip.display_combined('Phase Map Nanowire Bottom', density=density,
+                                   interpolation='bilinear')
+    plt.savefig(PATH+'_nanowire_bot_xtilt_{}.png'.format(angle))
+    mag_data_bot.scale_down()
+    mag_proj_bot = projector_scaled.to_mag_data(mag_data_bot)
+    axis = mag_proj_bot.quiver_plot()
+    axis.set_xlim(17, 55)
+    axis.set_ylim(50+shift/2, 110+shift/2)
+    plt.savefig(PATH+'_nanowire_bot_mag_xtilt_{}.png'.format(angle))
+    axis = mag_proj_bot.quiver_plot(log=True)
+    axis.set_xlim(17, 55)
+    axis.set_ylim(50+shift/2, 110+shift/2)
+    plt.savefig(PATH+'_nanowire_bot_mag_log_xtilt_{}.png'.format(angle))
+    # Close plots:
+    plt.close('all')

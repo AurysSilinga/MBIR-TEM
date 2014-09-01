@@ -406,8 +406,8 @@ class MagData(object):
         mag_file.close()
         return MagData(a, magnitude)
 
-    def quiver_plot(self, title='Magnetization Distribution', filename=None, axis=None,
-                    proj_axis='z', ax_slice=None):
+    def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
+                    ax_slice=None, log=False, scaled=True, show=True):
         '''Plot a slice of the magnetization as a quiver plot.
 
         Parameters
@@ -416,15 +416,17 @@ class MagData(object):
             The title for the plot.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
-        filename : string, optional
-            The filename, specifying the location where the image is saved. If not specified,
-            the image is shown instead.
         proj_axis : {'z', 'y', 'x'}, optional
             The axis, from which a slice is plotted. The default is 'z'.
         ax_slice : int, optional
             The slice-index of the axis specified in `proj_axis`. Is set to the center of
             `proj_axis` if not specified.
-
+        log : boolean, optional
+            Takes the Default is False.
+        scaled : boolean, optional
+            Normalizes the plotted arrows in respect to the highest one. Default is True.
+        show: bool, optional
+            A switch which determines if the plot is shown at the end of plotting. Default is True.
         Returns
         -------
         axis: :class:`~matplotlib.axes.AxesSubplot`
@@ -438,45 +440,62 @@ class MagData(object):
             self.LOG.debug('proj_axis == z')
             if ax_slice is None:
                 self.LOG.debug('ax_slice is None')
-                ax_slice = int(self.dim[0]/2)
-            mag_slice_u = self.magnitude[0][ax_slice, ...]  # x-component
-            mag_slice_v = self.magnitude[1][ax_slice, ...]  # y-component
+                ax_slice = int(self.dim[0]/2.)
+            plot_u = np.copy(self.magnitude[0][ax_slice, ...])  # x-component
+            plot_v = np.copy(self.magnitude[1][ax_slice, ...])  # y-component
             u_label = 'x [px]'
             v_label = 'y [px]'
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
             self.LOG.debug('proj_axis == y')
             if ax_slice is None:
                 self.LOG.debug('ax_slice is None')
-                ax_slice = int(self.dim[1]/2)
-            mag_slice_u = self.magnitude[0][:, ax_slice, :]  # x-component
-            mag_slice_v = self.magnitude[2][:, ax_slice, :]  # z-component
+                ax_slice = int(self.dim[1]/2.)
+            plot_u = np.copy(self.magnitude[0][:, ax_slice, :])  # x-component
+            plot_v = np.copy(self.magnitude[2][:, ax_slice, :])  # z-component
             u_label = 'x [px]'
             v_label = 'z [px]'
         elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
             self.LOG.debug('proj_axis == x')
             if ax_slice is None:
                 self.LOG.debug('ax_slice is None')
-                ax_slice = int(self.dim[2]/2)
-            mag_slice_u = self.magnitude[1][..., ax_slice]  # y-component
-            mag_slice_v = self.magnitude[2][..., ax_slice]  # z-component
-            u_label = 'y [px]'
-            v_label = 'z [px]'
+                ax_slice = int(self.dim[2]/2.)
+            plot_u = np.swapaxes(np.copy(self.magnitude[2][..., ax_slice]), 0, 1)  # z-component
+            plot_v = np.swapaxes(np.copy(self.magnitude[1][..., ax_slice]), 0, 1)  # y-component
+            u_label = 'z [px]'
+            v_label = 'y [px]'
         # If no axis is specified, a new figure is created:
         if axis is None:
             self.LOG.debug('axis is None')
             fig = plt.figure(figsize=(8.5, 7))
-            axis = fig.add_subplot(1, 1, 1, aspect='equal')
-        axis.quiver(mag_slice_u, mag_slice_v, pivot='middle', angles='xy', scale_units='xy',
-                    scale=1, headwidth=6, headlength=7)
-        axis.set_xlim(-1, np.shape(mag_slice_u)[1])
-        axis.set_ylim(-1, np.shape(mag_slice_u)[0])
+            axis = fig.add_subplot(1, 1, 1)
+        axis.set_aspect('equal')
+        angles = np.angle(plot_u+1j*plot_v, deg=True)
+        # Take the logarithm of the arrows to clearly show directions (if specified):
+        if log:
+            cutoff = 10
+            amp = np.round(np.hypot(plot_u, plot_v), decimals=cutoff)
+            min_value = amp[np.nonzero(amp)].min()
+            plot_u = np.round(plot_u, decimals=cutoff) / min_value
+            plot_u = np.log10(np.abs(plot_u)+1) * np.sign(plot_u)
+            plot_v = np.round(plot_v, decimals=cutoff) / min_value
+            plot_v = np.log10(np.abs(plot_v)+1) * np.sign(plot_v)
+        # Scale the magnitude of the arrows to the highest one (if specified):
+        if scaled:
+            plot_u /= np.hypot(plot_u, plot_v).max()
+            plot_v /= np.hypot(plot_u, plot_v).max()
+        axis.quiver(plot_u, plot_v, pivot='middle', units='xy', angles=angles,
+                    scale_units='xy', scale=1, headwidth=6, headlength=7)
+        axis.set_xlim(-1, np.shape(plot_u)[1])
+        axis.set_ylim(-1, np.shape(plot_u)[0])
         axis.set_title(title, fontsize=18)
         axis.set_xlabel(u_label, fontsize=15)
         axis.set_ylabel(v_label, fontsize=15)
         axis.tick_params(axis='both', which='major', labelsize=14)
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
-        plt.show()
+        # Show Plot:
+        if show:
+            plt.show()
         return axis
 
     def quiver_plot3d(self, title='Magnetization Distribution'):
@@ -514,9 +533,18 @@ class MagData(object):
         mlab.colorbar(None, orientation='vertical')
 
     def save_to_x3d(self, filename='..\..\output\magdata_output.x3d', maximum=1):
-        # TODO: Docstring!
-        self.LOG.debug('Calling save_to_x3d')
+        '''Output the magnetization in the .x3d format for the Fraunhofer InstantReality Player.
 
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        '''
+        self.LOG.debug('Calling save_to_x3d')
         dim = self.dim
         # Create points and vector components as lists:
         zz, yy, xx = np.mgrid[0.5:(dim[0]-0.5):dim[0]*1j,
@@ -528,14 +556,14 @@ class MagData(object):
         x_mag = np.reshape(self.magnitude[0], (-1))
         y_mag = np.reshape(self.magnitude[1], (-1))
         z_mag = np.reshape(self.magnitude[2], (-1))
-
+        # Load template, load tree and write viewpoint information:
         template = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'template.x3d')
         parser = etree.XMLParser(remove_blank_text=True)
         tree = etree.parse(template, parser)
         scene = tree.find('Scene')
         etree.SubElement(scene, 'Viewpoint', position='0 0 {}'.format(1.5*dim[0]),
                          fieldOfView='1')
-
+        # Write each "spin"-tag separately:
         for i in range(np.prod(dim)):
             mag = np.sqrt(x_mag[i]**2+y_mag[i]**2+z_mag[i]**2)
             if mag != 0:
@@ -562,5 +590,5 @@ class MagData(object):
                                  value='{} {} {}'.format(*spin_color))
                 etree.SubElement(spin, 'fieldValue', name='spin_scale',
                                  value='{} {} {}'.format(*spin_scale))
-
+        # Write the tree into the file in pretty print format:
         tree.write(filename, pretty_print=True)

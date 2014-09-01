@@ -332,7 +332,8 @@ class PhaseMap(object):
         # If no axis is specified, a new figure is created:
         if axis is None:
             fig = plt.figure(figsize=(8.5, 7))
-            axis = fig.add_subplot(1, 1, 1, aspect='equal')
+            axis = fig.add_subplot(1, 1, 1)
+        axis.set_aspect('equal')
         # Plot the phasemap:
         im = axis.pcolormesh(phase, cmap=cmap, vmin=-limit, vmax=limit, norm=norm)
         # Set the axes ticks and labels:
@@ -344,8 +345,8 @@ class PhaseMap(object):
         axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.a)))
         axis.tick_params(axis='both', which='major', labelsize=14)
         axis.set_title(title, fontsize=18)
-        axis.set_xlabel('x [nm]', fontsize=15)
-        axis.set_ylabel('y [nm]', fontsize=15)
+        axis.set_xlabel('u-axis [nm]', fontsize=15)
+        axis.set_ylabel('v-axis [nm]', fontsize=15)
         # Add colorbar:
         fig = plt.gcf()
         fig.subplots_adjust(right=0.8)
@@ -359,7 +360,7 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def display_phase3d(self, title='Phase Map', cmap='RdBu'):
+    def display_phase3d(self, title='Phase Map', cmap='RdBu', show=True):
         '''Display the phasemap as a 3-D surface with contourplots.
 
         Parameters
@@ -369,6 +370,8 @@ class PhaseMap(object):
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             The default is 'RdBu'.
+        show: bool, optional
+            A switch which determines if the plot is shown at the end of plotting. Default is True.
 
         Returns
         -------
@@ -390,11 +393,12 @@ class PhaseMap(object):
                           linewidth=0, antialiased=False)
         axis.contourf(uu, vv, phase, 15, zdir='z', offset=np.min(phase), cmap=cmap)
         axis.view_init(45, -135)
-        axis.set_xlabel('x-axis [px]')
-        axis.set_ylabel('y-axis [px]')
+        axis.set_xlabel('u-axis [px]')
+        axis.set_ylabel('v-axis [px]')
         axis.set_zlabel('phase shift [{}]'.format(self.unit))
         # Show Plot:
-        plt.show()
+        if show:
+            plt.show()
         # Return plotting axis:
         return axis
 
@@ -418,7 +422,7 @@ class PhaseMap(object):
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method. No interpolation is used in the default case.
         show: bool, optional
-            A switch which determines if the plot is shown at the end of plotting.
+            A switch which determines if the plot is shown at the end of plotting. Default is True.
 
         Returns
         -------
@@ -459,15 +463,16 @@ class PhaseMap(object):
         # If no axis is specified, a new figure is created:
         if axis is None:
             fig = plt.figure()
-            axis = fig.add_subplot(1, 1, 1, aspect='equal')
+            axis = fig.add_subplot(1, 1, 1)
+        axis.set_aspect('equal')
         # Plot the image and set axes:
         axis.imshow(holo_image, origin='lower', interpolation=interpolation)
         # Set the title and the axes labels:
         axis.set_title(title)
         plt.tick_params(axis='both', which='major', labelsize=14)
         axis.set_title(title, fontsize=18)
-        axis.set_xlabel('x-axis [px]', fontsize=15)
-        axis.set_ylabel('y-axis [px]', fontsize=15)
+        axis.set_xlabel('u-axis [px]', fontsize=15)
+        axis.set_ylabel('v-axis [px]', fontsize=15)
         axis.set_xlim(0, self.dim_uv[1])
         axis.set_ylim(0, self.dim_uv[0])
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
@@ -479,7 +484,7 @@ class PhaseMap(object):
         return axis
 
     def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
-                         density=1, interpolation='none', grad_encode='bright'):
+                         density=1, interpolation='none', grad_encode='bright', show=True):
         '''Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -506,6 +511,8 @@ class PhaseMap(object):
             encodes the direction (without gradient strength), 'dark' modulates the gradient
             strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
             the gradient strength with color saturation.
+        show: bool, optional
+            A switch which determines if the plot is shown at the end of plotting. Default is True.
 
         Returns
         -------
@@ -525,17 +532,20 @@ class PhaseMap(object):
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         fig.subplots_adjust(right=0.85)
         self.display_phase(cmap='RdBu', limit=limit, norm=norm, axis=phase_axis, show=False)
-        plt.show()
+        # Show Plot:
+        if show:
+            plt.show()
         # Return the plotting axes:
         return phase_axis, holo_axis
 
     @classmethod
-    def make_color_wheel(cls):
+    def make_color_wheel(cls, show=True):
         '''Display a color wheel to illustrate the color coding of the gradient direction.
 
         Parameters
         ----------
-        None
+        show: bool, optional
+            A switch which determines if the plot is shown at the end of plotting. Default is True.
 
         Returns
         -------
@@ -561,4 +571,6 @@ class PhaseMap(object):
         axis.imshow(color_wheel, origin='lower')
         axis.xaxis.set_major_locator(NullLocator())
         axis.yaxis.set_major_locator(NullLocator())
-        plt.show()
+        # Show Plot:
+        if show:
+            plt.show()

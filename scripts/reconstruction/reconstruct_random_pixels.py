@@ -46,7 +46,7 @@ phase_map = PMConvolve(a, SimpleProjector(dim), b_0)(mag_data)
 phase_map.display_combined('Generated Distribution', density=10)
 
 # Reconstruct the magnetic distribution:
-mag_data_rec = rc.optimize_simple_leastsq(phase_map, mag_data.get_mask(), b_0)
+mag_data_rec = rc.optimize_simple_leastsq(phase_map, mag_data.get_mask(), b_0, lam=1E-4, order=1)
 
 # Display the reconstructed phase map and holography image:
 phase_map_rec = PMConvolve(a, SimpleProjector(dim), b_0)(mag_data_rec)

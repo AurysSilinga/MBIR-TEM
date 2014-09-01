@@ -29,7 +29,6 @@ if not os.path.exists(directory):
 # Input parameters:
 filename = directory + '/mag_dist_core_shell_sphere.txt'
 a = 1.0  # in nm
-density = 500
 dim = (32, 32, 32)
 center = (dim[0]/2-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
 radius_core = dim[1]/8
@@ -43,12 +42,12 @@ mag_data = MagData(a, mc.create_mag_dist_vortex(mag_shape_shell, magnitude=0.75)
 mag_data += MagData(a, mc.create_mag_dist_homog(mag_shape_core, phi=0, theta=0))
 mag_data.quiver_plot('z-projection', proj_axis='z')
 mag_data.quiver_plot('x-projection', proj_axis='x')
-mag_data.quiver_plot3d()
 mag_data.save_to_llg(filename)
+mag_data.quiver_plot3d()
 phase_map_z = PMConvolve(a, SimpleProjector(dim, axis='z'))(mag_data)
 phase_map_x = PMConvolve(a, SimpleProjector(dim, axis='x'))(mag_data)
-phase_map_z.display_holo(density, 'Core-Shell structure (z-proj.)')
-phase_axis, holo_axis = phase_map_x.display_combined(density, 'Core-Shell structure (x-proj.)')
+phase_map_z.display_holo('Core-Shell structure (z-proj.)', density=1E2)
+phase_axis, holo_axis = phase_map_x.display_combined('Core-Shell structure (x-proj.)', density=1E3)
 phase_axis.set_xlabel('y [nm]')
 phase_axis.set_ylabel('z [nm]')
 holo_axis.set_xlabel('y-axis [px]')

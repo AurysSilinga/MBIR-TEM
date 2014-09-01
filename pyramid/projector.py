@@ -12,6 +12,8 @@ import itertools
 
 from scipy.sparse import coo_matrix, csr_matrix
 
+from pyramid.magdata import MagData
+
 import logging
 
 
@@ -187,6 +189,26 @@ class Projector(object):
         else:
             raise AssertionError('Vector size has to be suited either for '
                                  'vector- or scalar-field-projection!')
+
+    def to_mag_data(self, mag_data):
+        self.LOG.debug('Calling to_mag_data')
+        '''Project a :class:`~.MagData` object and output another :class:`~.MagData` object.
+
+        Parameters
+        ----------
+        mag_data : :class:`~.MagData`
+            :class:`~.MagData` object that should be projected.
+
+        Returns
+        -------
+        mag_data_result : :class:`~.MagData`
+            :class:`~.MagData` object containing the projected magnetization distribution from
+            the input.
+
+        '''
+        mag_proj = self(mag_data.mag_vec).reshape((2,)+self.dim_uv)
+        magnitude = np.expand_dims(np.concatenate((mag_proj, np.zeros((1,)+self.dim_uv))), axis=1)
+        return MagData(mag_data.a, magnitude)
 
 
 class XTiltProjector(Projector):
