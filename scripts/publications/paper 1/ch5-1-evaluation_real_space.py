@@ -37,7 +37,7 @@ force_calculation = False
 
 print '\nACCESS SHELVE'
 # Create / Open databank:
-directory = '../../output/paper 1'
+directory = '../../../output/paper 1'
 if not os.path.exists(directory):
     os.makedirs(directory)
 data_shelve = shelve.open(directory + '/paper_1_shelve')
@@ -49,7 +49,7 @@ print 'CH5-1 ANALYTIC SOLUTIONS'
 a = 0.125  # in nm
 phi = pi/2
 dim = (128, 1024, 1024)  # in px (z, y, x)
-density = 100
+gain = 100
 # Create magnetic shape:
 center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
 radius = dim[1]/4  # in px
@@ -59,13 +59,13 @@ print '--CALCULATE ANALYTIC SOLUTIONS'
 phase_map_ana_disc = an.phase_mag_disc(dim, a, phi, center, radius, height)
 phase_map_ana_vort = an.phase_mag_vortex(dim, a, center, radius, height)
 print '--PLOT/SAVE ANALYTIC SOLUTIONS'
-phase_map_ana_disc.display_combined(density, 'Analytic solution: hom. magn. disc', 'bilinear')
+phase_map_ana_disc.display_combined('Analytic solution: hom. magn. disc', 'bilinear', gain=gain)
 axis = plt.gcf().add_subplot(1, 2, 2, aspect='equal')
 axis.axhline(y=512, linewidth=3, linestyle='--', color='r')
 plt.figtext(0.15, 0.2, 'a)', fontsize=30, color='w')
 #plt.figtext(0.52, 0.2, 'b)', fontsize=30)
 plt.savefig(directory + '/ch5-1-analytic_solution_disc.png', bbox_inches='tight')
-phase_map_ana_vort.display_combined(density, 'Analytic solution: vortex state', 'bilinear')
+phase_map_ana_vort.display_combined('Analytic solution: vortex state', 'bilinear', gain=gain)
 axis = plt.gcf().add_subplot(1, 2, 2, aspect='equal')
 axis.axhline(y=512, linewidth=3, linestyle='--', color='r')
 plt.figtext(0.15, 0.2, 'c)', fontsize=30, color='w')
@@ -82,7 +82,7 @@ print 'CH5-1 PHASE SLICES REAL SPACE'
 # Input parameters:
 a = 0.5  # in nm
 phi = pi/2
-density = 100
+gain = 100
 dim = (32, 256, 256)  # in px (z, y, x)
 # Create magnetic shape:
 center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
@@ -123,7 +123,7 @@ else:
         print '----a =', mag_data_disc.a, 'nm', 'dim =', mag_data_disc.dim
         projector = SimpleProjector(mag_data_disc.dim)
         phase_map = PMConvolve(mag_data_disc.a, projector)(mag_data_disc)
-        phase_map.display_combined(density, 'Disc, a = {} nm'.format(mag_data_disc.a))
+        phase_map.display_combined('Disc, a = {} nm'.format(mag_data_disc.a), gain=gain)
         x_d.append(np.linspace(mag_data_disc.a * 0.5,
                                mag_data_disc.a * (mag_data_disc.dim[1]-0.5),
                                mag_data_disc.dim[1]))
@@ -157,7 +157,7 @@ else:
         print '----a =', mag_data_vort.a, 'nm', 'dim =', mag_data_vort.dim
         projector = SimpleProjector(mag_data_vort.dim)
         phase_map = PMConvolve(mag_data_vort.a, projector)(mag_data_vort)
-        phase_map.display_combined(density, 'Disc, a = {} nm'.format(mag_data_vort.a))
+        phase_map.display_combined('Disc, a = {} nm'.format(mag_data_vort.a), gain=gain)
         x_v.append(np.linspace(mag_data_vort.a * 0.5,
                                mag_data_vort.a * (mag_data_vort.dim[1]-0.5),
                                mag_data_vort.dim[1]))

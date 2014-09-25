@@ -36,7 +36,7 @@ force_calculation = False
 
 print '\nACCESS SHELVE'
 # Create / Open databank:
-directory = '../../output/paper 1'
+directory = '../../../output/paper 1'
 if not os.path.exists(directory):
     os.makedirs(directory)
 data_shelve = shelve.open(directory + '/paper_1_shelve')
@@ -47,7 +47,7 @@ print 'CH5-1 PHASE SLICES FOURIER SPACE'
 # Input parameters:
 a = 0.5  # in nm
 phi = pi/2
-density = 100
+gain = 100
 dim = (32, 256, 256)  # in px (z, y, x)
 # Create magnetic shape:
 center = (dim[0]/2-0.5, dim[1]/2.-0.5, dim[2]/2.-0.5)  # in px (z, y, x) index starts with 0!
@@ -95,8 +95,8 @@ else:
         phase_map10 = PMFourier(mag_data_disc.a, projector, padding=10)(mag_data_disc)
         phase_map0.unit = 'mrad'
         phase_map10.unit = 'mrad'
-        phase_map0.display_combined(density, 'Disc, a = {} nm'.format(mag_data_disc.a))
-        phase_map10.display_combined(density, 'Disc, a = {} nm'.format(mag_data_disc.a))
+        phase_map0.display_combined('Disc, a = {} nm'.format(mag_data_disc.a), gain=gain)
+        phase_map10.display_combined('Disc, a = {} nm'.format(mag_data_disc.a), gain=gain)
         x_d.append(np.linspace(mag_data_disc.a * 0.5,
                                mag_data_disc.a * (mag_data_disc.dim[1]-0.5),
                                mag_data_disc.dim[1]))
@@ -142,8 +142,8 @@ else:
         print np.mean(phase_map0.phase)
         phase_map0 -= phase_map0.phase[0, 0]
         phase_map10 -= phase_map10.phase[0, 0]
-        phase_map0.display_combined(density, 'Vortex, a = {} nm'.format(mag_data_vort.a))
-        phase_map10.display_combined(density, 'Vortex, a = {} nm'.format(mag_data_vort.a))
+        phase_map0.display_combined('Vortex, a = {} nm'.format(mag_data_vort.a), gain=gain)
+        phase_map10.display_combined('Vortex, a = {} nm'.format(mag_data_vort.a), gain=gain)
         x_v.append(np.linspace(mag_data_vort.a * 0.5,
                                mag_data_vort.a * (mag_data_vort.dim[1]-0.5),
                                mag_data_vort.dim[1]))
@@ -592,7 +592,7 @@ axes[1].plot(data_disc[0], data_disc[2], 'bo-')
 axes[1].set_xlabel('padding', fontsize=15)
 axes[1].set_ylabel('duration [s]', fontsize=15)
 axes[1].set_xlim(-0.5, 16.5)
-axes[1].set_ylim(-0.05, 1.5)
+axes[1].set_ylim(-0.05, 2.5)
 axes[1].xaxis.set_major_locator(MaxNLocator(nbins=10, integer=True))
 axes[1].yaxis.set_major_locator(MaxNLocator(nbins=10))
 axes[1].tick_params(axis='both', which='major', labelsize=14)
@@ -650,7 +650,7 @@ axes[1].plot(data_vort[0], data_vort[2], 'bo-')
 axes[1].set_xlabel('padding', fontsize=15)
 axes[1].set_ylabel('duration [s]', fontsize=15)
 axes[1].set_xlim(-0.5, 16.5)
-axes[1].set_ylim(-0.05, 1.5)
+axes[1].set_ylim(-0.05, 2.5)
 axes[1].xaxis.set_major_locator(MaxNLocator(nbins=10, integer=True))
 axes[1].yaxis.set_major_locator(MaxNLocator(nbins=10))
 axes[1].tick_params(axis='both', which='major', labelsize=14)

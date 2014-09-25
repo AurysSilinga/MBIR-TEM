@@ -91,7 +91,7 @@ class Kernel(object):
         self.u = coeff * get_elementary_phase(geometry, uu, vv, a)
         self.v = coeff * get_elementary_phase(geometry, vv, uu, a)
         # Calculate Fourier trafo of kernel components:
-        dim_combined = 3*np.array(dim_uv) - 1  # dim_uv + (2*dim_uv - 1) magnetisation + kernel
+        dim_combined = 3*np.array(dim_uv) - 2  # (dim_uv-1) + dim_uv + (dim_uv-1) mag + kernel
         self.dim_fft = 2 ** np.ceil(np.log2(dim_combined)).astype(int)  # next multiple of 2
         self.slice_fft = (slice(dim_uv[0]-1, 2*dim_uv[0]-1), slice(dim_uv[1]-1, 2*dim_uv[1]-1))
         self.u_fft = np.fft.rfftn(self.u, self.dim_fft)
@@ -208,23 +208,3 @@ class Kernel(object):
         result = np.zeros(2*np.prod(self.dim_uv))
         core.multiply_jacobi_T_core(self.dim_uv[0], self.dim_uv[1], self.u, self.v, vector, result)
         return result
-
-    def test(self, vector):
-        result = np.zeros(2*np.prod(self.dim_uv))
-        u_dim, v_dim = self.dim_uv
-        r = 0  # Current result component / contributing pixel (numbered consecutively)
-        # Iterate over all contributingh pixels:
-        for j in range(v_dim):
-            for i in range(u_dim):
-                u_min = (u_dim-1) - i  # u_max = u_min + u_dim
-                v_min = (v_dim-1) - j  # v_max = v_min + v_dim
-                s = 0  # Current affected pixel (numbered consecutively)
-                # Go over the current kernel cutout [v_min:v_max, u_min:u_max]:
-                for v in range(v_min, v_min + v_dim):
-                    for u in range(u_min, u_min + u_dim):
-                        result[r] += vector[s] * self.u[v, u]
-                        result[r+self.size] -= vector[s] * self.v[v, u]
-                        s += 1
-                r += 1
-        return result
-# TODO: delete

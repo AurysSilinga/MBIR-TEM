@@ -139,7 +139,7 @@ class DataSet(object):
         plt.show()
 
     def display_combined(self, phase_maps=None, title='Combined Plot', cmap='RdBu', limit=None,
-                         norm=None, density=1, interpolation='none', grad_encode='bright'):
+                         norm=None, gain=1, interpolation='none', grad_encode='bright'):
         '''Display all phasemaps and the resulting color coded holography images.
 
         Parameters
@@ -158,7 +158,7 @@ class DataSet(object):
         norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
             Norm, which is used to determine the colors to encode the phase information.
             If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
-        density : float, optional
+        gain : float, optional
             The gain factor for determining the number of contour lines in the holographic
             contour map. The default is 1.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
@@ -179,7 +179,7 @@ class DataSet(object):
         if phase_maps is None:
             phase_maps = self.phase_maps
         [phase_map.display_combined('{} ({})'.format(title, self.projectors[i].get_info()),
-                                    cmap, limit, norm, density, interpolation, grad_encode)
+                                    cmap, limit, norm, gain, interpolation, grad_encode)
             for (i, phase_map) in enumerate(phase_maps)]
         plt.show()
 

@@ -306,10 +306,12 @@ class PMConvolve(PhaseMapper):
         u_mag_fft = np.fft.rfftn(u_mag, kernel.dim_fft)
         v_mag_fft = np.fft.rfftn(v_mag, kernel.dim_fft)
         # Convolve the magnetization with the kernel in Fourier space:
+        # TODO: why copy again?
         u_phase = np.fft.irfftn(u_mag_fft * kernel.u_fft, kernel.dim_fft)[kernel.slice_fft].copy()
         v_phase = np.fft.irfftn(v_mag_fft * kernel.v_fft, kernel.dim_fft)[kernel.slice_fft].copy()
         # Return the result:
         return PhaseMap(self.a, u_phase-v_phase)
+        # TODO: backtransformation AFTER subtraction???
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')

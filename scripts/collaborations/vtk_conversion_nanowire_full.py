@@ -36,7 +36,7 @@ force_calculation = False
 count = 16
 dim_uv_x = (500, 100)
 dim_uv_y = (100, 500)
-density = 8
+gain = 8
 ###################################################################################################
 # Load vtk-data:
 if force_calculation or not os.path.exists(PATH+'.pickle'):
@@ -142,8 +142,8 @@ for i in range(len(pm_y)):
     data_set_y.append((pm_y[i](mag_data_scaled), projectors_y[i]))
     data_set_x.append((pm_x[i](mag_data_scaled), projectors_x[i]))
 # Display phase maps:
-data_set_y.display_combined(density=density, interpolation='bilinear')
-data_set_x.display_combined(density=density, interpolation='bilinear')
+data_set_y.display_combined(gain=gain, interpolation='bilinear')
+data_set_x.display_combined(gain=gain, interpolation='bilinear')
 # Save figures:
 figures = [manager.canvas.figure for manager in Gcf.get_all_fig_managers()]
 for i, figure in enumerate(figures):
@@ -164,7 +164,7 @@ for angle in angles:
     mag_data_tip = MagData(mag_data.a, mag_data.magnitude[:, 608:, ...])
     pm = PMConvolve(mag_data.a, projector)
     phase_map_tip = PhaseMap(mag_data.a, pm(mag_data_tip).phase[350-shift:530-shift, :])
-    phase_map_tip.display_combined('Phase Map Nanowire Tip', density=density,
+    phase_map_tip.display_combined('Phase Map Nanowire Tip', gain=gain,
                                    interpolation='bilinear')
     plt.savefig(PATH+'_nanowire_tip_xtilt_{}.png'.format(angle))
     mag_data_tip.scale_down()
@@ -181,9 +181,9 @@ for angle in angles:
     mag_data_bot = MagData(mag_data.a, mag_data.magnitude[:, :300, ...])
     pm = PMConvolve(mag_data.a, projector)
     phase_map_tip = PhaseMap(mag_data.a, pm(mag_data_bot).phase[50+shift:225+shift, :])
-    phase_map_tip.display_combined('Phase Map Nanowire Bottom', density=density,
+    phase_map_tip.display_combined('Phase Map Nanowire Bottom', gain=gain,
                                    interpolation='bilinear')
-    plt.savefig(PATH+'_nanowire_bot_xtilt_{}.png'.format(angle))
+    plt.savefig(PATH+'_nanowire_bot_xtilt_{}_no_frame.png'.format(angle))
     mag_data_bot.scale_down()
     mag_proj_bot = projector_scaled.to_mag_data(mag_data_bot)
     axis = mag_proj_bot.quiver_plot()

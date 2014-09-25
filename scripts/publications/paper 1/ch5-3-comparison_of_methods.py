@@ -31,7 +31,7 @@ logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 
 print '\nACCESS SHELVE'
 # Create / Open databank:
-directory = '../../output/paper 1'
+directory = '../../../output/paper 1'
 if not os.path.exists(directory):
     os.makedirs(directory)
 data_shelve = shelve.open(directory + '/paper_1_shelve')

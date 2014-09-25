@@ -50,7 +50,7 @@ class Costfunction(object):
             Se_inv = eye(len(y))
         self.Se_inv = Se_inv
         if regularisator is None:
-            regularisator = ZeroOrderRegularisator(lam=1E-4, size=3*fwd_model.size_3d)
+            regularisator = ZeroOrderRegularisator(fwd_model, lam=1E-4)
         self.regularisator = regularisator
         self.LOG.debug('Created '+str(self))
 
@@ -90,7 +90,7 @@ class Costfunction(object):
         return F.jac_T_dot(x, Se_inv.dot(F(x)-y))
 
     def hess_dot(self, x, vector):
-        '''Calculate the product of a `vector` with the Hession matrix of the costfunction.
+        '''Calculate the product of a `vector` with the Hessian matrix of the costfunction.
 
         Parameters
         ----------
@@ -120,7 +120,7 @@ class CFAdapterScipyCG(LinearOperator):
     This class provides an adapter for the :class:`~.Costfunction` to be usable with the
     :func:`~.scipy.sparse.linalg.cg` function. the :func:`~.matvec` function is overwritten to
     implement a multiplication with the Hessian of the adapted costfunction. This is used in the
-    :func:`~pyramid.reconstruction.optimice_sparse_cg` function of the
+    :func:`~pyramid.reconstruction.optimise_sparse_cg` function of the
     :mod:`~pyramid.reconstruction` module.
 
     Attributes

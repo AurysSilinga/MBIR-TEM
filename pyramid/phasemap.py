@@ -296,8 +296,8 @@ class PhaseMap(object):
         phase_file.close()
         return PhaseMap(a, phase)
 
-    def display_phase(self, title='Phase Map', cmap='RdBu',
-                      limit=None, norm=None, axis=None, show=True):
+    def display_phase(self, title='Phase Map', cmap='RdBu', limit=None,
+                      norm=None, axis=None, cbar=True, show=True):
         '''Display the phasemap as a colormesh.
 
         Parameters
@@ -315,6 +315,8 @@ class PhaseMap(object):
             If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
+        cbar : bool, optional
+            A switch determining if the colorbar should be plotted or not. Default is True.
         show : bool, optional
             A switch which determines if the plot is shown at the end of plotting.
 
@@ -348,12 +350,13 @@ class PhaseMap(object):
         axis.set_xlabel('u-axis [nm]', fontsize=15)
         axis.set_ylabel('v-axis [nm]', fontsize=15)
         # Add colorbar:
-        fig = plt.gcf()
-        fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
-        cbar = fig.colorbar(im, cax=cbar_ax)
-        cbar.ax.tick_params(labelsize=14)
-        cbar.set_label(u'phase shift [{}]'.format(self.unit), fontsize=15)
+        if cbar:
+            fig = plt.gcf()
+            fig.subplots_adjust(right=0.8)
+            cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
+            cbar = fig.colorbar(im, cax=cbar_ax)
+            cbar.ax.tick_params(labelsize=14)
+            cbar.set_label(u'phase shift [{}]'.format(self.unit), fontsize=15)
         # Show plot:
         if show:
             plt.show()
@@ -402,16 +405,17 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def display_holo(self, title='Holographic Contour Map', density=1,
-                     axis=None, grad_encode='bright', interpolation='none', show=True):
+    def display_holo(self, title=None, gain=1, axis=None, grad_encode='bright',
+                     interpolation='none', show=True):
         '''Display the color coded holography image.
 
         Parameters
         ----------
         title : string, optional
-            The title of the plot. The default is 'Holographic Contour Map'.
-        density : float, optional
+            The title of the plot. The default is 'Contour Map (gain: %g)' % gain.
+        gain : float or 'auto', optional
             The gain factor for determining the number of contour lines. The default is 1.
+            If 'auto' is used, the gain will be determined automatically to look pretty.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         grad_encode: {'bright', 'dark', 'color', 'none'}, optional
@@ -431,8 +435,14 @@ class PhaseMap(object):
 
         '''
         self.LOG.debug('Calling display_holo')
+        # Calculate gain if 'auto' is selected:
+        if gain == 'auto':
+            gain = 5 * 2*pi/self.phase.max()
+        # Set title if not set:
+        if title is None:
+            title = 'Contour Map (gain: %.2g)' % gain
         # Calculate the holography image intensity:
-        img_holo = (1 + np.cos(density * self.phase)) / 2
+        img_holo = (1 + np.cos(gain * self.phase)) / 2
         # Calculate the phase gradients, expressed by magnitude and angle:
         phase_grad_y, phase_grad_x = np.gradient(self.phase, self.a, self.a)
         phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
@@ -469,7 +479,7 @@ class PhaseMap(object):
         axis.imshow(holo_image, origin='lower', interpolation=interpolation)
         # Set the title and the axes labels:
         axis.set_title(title)
-        plt.tick_params(axis='both', which='major', labelsize=14)
+        axis.tick_params(axis='both', which='major', labelsize=14)
         axis.set_title(title, fontsize=18)
         axis.set_xlabel('u-axis [px]', fontsize=15)
         axis.set_ylabel('v-axis [px]', fontsize=15)
@@ -484,7 +494,7 @@ class PhaseMap(object):
         return axis
 
     def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
-                         density=1, interpolation='none', grad_encode='bright', show=True):
+                         gain=1, interpolation='none', grad_encode='bright', show=True):
         '''Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -500,7 +510,7 @@ class PhaseMap(object):
         norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
             Norm, which is used to determine the colors to encode the phase information.
             If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
-        density : float, optional
+        gain : float, optional
             The gain factor for determining the number of contour lines in the holographic
             contour map. The default is 1.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
@@ -526,7 +536,7 @@ class PhaseMap(object):
         fig.suptitle(title, fontsize=20)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-        self.display_holo(density=density, axis=holo_axis, interpolation=interpolation,
+        self.display_holo(gain=gain, axis=holo_axis, interpolation=interpolation,
                           show=False, grad_encode=grad_encode)
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')

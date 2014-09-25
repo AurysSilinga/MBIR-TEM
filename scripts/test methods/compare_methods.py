@@ -31,7 +31,7 @@ a = 1.0  # in nm
 phi = pi/4
 numcore = False
 padding = 10
-density = 10
+gain = 10
 dim = (128, 128, 128)  # in px (z, y, x)
 
 # Create magnetic shape:
@@ -55,7 +55,6 @@ elif geometry == 'sphere':
 
 # Create MagData object and projector:
 mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
-mag_data.quiver_plot()
 projector = SimpleProjector(dim)
 # Construct PhaseMapper objects:
 pm_adap = PMAdapterFM(a, projector, b_0)
@@ -78,11 +77,11 @@ phase_map_four = pm_four(mag_data)
 print 'Time for PMFourier:    ', time.time() - start_time
 
 # Display the combinated plots with phasemap and holography image:
-phase_map_ana.display_combined('Analytic Solution', density=density)
-phase_map_adap.display_combined('PMAdapterFM', density=density)
-phase_map_real.display_combined('PMReal', density=density)
-phase_map_conv.display_combined('PMConvolve', density=density)
-phase_map_four.display_combined('PMFourier', density=density)
+phase_map_ana.display_combined('Analytic Solution', gain=gain)
+phase_map_adap.display_combined('PMAdapterFM', gain=gain)
+phase_map_real.display_combined('PMReal', gain=gain)
+phase_map_conv.display_combined('PMConvolve', gain=gain)
+phase_map_four.display_combined('PMFourier', gain=gain)
 
 # Plot differences to the analytic solution:
 phase_map_diff_adap = phase_map_adap - phase_map_ana

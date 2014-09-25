@@ -6,25 +6,31 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>652</width>
-    <height>646</height>
+    <width>993</width>
+    <height>351</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Mag Slicer</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0">
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="pushButtonLoad">
        <property name="text">
         <string>Laden</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QCheckBox" name="scaleCheckBox">
+      <widget class="QCheckBox" name="checkBoxScale">
        <property name="text">
         <string>Scaled</string>
        </property>
@@ -37,14 +43,14 @@
       </widget>
      </item>
      <item>
-      <widget class="QCheckBox" name="logCheckBox">
+      <widget class="QCheckBox" name="checkBoxLog">
        <property name="text">
         <string>Log</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBox">
+      <widget class="QComboBox" name="comboBoxSlice">
        <item>
         <property name="text">
          <string>xy-plane</string>
@@ -63,7 +69,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="labelSlice">
        <property name="text">
         <string>Slice:</string>
        </property>
@@ -73,7 +79,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="spinBox">
+      <widget class="QSpinBox" name="spinBoxSlice">
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
@@ -86,12 +92,18 @@
       </widget>
      </item>
      <item>
-      <widget class="QScrollBar" name="scrollBar">
+      <widget class="QScrollBar" name="scrollBarSlice">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>400</width>
+         <height>0</height>
+        </size>
        </property>
        <property name="maximum">
         <number>0</number>
@@ -101,26 +113,102 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxSmooth">
+       <property name="text">
+        <string>Smooth</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxAuto">
+       <property name="text">
+        <string>Auto</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelGain">
+       <property name="text">
+        <string>Gain:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDoubleSpinBox" name="spinBoxGain">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="maximum">
+        <double>1000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.100000000000000</double>
+       </property>
+       <property name="value">
+        <double>1.000000000000000</double>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
-   <item row="1" column="0">
-    <widget class="MatplotlibWidget" name="mplWidget">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayoutPlots">
+     <property name="spacing">
+      <number>0</number>
      </property>
-     <property name="cursor">
-      <cursorShape>ArrowCursor</cursorShape>
+     <property name="sizeConstraint">
+      <enum>QLayout::SetNoConstraint</enum>
      </property>
-     <property name="layoutDirection">
-      <enum>Qt::LeftToRight</enum>
-     </property>
-     <property name="autoFillBackground">
-      <bool>false</bool>
-     </property>
-    </widget>
+     <item>
+      <widget class="MatplotlibWidget" name="mplWidgetMag">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Ignored" vsizetype="Expanding">
+         <horstretch>10</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="cursor">
+        <cursorShape>ArrowCursor</cursorShape>
+       </property>
+       <property name="layoutDirection">
+        <enum>Qt::LeftToRight</enum>
+       </property>
+       <property name="autoFillBackground">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="MatplotlibWidget" name="mplWidgetHolo">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Ignored" vsizetype="Expanding">
+         <horstretch>10</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="MatplotlibWidget" name="mplWidgetPhase">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Ignored" vsizetype="Expanding">
+         <horstretch>10</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
@@ -132,5 +220,54 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>spinBoxSlice</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>scrollBarSlice</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>335</x>
+     <y>18</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>380</x>
+     <y>17</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>scrollBarSlice</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>spinBoxSlice</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>364</x>
+     <y>27</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>321</x>
+     <y>29</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxAuto</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>spinBoxGain</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>761</x>
+     <y>18</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>870</x>
+     <y>14</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

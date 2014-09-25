@@ -10,7 +10,9 @@ import abc
 
 import numpy as np
 
-from scipy.sparse import eye
+from scipy.sparse import eye, coo_matrix, csr_matrix
+
+from pyramid.converter import IndexConverter
 
 import logging
 
@@ -28,7 +30,7 @@ class Regularisator(object):
     LOG = logging.getLogger(__name__+'.Regularisator')
 
     @abc.abstractmethod
-    def __init__(self, Sa_sqrt_inv, x_a=None):
+    def __init__(self, Sa_inv, x_a=None):
         self.LOG.debug('Calling __init__')
         self.Sa_sqrt_inv = Sa_sqrt_inv
         if x_a is None:
@@ -56,8 +58,8 @@ class Regularisator(object):
 class ZeroOrderRegularisator(Regularisator):
     # TODO: Docstring!
 
-    def __init__(self, lam, size, x_a=None):
-        Sa_inv = lam * eye(size)
+    def __init__(self, fwd_model, lam, x_a=None):
+        Sa_inv = lam * eye(3*fwd_model.size_3d)
         super(ZeroOrderRegularisator, self).__init__(Sa_inv, x_a)
         self.LOG.debug('Created '+str(self))
 
@@ -65,15 +67,30 @@ class ZeroOrderRegularisator(Regularisator):
 class FirstOrderRegularisator(Regularisator):
     # TODO: Docstring!
 
-    def __init__(self, lam, size, x_a=None):
+    def __init__(self, fwd_model, lam, x_a=None):
+        size_3d = fwd_model.size_3d
+        dim = fwd_model.dim
+        converter = IndexConverter(dim)
+        row = []
+        col = []
+        data = []
 
-        Sa_inv = lam * eye(size)
+        for i in range(size_3d):
+            neighbours = converter.find_neighbour_ind(i)
 
 
 
 
 
-        csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=(size_2d, size_3d)))
+
+
+
+
+
+            Sa_inv = csr_matrix(coo_matrix(data, (rows, columns)), shape=(3*size_3d, 3*size_3d))
+
+
+
 
         term2 = []
         for i in range(3):
