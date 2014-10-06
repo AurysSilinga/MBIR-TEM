@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 11 08:41:23 2014
+"""Created on Mon Aug 11 08:41:23 2014 @author: Jan"""
 
-@author: Jan
-"""
 
 import os
 
@@ -44,6 +41,7 @@ PATH = '../../output/joern/'
 ###################################################################################################
 # Read in files:
 phase_map = PhaseMap.load_from_netcdf4(PATH+'phase_map.nc')
+#mask = np.genfromtxt('mask.txt', dtype=bool)
 with open(PATH+'mask.pickle') as pf:
     mask = pickle.load(pf)
 # Reconstruct the magnetic distribution:
