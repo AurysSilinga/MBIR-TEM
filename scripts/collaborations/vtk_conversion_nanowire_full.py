@@ -17,7 +17,8 @@ from tqdm import tqdm
 import pyramid
 from pyramid.magdata import MagData
 from pyramid.projector import YTiltProjector, XTiltProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.kernel import Kernel
+from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.phasemap import PhaseMap
 from pyramid.dataset import DataSet
 
@@ -132,18 +133,18 @@ tilts_full = np.linspace(-pi/2, pi/2, num=count/2, endpoint=False)
 tilts_miss = np.linspace(-pi/3, pi/3, num=count/2, endpoint=False)
 projectors_y = [YTiltProjector(mag_data_scaled.dim, tilt, dim_uv=dim_uv_y) for tilt in tilts_miss]
 projectors_x = [XTiltProjector(mag_data_scaled.dim, tilt, dim_uv=dim_uv_x) for tilt in tilts_miss]
-pm_y = [PMConvolve(mag_data_scaled.a, proj, b_0) for proj in projectors_y]
-pm_x = [PMConvolve(mag_data_scaled.a, proj, b_0) for proj in projectors_x]
+kernel_y = Kernel(mag_data_scaled.a, dim_uv_y, b_0)
+kernel_x = Kernel(mag_data_scaled.a, dim_uv_x, b_0)
+phase_maps_y = [PhaseMapperRDFC(kernel_y)(proj(mag_data_scaled)) for proj in projectors_y]
+phase_maps_x = [PhaseMapperRDFC(kernel_x)(proj(mag_data_scaled)) for proj in projectors_x]
 # Create data sets for x and y tilts:
-data_set_y = DataSet(mag_data_scaled.a, dim_uv_y, b_0)
-data_set_x = DataSet(mag_data_scaled.a, dim_uv_x, b_0)
+data_set = DataSet(mag_data_scaled.a, mag_data_scaled.dim, b_0)
 # Create and append phase maps and projectors:
-for i in range(len(pm_y)):
-    data_set_y.append((pm_y[i](mag_data_scaled), projectors_y[i]))
-    data_set_x.append((pm_x[i](mag_data_scaled), projectors_x[i]))
+for i in range(len(phase_maps_y)):
+    data_set.append(phase_maps_y[i], projectors_y[i])
+    data_set.append(phase_maps_x[i], projectors_x[i])
 # Display phase maps:
-data_set_y.display_combined(gain=gain, interpolation='bilinear')
-data_set_x.display_combined(gain=gain, interpolation='bilinear')
+data_set.display_combined(gain=gain, interpolation='bilinear')
 # Save figures:
 figures = [manager.canvas.figure for manager in Gcf.get_all_fig_managers()]
 for i, figure in enumerate(figures):
@@ -154,6 +155,22 @@ plt.close('all')
 dim = (300, 72, 72)
 dim_uv = (600, 150)
 angles = [0, 20, 40, 60, -20, -40, -60]
+# Turn magnetization around by 90° around z-axis:
+for i in range(mag_data.magnitude.shape[1]):
+    x_rot = np.rot90(mag_data.magnitude[0, i, ...]).copy()
+    y_rot = np.rot90(mag_data.magnitude[1, i, ...]).copy()
+    z_rot = np.rot90(mag_data.magnitude[2, i, ...]).copy()
+    if i == 500:
+#        import pdb; pdb.set()
+        mag_data.quiver_plot(ax_slice=i)
+        plt.savefig(PATH+'_quiver_500_pre.png')
+    mag_data.magnitude[0, i, ...] = -y_rot
+    mag_data.magnitude[1, i, ...] = x_rot
+    mag_data.magnitude[2, i, ...] = z_rot
+    if i == 100:
+        mag_data.quiver_plot(ax_slice=i)
+        plt.savefig(PATH+'_quiver_500_post.png')
+# Iterate over all angles:
 for angle in angles:
     angle_rad = angle * np.pi/180
     shift = int(np.abs(80*np.sin(angle_rad)))
@@ -162,13 +179,13 @@ for angle in angles:
                                       (dim_uv[0]/2, dim_uv[1]/2))
     # Tip:
     mag_data_tip = MagData(mag_data.a, mag_data.magnitude[:, 608:, ...])
-    pm = PMConvolve(mag_data.a, projector)
-    phase_map_tip = PhaseMap(mag_data.a, pm(mag_data_tip).phase[350-shift:530-shift, :])
+    PM = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))
+    phase_map_tip = PhaseMap(mag_data.a, PM(projector(mag_data_tip)).phase[350-shift:530-shift, :])
     phase_map_tip.display_combined('Phase Map Nanowire Tip', gain=gain,
                                    interpolation='bilinear')
     plt.savefig(PATH+'_nanowire_tip_xtilt_{}.png'.format(angle))
     mag_data_tip.scale_down()
-    mag_proj_tip = projector_scaled.to_mag_data(mag_data_tip)
+    mag_proj_tip = projector_scaled(mag_data_tip)
     axis = mag_proj_tip.quiver_plot()
     axis.set_xlim(17, 55)
     axis.set_ylim(180-shift/2, 240-shift/2)
@@ -179,13 +196,13 @@ for angle in angles:
     plt.savefig(PATH+'_nanowire_tip_mag_log_xtilt_{}.png'.format(angle))
     # Bottom:
     mag_data_bot = MagData(mag_data.a, mag_data.magnitude[:, :300, ...])
-    pm = PMConvolve(mag_data.a, projector)
-    phase_map_tip = PhaseMap(mag_data.a, pm(mag_data_bot).phase[50+shift:225+shift, :])
+    PM = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))
+    phase_map_tip = PhaseMap(mag_data.a, PM(projector(mag_data_bot)).phase[50+shift:225+shift, :])
     phase_map_tip.display_combined('Phase Map Nanowire Bottom', gain=gain,
                                    interpolation='bilinear')
     plt.savefig(PATH+'_nanowire_bot_xtilt_{}_no_frame.png'.format(angle))
     mag_data_bot.scale_down()
-    mag_proj_bot = projector_scaled.to_mag_data(mag_data_bot)
+    mag_proj_bot = projector_scaled(mag_data_bot)
     axis = mag_proj_bot.quiver_plot()
     axis.set_xlim(17, 55)
     axis.set_ylim(50+shift/2, 110+shift/2)

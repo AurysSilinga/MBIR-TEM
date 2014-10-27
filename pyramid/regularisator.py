@@ -11,6 +11,7 @@ import abc
 import numpy as np
 
 from scipy.sparse import eye, coo_matrix, csr_matrix
+import jutil.norm as jnorm
 
 from pyramid.converter import IndexConverter
 
@@ -30,38 +31,50 @@ class Regularisator(object):
     LOG = logging.getLogger(__name__+'.Regularisator')
 
     @abc.abstractmethod
-    def __init__(self, Sa_inv, x_a=None):
+    def __init__(self, norm, lam):
         self.LOG.debug('Calling __init__')
-        self.Sa_sqrt_inv = Sa_sqrt_inv
-        if x_a is None:
-            x_a = np.zeros(np.shape(Sa_sqrt_inv)[1])
-        self.x_a = x_a
+        self.norm = norm
+        self.lam = lam
         self.LOG.debug('Created '+str(self))
 
-    def __call__(self, x, x_a=None):
+    def __call__(self, x):
         self.LOG.debug('Calling __call__')
-        return (x-self.x_a).dot(self.Sa_sqrt_inv.dot(x-self.x_a))
+        return self.lam * self.norm(x)
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')
-        return '%s(Sa_inv=%r, x_a=%r)' % (self.__class__, self.Sa_inv, self.x_a)
+        return '%s(norm=%r, lam=%r)' % (self.__class__, self.norm, self.lam)
 
     def __str__(self):
         self.LOG.debug('Calling __str__')
-        return 'Regularisator(Sa_inv=%s, x_a=%s)' % (self.Sa_inv, self.x_a)
+        return 'Regularisator(norm=%s, lam=%s)' % (self.norm, self.lam)
 
-    def jac_dot(self, vector):
+    def jac(self, x):
         # TODO: Docstring!
-        return self.Sa_inv.dot(vector-self.x_a)
+        return self.lam * self.norm.jac_dot(x)
+
+    def hess_dot(self, x, vector):
+        # TODO: Docstring!
+        return self.lam * self.norm.hess_dot(x)
+
+    # TODO: hess_diag
 
 
 class ZeroOrderRegularisator(Regularisator):
     # TODO: Docstring!
 
-    def __init__(self, fwd_model, lam, x_a=None):
-        Sa_inv = lam * eye(3*fwd_model.size_3d)
-        super(ZeroOrderRegularisator, self).__init__(Sa_inv, x_a)
+    LOG = logging.getLogger(__name__+'.ZeroOrderRegularisator')
+
+    def __init__(self, lam):
+        self.LOG.debug('Calling __init__')
+        norm = jnorm.NormL2Square()
+        super(ZeroOrderRegularisator, self).__init__(norm, lam)
         self.LOG.debug('Created '+str(self))
+
+    def __call__(self, x):
+        self.LOG.debug('Calling __call__')
+        super(ZeroOrderRegularisator, self)(x)
+
 
 
 class FirstOrderRegularisator(Regularisator):

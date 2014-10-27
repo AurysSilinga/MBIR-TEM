@@ -285,12 +285,12 @@ class MagData(object):
                                self.magnitude[1][mask],
                                self.magnitude[0][mask]])
 
-    def set_vector(self, mask, vector):
+    def set_vector(self, vector, mask=None):
         '''Set the magnetic components of the masked pixels to the values specified by `vector`.
 
         Parameters
         ----------
-        mask : :class:`~numpy.ndarray` (N=3, boolean)
+        mask : :class:`~numpy.ndarray` (N=3, boolean), optional
             Masks the pixels from which the components should be taken.
         vector : :class:`~numpy.ndarray` (N=1)
             The vector containing magnetization components of the specified pixels.
@@ -303,9 +303,12 @@ class MagData(object):
         '''
         assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
         count = np.size(vector)/3
-        self.magnitude[2][mask] = vector[:count]  # x-component
-        self.magnitude[1][mask] = vector[count:2*count]  # y-component
-        self.magnitude[0][mask] = vector[2*count:]  # z-component
+        if mask is not None:
+            self.magnitude[2][mask] = vector[:count]  # x-component
+            self.magnitude[1][mask] = vector[count:2*count]  # y-component
+            self.magnitude[0][mask] = vector[2*count:]  # z-component
+        else:
+            self.mag_vec = vector
 
     def save_to_llg(self, filename='..\output\magdata_output.txt'):
         '''Save magnetization data in a file with LLG-format.

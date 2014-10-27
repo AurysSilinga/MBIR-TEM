@@ -9,8 +9,7 @@ import matplotlib.pyplot as plt
 
 import pyramid
 import pyramid.magcreator as mc
-from pyramid.phasemapper import PMConvolve
-from pyramid.projector import SimpleProjector
+from pyramid.phasemapper import pm
 from pyramid.magdata import MagData
 
 import logging
@@ -38,8 +37,7 @@ mag_shape = mc.Shapes.disc(dim, center, radius, height)
 mag_data = MagData(a, mc.create_mag_dist_vortex(mag_shape, magnitude=0.75))
 mag_data.quiver_plot()
 mag_data.save_to_llg(filename)
-projector = SimpleProjector(dim)
-phase_map = PMConvolve(a, projector)(mag_data)
+phase_map = pm(mag_data)
 phase_map.display_combined()
 phase_slice = phase_map.phase[dim[1]/2, :]
 fig = plt.figure()

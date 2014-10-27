@@ -5,9 +5,9 @@ threedimensional magnetization distribution onto a two-dimensional phase map."""
 
 import numpy as np
 
-from pyramid.kernel import Kernel
 from pyramid.projector import Projector
-
+from pyramid.phasemapper import PhaseMapper
+from pyramid.magdata import MagData
 import logging
 
 
@@ -18,45 +18,57 @@ class ForwardModel(object):
     Represents a strategy for the mapping of a 3D magnetic distribution to two-dimensional
     phase maps. Can handle a list of `projectors` of :class:`~.Projector` objects, which describe
     different projection angles, so many phase_maps can be created from one magnetic distribution.
+    All required data should be given in a :class:`~DataSet` object.
 
     Attributes
     ----------
+    data_set: :class:`~dataset.DataSet`
+        :class:`~dataset.DataSet` object, which stores all required information calculation.
     projectors : list of :class:`~.Projector`
         A list of all :class:`~.Projector` objects representing the projection directions.
     kernel : :class:`~.Kernel`
         A kernel which describes the phasemapping of the 2D projected magnetization distribution.
     a : float
-        The grid spacing in nm. Extracted from the `kernel`.
+        The grid spacing in nm.
     dim : tuple (N=3)
-        Dimensions of the 3D magnetic distribution. Extracted from the `projectors` list.
-    dim_uv: tuple (N=2)
-        Dimensions of the projected grid. Is extracted from the `kernel`.
-    size_3d : int
-        Number of voxels of the 3-dimensional grid. Extracted from the `projectors` list.
-    size_2d : int
-        Number of pixels of the 2-dimensional projected grid. Extracted from the `projectors` list.
+        Dimensions of the 3D magnetic distribution.
+    n: int
+        Size of the image space. Number of pixels of the 2-dimensional projected grid.
+    m: int
+        Size of the input space. Number of voxels of the 3-dimensional grid.
 
     '''
 
     LOG = logging.getLogger(__name__+'.ForwardModel')
 
-    def __init__(self, projectors, kernel):
+    def __init__(self, data_set):
         self.LOG.debug('Calling __init__')
-        assert np.all([isinstance(projector, Projector) for projector in projectors]), \
-            'List has to consist of Projector objects!'
-        assert isinstance(kernel, Kernel), 'A Kernel object has to be provided!'
-        self.kernel = kernel
-        self.a = kernel.a
-        self.projectors = projectors
-        self.dim = self.projectors[0].dim
-        self.size_3d = self.projectors[0].size_3d
-        self.dim_uv = kernel.dim_uv
-        self.size_2d = kernel.size
+        self.data_set = data_set
+        self.phase_mappers = data_set.phase_mappers
+        self.m = data_set.m
+        self.n = data_set.n
+        self.hook_points = data_set.hook_points
+        self.mag_data = MagData(data_set.a, np.zeros((3,)+data_set.dim))
         self.LOG.debug('Creating '+str(self))
+
+    def __repr__(self):
+        self.LOG.debug('Calling __repr__')
+        return '%s(data_set=%r)' % (self.__class__, self.data_set)
+
+    def __str__(self):
+        self.LOG.debug('Calling __str__')
+        return 'ForwardModel(data_set=%s)' % (self.data_set)
 
     def __call__(self, x):
         self.LOG.debug('Calling __call__')
-        result = [self.kernel(projector(x)) for projector in self.projectors]
+        self.mag_data.set_vector(x, self.data_set.mask)
+        return np.reshape(self.data_set.create_phase_maps(self.mag_data), -1)
+        # TODO: result mit fixer Größe und dann Multiprocessing, dataset needs list of start points
+        result = np.zeros(self.n)
+        hp = self.hook_points
+        for i, projector in enumerate(self.data_set.projectors):
+            phase_map = self.phase_mappers[projector.dim_uv](projector(self.mag_data))
+            result[hp[i]:hp[i+1]] = phase_map.phase_vec
         return np.reshape(result, -1)
 
     def jac_dot(self, x, vector):
@@ -80,8 +92,13 @@ class ForwardModel(object):
 
         '''
         self.LOG.debug('Calling jac_dot')
-        result = [self.kernel.jac_dot(projector.jac_dot(vector)) for projector in self.projectors]
-        result = np.reshape(result, -1)
+        self.mag_data.set_vector(x, self.data_set.mask)
+        result = np.zeros(self.n)
+        hp = self.hook_points
+        for i, projector in enumerate(self.data_set.projectors):
+            mag_vec = self.mag_data.mag_vec
+            res = self.phase_mappers[projector.dim_uv].jac_dot(projector.jac_dot(mag_vec))
+            result[hp[i]:hp[i+1]] = res
         return result
 
     def jac_T_dot(self, x, vector):
@@ -104,18 +121,11 @@ class ForwardModel(object):
 
         '''
         self.LOG.debug('Calling jac_T_dot')
-        size_3d = self.projectors[0].size_3d
-        size_2d = np.prod(self.dim_uv)
-        result = np.zeros(3*size_3d)
-        for (i, projector) in enumerate(self.projectors):
-            result += projector.jac_T_dot(self.kernel.jac_T_dot(vector[i*size_2d:(i+1)*size_2d]))
-        return np.reshape(result, -1)
 
-    def __repr__(self):
-        self.LOG.debug('Calling __repr__')
-        return '%s(projectors=%r, kernel=%r)' % (self.__class__, self.projectors, self.kernel)
-
-    def __str__(self):
-        self.LOG.debug('Calling __str__')
-        return 'ForwardModel(%s -> %s, %s projections, kernel=%s)' % \
-            (self.dim, self.dim_uv, len(self.projectors), self.kernel)
+        result = np.zeros(self.m)
+        hp = self.hook_points
+        for i, projector in enumerate(self.data_set.projectors):
+            vec = vector[hp[i]:hp[i+1]]
+            result += projector.jac_T_dot(self.phase_mappers[projector.dim_uv].jac_T_dot(vec))
+        self.mag_data.mag_vec = result
+        return self.mag_data.get_vector(self.data_set.mask)

@@ -14,8 +14,7 @@ from tqdm import tqdm
 
 import pyramid
 from pyramid.magdata import MagData
-from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMAdapterFM
+from pyramid.phasemapper import pm
 
 import logging
 import logging.config
@@ -143,12 +142,10 @@ else:
 mag_data.quiver_plot()
 ###################################################################################################
 # Phasemapping:
-projector = SimpleProjector(mag_data.dim)
-phasemapper = PMAdapterFM(mag_data.a, projector)
-phase_map = phasemapper(mag_data)
+phase_map = pm(mag_data)
 (-phase_map).display_combined(title=r'Combined Plot (B$_0$={} T, Cos x {})'.format(b_0, gain),
-                              density=gain)
+                              gain=gain)
 plt.savefig(PATH+'_{}T_cosx{}.png'.format(b_0, gain))
 (-phase_map).display_combined(title=r'Combined Plot (B$_0$={} T, Cos x {})'.format(b_0, gain),
-                              density=gain, interpolation='bilinear')
+                              gain=gain, interpolation='bilinear')
 plt.savefig(PATH+'_{}T_cosx{}_smooth.png'.format(b_0, gain))

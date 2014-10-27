@@ -45,6 +45,10 @@ class Projector(object):
     coeff : list (N=2)
         List containing the six weighting coefficients describing the influence of the 3 components
         of a 3-dimensional vector field on the 2 projected components.
+    n: int
+        Size of the image space.
+    m: int
+        Size of the input space.
 
     '''
 
@@ -59,6 +63,8 @@ class Projector(object):
         self.weight = weight
         self.coeff = coeff
         self.size_2d, self.size_3d = weight.shape
+        self.m = 3 * np.prod(dim)
+        self.n = 2 * np.prod(dim_uv)
         self.LOG.debug('Created '+str(self))
 
     def __repr__(self):
@@ -70,25 +76,12 @@ class Projector(object):
         self.LOG.debug('Calling __str__')
         return 'Projector(dim=%s, dim_uv=%s, coeff=%s)' % (self.dim, self.dim_uv, self.coeff)
 
-    def __call__(self, vector):
+    def __call__(self, mag_data):
         self.LOG.debug('Calling as function')
-        return self.jac_dot(vector)
-
-    @abc.abstractmethod
-    def get_info(self):
-        '''Get specific information about the projector as a string.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        info : string
-            Information about the projector as a string, e.g. for the use in plot titles.
-
-        '''
-        raise NotImplementedError()
+        mag_proj = MagData(mag_data.a, np.zeros((3, 1)+self.dim_uv))
+        magnitude_proj = self.jac_dot(mag_data.mag_vec).reshape((2, )+self.dim_uv)
+        mag_proj.magnitude[0:2, 0, ...] = magnitude_proj
+        return mag_proj
 
     def _vector_field_projection(self, vector):
         self.LOG.debug('Calling _vector_field_projection')
@@ -190,25 +183,21 @@ class Projector(object):
             raise AssertionError('Vector size has to be suited either for '
                                  'vector- or scalar-field-projection!')
 
-    def to_mag_data(self, mag_data):
-        self.LOG.debug('Calling to_mag_data')
-        '''Project a :class:`~.MagData` object and output another :class:`~.MagData` object.
+    @abc.abstractmethod
+    def get_info(self):
+        '''Get specific information about the projector as a string.
 
         Parameters
         ----------
-        mag_data : :class:`~.MagData`
-            :class:`~.MagData` object that should be projected.
+        None
 
         Returns
         -------
-        mag_data_result : :class:`~.MagData`
-            :class:`~.MagData` object containing the projected magnetization distribution from
-            the input.
+        info : string
+            Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
-        mag_proj = self(mag_data.mag_vec).reshape((2,)+self.dim_uv)
-        magnitude = np.expand_dims(np.concatenate((mag_proj, np.zeros((1,)+self.dim_uv))), axis=1)
-        return MagData(mag_data.a, magnitude)
+        raise NotImplementedError()
 
 
 class XTiltProjector(Projector):

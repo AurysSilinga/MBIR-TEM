@@ -69,10 +69,6 @@ setup(
 
       ext_package = 'pyramid/numcore',
       ext_modules = [
-          Extension('kernel_core', ['pyramid/numcore/kernel_core.pyx'],
-                    include_dirs = [numpy.get_include(), numpy.get_numarray_include()],
-                    extra_compile_args=['-march=native', '-mtune=native']
-                    ),
           Extension('phasemapper_core', ['pyramid/numcore/phasemapper_core.pyx'],
                     include_dirs = [numpy.get_include(), numpy.get_numarray_include()],
                     extra_compile_args=['-march=native', '-mtune=native']

@@ -10,7 +10,8 @@ from numpy import pi
 
 import pyramid
 import pyramid.magcreator as mc
-from pyramid.phasemapper import PMAdapterFM
+from pyramid.kernel import Kernel
+from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
 
@@ -25,7 +26,7 @@ logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 # Input parameters:
 a = 10.0  # in nm
 phi = -pi/2  # in rad
-density = 10
+gain = 10
 dim = (1, 128, 128)
 # Create magnetic shape:
 mag_shape = np.zeros(dim)
@@ -40,5 +41,6 @@ mag_shape[0, ...] = np.logical_and(np.logical_and(left, right), bottom)
 mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
 mag_data.quiver_plot()
 projector = SimpleProjector(dim)
-phase_map = PMAdapterFM(a, projector)(mag_data)
-phase_map.display_holo(density, 'PYRAMID - LOGO', interpolation='bilinear')
+phase_map = PhaseMapperRDFC(Kernel(a, projector.dim_uv))(mag_data)
+phase_map.display_holo('PYRAMID - LOGO', gain, interpolation='bilinear')
+phase_map.display_combined()

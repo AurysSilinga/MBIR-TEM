@@ -15,8 +15,7 @@ import matplotlib.pyplot as plt
 
 import pyramid
 from pyramid.phasemap import PhaseMap
-from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import pm
 import pyramid.reconstruction as rc
 
 from time import clock
@@ -32,7 +31,7 @@ logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 ###################################################################################################
 threshold = 1
 a = 1.0  # in nm
-density = 5
+gain = 5
 b_0 = 1
 inter = 'none'
 dim_small = (64, 64)
@@ -57,12 +56,12 @@ else:
     dm3_4_ele = dm3.DM3(PATH+'07_0102ele60_q3_pha_01_sb280_sc512_vf3_med5.dm3').image
 # Construct phase maps and masks
 phase_map_2 = PhaseMap(a, np.array(dm3_2_mag.resize(dim_small))-2.546)
-phase_map_2.display_combined(density=density, interpolation=inter)
+phase_map_2.display_combined(gain=gain, interpolation=inter)
 plt.savefig(PATH+'%.0e/phase_map_2part.png'%lam)
 mask_2 = np.expand_dims(np.where(np.array(dm3_2_ele.resize(dim_small)) >= threshold,
                                  True, False), axis=0)
 phase_map_4 = PhaseMap(a, np.array(dm3_4_mag.resize(dim_small))+0.101)
-phase_map_4.display_combined(density=density, interpolation=inter)
+phase_map_4.display_combined(gain=gain, interpolation=inter)
 plt.savefig(PATH+'%.0e/phase_map_4part.png'%lam)
 mask_4 = np.expand_dims(np.where(np.array(dm3_4_ele.resize(dim_small)) >= threshold,
                                  True, False), axis=0)
@@ -74,11 +73,11 @@ tic = clock()
 mag_data_rec_4 = rc.optimize_simple_leastsq(phase_map_4, mask_4, b_0, lam=lam, order=order)
 print '4 particle reconstruction time:', clock() - tic
 # Display the reconstructed phase map and holography image:
-phase_map_rec_2 = PMConvolve(a, SimpleProjector(mag_data_rec_2.dim), b_0)(mag_data_rec_2)
-phase_map_rec_2.display_combined('Reconstr. Distribution', density=density, interpolation=inter)
+phase_map_rec_2 = pm(mag_data_rec_2)
+phase_map_rec_2.display_combined('Reconstr. Distribution', gain=gain, interpolation=inter)
 plt.savefig(PATH+'%.0e/phase_map_2part_rec.png'%lam)
-phase_map_rec_4 = PMConvolve(a, SimpleProjector(mag_data_rec_4.dim), b_0)(mag_data_rec_4)
-phase_map_rec_4.display_combined('Reconstr. Distribution', density=density, interpolation=inter)
+phase_map_rec_4 = pm(mag_data_rec_4)
+phase_map_rec_4.display_combined('Reconstr. Distribution', gain=gain, interpolation=inter)
 plt.savefig(PATH+'%.0e/phase_map_4part_rec.png'%lam)
 # Plot the magnetization:
 axis = (mag_data_rec_2*(1/mag_data_rec_2.magnitude.max())).quiver_plot()
@@ -100,25 +99,25 @@ plt.savefig(PATH+'%.0e/phase_map_4part_diff.png'%lam)
 print 'Average difference (2 cubes):', np.average(phase_diff_2.phase)
 print 'Average difference (4 cubes):', np.average(phase_diff_4.phase)
 # Plot holographic contour maps with overlayed magnetic distributions:
-axis = phase_map_rec_2.display_holo('Magnetization Overlay', density=0.1, interpolation=inter)
+axis = phase_map_rec_2.display_holo('Magnetization Overlay', gain=0.1, interpolation=inter)
 mag_data_rec_2.quiver_plot(axis=axis)
 axis = plt.gca()
 axis.set_xlim(20, 45)
 axis.set_ylim(20, 45)
 plt.savefig(PATH+'%.0e/phase_map_2part_holo.png'%lam)
-axis = phase_map_rec_4.display_holo('Magnetization Overlay', density=0.1, interpolation=inter)
+axis = phase_map_rec_4.display_holo('Magnetization Overlay', gain=0.1, interpolation=inter)
 mag_data_rec_4.quiver_plot(axis=axis)
 axis = plt.gca()
 axis.set_xlim(20, 45)
 axis.set_ylim(20, 45)
 plt.savefig(PATH+'%.0e/phase_map_4part_holo.png'%lam)
-axis = phase_map_rec_2.display_holo('Magnetization Overlay', density=0.1, interpolation=inter)
+axis = phase_map_rec_2.display_holo('Magnetization Overlay', gain=0.1, interpolation=inter)
 mag_data_rec_2.quiver_plot(axis=axis, log=log)
 axis = plt.gca()
 axis.set_xlim(20, 45)
 axis.set_ylim(20, 45)
 plt.savefig(PATH+'%.0e/phase_map_2part_holo_log.png'%lam)
-axis = phase_map_rec_4.display_holo('Magnetization Overlay', density=0.1, interpolation=inter)
+axis = phase_map_rec_4.display_holo('Magnetization Overlay', gain=0.1, interpolation=inter)
 mag_data_rec_4.quiver_plot(axis=axis, log=log)
 axis = plt.gca()
 axis.set_xlim(20, 45)

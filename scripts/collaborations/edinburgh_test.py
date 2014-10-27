@@ -10,8 +10,7 @@ from matplotlib.ticker import FuncFormatter
 
 import pyramid
 from pyramid.magdata import MagData
-from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMAdapterFM
+from pyramid.phasemapper import pm
 
 import logging
 import logging.config
@@ -38,11 +37,9 @@ mag_data = MagData(a, magnitude)
 mag_data.pad(30, 20, 0)
 mag_data.scale_up()
 # Phasemapping:
-projector = SimpleProjector(mag_data.dim)
-phasemapper = PMAdapterFM(mag_data.a, projector)
-phase_map = phasemapper(mag_data)
+phase_map = pm(mag_data)
 # Plot:
-phase_axis = phase_map.display_combined(density=20, interpolation='bilinear',
+phase_axis = phase_map.display_combined(gain=20, interpolation='bilinear',
                                         grad_encode='bright')[0]
 phase_axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:3.0f}'.format(x*mag_data.a)))
 phase_axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:3.0f}'.format(x*mag_data.a)))

@@ -10,6 +10,7 @@ from numpy import pi
 import pyramid
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
+from pyramid.phasemapper import pm
 
 import logging
 import logging.config
@@ -53,3 +54,4 @@ mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, phi, magnitude=0.75))
 mag_data.save_to_llg(filename)
 mag_data.quiver_plot()
 mag_data.quiver_plot3d()
+pm(mag_data).display_combined()

@@ -8,6 +8,7 @@ import numpy as np
 from scipy.sparse.linalg import LinearOperator
 from scipy.sparse import eye
 
+from pyramid.forwardmodel import ForwardModel
 from pyramid.regularisator import ZeroOrderRegularisator
 
 import logging
@@ -18,13 +19,19 @@ class Costfunction(object):
 
     Represents a strategy for the calculation of the `cost` of a 3D magnetic distribution in
     relation to two-dimensional phase maps. The `cost` is a measure for the difference of the
-    simulated phase maps from the magnetic distributions to the given set of phase maps.
-    Furthermore this class provides convenient methods for the calculation of the derivative
-    :func:`~.jac` or the product with the Hessian matrix :func:`~.hess_dot` of the costfunction,
-    which can be used by optimizers.
+    simulated phase maps from the magnetic distributions to the given set of phase maps and from
+    a priori knowledge represented by a :class:`~.Regularisator` object. Furthermore this class
+    provides convenient methods for the calculation of the derivative :func:`~.jac` or the product
+    with the Hessian matrix :func:`~.hess_dot` of the costfunction, which can be used by
+    optimizers. All required data should be given in a :class:`~DataSet` object.
 
     Attributes
     ----------
+    data_set: :class:`~dataset.DataSet`
+        :class:`~dataset.DataSet` object, which stores all information for the cost calculation.
+    regularisator : :class:`~.Regularisator`
+        Regularisator class that's responsible for the regularisation term.
+    regularisator: :class:`~Regularisator`
     y : :class:`~numpy.ndarray` (N=1)
         Vector which lists all pixel values of all phase maps one after another.
     fwd_model : :class:`~.ForwardModel`
@@ -32,42 +39,36 @@ class Costfunction(object):
         will be compared to `y`.
     Se_inv : :class:`~numpy.ndarray` (N=2), optional
         Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
-        being the length of the targetvector y (vectorized phase map information). Defaults to
-        an appropriate unity matrix if none is provided.
-    regularisator : :class:`~.Regularisator`, optional
-        Regularisator class that's responsible for the regularisation term. Defaults to zero
-        order Tikhonov if none is provided.
+        being the length of the targetvector y (vectorized phase map information).
 
     '''
 
     LOG = logging.getLogger(__name__+'.Costfunction')
 
-    def __init__(self, y, fwd_model, Se_inv=None, regularisator=None):
+    def __init__(self, data_set, regularisator):
         self.LOG.debug('Calling __init__')
-        self.y = y
-        self.fwd_model = fwd_model
-        if Se_inv is None:
-            Se_inv = eye(len(y))
-        self.Se_inv = Se_inv
-        if regularisator is None:
-            regularisator = ZeroOrderRegularisator(fwd_model, lam=1E-4)
+        self.data_set = data_set
+        self.fwd_model = ForwardModel(data_set)
         self.regularisator = regularisator
+        # Extract important information:
+        self.y = data_set.phase_vec
+        self.Se_inv = data_set.Se_inv
         self.LOG.debug('Created '+str(self))
-
-    def __call__(self, x):
-        self.LOG.debug('Calling __call__')
-        return ((self.fwd_model(x)-self.y).dot(self.Se_inv.dot(self.fwd_model(x)-self.y))
-                + self.regularisator(x))
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')
-        return '%s(fwd_model=%r, Se_inv=%r, regularisator=%r)' % \
-            (self.__class__, self.fwd_model, self.Se_inv, self.regularisator)
+        return '%s(data_set=%r, fwd_model=%r, regularisator=%r)' % \
+            (self.__class__, self.data_set, self.fwd_model, self.regularisator)
 
     def __str__(self):
         self.LOG.debug('Calling __str__')
-        return 'Costfunction(fwd_model=%s, Se_inv=%s, regularisator=%s)' % \
-            (self.fwd_model, self.Se_inv, self.regularisator)
+        return 'Costfunction(data_set=%s, fwd_model=%s, regularisator=%s)' % \
+            (self.data_set, self.fwd_model, self.regularisator)
+
+    def __call__(self, x):
+        self.LOG.debug('Calling __call__')
+        delta_y = self.fwd_model(x)-self.y
+        return delta_y.dot(self.Se_inv.dot(delta_y)) + self.regularisator(x)
 
     def jac(self, x):
         '''Calculate the derivative of the costfunction for a given magnetization distribution.
@@ -84,10 +85,8 @@ class Costfunction(object):
 
         '''
         self.LOG.debug('Calling jac')
-        y = self.y
-        F = self.fwd_model
-        Se_inv = self.Se_inv
-        return F.jac_T_dot(x, Se_inv.dot(F(x)-y))
+        return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model(x)-self.y))
+                + self.regularisator.jac(x))
 
     def hess_dot(self, x, vector):
         '''Calculate the product of a `vector` with the Hessian matrix of the costfunction.
@@ -109,8 +108,8 @@ class Costfunction(object):
 
         '''
         self.LOG.debug('Calling hess_dot')
-        return (self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model.jac_dot(x, vector)))
-                + self.regularisator.jac_dot(vector))
+        return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model.jac_dot(x, vector)))
+                + self.regularisator.hess_dot(x, vector))
 
 
 class CFAdapterScipyCG(LinearOperator):
@@ -129,6 +128,7 @@ class CFAdapterScipyCG(LinearOperator):
         Costfunction which should be made usable in the :func:`~.scipy.sparse.linalg.cg` function.
 
     '''
+    # TODO: make obsolete!
 
     LOG = logging.getLogger(__name__+'.CFAdapterScipyCG')
 

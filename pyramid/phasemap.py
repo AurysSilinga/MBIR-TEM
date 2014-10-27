@@ -405,7 +405,7 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def display_holo(self, title=None, gain=1, axis=None, grad_encode='bright',
+    def display_holo(self, title=None, gain='auto', axis=None, grad_encode='bright',
                      interpolation='none', show=True):
         '''Display the color coded holography image.
 
@@ -414,8 +414,8 @@ class PhaseMap(object):
         title : string, optional
             The title of the plot. The default is 'Contour Map (gain: %g)' % gain.
         gain : float or 'auto', optional
-            The gain factor for determining the number of contour lines. The default is 1.
-            If 'auto' is used, the gain will be determined automatically to look pretty.
+            The gain factor for determining the number of contour lines. The default is 'auto',
+            which means that the gain will be determined automatically to look pretty.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         grad_encode: {'bright', 'dark', 'color', 'none'}, optional
@@ -494,7 +494,7 @@ class PhaseMap(object):
         return axis
 
     def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
-                         gain=1, interpolation='none', grad_encode='bright', show=True):
+                         gain='auto', interpolation='none', grad_encode='bright', show=True):
         '''Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -510,9 +510,9 @@ class PhaseMap(object):
         norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
             Norm, which is used to determine the colors to encode the phase information.
             If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
-        gain : float, optional
-            The gain factor for determining the number of contour lines in the holographic
-            contour map. The default is 1.
+        gain : float or 'auto', optional
+            The gain factor for determining the number of contour lines. The default is 'auto',
+            which means that the gain will be determined automatically to look pretty.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method for the holographic contour map.
             No interpolation is used in the default case.

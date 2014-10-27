@@ -17,7 +17,7 @@ from scipy.optimize import minimize, leastsq
 
 from pyramid.kernel import Kernel
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.forwardmodel import ForwardModel
 from pyramid.costfunction import Costfunction, CFAdapterScipyCG
 from pyramid.magdata import MagData
@@ -184,6 +184,7 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
     order : int {0, 1}, optional
         order of the regularisation function. Default is 0 for a Tikhonov regularisation of order
         zero. A first order regularisation, which uses the derivative is available with value 1.
+
     Returns
     -------
     mag_data : :class:`~pyramid.magdata.MagData`
@@ -205,8 +206,9 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
 
     # Function that returns the phase map for a magnetic configuration x:
     def F(x):
-        mag_data_rec.set_vector(mask, x)
-        phase_map = PMConvolve(a, SimpleProjector(dim), b_0)(mag_data_rec)
+        mag_data_rec.set_vector(x, mask)
+        proj = SimpleProjector(dim)
+        phase_map = PhaseMapperRDFC(Kernel(a, proj.dim_uv, b_0))(proj(mag_data_rec))
         return phase_map.phase_vec
 
     # Cost function of order zero which should be minimized:
@@ -234,5 +236,5 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
     J_DICT = [J_0, J_1]  # list of cost-functions with different regularisations
     # Reconstruct the magnetization components:
     x_rec, _ = leastsq(J_DICT[order], np.zeros(3*count))
-    mag_data_rec.set_vector(mask, x_rec)
+    mag_data_rec.set_vector(x_rec, mask)
     return mag_data_rec

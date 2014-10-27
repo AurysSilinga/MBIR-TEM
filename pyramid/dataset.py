@@ -6,11 +6,14 @@ and additional data like corresponding projectors."""
 import numpy as np
 from numbers import Number
 
+import scipy.sparse as sp
+
 import matplotlib.pyplot as plt
 
 from pyramid.phasemap import PhaseMap
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.projector import Projector
+from pyramid.kernel import Kernel
 
 import logging
 
@@ -21,75 +24,98 @@ class DataSet(object):
 
     Represents a collection of (e.g. experimentally derived) phase maps, stored as
     :class:`~.PhaseMap` objects and corresponding projectors stored as :class:`~.Projector`
-    objects. At creation, the grid spacing `a` and the dimension `dim_uv` of the projected grid.
-    Data can be added via the :func:`~.append` method, where a :class:`~.PhaseMap` and a
-    :class:`~.Projector` have to be given as tuple argument.
+    objects. At creation, the grid spacing `a` and the dimension `dim` of the magnetization
+    distribution have to be given. Data can be added via the :func:`~.append` method, where
+    a :class:`~.PhaseMap`, a :class:`~.Projector` and additional info have to be given.
 
     Attributes
     ----------
     a: float
         The grid spacing in nm.
-    dim_uv: tuple (N=2)
-        Dimensions of the projected grid.
+    dim: tuple (N=3)
+        Dimensions of the 3D magnetization distribution.
     phase_maps:
         A list of all stored :class:`~.PhaseMap` objects.
-    projectors:
+    b_0: double
+        The saturation induction in `T`.
+    mask: :class:`~numpy.ndarray` (N=3), optional
+        A boolean mask which defines the magnetized volume in 3D.
+    projectors: list of :class:`~.Projector`
         A list of all stored :class:`~.Projector` objects.
+    phase_maps: list of :class:`~.PhaseMap`
+        A list of all stored :class:`~.PhaseMap` objects.
     phase_vec: :class:`~numpy.ndarray` (N=1)
         The concatenaded, vectorized phase of all ;class:`~.PhaseMap` objects.
-
+    n: int
+        Size of the image space.
+    m: int
+        Size of the input space.
     '''
 
     LOG = logging.getLogger(__name__+'.DataSet')
 
     @property
-    def a(self):
-        return self._a
+    def n(self):
+        return np.sum([len(p.phase_vec) for p in self.phase_maps])
 
     @property
-    def dim_uv(self):
-        return self._dim_uv
+    def Se_inv(self):
+        # TODO: better implementation, maybe get-method? more flexible? input in append?
+        return sp.eye(self.n)
 
     @property
     def phase_vec(self):
         return np.concatenate([p.phase_vec for p in self.phase_maps])
 
     @property
-    def phase_maps(self):
-        return [d[0] for d in self.data]
+    def hook_points(self):
+        result = [0]
+        for i, phase_map in enumerate(self.phase_maps):
+            result.append(result[i]+np.prod(phase_map.dim_uv))
+        return result
 
     @property
-    def projectors(self):
-        return [d[1] for d in self.data]
+    def phase_mappers(self):
+        dim_uv_list = np.unique([p.dim_uv for p in self.phase_maps])
+        kernel_list = [Kernel(self.a, dim_uv) for dim_uv in dim_uv_list]
+        return {kernel.dim_uv: PhaseMapperRDFC(kernel) for kernel in kernel_list}
 
-    def __init__(self, a, dim_uv, b_0):
+    def __init__(self, a, dim, b_0=1, mask=None):
         self.LOG.debug('Calling __init__')
         assert isinstance(a, Number), 'Grid spacing has to be a number!'
         assert a >= 0, 'Grid spacing has to be a positive number!'
-        self._a = a
-        assert isinstance(dim_uv, tuple) and len(dim_uv) == 2, \
-            'Dimension has to be a tuple of length 2!'
-        self._dim_uv = dim_uv
+        assert isinstance(dim, tuple) and len(dim) == 3, \
+            'Dimension has to be a tuple of length 3!'
+        if mask is not None:
+            assert mask.shape == dim, 'Mask dimensions must match!'
+            self.m = 3 * np.sum(self.mask)
+        else:
+            self.m = 3 * np.prod(dim)
+        self.a = a
+        self.dim = dim
         self.b_0 = b_0
-        self.data = []
+        self.mask = mask
+        self.phase_maps = []
+        self.projectors = []
         self.LOG.debug('Created: '+str(self))
 
     def __repr__(self):
         self.LOG.debug('Calling __repr__')
-        return '%s(a=%r, dim_uv=%r, b_0=%r)' % (self.__class__, self.a, self.dim_uv, self.b_0)
+        return '%s(a=%r, dim=%r, b_0=%r)' % (self.__class__, self.a, self.dim, self.b_0)
 
     def __str__(self):
         self.LOG.debug('Calling __str__')
-        return 'DataSet(a=%s, dim_uv=%s, b_0=%s)' % (self.a, self.dim_uv, self.b_0)
+        return 'DataSet(a=%s, dim=%s, b_0=%s)' % (self.a, self.dim, self.b_0)
 
-    def append(self, (phase_map, projector)):
+    def append(self, phase_map, projector):  # TODO: include Se_inv or 2D mask??
         '''Appends a data pair of phase map and projection infos to the data collection.`
 
         Parameters
         ----------
-        (phase_map, projector): tuple (N=2)
-            tuple which contains a :class:`~.PhaseMap` object and a :class:`~.Projector` object,
-            which should be added to the data collection.
+        phase_map: :class:`~.PhaseMap`
+            A :class:`~.PhaseMap` object which should be added to the data collection.
+        projector: :class:`~.Projector`
+            A :class:`~.Projector` object which should be added to the data collection.
 
         Returns
         -------
@@ -99,19 +125,38 @@ class DataSet(object):
         self.LOG.debug('Calling append')
         assert isinstance(phase_map, PhaseMap) and isinstance(projector, Projector),  \
             'Argument has to be a tuple of a PhaseMap and a Projector object!'
-        assert phase_map.dim_uv == self.dim_uv, 'Added phasemap must have the same dimension!'
-        assert projector.dim_uv == self.dim_uv, 'Projector dimensions must match!'
-        self.data.append((phase_map, projector))
+        assert projector.dim == self.dim, '3D dimensions must match!'
+        assert phase_map.dim_uv == projector.dim_uv, 'Projection dimensions (dim_uv) must match!'
+        self.phase_maps.append(phase_map)
+        self.projectors.append(projector)
 
-    def display_phase(self, phase_maps=None, title='Phase Map',
+    def create_phase_maps(self, mag_data):
+        '''Create a list of phasemaps with the projectors in the dataset for a given
+        :class:`~.MagData` object.
+
+        Parameters
+        ----------
+        mag_data : :class:`~.MagData`
+            Magnetic distribution to which the projectors of the dataset should be applied.
+
+        Returns
+        -------
+        phase_maps : list of :class:`~.phasemap.PhaseMap`
+            A list of the phase maps resulting from the projections specified in the dataset.
+
+        '''
+        return [self.phase_mappers[projector.dim_uv](projector(mag_data))
+                for projector in self.projectors]
+
+    def display_phase(self, mag_data=None, title='Phase Map',
                       cmap='RdBu', limit=None, norm=None):
         '''Display all phasemaps saved in the :class:`~.DataSet` as a colormesh.
 
         Parameters
         ----------
-        phase_maps : list of :class:`~.PhaseMap`, optional
-            List of phase_maps to display with annotations from the projectors. If none are
-            given, the phase_maps in the dataset are used (which is the default behaviour).
+        mag_data : :class:`~.MagData`, optional
+            Magnetic distribution to which the projectors of the dataset should be applied. If not
+            given, the phase_maps in the dataset are used.
         title : string, optional
             The main part of the title of the plots. The default is 'Phase Map'. Additional
             projector info is appended to this.
@@ -131,22 +176,24 @@ class DataSet(object):
 
         '''
         self.LOG.debug('Calling display')
-        if phase_maps is None:
+        if mag_data is not None:
+            phase_maps = self.create_phase_maps(mag_data)
+        else:
             phase_maps = self.phase_maps
         [phase_map.display_phase('{} ({})'.format(title, self.projectors[i].get_info()),
                                  cmap, limit, norm)
             for (i, phase_map) in enumerate(phase_maps)]
         plt.show()
 
-    def display_combined(self, phase_maps=None, title='Combined Plot', cmap='RdBu', limit=None,
+    def display_combined(self, mag_data=None, title='Combined Plot', cmap='RdBu', limit=None,
                          norm=None, gain=1, interpolation='none', grad_encode='bright'):
         '''Display all phasemaps and the resulting color coded holography images.
 
         Parameters
         ----------
-        phase_maps : list of :class:`~.PhaseMap`, optional
-            List of phase_maps to display with annotations from the projectors. If none are
-            given, the phase_maps in the dataset are used (which is the default behaviour).
+        mag_data : :class:`~.MagData`, optional
+            Magnetic distribution to which the projectors of the dataset should be applied. If not
+            given, the phase_maps in the dataset are used.
         title : string, optional
             The title of the plot. The default is 'Combined Plot'.
         cmap : string, optional
@@ -176,30 +223,13 @@ class DataSet(object):
 
         '''
         self.LOG.debug('Calling display_combined')
-        if phase_maps is None:
+        if mag_data is not None:
+            phase_maps = self.create_phase_maps(mag_data)
+        else:
             phase_maps = self.phase_maps
         [phase_map.display_combined('{} ({})'.format(title, self.projectors[i].get_info()),
                                     cmap, limit, norm, gain, interpolation, grad_encode)
             for (i, phase_map) in enumerate(phase_maps)]
         plt.show()
 
-    def create_phase_maps(self, mag_data):
-        '''Create a list of phasemaps with the projectors in the dataset for a given
-        :class:`~.MagData` object.
-
-        Parameters
-        ----------
-        mag_data : :class:`~.MagData`
-            Magnetic distribution to which the projectors of the dataset should be applied.
-
-        Returns
-        -------
-        phase_maps : list of :class:`~.phasemap.PhaseMap`
-            A list of the phase_maps resulting from the projections specified in the dataset.
-
-        Notes
-        -----
-        For the phasemapping, the :class:`~.PMConvolve` class is used.
-
-        '''
-        return [PMConvolve(self.a, proj, self.b_0)(mag_data) for proj in self.projectors]
+# TODO: method for constructing 3D mask from 2D masks?
