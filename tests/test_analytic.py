@@ -34,7 +34,7 @@ class TestCaseAnalytic(unittest.TestCase):
         width = (self.dim[0]/2, self.dim[1]/2, self.dim[2]/2)
         phase = an.phase_mag_slab(self.dim, self.res, self.phi, self.center, width)
         reference = np.load(os.path.join(self.path, 'ref_phase_slab.npy'))
-        np.testing.assert_equal(phase, reference, 'Unexpected behavior in phase_mag_slab()')
+        np.testing.assert_almost_equal(phase, reference,  err_msg='Unexpected behavior in phase_mag_slab()')
 
     def test_phase_mag_disc(self):
         '''Test of the phase_mag_disc method.'''
@@ -42,14 +42,14 @@ class TestCaseAnalytic(unittest.TestCase):
         height = self.dim[2]/2
         phase = an.phase_mag_disc(self.dim, self.res, self.phi, self.center, radius, height)
         reference = np.load(os.path.join(self.path, 'ref_phase_disc.npy'))
-        np.testing.assert_equal(phase, reference, 'Unexpected behavior in phase_mag_disc()')
+        np.testing.assert_almost_equal(phase, reference,  err_msg='Unexpected behavior in phase_mag_disc()')
 
     def test_phase_mag_sphere(self):
         '''Test of the phase_mag_sphere method.'''
         radius = self.dim[2]/4
         phase = an.phase_mag_sphere(self.dim, self.res, self.phi, self.center, radius)
         reference = np.load(os.path.join(self.path, 'ref_phase_sphere.npy'))
-        np.testing.assert_equal(phase, reference, 'Unexpected behavior in phase_mag_sphere()')
+        np.testing.assert_almost_equal(phase, reference,  err_msg='Unexpected behavior in phase_mag_sphere()')
 
     def test_phase_mag_vortex(self):
         '''Test of the phase_mag_vortex method.'''
@@ -57,7 +57,7 @@ class TestCaseAnalytic(unittest.TestCase):
         height = self.dim[2]/2
         phase = an.phase_mag_vortex(self.dim, self.res, self.center, radius, height)
         reference = np.load(os.path.join(self.path, 'ref_phase_vort.npy'))
-        np.testing.assert_equal(phase, reference, 'Unexpected behavior in phase_mag_vortex()')
+        np.testing.assert_almost_equal(phase, reference, err_msg='Unexpected behavior in phase_mag_vortex()')
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseAnalytic)
