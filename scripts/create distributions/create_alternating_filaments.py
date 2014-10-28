@@ -11,6 +11,7 @@ from numpy import pi
 import pyramid
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
+from pyramid.phasemapper import pm
 
 import logging
 import logging.config
@@ -40,3 +41,4 @@ for i in range(count):
 # Plot magnetic distribution
 mag_data.quiver_plot()
 mag_data.save_to_llg(filename)
+pm(mag_data).display_phase()

@@ -76,8 +76,8 @@ class DataSet(object):
 
     @property
     def phase_mappers(self):
-        dim_uv_list = np.unique([p.dim_uv for p in self.phase_maps])
-        kernel_list = [Kernel(self.a, dim_uv) for dim_uv in dim_uv_list]
+        dim_uv_list = np.unique([p.dim_uv for p in self.projectors])
+        kernel_list = [Kernel(self.a, tuple(dim_uv)) for dim_uv in dim_uv_list]
         return {kernel.dim_uv: PhaseMapperRDFC(kernel) for kernel in kernel_list}
 
     def __init__(self, a, dim, b_0=1, mask=None):

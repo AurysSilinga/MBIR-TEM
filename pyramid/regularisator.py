@@ -10,8 +10,8 @@ import abc
 
 import numpy as np
 
-from scipy.sparse import eye, coo_matrix, csr_matrix
-import jutil.norm as jnorm
+from scipy.sparse import coo_matrix, csr_matrix
+import jutil.norms as jnorm
 
 from pyramid.converter import IndexConverter
 
@@ -51,13 +51,51 @@ class Regularisator(object):
 
     def jac(self, x):
         # TODO: Docstring!
+        self.LOG.debug('Calling jac')
         return self.lam * self.norm.jac_dot(x)
 
     def hess_dot(self, x, vector):
         # TODO: Docstring!
-        return self.lam * self.norm.hess_dot(x)
+        self.LOG.debug('Calling hess_dot')
+        return self.lam * self.norm.hess_dot(x, vector)
 
-    # TODO: hess_diag
+    def hess_diag(self, x, vector):
+        # TODO: Docstring!
+        self.LOG.debug('Calling hess_diag')
+        return self.lam * self.norm.hess_diag(x, vector)
+
+
+class NoneRegularisator(Regularisator):
+    # TODO: Docstring
+
+    # TODO: Necessary class? Use others with lam=0?
+
+    LOG = logging.getLogger(__name__+'.NoneRegularisator')
+
+    def __init__(self):
+        self.LOG.debug('Calling __init__')
+        self.norm = None
+        self.lam = 0
+        self.LOG.debug('Created '+str(self))
+
+    def __call__(self, x):
+        self.LOG.debug('Calling __call__')
+        return 0
+
+    def jac(self, x):
+        # TODO: Docstring!
+        self.LOG.debug('Calling jac')
+        return np.zeros_like(x)
+
+    def hess_dot(self, x, vector):
+        # TODO: Docstring!
+        self.LOG.debug('Calling hess_dot')
+        return np.zeros_like(vector)
+
+    def hess_diag(self, x, vector):
+        # TODO: Docstring!
+        self.LOG.debug('Calling hess_diag')
+        return np.zeros_like(vector)
 
 
 class ZeroOrderRegularisator(Regularisator):
@@ -71,47 +109,29 @@ class ZeroOrderRegularisator(Regularisator):
         super(ZeroOrderRegularisator, self).__init__(norm, lam)
         self.LOG.debug('Created '+str(self))
 
-    def __call__(self, x):
-        self.LOG.debug('Calling __call__')
-        super(ZeroOrderRegularisator, self)(x)
 
-
-
-class FirstOrderRegularisator(Regularisator):
-    # TODO: Docstring!
-
-    def __init__(self, fwd_model, lam, x_a=None):
-        size_3d = fwd_model.size_3d
-        dim = fwd_model.dim
-        converter = IndexConverter(dim)
-        row = []
-        col = []
-        data = []
-
-        for i in range(size_3d):
-            neighbours = converter.find_neighbour_ind(i)
-
-
-
-
-
-
-
-
-
-
-            Sa_inv = csr_matrix(coo_matrix(data, (rows, columns)), shape=(3*size_3d, 3*size_3d))
-
-
-
-
-        term2 = []
-        for i in range(3):
-            component = mag_data[i, ...]
-            for j in range(3):
-                if component.shape[j] > 1:
-                    term2.append(np.diff(component, axis=j).reshape(-1))
-
-
-        super(FirstOrderRegularisator, self).__init__(Sa_inv, x_a)
-        self.LOG.debug('Created '+str(self))
+#class FirstOrderRegularisator(Regularisator):
+#    # TODO: Docstring!
+#
+#    def __init__(self, fwd_model, lam, x_a=None):
+#        size_3d = fwd_model.size_3d
+#        dim = fwd_model.dim
+#        converter = IndexConverter(dim)
+#        row = []
+#        col = []
+#        data = []
+#
+#        for i in range(size_3d):
+#            neighbours = converter.find_neighbour_ind(i)
+#
+#            Sa_inv = csr_matrix(coo_matrix(data, (rows, columns)), shape=(3*size_3d, 3*size_3d))
+#
+#        term2 = []
+#        for i in range(3):
+#            component = mag_data[i, ...]
+#            for j in range(3):
+#                if component.shape[j] > 1:
+#                    term2.append(np.diff(component, axis=j).reshape(-1))
+#
+#        super(FirstOrderRegularisator, self).__init__(Sa_inv, x_a)
+#        self.LOG.debug('Created '+str(self))

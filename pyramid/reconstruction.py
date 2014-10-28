@@ -83,7 +83,7 @@ class PrintIterator(object):
         return self.iteration
 
 
-def optimize_sparse_cg(data, Se_inv=None, regularisator=None, verbosity=0):
+def optimize_sparse_cg(data, regularisator=None, maxiter=1000, verbosity=0):
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
 
@@ -100,6 +100,8 @@ def optimize_sparse_cg(data, Se_inv=None, regularisator=None, verbosity=0):
     regularisator : :class:`~.Regularisator`, optional
         Regularisator class that's responsible for the regularisation term. Defaults to zero
         order Tikhonov if none is provided.
+    maxiter : int
+        Maximum number of iterations.
     verbosity : {0, 1, 2}, optional
         Parameter defining the verposity of the output. `2` will show the current number of the
         iteration and the cost of the current distribution. `1` will just show the iteration
@@ -114,15 +116,14 @@ def optimize_sparse_cg(data, Se_inv=None, regularisator=None, verbosity=0):
     LOG.debug('Calling optimize_sparse_cg')
     # Set up necessary objects:
     y = data.phase_vec
-    kernel = Kernel(data.a, data.dim_uv, data.b_0)
-    fwd_model = ForwardModel(data.projectors, kernel)
-    cost = Costfunction(y, fwd_model, Se_inv, regularisator)
+    fwd_model = ForwardModel(data)
+    cost = Costfunction(data, regularisator)
     # Optimize:
     A = CFAdapterScipyCG(cost)
     b = fwd_model.jac_T_dot(None, y)
-    x_opt, info = cg(A, b, callback=PrintIterator(cost, verbosity), maxiter=1000)
+    x_opt, info = cg(A, b, callback=PrintIterator(cost, verbosity), maxiter=maxiter)
     # Create and return fitting MagData object:
-    mag_opt = MagData(fwd_model.a, np.zeros((3,)+fwd_model.dim))
+    mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
     mag_opt.mag_vec = x_opt
     return mag_opt
 

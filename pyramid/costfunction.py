@@ -151,7 +151,7 @@ class CFAdapterScipyCG(LinearOperator):
 
     @property
     def shape(self):
-        return (3*self.cost.fwd_model.size_3d, 3*self.cost.fwd_model.size_3d)
+        return (self.cost.data_set.m, self.cost.data_set.m)
 
     @property
     def dtype(self):

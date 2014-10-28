@@ -17,7 +17,7 @@ import pyramid.magcreator as mc
 import pyramid.analytic as an
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMFourier
+from pyramid.phasemapper import PhaseMapperFDFC
 
 import time
 import shelve
@@ -91,8 +91,10 @@ else:
     for i in range(5):
         print '----a =', mag_data_disc.a, 'nm', 'dim =', mag_data_disc.dim
         projector = SimpleProjector(mag_data_disc.dim)
-        phase_map0 = PMFourier(mag_data_disc.a, projector, padding=0)(mag_data_disc)
-        phase_map10 = PMFourier(mag_data_disc.a, projector, padding=10)(mag_data_disc)
+        phase_map0 = PhaseMapperFDFC(mag_data_disc.a, projector.dim_uv,
+                                     padding=0)(projector(mag_data_disc))
+        phase_map10 = PhaseMapperFDFC(mag_data_disc.a, projector.dim_uv,
+                                      padding=10)(projector(mag_data_disc))
         phase_map0.unit = 'mrad'
         phase_map10.unit = 'mrad'
         phase_map0.display_combined('Disc, a = {} nm'.format(mag_data_disc.a), gain=gain)
@@ -135,8 +137,10 @@ else:
     for i in range(5):
         print '----a =', mag_data_vort.a, 'nm', 'dim =', mag_data_vort.dim
         projector = SimpleProjector(mag_data_vort.dim)
-        phase_map0 = PMFourier(mag_data_vort.a, projector, padding=0)(mag_data_vort)
-        phase_map10 = PMFourier(mag_data_vort.a, projector, padding=10)(mag_data_vort)
+        phase_map0 = PhaseMapperFDFC(mag_data_vort.a, projector.dim_uv,
+                                     padding=0)(projector(mag_data_vort))
+        phase_map10 = PhaseMapperFDFC(mag_data_vort.a, projector.dim_uv,
+                                      padding=10)(projector(mag_data_vort))
         phase_map0.unit = 'mrad'
         phase_map10.unit = 'mrad'
         print np.mean(phase_map0.phase)
@@ -433,7 +437,7 @@ phase_map_ana_disc = an.phase_mag_disc(dim, a, phi, center, radius, height)
 phase_map_ana_vort = an.phase_mag_vortex(dim, a, center, radius, height)
 
 # Create phasemapper:
-phasemapper = PMFourier(a, projector, padding=0)
+phasemapper = PhaseMapperFDFC(a, projector.dim_uv, padding=0)
 # Create figure:
 fig, axes = plt.subplots(1, 2, figsize=(16, 7))
 fig.suptitle('Difference of the Fourier space approach from the analytical solution', fontsize=20)
@@ -441,7 +445,7 @@ fig.suptitle('Difference of the Fourier space approach from the analytical solut
 bounds = np.array([-100, -50, -25, -5, 0, 5, 25, 50, 100])
 norm = BoundaryNorm(bounds, RdBu.N)
 # Disc:
-phase_map_num_disc = phasemapper(mag_data_disc)
+phase_map_num_disc = phasemapper(projector(mag_data_disc))
 phase_map_num_disc.unit = 'mrad'
 phase_diff_disc = phase_map_num_disc - phase_map_ana_disc
 RMS_disc = np.sqrt(np.mean(phase_diff_disc.phase**2))
@@ -453,7 +457,7 @@ axes[0].set_aspect('equal')
 bounds = np.array([-3, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 3])
 norm = BoundaryNorm(bounds, RdBu.N)
 # Vortex:
-phase_map_num_vort = phasemapper(mag_data_vort)
+phase_map_num_vort = phasemapper(projector(mag_data_vort))
 phase_map_num_vort.unit = 'mrad'
 phase_diff_vort = phase_map_num_vort - phase_map_ana_vort
 phase_diff_vort -= np.mean(phase_diff_vort.phase)
@@ -468,7 +472,7 @@ plt.figtext(0.52, 0.2, 'b)', fontsize=30)
 plt.savefig(directory + '/ch5-2-fourier_phase_differe_no_padding.png', bbox_inches='tight')
 
 # Create phasemapper:
-phasemapper = PMFourier(a, projector, padding=10)
+phasemapper = PhaseMapperFDFC(a, projector.dim_uv, padding=10)
 # Create figure:
 fig, axes = plt.subplots(1, 2, figsize=(16, 7))
 fig.suptitle('Difference of the Fourier space approach from the analytical solution', fontsize=20)
@@ -476,7 +480,7 @@ fig.suptitle('Difference of the Fourier space approach from the analytical solut
 bounds = np.array([-3, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 3])
 norm = BoundaryNorm(bounds, RdBu.N)
 # Disc:
-phase_map_num_disc = phasemapper(mag_data_disc)
+phase_map_num_disc = phasemapper(projector(mag_data_disc))
 phase_map_num_disc.unit = 'mrad'
 phase_diff_disc = phase_map_num_disc - phase_map_ana_disc
 RMS_disc = np.sqrt(np.mean(phase_diff_disc.phase**2))
@@ -488,7 +492,7 @@ axes[0].set_aspect('equal')
 bounds = np.array([-3, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 3])
 norm = BoundaryNorm(bounds, RdBu.N)
 # Vortex:
-phase_map_num_vort = phasemapper(mag_data_vort)
+phase_map_num_vort = phasemapper(projector(mag_data_vort))
 phase_map_num_vort.unit = 'mrad'
 phase_diff_vort = phase_map_num_vort - phase_map_ana_vort
 phase_diff_vort -= np.mean(phase_diff_vort.phase)
@@ -555,9 +559,9 @@ for (i, padding) in enumerate(padding_list):
         data_disc[:, i] = data_shelve[key]
     else:
         print '----calculate and save padding =', padding_list[i]
-        phasemapper = PMFourier(a, projector, padding=padding_list[i])
+        phasemapper = PhaseMapperFDFC(a, projector.dim_uv, padding=padding_list[i])
         start_time = time.time()
-        phase_num_disc = phasemapper(mag_data_disc)
+        phase_num_disc = phasemapper(projector(mag_data_disc))
         data_disc[2, i] = time.time() - start_time
         phase_map_diff = phase_num_disc - phase_ana_disc
         phase_map_diff.unit = 'mrad'
@@ -612,9 +616,9 @@ for (i, padding) in enumerate(padding_list):
         data_vort[:, i] = data_shelve[key]
     else:
         print '----calculate and save padding =', padding_list[i]
-        phasemapper = PMFourier(a, projector, padding=padding_list[i])
+        phasemapper = PhaseMapperFDFC(a, projector.dim_uv, padding=padding_list[i])
         start_time = time.time()
-        phase_num_vort = phasemapper(mag_data_vort)
+        phase_num_vort = phasemapper(projector(mag_data_vort))
         data_vort[2, i] = time.time() - start_time
         phase_map_diff = phase_num_vort - phase_ana_vort
         phase_map_diff -= np.mean(phase_map_diff.phase)

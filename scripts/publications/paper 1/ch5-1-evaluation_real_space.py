@@ -16,8 +16,7 @@ from matplotlib.patches import Rectangle
 import pyramid
 import pyramid.magcreator as mc
 import pyramid.analytic as an
-from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import pm
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
 
@@ -121,8 +120,7 @@ else:
     mag_data_disc = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
     for i in range(5):
         print '----a =', mag_data_disc.a, 'nm', 'dim =', mag_data_disc.dim
-        projector = SimpleProjector(mag_data_disc.dim)
-        phase_map = PMConvolve(mag_data_disc.a, projector)(mag_data_disc)
+        phase_map = pm(mag_data_disc)
         phase_map.display_combined('Disc, a = {} nm'.format(mag_data_disc.a), gain=gain)
         x_d.append(np.linspace(mag_data_disc.a * 0.5,
                                mag_data_disc.a * (mag_data_disc.dim[1]-0.5),
@@ -155,8 +153,7 @@ else:
     mag_data_vort = MagData(a, mc.create_mag_dist_vortex(mag_shape))
     for i in range(5):
         print '----a =', mag_data_vort.a, 'nm', 'dim =', mag_data_vort.dim
-        projector = SimpleProjector(mag_data_vort.dim)
-        phase_map = PMConvolve(mag_data_vort.a, projector)(mag_data_vort)
+        phase_map = pm(mag_data_vort)
         phase_map.display_combined('Disc, a = {} nm'.format(mag_data_vort.a), gain=gain)
         x_v.append(np.linspace(mag_data_vort.a * 0.5,
                                mag_data_vort.a * (mag_data_vort.dim[1]-0.5),
@@ -322,9 +319,6 @@ else:
     data_shelve[key] = (mag_data_disc, mag_data_vort)
 
 print '--CALCULATE PHASE DIFFERENCES'
-# Create projector along z-axis and phasemapper:
-projector = SimpleProjector(dim)
-phasemapper = PMConvolve(a, projector)
 # Get analytic solutions:
 phase_map_ana_disc = an.phase_mag_disc(dim, a, phi, center, radius, height)
 phase_map_ana_vort = an.phase_mag_vortex(dim, a, center, radius, height)
@@ -332,12 +326,12 @@ phase_map_ana_vort = an.phase_mag_vortex(dim, a, center, radius, height)
 bounds = np.array([-3, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 3])
 norm = BoundaryNorm(bounds, RdBu.N)
 # Calculations (Disc):
-phase_map_num_disc = phasemapper(mag_data_disc)
+phase_map_num_disc = pm(mag_data_disc)
 phase_map_num_disc.unit = 'mrad'
 phase_diff_disc = phase_map_num_disc - phase_map_ana_disc
 RMS_disc = np.sqrt(np.mean(phase_diff_disc.phase**2))
 # Calculations (Vortex):
-phase_map_num_vort = phasemapper(mag_data_vort)
+phase_map_num_vort = pm(mag_data_vort)
 phase_map_num_vort.unit = 'mrad'
 phase_diff_vort = phase_map_num_vort - phase_map_ana_vort
 RMS_vort = np.sqrt(np.mean(phase_diff_vort.phase**2))

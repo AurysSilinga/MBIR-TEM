@@ -12,8 +12,7 @@ from numpy import pi
 import pyramid
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
-from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import pm
 import pyramid.reconstruction as rc
 
 import logging
@@ -42,12 +41,12 @@ for i in range(n_pixel):
     mag_data += MagData(a, mc.create_mag_dist_homog(mag_shape, phi, magnitude))
 # Plot magnetic distribution, phase map and holographic contour map:
 mag_data.quiver_plot()
-phase_map = PMConvolve(a, SimpleProjector(dim), b_0)(mag_data)
-phase_map.display_combined('Generated Distribution', density=10)
+phase_map = pm(mag_data)
+phase_map.display_combined('Generated Distribution', gain=10)
 
 # Reconstruct the magnetic distribution:
 mag_data_rec = rc.optimize_simple_leastsq(phase_map, mag_data.get_mask(), b_0, lam=1E-4, order=1)
 
 # Display the reconstructed phase map and holography image:
-phase_map_rec = PMConvolve(a, SimpleProjector(dim), b_0)(mag_data_rec)
-phase_map_rec.display_combined('Reconstructed Distribution', density=10)
+phase_map_rec = pm(mag_data_rec)
+phase_map_rec.display_combined('Reconstructed Distribution', gain=10)

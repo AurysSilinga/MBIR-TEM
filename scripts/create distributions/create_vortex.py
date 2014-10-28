@@ -38,7 +38,7 @@ mag_data = MagData(a, mc.create_mag_dist_vortex(mag_shape, magnitude=0.75))
 mag_data.quiver_plot()
 mag_data.save_to_llg(filename)
 phase_map = pm(mag_data)
-phase_map.display_combined()
+phase_map.display_combined(gain=2)
 phase_slice = phase_map.phase[dim[1]/2, :]
 fig = plt.figure()
 fig.add_subplot(111)

@@ -281,9 +281,9 @@ class MagData(object):
             Order is: first all `x`-, then all `y`-, then all `z`-components.
 
         '''
-        return np.concatenate([self.magnitude[2][mask],
-                               self.magnitude[1][mask],
-                               self.magnitude[0][mask]])
+        return np.reshape([self.magnitude[2][mask],
+                           self.magnitude[1][mask],
+                           self.magnitude[0][mask]], -1)
 
     def set_vector(self, vector, mask=None):
         '''Set the magnetic components of the masked pixels to the values specified by `vector`.

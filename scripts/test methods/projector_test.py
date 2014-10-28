@@ -7,7 +7,8 @@ import numpy as np
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector, XTiltProjector, YTiltProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import PhaseMapperRDFC
+from pyramid.kernel import Kernel
 
 
 dim = (16, 24, 32)
@@ -19,11 +20,12 @@ b_0 = 1.5
 
 shape = mc.Shapes.slab(dim, center, width)
 mag_data = MagData(a, mc.create_mag_dist_homog(shape, phi=np.pi/6, theta=np.pi/3))
+phase_mapper = PhaseMapperRDFC(Kernel(a, dim_uv, b_0))
 
 # PROJECTOR TESTING
-PMConvolve(a, SimpleProjector(dim, 'z', dim_uv), b_0)(mag_data).display_phase('z simple')
-PMConvolve(a, XTiltProjector(dim, 0, dim_uv), b_0)(mag_data).display_phase('z (x-tilt)')
-PMConvolve(a, SimpleProjector(dim, 'x', dim_uv), b_0)(mag_data).display_phase('x simple')
-PMConvolve(a, YTiltProjector(dim, np.pi/2, dim_uv), b_0)(mag_data).display_phase('x (y-tilt)')
-PMConvolve(a, XTiltProjector(dim, np.pi/2, dim_uv), b_0)(mag_data).display_phase('y (x-tilt)')
-PMConvolve(a, SimpleProjector(dim, 'y', dim_uv), b_0)(mag_data).display_phase('y simple')
+phase_mapper(SimpleProjector(dim, 'z', dim_uv)(mag_data)).display_phase('z simple')
+phase_mapper(XTiltProjector(dim, 0, dim_uv)(mag_data)).display_phase('z (x-tilt)')
+phase_mapper(SimpleProjector(dim, 'x', dim_uv)(mag_data)).display_phase('x simple')
+phase_mapper(YTiltProjector(dim, np.pi/2, dim_uv)(mag_data)).display_phase('x (y-tilt)')
+phase_mapper(XTiltProjector(dim, np.pi/2, dim_uv)(mag_data)).display_phase('y (x-tilt)')
+phase_mapper(SimpleProjector(dim, 'y', dim_uv)(mag_data)).display_phase('y simple')

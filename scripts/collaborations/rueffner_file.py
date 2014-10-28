@@ -14,7 +14,8 @@ import tables
 import pyramid
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import PhaseMapperRDFC
+from pyramid.kernel import Kernel
 
 import logging
 import logging.config
@@ -38,8 +39,8 @@ lim_x = 0.35
 # Build projectors and phasemapper:
 projector_z = SimpleProjector(dim, axis='z', dim_uv=dim_uv)
 projector_x = SimpleProjector(dim, axis='x', dim_uv=dim_uv)
-pm_z = PMConvolve(a, projector_z, b_0)
-pm_x = PMConvolve(a, projector_x, b_0)
+pm_z = PhaseMapperRDFC(Kernel(a, projector_z.dim_uv, b_0))
+pm_x = PhaseMapperRDFC(Kernel(a, projector_x.dim_uv, b_0))
 # Read in hdf5-file and extract points:
 h5file = tables.openFile(PATH+'dyn_0090mT_dyn.h5_dat.h5')
 points = h5file.root.mesh.points.read()
@@ -85,13 +86,13 @@ def calculate(t):  # TODO: Somehow avoid memory error :-(...
             magnitude[j, i, :, :] = grid.filled(fill_value=0)
     # Create magnetic distribution and phase maps:
     mag_data = MagData(a, magnitude)
-    phase_map_z = pm_z(mag_data)
-    phase_map_x = pm_x(mag_data)
+    phase_map_z = pm_z(projector_z(mag_data))
+    phase_map_x = pm_x(projector_x(mag_data))
     phase_map_z.unit = 'mrad'
     # Display phase maps and save them to png:
-    phase_map_z.display_combined(density=dens_z, interpolation='bilinear', limit=lim_z)
+    phase_map_z.display_combined(gain=dens_z, interpolation='bilinear', limit=lim_z)
     plt.savefig(PATH+'rueffner/phase_map_z_t_'+str(t)+'.png')
-    phase_map_x.display_combined(density=dens_x, interpolation='bilinear', limit=lim_x)
+    phase_map_x.display_combined(gain=dens_x, interpolation='bilinear', limit=lim_x)
     plt.savefig(PATH+'rueffner/phase_map_x_t_'+str(t)+'.png')
     vectors, data, magnitude, z_slice, weights, grid_x, grid_y, grid_z, grid, mag_data, \
         phase_map_z, phase_map_x = [None] * 12

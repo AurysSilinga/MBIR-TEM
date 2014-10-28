@@ -13,7 +13,9 @@ import matplotlib.pyplot as plt
 import pyramid
 from pyramid.phasemap import PhaseMap
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import pm
+from pyramid.dataset import DataSet
+from pyramid.regularisator import ZeroOrderRegularisator
 import pyramid.reconstruction as rc
 
 from time import clock
@@ -32,6 +34,7 @@ a = 1.0  # in nm
 gain = 5
 b_0 = 1
 inter = 'none'
+dim = (1,) + (64, 64)
 dim_small = (64, 64)
 smoothed_pictures = True
 lam = 1E-4
@@ -44,12 +47,17 @@ phase_map = PhaseMap.load_from_netcdf4(PATH+'phase_map.nc')
 #mask = np.genfromtxt('mask.txt', dtype=bool)
 with open(PATH+'mask.pickle') as pf:
     mask = pickle.load(pf)
+# Setup:
+data_set = DataSet(a, dim, b_0)
+data_set.append(phase_map, SimpleProjector(dim))
+regularisator = ZeroOrderRegularisator(lam)
 # Reconstruct the magnetic distribution:
 tic = clock()
-mag_data_rec = rc.optimize_simple_leastsq(phase_map, mask, b_0, lam=lam, order=order)
+mag_data_rec = rc.optimize_sparse_cg(data_set, regularisator, maxiter=100, verbosity=2)
+#  .optimize_simple_leastsq(phase_map, mask, b_0, lam=lam, order=order)
 print 'reconstruction time:', clock() - tic
 # Display the reconstructed phase map and holography image:
-phase_map_rec = PMConvolve(a, SimpleProjector(mag_data_rec.dim), b_0)(mag_data_rec)
+phase_map_rec = pm(mag_data_rec)
 phase_map_rec.display_combined('Reconstr. Distribution', gain=gain, interpolation=inter)
 # Plot the magnetization:
 axis = (mag_data_rec*(1/mag_data_rec.magnitude.max())).quiver_plot()

@@ -16,7 +16,8 @@ from matplotlibwidget import MatplotlibWidget
 
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import PhaseMapperRDFC
+from pyramid.kernel import Kernel
 
 
 try:
@@ -206,7 +207,8 @@ class UI_MagSlicerMain(QtGui.QWidget):
             self.scrollBarSlice.setMaximum(length)
             self.spinBoxSlice.setValue(int(length/2.))
             self.update_slice()
-            self.phase_map = PMConvolve(self.mag_data.a, self.projector)(self.mag_data)
+            self.phase_mapper = PhaseMapperRDFC(Kernel(self.mag_data.a, self.projector.dim_uv))
+            self.phase_map = self.phase_mapper(self.projector(self.mag_data))
             self.phase_map.display_phase(axis=self.mplWidgetPhase.axes, cbar=False, show=False)
             if self.checkBoxSmooth.isChecked():
                 interpolation = 'bilinear'

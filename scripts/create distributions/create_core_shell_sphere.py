@@ -11,8 +11,7 @@ import matplotlib.pyplot as plt
 
 import pyramid
 import pyramid.magcreator as mc
-from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import pm
 from pyramid.magdata import MagData
 
 import logging
@@ -44,10 +43,10 @@ mag_data.quiver_plot('z-projection', proj_axis='z')
 mag_data.quiver_plot('x-projection', proj_axis='x')
 mag_data.save_to_llg(filename)
 mag_data.quiver_plot3d()
-phase_map_z = PMConvolve(a, SimpleProjector(dim, axis='z'))(mag_data)
-phase_map_x = PMConvolve(a, SimpleProjector(dim, axis='x'))(mag_data)
-phase_map_z.display_holo('Core-Shell structure (z-proj.)', density=1E2)
-phase_axis, holo_axis = phase_map_x.display_combined('Core-Shell structure (x-proj.)', density=1E3)
+phase_map_z = pm(mag_data)
+phase_map_x = pm(mag_data)
+phase_map_z.display_holo('Core-Shell structure (z-proj.)', gain=1E2)
+phase_axis, holo_axis = phase_map_x.display_combined('Core-Shell structure (x-proj.)', gain=1E3)
 phase_axis.set_xlabel('y [nm]')
 phase_axis.set_ylabel('z [nm]')
 holo_axis.set_xlabel('y-axis [px]')

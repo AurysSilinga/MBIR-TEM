@@ -13,8 +13,10 @@ from matplotlib.ticker import FuncFormatter
 import pyramid
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
-from pyramid.projector import SimpleProjector, YTiltProjector
-from pyramid.phasemapper import PMConvolve
+from pyramid.projector import YTiltProjector
+from pyramid.phasemapper import PhaseMapperRDFC, pm
+from pyramid.kernel import Kernel
+from pyramid.dataset import DataSet
 
 import logging
 import logging.config
@@ -37,9 +39,7 @@ magnitude = mc.create_mag_dist_homog(mc.Shapes.sphere(dim, center, radius), pi/4
 
 mag_data = MagData(a, magnitude)
 
-projector = SimpleProjector(dim)
-
-phase_map = PMConvolve(a, projector)(mag_data)
+phase_map = pm(mag_data)
 
 axis = phase_map.display_phase()
 axis.tick_params(axis='both', which='major', labelsize=18)
@@ -47,7 +47,7 @@ axis.set_title('Phase map', fontsize=24)
 axis.set_xlabel('x [nm]', fontsize=18)
 axis.set_ylabel('y [nm]', fontsize=18)
 
-axis = phase_map.display_holo(density=20, interpolation='bilinear')
+axis = phase_map.display_holo(gain=20, interpolation='bilinear')
 axis.tick_params(axis='both', which='major', labelsize=18)
 axis.set_title('Magnetic induction map', fontsize=24)
 axis.set_xlabel('x [nm]', fontsize=18)
@@ -88,12 +88,11 @@ mag_data = MagData(a, mc.create_mag_dist_homog(mc.Shapes.ellipse(dim, center, (2
 
 tilts = np.array([0., 60.])/180.*pi
 
-projectors = [YTiltProjector(mag_data.dim, tilt) for tilt in tilts]
-phasemappers = [PMConvolve(mag_data.a, proj, b_0) for proj in projectors]
+data_set = DataSet(a, dim, b_0)
+data_set.projectors = [YTiltProjector(mag_data.dim, tilt) for tilt in tilts]
+phase_maps = data_set.create_phase_maps(mag_data)
 
-phase_maps = [pm(mag_data) for pm in phasemappers]
-
-axis = phase_maps[0].display_holo(density=1, interpolation='bilinear')
+axis = phase_maps[0].display_holo(gain=1, interpolation='bilinear')
 axis.tick_params(axis='both', which='major', labelsize=18)
 axis.set_title('Magnetic induction map', fontsize=24)
 axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*a)))
@@ -107,7 +106,7 @@ axis.set_title('Phase map', fontsize=24)
 axis.set_xlabel('x [nm]', fontsize=18)
 axis.set_ylabel('y [nm]', fontsize=18)
 
-axis = phase_maps[1].display_holo(density=1, interpolation='bilinear')
+axis = phase_maps[1].display_holo(gain=1, interpolation='bilinear')
 axis.tick_params(axis='both', which='major', labelsize=18)
 axis.set_title('Magnetic induction map', fontsize=24)
 axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*a)))

@@ -10,7 +10,8 @@ from numpy import pi
 import pyramid
 import pyramid.magcreator as mc
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve, PMElectric
+from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperElectric
+from pyramid.kernel import Kernel
 from pyramid.magdata import MagData
 
 import matplotlib.pyplot as plt
@@ -52,7 +53,7 @@ if not os.path.exists(directory):
 # Set parameters:
 a = 1.0  # in nm
 phi = pi/4
-density = 30
+gain = 30
 dim = (128, 128, 128)  # in px (z, y, x)
 v_0 = 1
 v_acc = 300000
@@ -78,12 +79,12 @@ mag_data_slab = MagData(a, mc.create_mag_dist_homog(mag_shape_slab, phi))
 mag_data_ellipsoid = MagData(a, mc.create_mag_dist_homog(mag_shape_ellipsoid, phi))
 # Create phasemapper:
 projector = SimpleProjector(dim)
-pm_mag = PMConvolve(a, projector)
-pm_ele = PMElectric(a, projector, v_0, v_acc)
+pm_mag = PhaseMapperRDFC(Kernel(a, projector.dim_uv))
+pm_ele = PhaseMapperElectric(a, projector.dim_uv, v_0, v_acc)
 # Magnetic phase map of a homogeneously magnetized disc:
-phase_map_mag_disc = pm_mag(mag_data_disc)
+phase_map_mag_disc = pm_mag(projector(mag_data_disc))
 phase_map_mag_disc.save_to_txt(directory+'phase_map_mag_disc.txt')
-axis, _ = phase_map_mag_disc.display_combined(density=density)
+axis, _ = phase_map_mag_disc.display_combined(gain=gain)
 axis.axvline(l, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axvline(r, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axhline(b, l/dim[2], r/dim[2], linewidth=2, color='g')
@@ -97,9 +98,9 @@ plt.figure()
 plt.plot(x, y)
 plt.savefig(directory+'charge_integral_mag_disc.png')
 # Magnetic phase map of a vortex state disc:
-phase_map_mag_vortex = pm_mag(mag_data_vortex)
+phase_map_mag_vortex = pm_mag(projector(mag_data_vortex))
 phase_map_mag_vortex.save_to_txt(directory+'phase_map_mag_vortex.txt')
-axis, _ = phase_map_mag_vortex.display_combined(density=density)
+axis, _ = phase_map_mag_vortex.display_combined(gain=gain)
 axis.axvline(l, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axvline(r, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axhline(b, l/dim[2], r/dim[2], linewidth=2, color='g')
@@ -113,9 +114,9 @@ plt.figure()
 plt.plot(x, y)
 plt.savefig(directory+'charge_integral_mag_vortex.png')
 # MIP phase of a slab:
-phase_map_mip_slab = pm_ele(mag_data_slab)
+phase_map_mip_slab = pm_ele(projector(mag_data_slab))
 phase_map_mip_slab.save_to_txt(directory+'phase_map_mip_slab.txt')
-axis, _ = phase_map_mip_slab.display_combined(density=density)
+axis, _ = phase_map_mip_slab.display_combined(gain=gain)
 axis.axvline(l, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axvline(r, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axhline(b, l/dim[2], r/dim[2], linewidth=2, color='g')
@@ -129,9 +130,9 @@ plt.figure()
 plt.plot(x, y)
 plt.savefig(directory+'charge_integral_mip_slab.png')
 # MIP phase of a disc:
-phase_map_mip_disc = pm_ele(mag_data_disc)
+phase_map_mip_disc = pm_ele(projector(mag_data_disc))
 phase_map_mip_disc.save_to_txt(directory+'phase_map_mip_disc.txt')
-axis, _ = phase_map_mip_disc.display_combined(density=density)
+axis, _ = phase_map_mip_disc.display_combined(gain=gain)
 axis.axvline(l, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axvline(r, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axhline(b, l/dim[2], r/dim[2], linewidth=2, color='g')
@@ -145,9 +146,9 @@ plt.figure()
 plt.plot(x, y)
 plt.savefig(directory+'charge_integral_mip_disc.png')
 # MIP phase of a sphere:
-phase_map_mip_sphere = pm_ele(mag_data_sphere)
+phase_map_mip_sphere = pm_ele(projector(mag_data_sphere))
 phase_map_mip_sphere.save_to_txt(directory+'phase_map_mip_sphere.txt')
-axis, _ = phase_map_mip_sphere.display_combined(density=density)
+axis, _ = phase_map_mip_sphere.display_combined(gain=gain)
 axis.axvline(l, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axvline(r, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axhline(b, l/dim[2], r/dim[2], linewidth=2, color='g')
@@ -161,9 +162,9 @@ plt.figure()
 plt.plot(x, y)
 plt.savefig(directory+'charge_integral_mip_sphere.png')
 # MIP phase of an ellipsoid:
-phase_map_mip_ellipsoid = pm_ele(mag_data_ellipsoid)
+phase_map_mip_ellipsoid = pm_ele(projector(mag_data_ellipsoid))
 phase_map_mip_ellipsoid.save_to_txt(directory+'phase_map_mip_ellipsoid.txt')
-axis, _ = phase_map_mip_ellipsoid.display_combined(phase_map_mip_ellipsoid, density)
+axis, _ = phase_map_mip_ellipsoid.display_combined(gain=gain)
 axis.axvline(l, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axvline(r, b/dim[1], t/dim[1], linewidth=2, color='g')
 axis.axhline(b, l/dim[2], r/dim[2], linewidth=2, color='g')

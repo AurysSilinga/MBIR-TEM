@@ -10,7 +10,8 @@ import numpy as np
 import pyramid
 import pyramid.magcreator as mc
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve, PMFourier
+from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperFDFC
+from pyramid.kernel import Kernel
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
 
@@ -56,15 +57,15 @@ mag_data = MagData(a, mc.create_mag_dist_homog(mc.Shapes.pixel(dim, pixel), phi)
 mag_data.save_to_llg(directory + '/mag_dist_single_pixel.txt')
 projector = SimpleProjector(dim)
 # Kernel of a disc in real space:
-phase_map_disc = PMConvolve(a, projector, geometry='disc')(mag_data)
+phase_map_disc = PhaseMapperRDFC(Kernel(a, projector.dim_uv, geometry='disc'))(mag_data)
 phase_map_disc.unit = 'mrad'
 phase_map_disc.display_phase('Phase of one Pixel (Disc)', limit=limit)
 # Kernel of a slab in real space:
-phase_map_slab = PMConvolve(a, projector, geometry='slab')(mag_data)
+phase_map_slab = PhaseMapperRDFC(Kernel(a, projector.dim_uv, geometry='slab'))(mag_data)
 phase_map_slab.unit = 'mrad'
 phase_map_slab.display_phase('Phase of one Pixel (Slab)', limit=limit)
 # Kernel of the Fourier method:
-phase_map_fft = PMFourier(a, projector, padding=0)(mag_data)
+phase_map_fft = PhaseMapperFDFC(a, projector.dim_uv, padding=0)(mag_data)
 phase_map_fft.unit = 'mrad'
 phase_map_fft.display_phase('Phase of one Pixel (Fourier)', limit=limit)
 # Kernel of the Fourier method, calculated directly:

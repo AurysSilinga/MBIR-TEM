@@ -14,8 +14,9 @@ import pyramid
 import pyramid.magcreator as mc
 import pyramid.analytic as an
 from pyramid.magdata import MagData
-from pyramid.phasemapper import PMConvolve
+from pyramid.phasemapper import pm, PhaseMapperRDFC
 from pyramid.projector import SimpleProjector
+from pyramid.kernel import Kernel
 from pyramid.phasemap import PhaseMap
 
 from time import clock
@@ -35,9 +36,8 @@ dim = (1, 9, 9)
 mag_shape = mc.Shapes.pixel(dim, (int(dim[0]/2), int(dim[1]/2), int(dim[2]/2)))
 mag_data_x = MagData(a, mc.create_mag_dist_homog(mag_shape, 0))
 mag_data_y = MagData(a, mc.create_mag_dist_homog(mag_shape, pi/2))
-phasemapper = PMConvolve(a, SimpleProjector(dim))
-phasemapper(mag_data_x).display_phase()
-phasemapper(mag_data_y).display_phase()
+pm(mag_data_x).display_phase()
+pm(mag_data_y).display_phase()
 
 
 a = 1
@@ -46,9 +46,10 @@ center = (dim[0]/2, dim[1]/2, dim[2]/2)
 radius = dim[1]/4  # in px
 mag_shape = mc.Shapes.sphere(dim, center, radius)
 mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, pi/4))
-phasemapper = PMConvolve(a, SimpleProjector(dim))
+projector = SimpleProjector(dim)
+phasemapper = PhaseMapperRDFC(Kernel(a, projector.dim_uv))
 start = clock()
-phase_map = phasemapper(mag_data)
+phase_map = phasemapper(projector(mag_data))
 print 'TIME:', clock() - start
 phase_ana = an.phase_mag_sphere(dim, a, pi/4, center, radius)
 phase_diff = (phase_ana - phase_map).phase

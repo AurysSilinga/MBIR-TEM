@@ -12,8 +12,7 @@ from numpy import pi
 import pyramid
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
-from pyramid.phasemapper import PMConvolve
-from pyramid.projector import SimpleProjector
+from pyramid.phasemapper import pm
 
 import logging
 import logging.config
@@ -47,5 +46,5 @@ for i in range(count):
 # Plot magnetic distribution, phase map and holographic contour map:
 mag_data.quiver_plot()
 mag_data.save_to_llg(filename)
-phase_map = PMConvolve(a, SimpleProjector(dim))(mag_data)
-phase_map.display_combined(density=10)
+phase_map = pm(mag_data)
+phase_map.display_combined()

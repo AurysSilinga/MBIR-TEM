@@ -29,6 +29,7 @@ def load_from_llg(filename):
 #    import pdb; pdb.set_trace()
     return MagData(a, magnitude)
 
+
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 ## 2DCoFe:
 mag_data_2DCoFe = MagData.load_from_llg(PATH+'magnetic_distribution_2DCoFe.txt')

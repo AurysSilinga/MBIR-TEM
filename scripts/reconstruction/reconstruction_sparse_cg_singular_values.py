@@ -56,12 +56,11 @@ projectors = projectors_xy_full
 size_2d = np.prod(dim_uv)
 size_3d = np.prod(dim)
 
-data = DataSet(a, dim_uv, b_0)
-[data.append((phase_zero, projectors[i])) for i in range(len(projectors))]
+data = DataSet(a, dim, b_0)
+[data.append(phase_zero, projectors[i]) for i in range(len(projectors))]
 
 y = data.phase_vec
-kern = Kernel(data.a, data.dim_uv, data.b_0)
-F = ForwardModel(data.projectors, kern)
+F = ForwardModel(data)
 
 M = np.asmatrix([F.jac_dot(None, np.eye(3*size_3d)[:, i]) for i in range(3*size_3d)]).T
 #MTM = M.T * M + lam * np.asmatrix(np.eye(3*size_3d))

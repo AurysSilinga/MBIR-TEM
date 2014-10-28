@@ -13,7 +13,6 @@ import pyramid
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
 from pyramid.projector import YTiltProjector, XTiltProjector
-from pyramid.phasemapper import PMConvolve
 from pyramid.dataset import DataSet
 from pyramid.regularisator import ZeroOrderRegularisator
 import pyramid.magcreator as mc
@@ -35,20 +34,19 @@ a = 10.
 b_0 = 1.
 dim = (8, 32, 32)
 dim_uv = dim[1:3]
-count = 8
+count = 16
 
-#center = (int(dim[0]/2)-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
-#mag_shape = mc.Shapes.disc(dim, center, dim[2]/4, dim[2]/2)
-#magnitude = mc.create_mag_dist_vortex(mag_shape)
-#mag_data = MagData(a, magnitude)
-#mag_data.quiver_plot3d()
+center = (int(dim[0]/2)-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
+mag_shape = mc.Shapes.disc(dim, center, dim[2]/4, dim[2]/2)
+magnitude = mc.create_mag_dist_vortex(mag_shape)
+mag_data = MagData(a, magnitude)
 
-vortex_shape = mc.Shapes.disc(dim, (3.5, 9.5, 9.5), 5, 4)
-sphere_shape = mc.Shapes.sphere(dim, (3.5, 22.5, 9.5), 3)
-slab_shape = mc.Shapes.slab(dim, (3.5, 15.5, 22.5), (5, 8, 8))
-mag_data = MagData(a, mc.create_mag_dist_vortex(vortex_shape, (3.5, 9.5, 9.5)))
-mag_data += MagData(a, mc.create_mag_dist_homog(sphere_shape, pi/4, pi/4))
-mag_data += MagData(a, mc.create_mag_dist_homog(slab_shape, -pi/6))
+#vortex_shape = mc.Shapes.disc(dim, (3.5, 9.5, 9.5), 5, 4)
+#sphere_shape = mc.Shapes.sphere(dim, (3.5, 22.5, 9.5), 3)
+#slab_shape = mc.Shapes.slab(dim, (3.5, 15.5, 22.5), (5, 8, 8))
+#mag_data = MagData(a, mc.create_mag_dist_vortex(vortex_shape, (3.5, 9.5, 9.5)))
+#mag_data += MagData(a, mc.create_mag_dist_homog(sphere_shape, pi/4, pi/4))
+#mag_data += MagData(a, mc.create_mag_dist_homog(slab_shape, -pi/6))
 
 mag_data.quiver_plot3d()
 
@@ -70,28 +68,23 @@ projectors_xy_miss.extend(projectors_y_miss)
 projectors = projectors_xy_full
 noise = 0.0
 ###################################################################################################
-
-phasemappers = [PMConvolve(mag_data.a, projector, b_0) for projector in projectors]
-if noise != 0:
-    phase_maps = [pm(mag_data) + PhaseMap(a, np.random.normal(0, noise, dim_uv))
-                  for pm in phasemappers]
-else:
-    phase_maps = [pm(mag_data) for pm in phasemappers]
-
-###################################################################################################
 print('--Setting up data collection')
 
-dim_uv = dim[1:3]
-data = DataSet(a, dim_uv, b_0)
-[data.append((phase_maps[i], projectors[i])) for i in range(len(projectors))]
+data = DataSet(a, dim, b_0)
+data.projectors = projectors
+data.phase_maps = data.create_phase_maps(mag_data)
+
+if noise != 0:
+    for phase_map in data.phase_maps:
+        phase_map += PhaseMap(a, np.random.normal(0, noise, dim_uv))
 
 ###################################################################################################
 print('--Test simple solver')
 
-lam = 1E-10
-reg = ZeroOrderRegularisator(lam, 3*np.prod(dim))
+lam = 1E-4
+reg = ZeroOrderRegularisator(lam)
 start = clock()
-mag_data_opt = rc.optimize_sparse_cg(data, regularisator=reg, verbosity=1)
+mag_data_opt = rc.optimize_sparse_cg(data, regularisator=reg, maxiter=100, verbosity=2)
 print 'Time:', str(clock()-start)
 mag_data_opt.quiver_plot3d()
 (mag_data_opt - mag_data).quiver_plot3d()
@@ -102,5 +95,5 @@ print('--Plot stuff')
 phase_maps_opt = data.create_phase_maps(mag_data_opt)
 #data.display_phase()
 #data.display_phase(phase_maps_opt)
-phase_diffs = [(phase_maps[i]-phase_maps_opt[i]) for i in range(len(data.data))]
-data.display_phase(phase_diffs)
+phase_diffs = [(data.phase_maps[i]-phase_maps_opt[i]) for i in range(len(data.phase_maps))]
+[phase_diff.display_phase() for phase_diff in phase_diffs]

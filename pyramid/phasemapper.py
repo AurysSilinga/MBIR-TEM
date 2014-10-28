@@ -244,7 +244,7 @@ class PhaseMapperRDRC(PhaseMapper):
                         phase += u_mag[j, i] * u_phase
                     v_phase = v_phi[dim_uv[0]-1-j:(2*dim_uv[0]-1)-j,
                                     dim_uv[1]-1-i:(2*dim_uv[1]-1)-i]
-                    if abs(v_mag[j, i]) > self.hreshold:
+                    if abs(v_mag[j, i]) > self.threshold:
                         phase -= v_mag[j, i] * v_phase
         # Return the phase:
         return PhaseMap(mag_data.a, phase)
@@ -494,6 +494,7 @@ class PhaseMapperElectric(PhaseMapper):
         assert mag_data.a == self.a, 'Grid spacing has to match!'
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
         assert mag_data.dim[1:3] == self.dim_uv, 'Dimensions do not match!'
+        return self.coeff * mag_data.get_mask(self.threshold)[0, ...].reshape(self.dim_uv)
         # Calculate mask:
         mask = mag_data.get_mask(self.threshold)
         # Project and calculate phase:

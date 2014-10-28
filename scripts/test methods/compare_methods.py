@@ -13,7 +13,8 @@ import pyramid
 import pyramid.magcreator as mc
 import pyramid.analytic as an
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMAdapterFM, PMReal, PMConvolve, PMFourier
+from pyramid.phasemapper import PhaseMapperRDRC, PhaseMapperRDFC, PhaseMapperFDFC
+from pyramid.kernel import Kernel
 from pyramid.magdata import MagData
 
 import logging
@@ -56,43 +57,36 @@ elif geometry == 'sphere':
 # Create MagData object and projector:
 mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
 projector = SimpleProjector(dim)
+projection = projector(mag_data)
 # Construct PhaseMapper objects:
-pm_adap = PMAdapterFM(a, projector, b_0)
-pm_real = PMReal(a, projector, b_0, numcore=numcore)
-pm_conv = PMConvolve(a, projector, b_0)
-pm_four = PMFourier(a, projector, b_0, padding=padding)
+pm_real = PhaseMapperRDRC(Kernel(a, projector.dim_uv, b_0), numcore=numcore)
+pm_conv = PhaseMapperRDFC(Kernel(a, projector.dim_uv, b_0))
+pm_four = PhaseMapperFDFC(a, projector.dim_uv, b_0, padding=padding)
 
 # Get times for different approaches:
 start_time = time.time()
-phase_map_adap = pm_adap(mag_data)
-print 'Time for PMAdapterFM:  ', time.time() - start_time
+phase_map_real = pm_real(projection)
+print 'Time for RDRC: ', time.time() - start_time
 start_time = time.time()
-phase_map_real = pm_real(mag_data)
-print 'Time for PMReal:       ', time.time() - start_time
+phase_map_conv = pm_conv(projection)
+print 'Time for RDFC: ', time.time() - start_time
 start_time = time.time()
-phase_map_conv = pm_conv(mag_data)
-print 'Time for PMConvolve:   ', time.time() - start_time
-start_time = time.time()
-phase_map_four = pm_four(mag_data)
-print 'Time for PMFourier:    ', time.time() - start_time
+phase_map_four = pm_four(projection)
+print 'Time for FDFC: ', time.time() - start_time
 
 # Display the combinated plots with phasemap and holography image:
 phase_map_ana.display_combined('Analytic Solution', gain=gain)
-phase_map_adap.display_combined('PMAdapterFM', gain=gain)
-phase_map_real.display_combined('PMReal', gain=gain)
-phase_map_conv.display_combined('PMConvolve', gain=gain)
-phase_map_four.display_combined('PMFourier', gain=gain)
+phase_map_real.display_combined('RDRC', gain=gain)
+phase_map_conv.display_combined('RDFC', gain=gain)
+phase_map_four.display_combined('FDFC', gain=gain)
 
 # Plot differences to the analytic solution:
-phase_map_diff_adap = phase_map_adap - phase_map_ana
 phase_map_diff_real = phase_map_real - phase_map_ana
 phase_map_diff_conv = phase_map_conv - phase_map_ana
 phase_map_diff_four = phase_map_four - phase_map_ana
-RMS_adap = np.std(phase_map_diff_adap.phase)
 RMS_real = np.std(phase_map_diff_real.phase)
 RMS_conv = np.std(phase_map_diff_conv.phase)
 RMS_four = np.std(phase_map_diff_four.phase)
-phase_map_diff_adap.display_phase('PMAdapterFM difference (RMS = {:3.2e})'.format(RMS_adap))
-phase_map_diff_real.display_phase('PMReal difference (RMS = {:3.2e})'.format(RMS_real))
-phase_map_diff_conv.display_phase('PMConvolve difference (RMS = {:3.2e})'.format(RMS_conv))
-phase_map_diff_four.display_phase('PMFourier difference (RMS = {:3.2e})'.format(RMS_four))
+phase_map_diff_real.display_phase('RDRC difference (RMS = {:3.2e})'.format(RMS_real))
+phase_map_diff_conv.display_phase('RDFC difference (RMS = {:3.2e})'.format(RMS_conv))
+phase_map_diff_four.display_phase('FDFC difference (RMS = {:3.2e})'.format(RMS_four))

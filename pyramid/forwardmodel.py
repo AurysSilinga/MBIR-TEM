@@ -5,8 +5,6 @@ threedimensional magnetization distribution onto a two-dimensional phase map."""
 
 import numpy as np
 
-from pyramid.projector import Projector
-from pyramid.phasemapper import PhaseMapper
 from pyramid.magdata import MagData
 import logging
 
@@ -62,8 +60,7 @@ class ForwardModel(object):
     def __call__(self, x):
         self.LOG.debug('Calling __call__')
         self.mag_data.set_vector(x, self.data_set.mask)
-        return np.reshape(self.data_set.create_phase_maps(self.mag_data), -1)
-        # TODO: result mit fixer Größe und dann Multiprocessing, dataset needs list of start points
+        # TODO: Multiprocessing
         result = np.zeros(self.n)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
@@ -92,13 +89,13 @@ class ForwardModel(object):
 
         '''
         self.LOG.debug('Calling jac_dot')
-        self.mag_data.set_vector(x, self.data_set.mask)
+        self.mag_data.set_vector(vector, self.data_set.mask)
         result = np.zeros(self.n)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
             mag_vec = self.mag_data.mag_vec
             res = self.phase_mappers[projector.dim_uv].jac_dot(projector.jac_dot(mag_vec))
-            result[hp[i]:hp[i+1]] = res
+            result[hp[i]:hp[i+1]] = res.flatten()
         return result
 
     def jac_T_dot(self, x, vector):

@@ -437,7 +437,7 @@ class PhaseMap(object):
         self.LOG.debug('Calling display_holo')
         # Calculate gain if 'auto' is selected:
         if gain == 'auto':
-            gain = 5 * 2*pi/self.phase.max()
+            gain = 4 * 2*pi/self.phase.max()
         # Set title if not set:
         if title is None:
             title = 'Contour Map (gain: %.2g)' % gain

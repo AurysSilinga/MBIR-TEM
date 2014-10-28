@@ -14,7 +14,8 @@ import pyramid.magcreator as mc
 import pyramid.analytic as an
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PMConvolve, PMFourier
+from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperFDFC
+from pyramid.kernel import Kernel
 
 import time
 import shelve
@@ -28,19 +29,19 @@ LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)),
 
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 
-force_calculation = True
+force_calculation = False
 
-n = 1
+n = 50
 
 
-def get_time(pm, mag_data, n):
+def get_time(pm, proj, mag_data, n):
     t = []
     for i in range(n):
         start = time.clock()
-        pm(mag_data)
+        pm(proj(mag_data))
         t.append(time.clock()-start)
     t, dt = np.mean(t), np.std(t)
-    phase_map = pm(mag_data)
+    phase_map = pm(proj(mag_data))
     return phase_map, t, dt
 
 
@@ -102,37 +103,37 @@ else:
 
         # Create projector along z-axis and phasemapper:
         projector = SimpleProjector(dim)
-        pm_fourier0 = PMFourier(a, projector, padding=0)
-        pm_fourier3 = PMFourier(a, projector, padding=3)
-        pm_fourier10 = PMFourier(a, projector, padding=7)
-        pm_real = PMConvolve(a, projector)
+        pm_fourier0 = PhaseMapperFDFC(a, projector.dim_uv, padding=0)
+        pm_fourier3 = PhaseMapperFDFC(a, projector.dim_uv, padding=3)
+        pm_fourier10 = PhaseMapperFDFC(a, projector.dim_uv, padding=7)
+        pm_real = PhaseMapperRDFC(Kernel(a, projector.dim_uv))
 
         print '----CALCULATE RMS/DURATION HOMOG. MAGN. DISC'
         # Analytic solution:
         phase_ana_disc = an.phase_mag_disc(dim, a, phi, center, radius, height)
         # Fourier unpadded:
-        phase_num_disc, t, dt = get_time(pm_fourier0, mag_data_disc, n)
+        phase_num_disc, t, dt = get_time(pm_fourier0, projector, mag_data_disc, n)
         data_disc_fourier0[2, i], data_disc_fourier0[3, i] = t, dt
         print '------time (disc, fourier0) =', data_disc_fourier0[2, i]
         phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
         print 'phase mean:', np.mean(phase_num_disc.phase)
         data_disc_fourier0[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
         # Fourier padding 3:
-        phase_num_disc, t, dt = get_time(pm_fourier3, mag_data_disc, n)
+        phase_num_disc, t, dt = get_time(pm_fourier3, projector, mag_data_disc, n)
         data_disc_fourier3[2, i], data_disc_fourier3[3, i] = t, dt
         print '------time (disc, fourier3) =', data_disc_fourier3[2, i]
         phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
         print 'phase mean:', np.mean(phase_num_disc.phase)
         data_disc_fourier3[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
         # Fourier padding 10:
-        phase_num_disc, t, dt = get_time(pm_fourier10, mag_data_disc, n)
+        phase_num_disc, t, dt = get_time(pm_fourier10, projector, mag_data_disc, n)
         data_disc_fourier10[2, i], data_disc_fourier10[3, i] = t, dt
         print '------time (disc, fourier10) =', data_disc_fourier10[2, i]
         phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
         print 'phase mean:', np.mean(phase_num_disc.phase)
         data_disc_fourier10[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
         # Real space disc:
-        phase_num_disc, t, dt = get_time(pm_real, mag_data_disc, n)
+        phase_num_disc, t, dt = get_time(pm_real, projector, mag_data_disc, n)
         data_disc_real[2, i], data_disc_real[3, i] = t, dt
         print '------time (disc, real space) =', data_disc_real[2, i]
         phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
@@ -146,7 +147,7 @@ else:
         # Analytic solution:
         phase_ana_vort = an.phase_mag_vortex(dim, a, center, radius, height)
         # Fourier unpadded:
-        phase_num_vort, t, dt = get_time(pm_fourier0, mag_data_vort, n)
+        phase_num_vort, t, dt = get_time(pm_fourier0, projector, mag_data_vort, n)
         phase_fft0 = phase_num_vort
         data_vort_fourier0[2, i], data_vort_fourier0[3, i] = t, dt
         print '------time (vortex, fourier0) =', data_vort_fourier0[2, i]
@@ -155,7 +156,7 @@ else:
         phase_diff_vort -= np.mean(phase_diff_vort.phase)
         data_vort_fourier0[1, i] = np.sqrt(np.mean(phase_diff_vort.phase**2))
         # Fourier padding 3:
-        phase_num_vort, t, dt = get_time(pm_fourier3, mag_data_vort, n)
+        phase_num_vort, t, dt = get_time(pm_fourier3, projector, mag_data_vort, n)
         phase_fft3 = phase_num_vort
         data_vort_fourier3[2, i], data_vort_fourier3[3, i] = t, dt
         print '------time (vortex, fourier3) =', data_vort_fourier3[2, i]
@@ -164,7 +165,7 @@ else:
         phase_diff_vort -= np.mean(phase_diff_vort.phase)
         data_vort_fourier3[1, i] = np.sqrt(np.mean(phase_diff_vort.phase**2))
         # Fourier padding 10:
-        phase_num_vort, t, dt = get_time(pm_fourier10, mag_data_vort, n)
+        phase_num_vort, t, dt = get_time(pm_fourier10, projector, mag_data_vort, n)
         phase_fft10 = phase_num_vort
         data_vort_fourier10[2, i], data_vort_fourier10[3, i] = t, dt
         print '------time (vortex, fourier10) =', data_vort_fourier10[2, i]
@@ -173,7 +174,7 @@ else:
         phase_diff_vort -= np.mean(phase_diff_vort.phase)
         data_vort_fourier10[1, i] = np.sqrt(np.mean(phase_diff_vort.phase**2))
         # Real space disc:
-        phase_num_vort, t, dt = get_time(pm_real, mag_data_vort, n)
+        phase_num_vort, t, dt = get_time(pm_real, projector, mag_data_vort, n)
         phase_real = phase_num_vort
         data_vort_real[2, i], data_vort_real[3, i] = t, dt
         print '------time (vortex, real space) =', data_vort_real[2, i]
