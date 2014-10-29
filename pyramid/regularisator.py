@@ -52,7 +52,7 @@ class Regularisator(object):
     def jac(self, x):
         # TODO: Docstring!
         self.LOG.debug('Calling jac')
-        return self.lam * self.norm.jac_dot(x)
+        return self.lam * self.norm.jac(x)
 
     def hess_dot(self, x, vector):
         # TODO: Docstring!
@@ -105,7 +105,7 @@ class ZeroOrderRegularisator(Regularisator):
 
     def __init__(self, lam):
         self.LOG.debug('Calling __init__')
-        norm = jnorm.NormL2Square()
+        norm = jnorm.L2Square()
         super(ZeroOrderRegularisator, self).__init__(norm, lam)
         self.LOG.debug('Created '+str(self))
 

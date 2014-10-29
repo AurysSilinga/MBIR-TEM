@@ -53,6 +53,8 @@ class Costfunction(object):
         # Extract important information:
         self.y = data_set.phase_vec
         self.Se_inv = data_set.Se_inv
+        self.n = data_set.n * 3
+        self.m = len(self.y)
         self.LOG.debug('Created '+str(self))
 
     def __repr__(self):
@@ -65,10 +67,14 @@ class Costfunction(object):
         return 'Costfunction(data_set=%s, fwd_model=%s, regularisator=%s)' % \
             (self.data_set, self.fwd_model, self.regularisator)
 
+    def init(self, x):
+        self(x)
+
     def __call__(self, x):
         self.LOG.debug('Calling __call__')
-        delta_y = self.fwd_model(x)-self.y
-        return delta_y.dot(self.Se_inv.dot(delta_y)) + self.regularisator(x)
+        delta_y = self.fwd_model(x) - self.y
+        self.chisq = delta_y.dot(self.Se_inv.dot(delta_y)) + self.regularisator(x)
+        return self.chisq
 
     def jac(self, x):
         '''Calculate the derivative of the costfunction for a given magnetization distribution.
@@ -85,7 +91,8 @@ class Costfunction(object):
 
         '''
         self.LOG.debug('Calling jac')
-        return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model(x)-self.y))
+        assert len(x) == self.n
+        return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model(x) - self.y))
                 + self.regularisator.jac(x))
 
     def hess_dot(self, x, vector):
@@ -110,6 +117,9 @@ class Costfunction(object):
         self.LOG.debug('Calling hess_dot')
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model.jac_dot(x, vector)))
                 + self.regularisator.hess_dot(x, vector))
+
+    def hess_diag(self, _):
+        return np.ones(self.n)
 
 
 class CFAdapterScipyCG(LinearOperator):

@@ -83,7 +83,7 @@ class PrintIterator(object):
         return self.iteration
 
 
-def optimize_sparse_cg(data, regularisator=None, maxiter=1000, verbosity=0):
+def optimize_linear(data, regularisator=None, maxiter=1000, verbosity=0):
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
 
@@ -113,22 +113,21 @@ def optimize_sparse_cg(data, regularisator=None, maxiter=1000, verbosity=0):
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
     '''
+    import jutil
     LOG.debug('Calling optimize_sparse_cg')
     # Set up necessary objects:
-    y = data.phase_vec
     fwd_model = ForwardModel(data)
     cost = Costfunction(data, regularisator)
-    # Optimize:
-    A = CFAdapterScipyCG(cost)
-    b = fwd_model.jac_T_dot(None, y)
-    x_opt, info = cg(A, b, callback=PrintIterator(cost, verbosity), maxiter=maxiter)
+    print cost(np.zeros(cost.n))
+    x_opt = jutil.cg.conj_grad_minimize(cost)
+    print cost(x_opt)
     # Create and return fitting MagData object:
     mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
     mag_opt.mag_vec = x_opt
     return mag_opt
 
 
-def optimize_cg(data, first_guess):
+def optimize_nonlin(data, first_guess=None, regularisator=None):
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
 
@@ -149,19 +148,18 @@ def optimize_cg(data, first_guess):
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
     '''
+    import jutil
     LOG.debug('Calling optimize_cg')
-    mag_0 = first_guess
+    if first_guess is None:
+        first_guess = MagData(data.a, np.zeros((3,)+data.dim))
     x_0 = first_guess.mag_vec
-    y = data.phase_vec
-    kernel = Kernel(data.a, data.dim_uv)
-    fwd_model = ForwardModel(data.projectors, kernel, data.b_0)
-    cost = Costfunction(y, fwd_model)
-    # Optimize:
-    result = minimize(cost, x_0, method='Newton-CG', jac=cost.jac, hessp=cost.hess_dot,
-                      options={'maxiter': 1000, 'disp': True})
-    # Create optimized MagData object:
+    fwd_model = ForwardModel(data)
+    cost = Costfunction(data, regularisator)
+    assert len(x_0) == cost.n, (len(x_0), cost.m, cost.n)
+    result = jutil.minimizer.minimize(cost, x_0, options={"conv_rel":1e-20}, tol={"max_iteration":1})
     x_opt = result.x
-    mag_opt = MagData(mag_0.a, np.zeros((3,)+mag_0.dim))
+    print cost(x_opt)
+    mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
     mag_opt.mag_vec = x_opt
     return mag_opt
 
@@ -236,6 +234,8 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
 
     J_DICT = [J_0, J_1]  # list of cost-functions with different regularisations
     # Reconstruct the magnetization components:
+    # TODO Use jutil.minimizer.minimize(jutil.costfunction.LeastSquaresCostFunction(J_DICT[order],
+    # ...) or a simpler frontend.
     x_rec, _ = leastsq(J_DICT[order], np.zeros(3*count))
     mag_data_rec.set_vector(x_rec, mask)
     return mag_data_rec
