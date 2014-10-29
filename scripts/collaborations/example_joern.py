@@ -41,7 +41,7 @@ smoothed_pictures = True
 lam = 1E-4
 order = 1
 log = True
-PATH = './'
+PATH = '../../output/joern/'
 dirname = PATH
 ###################################################################################################
 # Read in files:

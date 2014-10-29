@@ -12,15 +12,15 @@ the distribution.
 
 import numpy as np
 
-from scipy.sparse.linalg import cg
-from scipy.optimize import minimize, leastsq
-
 from pyramid.kernel import Kernel
 from pyramid.projector import SimpleProjector
 from pyramid.phasemapper import PhaseMapperRDFC
-from pyramid.forwardmodel import ForwardModel
-from pyramid.costfunction import Costfunction, CFAdapterScipyCG
+from pyramid.costfunction import Costfunction
 from pyramid.magdata import MagData
+
+from jutil import cg, minimizer
+
+from scipy.optimize import leastsq
 
 import logging
 
@@ -113,13 +113,11 @@ def optimize_linear(data, regularisator=None, maxiter=1000, verbosity=0):
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
     '''
-    import jutil
     LOG.debug('Calling optimize_sparse_cg')
     # Set up necessary objects:
-    fwd_model = ForwardModel(data)
     cost = Costfunction(data, regularisator)
     print cost(np.zeros(cost.n))
-    x_opt = jutil.cg.conj_grad_minimize(cost)
+    x_opt = cg.conj_grad_minimize(cost)
     print cost(x_opt)
     # Create and return fitting MagData object:
     mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
@@ -148,15 +146,13 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
     '''
-    import jutil
     LOG.debug('Calling optimize_cg')
     if first_guess is None:
         first_guess = MagData(data.a, np.zeros((3,)+data.dim))
     x_0 = first_guess.mag_vec
-    fwd_model = ForwardModel(data)
     cost = Costfunction(data, regularisator)
     assert len(x_0) == cost.n, (len(x_0), cost.m, cost.n)
-    result = jutil.minimizer.minimize(cost, x_0, options={"conv_rel":1e-20}, tol={"max_iteration":1})
+    result = minimizer.minimize(cost, x_0, options={"conv_rel": 1e-20}, tol={"max_iteration": 1})
     x_opt = result.x
     print cost(x_opt)
     mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
