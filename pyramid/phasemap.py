@@ -293,6 +293,7 @@ class PhaseMap(object):
         phase_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = phase_file.a
         phase = phase_file.variables['phase'][:]
+        #phase = phase[28:36, 28:36]
         phase_file.close()
         return PhaseMap(a, phase)
 

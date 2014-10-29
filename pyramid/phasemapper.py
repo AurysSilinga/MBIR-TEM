@@ -138,7 +138,9 @@ class PhaseMapperRDFC(PhaseMapper):
         assert len(vector) == self.m, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
         u_mag, v_mag = np.reshape(vector, (2,)+self.kernel.dim_uv)
-        return self._convolve(u_mag, v_mag)
+        result = self._convolve(u_mag, v_mag).reshape(-1)
+        return result
+        #return self.kernel._multiply_jacobi(vector)
 
     def jac_T_dot(self, vector):
         '''Calculate the product of the transposed Jacobi matrix with a given `vector`.
@@ -161,10 +163,10 @@ class PhaseMapperRDFC(PhaseMapper):
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
         # TODO: directly? ask Jörn again!
         result = np.zeros(self.m)
+        v_dim, u_dim = self.kernel.dim_uv
         nc.jac_T_dot_real_convolve(self.kernel.dim_uv[0], self.kernel.dim_uv[1],
                                    self.kernel.u, self.kernel.v, vector, result)
-        return result
-
+        return self.kernel._multiply_jacobi_T(vector)
 
 class PhaseMapperRDRC(PhaseMapper):
 
@@ -317,8 +319,8 @@ class PhaseMapperRDRC(PhaseMapper):
                 u_max = (2*u_dim-1) - i  # = u_min + u_dim
                 v_min = (v_dim-1) - j  # v_dim-1: center of the kernel
                 v_max = (2*v_dim-1) - j  # = v_min + v_dim
-                result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))
-                result[s+self.n] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))
+                result[s] = np.sum(vector*self.kernel.u[v_min:v_max, u_min:u_max].reshape(-1))
+                result[s+self.n] = np.sum(vector*-self.kernel.v[v_min:v_max, u_min:u_max].reshape(-1))
         return result
 
 

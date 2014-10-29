@@ -83,7 +83,8 @@ class MagData(object):
     @mag_vec.setter
     def mag_vec(self, mag_vec):
         assert isinstance(mag_vec, np.ndarray), 'Vector has to be a numpy array!'
-        assert np.size(mag_vec) == 3*np.prod(self.dim), 'Vector has to match magnitude dimensions!'
+        assert np.size(mag_vec) == 3*np.prod(self.dim), \
+            'Vector has to match magnitude dimensions! {} {}'.format(mag_vec.shape, 3*np.prod(self.dim))
         self.magnitude = mag_vec.reshape((3,)+self.dim)
 
     def __init__(self, a, magnitude):
@@ -281,9 +282,13 @@ class MagData(object):
             Order is: first all `x`-, then all `y`-, then all `z`-components.
 
         '''
-        return np.reshape([self.magnitude[2][mask],
+        if mask is not None:
+            return np.reshape([self.magnitude[0][mask],
                            self.magnitude[1][mask],
-                           self.magnitude[0][mask]], -1)
+                           self.magnitude[2][mask]], -1)
+        else:
+            return self.mag_vec
+
 
     def set_vector(self, vector, mask=None):
         '''Set the magnetic components of the masked pixels to the values specified by `vector`.
@@ -304,9 +309,9 @@ class MagData(object):
         assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
         count = np.size(vector)/3
         if mask is not None:
-            self.magnitude[2][mask] = vector[:count]  # x-component
+            self.magnitude[0][mask] = vector[:count]  # x-component
             self.magnitude[1][mask] = vector[count:2*count]  # y-component
-            self.magnitude[0][mask] = vector[2*count:]  # z-component
+            self.magnitude[2][mask] = vector[2*count:]  # z-component
         else:
             self.mag_vec = vector
 

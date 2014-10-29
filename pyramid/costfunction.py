@@ -53,8 +53,9 @@ class Costfunction(object):
         # Extract important information:
         self.y = data_set.phase_vec
         self.Se_inv = data_set.Se_inv
-        self.n = data_set.n * 3
+        self.n = data_set.m
         self.m = len(self.y)
+        self.chisq, self.chisq_a, self.chisq_m = None, None, None
         self.LOG.debug('Created '+str(self))
 
     def __repr__(self):
@@ -73,7 +74,9 @@ class Costfunction(object):
     def __call__(self, x):
         self.LOG.debug('Calling __call__')
         delta_y = self.fwd_model(x) - self.y
-        self.chisq = delta_y.dot(self.Se_inv.dot(delta_y)) + self.regularisator(x)
+        self.chisq_m = delta_y.dot(self.Se_inv.dot(delta_y))
+        self.chisq_a = self.regularisator(x)
+        self.chisq = self.chisq_m + self.chisq_a
         return self.chisq
 
     def jac(self, x):
