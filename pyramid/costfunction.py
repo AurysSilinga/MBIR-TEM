@@ -40,6 +40,10 @@ class Costfunction(object):
     Se_inv : :class:`~numpy.ndarray` (N=2), optional
         Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
         being the length of the targetvector y (vectorized phase map information).
+    m: int
+        Size of the image space.
+    n: int
+        Size of the input space.
 
     '''
 
@@ -53,8 +57,8 @@ class Costfunction(object):
         # Extract important information:
         self.y = data_set.phase_vec
         self.Se_inv = data_set.Se_inv
-        self.n = data_set.n * 3
-        self.m = len(self.y)
+        self.n = data_set.n
+        self.m = data_set.m
         self.LOG.debug('Created '+str(self))
 
     def __repr__(self):
@@ -161,7 +165,7 @@ class CFAdapterScipyCG(LinearOperator):
 
     @property
     def shape(self):
-        return (self.cost.data_set.m, self.cost.data_set.m)
+        return (self.cost.data_set.n, self.cost.data_set.n)
 
     @property
     def dtype(self):

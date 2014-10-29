@@ -281,9 +281,9 @@ class MagData(object):
             Order is: first all `x`-, then all `y`-, then all `z`-components.
 
         '''
-        return np.reshape([self.magnitude[2][mask],
+        return np.reshape([self.magnitude[0][mask],
                            self.magnitude[1][mask],
-                           self.magnitude[0][mask]], -1)
+                           self.magnitude[2][mask]], -1)
 
     def set_vector(self, vector, mask=None):
         '''Set the magnetic components of the masked pixels to the values specified by `vector`.
@@ -304,9 +304,9 @@ class MagData(object):
         assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
         count = np.size(vector)/3
         if mask is not None:
-            self.magnitude[2][mask] = vector[:count]  # x-component
+            self.magnitude[0][mask] = vector[:count]  # x-component
             self.magnitude[1][mask] = vector[count:2*count]  # y-component
-            self.magnitude[0][mask] = vector[2*count:]  # z-component
+            self.magnitude[2][mask] = vector[2*count:]  # z-component
         else:
             self.mag_vec = vector
 

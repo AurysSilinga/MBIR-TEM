@@ -30,9 +30,9 @@ class ForwardModel(object):
         The grid spacing in nm.
     dim : tuple (N=3)
         Dimensions of the 3D magnetic distribution.
-    n: int
-        Size of the image space. Number of pixels of the 2-dimensional projected grid.
     m: int
+        Size of the image space. Number of pixels of the 2-dimensional projected grid.
+    n: int
         Size of the input space. Number of voxels of the 3-dimensional grid.
 
     '''
@@ -61,7 +61,7 @@ class ForwardModel(object):
         self.LOG.debug('Calling __call__')
         self.mag_data.set_vector(x, self.data_set.mask)
         # TODO: Multiprocessing
-        result = np.zeros(self.n)
+        result = np.zeros(self.m)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
             phase_map = self.phase_mappers[projector.dim_uv](projector(self.mag_data))
@@ -90,7 +90,7 @@ class ForwardModel(object):
         '''
         self.LOG.debug('Calling jac_dot')
         self.mag_data.set_vector(vector, self.data_set.mask)
-        result = np.zeros(self.n)
+        result = np.zeros(self.m)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
             mag_vec = self.mag_data.mag_vec
@@ -119,7 +119,7 @@ class ForwardModel(object):
         '''
         self.LOG.debug('Calling jac_T_dot')
 
-        result = np.zeros(self.m)
+        result = np.zeros(self.n)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
             vec = vector[hp[i]:hp[i+1]]

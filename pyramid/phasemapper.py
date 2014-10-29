@@ -75,9 +75,9 @@ class PhaseMapperRDFC(PhaseMapper):
     geometry : {'disc', 'slab'}, optional
         Elementary geometry which is used for the phase contribution of one pixel.
         Default is 'disc'.
-    n: int
-        Size of the image space.
     m: int
+        Size of the image space.
+    n: int
         Size of the input space.
 
     '''
@@ -87,8 +87,8 @@ class PhaseMapperRDFC(PhaseMapper):
     def __init__(self, kernel):
         self.LOG.debug('Calling __init__')
         self.kernel = kernel
-        self.n = np.prod(kernel.dim_uv)
-        self.m = 2 * self.n
+        self.m = np.prod(kernel.dim_uv)
+        self.n = 2 * self.m
         self.LOG.debug('Created '+str(self))
 
     def __repr__(self):
@@ -135,8 +135,8 @@ class PhaseMapperRDFC(PhaseMapper):
 
         '''
         self.LOG.debug('Calling jac_dot')
-        assert len(vector) == self.m, \
-            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
+        assert len(vector) == self.n, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
         u_mag, v_mag = np.reshape(vector, (2,)+self.kernel.dim_uv)
         return self._convolve(u_mag, v_mag)
 
@@ -157,10 +157,10 @@ class PhaseMapperRDFC(PhaseMapper):
 
         '''
         self.LOG.debug('Calling jac_T_dot')
-        assert len(vector) == self.n, \
-            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
+        assert len(vector) == self.m, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
         # TODO: directly? ask Jörn again!
-        result = np.zeros(self.m)
+        result = np.zeros(self.n)
         nc.jac_T_dot_real_convolve(self.kernel.dim_uv[0], self.kernel.dim_uv[1],
                                    self.kernel.u, self.kernel.v, vector, result)
         return result
@@ -204,8 +204,8 @@ class PhaseMapperRDRC(PhaseMapper):
         self.kernel = kernel
         self.threshold = threshold
         self.numcore = numcore
-        self.n = np.prod(kernel.dim_uv)
-        self.m = 2 * self.n
+        self.m = np.prod(kernel.dim_uv)
+        self.n = 2 * self.m
         self.LOG.debug('Created '+str(self))
 
     def __repr__(self):
@@ -266,15 +266,15 @@ class PhaseMapperRDRC(PhaseMapper):
 
         '''
         self.LOG.debug('Calling jac_dot')
-        assert len(vector) == self.m, \
-            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
+        assert len(vector) == self.n, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
         v_dim, u_dim = self.kernel.dim_uv
-        result = np.zeros(self.n)
+        result = np.zeros(self.m)
         if self.numcore:
             nc.jac_dot_real_convolve(v_dim, u_dim, self.kernel.u, self.kernel.v, vector, result)
         else:
             # Iterate over all contributing pixels (numbered consecutively)
-            for s in range(self.n):  # column-wise (two columns at a time, u- and v-component)
+            for s in range(self.m):  # column-wise (two columns at a time, u- and v-component)
                 i = s % u_dim  # u-coordinate of current contributing pixel
                 j = int(s/u_dim)  # v-coordinate of current ccontributing pixel
                 u_min = (u_dim-1) - i  # u_dim-1: center of the kernel
@@ -282,7 +282,7 @@ class PhaseMapperRDRC(PhaseMapper):
                 v_min = (v_dim-1) - j  # v_dim-1: center of the kernel
                 v_max = (2*v_dim-1) - j  # = v_min + v_dim
                 result += vector[s] * self.kernel.u[v_min:v_max, u_min:u_max].reshape(-1)
-                result -= vector[s+self.n] * self.kernel.v[v_min:v_max, u_min:u_max].reshape(-1)
+                result -= vector[s+self.m] * self.kernel.v[v_min:v_max, u_min:u_max].reshape(-1)
         return result
 
     def jac_T_dot(self, vector):
@@ -302,15 +302,15 @@ class PhaseMapperRDRC(PhaseMapper):
 
         '''
         self.LOG.debug('Calling jac_T_dot')
-        assert len(vector) == self.n, \
-            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
+        assert len(vector) == self.m, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
         v_dim, u_dim = self.dim_uv
-        result = np.zeros(self.m)
+        result = np.zeros(self.n)
         if self.numcore:
             nc.jac_T_dot_real_convolve(v_dim, u_dim, self.kernel.u, self.kernel.v, vector, result)
         else:
             # Iterate over all contributing pixels (numbered consecutively):
-            for s in range(self.n):  # row-wise (two rows at a time, u- and v-component)
+            for s in range(self.m):  # row-wise (two rows at a time, u- and v-component)
                 i = s % u_dim  # u-coordinate of current contributing pixel
                 j = int(s/u_dim)  # v-coordinate of current contributing pixel
                 u_min = (u_dim-1) - i  # u_dim-1: center of the kernel
@@ -318,7 +318,7 @@ class PhaseMapperRDRC(PhaseMapper):
                 v_min = (v_dim-1) - j  # v_dim-1: center of the kernel
                 v_max = (2*v_dim-1) - j  # = v_min + v_dim
                 result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))
-                result[s+self.n] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))
+                result[s+self.m] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))
         return result
 
 
@@ -356,8 +356,8 @@ class PhaseMapperFDFC(PhaseMapper):
         self.dim_uv = dim_uv
         self.b_0 = b_0
         self.padding = padding
-        self.n = np.prod(dim_uv)
-        self.m = 2 * self.n
+        self.m = np.prod(dim_uv)
+        self.n = 2 * self.m
         self.LOG.debug('Created '+str(self))
 
     def __repr__(self):
@@ -416,8 +416,8 @@ class PhaseMapperFDFC(PhaseMapper):
 
         '''
         self.LOG.debug('Calling jac_dot')
-        assert len(vector) == self.m, \
-            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
+        assert len(vector) == self.n, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
         mag_proj = MagData(self.a, np.zeros((3, 1)+self.dim_uv))
         magnitude_proj = self.jac_dot(vector).reshape((2, )+self.dim_uv)
         mag_proj.magnitude[1:3, 0, ...] = magnitude_proj
