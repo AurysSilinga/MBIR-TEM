@@ -15,7 +15,7 @@ from pyramid.phasemap import PhaseMap
 from pyramid.projector import SimpleProjector
 from pyramid.phasemapper import pm
 from pyramid.dataset import DataSet
-from pyramid.regularisator import ZeroOrderRegularisator
+from pyramid.regularisator import ZeroOrderRegularisator, FirstOrderRegularisator
 import pyramid.reconstruction as rc
 
 from time import clock
@@ -50,13 +50,16 @@ phase_map = PhaseMap.load_from_netcdf4(PATH+'phase_map.nc')
 with open(PATH + 'mask.pickle') as pf:
     mask = pickle.load(pf)
 # Setup:
-data_set = DataSet(a, dim, b_0)
+data_set = DataSet(a, dim, b_0, mask=mask)
 data_set.append(phase_map, SimpleProjector(dim))
 regularisator = ZeroOrderRegularisator(lam)
+regularisator = FirstOrderRegularisator(mask, lam)
+print "OOO"
+
 # Reconstruct the magnetic distribution:
 tic = clock()
-mag_data_rec1 = rc.optimize_linear(data_set, regularisator=regularisator)
-mag_data_rec = rc.optimize_nonlin(data_set, regularisator=regularisator)
+mag_data_rec = rc.optimize_linear(data_set, regularisator=regularisator)
+#mag_data_rec = rc.optimize_nonlin(data_set, regularisator=regularisator)
 #  .optimize_simple_leastsq(phase_map, mask, b_0, lam=lam, order=order)
 
 print 'reconstruction time:', clock() - tic
