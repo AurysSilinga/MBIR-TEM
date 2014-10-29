@@ -116,7 +116,6 @@ def optimize_linear(data, regularisator=None, maxiter=1000, verbosity=0):
     import jutil
     LOG.debug('Calling optimize_sparse_cg')
     # Set up necessary objects:
-    fwd_model = ForwardModel(data)
     cost = Costfunction(data, regularisator)
     print cost(np.zeros(cost.n))
     x_opt = jutil.cg.conj_grad_minimize(cost, max_iter=20)
@@ -153,7 +152,6 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
     if first_guess is None:
         first_guess = MagData(data.a, np.zeros((3,)+data.dim))
     x_0 = first_guess.get_vector(data.mask)
-    fwd_model = ForwardModel(data)
     cost = Costfunction(data, regularisator)
 
 #    proj = fwd_model.data_set.projectors[0]

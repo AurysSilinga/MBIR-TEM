@@ -45,9 +45,9 @@ class Projector(object):
     coeff : list (N=2)
         List containing the six weighting coefficients describing the influence of the 3 components
         of a 3-dimensional vector field on the 2 projected components.
-    n: int
-        Size of the image space.
     m: int
+        Size of the image space.
+    n: int
         Size of the input space.
 
     '''
@@ -63,8 +63,8 @@ class Projector(object):
         self.weight = weight
         self.coeff = coeff
         self.size_2d, self.size_3d = weight.shape
-        self.m = 3 * np.prod(dim)
-        self.n = 2 * np.prod(dim_uv)
+        self.n = 3 * np.prod(dim)
+        self.m = 2 * np.prod(dim_uv)
         self.LOG.debug('Created '+str(self))
 
     def __repr__(self):

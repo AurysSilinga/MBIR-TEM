@@ -46,22 +46,23 @@ class DataSet(object):
         A list of all stored :class:`~.PhaseMap` objects.
     phase_vec: :class:`~numpy.ndarray` (N=1)
         The concatenaded, vectorized phase of all ;class:`~.PhaseMap` objects.
-    n: int
-        Size of the image space.
     m: int
+        Size of the image space.
+    n: int
         Size of the input space.
+
     '''
 
     LOG = logging.getLogger(__name__+'.DataSet')
 
     @property
-    def n(self):
+    def m(self):
         return np.sum([len(p.phase_vec) for p in self.phase_maps])
 
     @property
     def Se_inv(self):
         # TODO: better implementation, maybe get-method? more flexible? input in append?
-        return sp.eye(self.n)
+        return sp.eye(self.m)
 
     @property
     def phase_vec(self):
@@ -88,9 +89,9 @@ class DataSet(object):
             'Dimension has to be a tuple of length 3!'
         if mask is not None:
             assert mask.shape == dim, 'Mask dimensions must match!'
-            self.m = 3 * np.sum(mask)
+            self.n = 3 * np.sum(mask)
         else:
-            self.m = 3 * np.prod(dim)
+            self.n = 3 * np.prod(dim)
         self.a = a
         self.dim = dim
         self.b_0 = b_0
