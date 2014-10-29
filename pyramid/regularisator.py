@@ -110,28 +110,14 @@ class ZeroOrderRegularisator(Regularisator):
         self.LOG.debug('Created '+str(self))
 
 
-#class FirstOrderRegularisator(Regularisator):
-#    # TODO: Docstring!
-#
-#    def __init__(self, fwd_model, lam, x_a=None):
-#        size_3d = fwd_model.size_3d
-#        dim = fwd_model.dim
-#        converter = IndexConverter(dim)
-#        row = []
-#        col = []
-#        data = []
-#
-#        for i in range(size_3d):
-#            neighbours = converter.find_neighbour_ind(i)
-#
-#            Sa_inv = csr_matrix(coo_matrix(data, (rows, columns)), shape=(3*size_3d, 3*size_3d))
-#
-#        term2 = []
-#        for i in range(3):
-#            component = mag_data[i, ...]
-#            for j in range(3):
-#                if component.shape[j] > 1:
-#                    term2.append(np.diff(component, axis=j).reshape(-1))
-#
-#        super(FirstOrderRegularisator, self).__init__(Sa_inv, x_a)
-#        self.LOG.debug('Created '+str(self))
+class FirstOrderRegularisator(Regularisator):
+    # TODO: Docstring!
+
+    def __init__(self, mask, lam, x_a=None):
+        import jutil
+        D0 = jutil.diff.get_diff_operator(mask, 0, 3)
+        D1 = jutil.diff.get_diff_operator(mask, 1, 3)
+        D = jutil.operator.VStack([D0, D1])
+        norm = jutil.norms.WeightedL2Square(D)
+        super(FirstOrderRegularisator, self).__init__(norm, lam)
+        self.LOG.debug('Created '+str(self))

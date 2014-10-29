@@ -117,11 +117,11 @@ def optimize_linear(data, regularisator=None, maxiter=1000, verbosity=0):
     # Set up necessary objects:
     cost = Costfunction(data, regularisator)
     print cost(np.zeros(cost.n))
-    x_opt = cg.conj_grad_minimize(cost)
+    x_opt = jutil.cg.conj_grad_minimize(cost, max_iter=20)
     print cost(x_opt)
     # Create and return fitting MagData object:
     mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
-    mag_opt.mag_vec = x_opt
+    mag_opt.set_vector(x_opt, data.mask)
     return mag_opt
 
 
@@ -149,14 +149,37 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
     LOG.debug('Calling optimize_cg')
     if first_guess is None:
         first_guess = MagData(data.a, np.zeros((3,)+data.dim))
-    x_0 = first_guess.mag_vec
+    x_0 = first_guess.get_vector(data.mask)
     cost = Costfunction(data, regularisator)
+
+#    proj = fwd_model.data_set.projectors[0]
+#    proj_jac1 = np.array([proj.jac_dot(np.eye(proj.m, 1, -i).squeeze()) for i in range(proj.m)])
+#    proj_jac2 = np.array([proj.jac_T_dot(np.eye(proj.n, 1, -i).squeeze()) for i in range(proj.n)])
+#    print jac1, jac2.T, abs(jac1-jac2.T).sum()
+#    print jac1.shape, jac2.shape
+
+#    pm = fwd_model.phase_mappers[proj.dim_uv]
+#    pm_jac1 = np.array([pm.jac_dot(np.eye(pm.m)[:, i]) for i in range(pm.m)])
+#    pm_jac2 = np.array([pm.jac_T_dot(np.eye(pm.n)[:, i]) for i in range(pm.n)])
+#    print jac1, jac2.T, abs(jac1-jac2.T).sum()
+#    print jac1.shape, jac2.shape
+
+
+ #   jac1 = np.array([fwd_model.jac_dot(x_0, np.eye(fwd_model.m)[:, i]) for i in range(fwd_model.m)])
+ #   jac2 = np.array([fwd_model.jac_T_dot(x_0, np.eye(fwd_model.n)[:, i]) for i in range(fwd_model.n)])
+ #   print proj_jac1.dot(pm_jac1)
+ #   print (pm_jac2.dot(proj_jac2)).T
+ #   print jac1
+#    print jac2.T
+#    print abs(jac1-jac2.T).sum()
+#    print jac1.shape, jac2.shape
+
     assert len(x_0) == cost.n, (len(x_0), cost.m, cost.n)
-    result = minimizer.minimize(cost, x_0, options={"conv_rel": 1e-20}, tol={"max_iteration": 1})
+    result = jutil.minimizer.minimize(cost, x_0, options={"conv_rel":1e-2}, tol={"max_iteration":4})
     x_opt = result.x
     print cost(x_opt)
     mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
-    mag_opt.mag_vec = x_opt
+    mag_opt.set_vector(x_opt, data.mask)
     return mag_opt
 
 

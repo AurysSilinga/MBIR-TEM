@@ -105,3 +105,38 @@ class Kernel(object):
         self.LOG.debug('Calling __str__')
         return 'Kernel(a=%s, dim_uv=%s, numcore=%s, geometry=%s)' % \
             (self.a, self.dim_uv, self.numcore, self.geometry)
+
+    def _multiply_jacobi(self, vector):
+        self.LOG.debug('Calling _multiply_jacobi')
+        v_dim, u_dim = self.dim_uv
+        assert len(vector) == 2 * self.size, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.size)
+        result = np.zeros(self.size)
+        # Iterate over all contributing pixels (numbered consecutively)
+        for s in range(self.size):  # column-wise (two columns at a time, u- and v-component)
+            i = s % u_dim  # u-coordinate of current contributing pixel
+            j = int(s/u_dim)  # v-coordinate of current ccontributing pixel
+            u_min = (u_dim-1) - i  # u_dim-1: center of the kernel
+            u_max = (2*u_dim-1) - i  # = u_min + u_dim
+            v_min = (v_dim-1) - j  # v_dim-1: center of the kernel
+            v_max = (2*v_dim-1) - j  # = v_min + v_dim
+            result += vector[s] * self.u[v_min:v_max, u_min:u_max].reshape(-1)  # u
+            result -= vector[s+self.size] * self.v[v_min:v_max, u_min:u_max].reshape(-1)  # v
+        return result
+
+    def _multiply_jacobi_T(self, vector):
+        self.LOG.debug('Calling _multiply_jacobi_T')
+        v_dim, u_dim = self.dim_uv
+        result = np.zeros(2*self.size)
+        # Iterate over all contributing pixels (numbered consecutively):
+        for s in range(self.size):  # row-wise (two rows at a time, u- and v-component)
+            i = s % u_dim  # u-coordinate of current contributing pixel
+            j = int(s/u_dim)  # v-coordinate of current contributing pixel
+            u_min = (u_dim-1) - i  # u_dim-1: center of the kernel
+            u_max = (2*u_dim-1) - i  # = u_min + u_dim
+            v_min = (v_dim-1) - j  # v_dim-1: center of the kernel
+            v_max = (2*v_dim-1) - j  # = v_min + v_dim
+            result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))  # u
+            result[s+self.size] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))  # v
+        return result
+#

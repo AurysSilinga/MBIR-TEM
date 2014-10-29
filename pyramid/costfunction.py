@@ -77,7 +77,9 @@ class Costfunction(object):
     def __call__(self, x):
         self.LOG.debug('Calling __call__')
         delta_y = self.fwd_model(x) - self.y
-        self.chisq = delta_y.dot(self.Se_inv.dot(delta_y)) + self.regularisator(x)
+        self.chisq_m = delta_y.dot(self.Se_inv.dot(delta_y))
+        self.chisq_a = self.regularisator(x)
+        self.chisq = self.chisq_m + self.chisq_a
         return self.chisq
 
     def jac(self, x):

@@ -89,7 +89,7 @@ class DataSet(object):
             'Dimension has to be a tuple of length 3!'
         if mask is not None:
             assert mask.shape == dim, 'Mask dimensions must match!'
-            self.n = 3 * np.sum(self.mask)
+            self.n = 3 * np.sum(mask)
         else:
             self.n = 3 * np.prod(dim)
         self.a = a

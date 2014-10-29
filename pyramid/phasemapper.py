@@ -138,7 +138,9 @@ class PhaseMapperRDFC(PhaseMapper):
         assert len(vector) == self.n, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
         u_mag, v_mag = np.reshape(vector, (2,)+self.kernel.dim_uv)
-        return self._convolve(u_mag, v_mag)
+        result = self._convolve(u_mag, v_mag).reshape(-1)
+        return result
+        #return self.kernel._multiply_jacobi(vector)
 
     def jac_T_dot(self, vector):
         '''Calculate the product of the transposed Jacobi matrix with a given `vector`.

@@ -59,6 +59,7 @@ class ForwardModel(object):
 
     def __call__(self, x):
         self.LOG.debug('Calling __call__')
+        self.mag_data.magnitude[:] = 0
         self.mag_data.set_vector(x, self.data_set.mask)
         # TODO: Multiprocessing
         result = np.zeros(self.m)
@@ -89,6 +90,7 @@ class ForwardModel(object):
 
         '''
         self.LOG.debug('Calling jac_dot')
+        self.mag_data.magnitude[:] = 0
         self.mag_data.set_vector(vector, self.data_set.mask)
         result = np.zeros(self.m)
         hp = self.hook_points
@@ -119,7 +121,7 @@ class ForwardModel(object):
         '''
         self.LOG.debug('Calling jac_T_dot')
 
-        result = np.zeros(self.n)
+        result = np.zeros(3*np.prod(self.data_set.dim))
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
             vec = vector[hp[i]:hp[i+1]]
