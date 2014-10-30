@@ -50,7 +50,7 @@ class PrintIterator(object):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.PrintIterator')
+    LOG = logging.getLogger(__name__ + '.PrintIterator')
 
     def __init__(self, cost, verbosity):
         self.LOG.debug('Calling __init__')
@@ -58,7 +58,7 @@ class PrintIterator(object):
         self.verbosity = verbosity
         assert verbosity in {0, 1, 2}, 'verbosity has to be set to 0, 1 or 2!'
         self.iteration = 0
-        self.LOG.debug('Created '+str(self))
+        self.LOG.debug('Created ' + str(self))
 
     def __call__(self, xk):
         self.LOG.debug('Calling __call__')
@@ -86,6 +86,7 @@ class PrintIterator(object):
 def optimize_linear(data, regularisator=None, max_iter=None):
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
+    Blazingly fast for l2-based cost functions.
 
     Parameters
     ----------
@@ -104,21 +105,22 @@ def optimize_linear(data, regularisator=None, max_iter=None):
 
     '''
     import jutil.cg as jcg
-    LOG.debug('Calling optimize_sparse_cg')
+    LOG.debug('Calling optimize_linear')
     # Set up necessary objects:
     cost = Costfunction(data, regularisator)
     LOG.info('Cost before optimization: {}'.format(cost(np.zeros(cost.n))))
     x_opt = jcg.conj_grad_minimize(cost, max_iter=max_iter)
     LOG.info('Cost after optimization: {}'.format(cost(x_opt)))
     # Create and return fitting MagData object:
-    mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
+    mag_opt = MagData(data.a, np.zeros((3,) + data.dim))
     mag_opt.set_vector(x_opt, data.mask)
     return mag_opt
 
 
 def optimize_nonlin(data, first_guess=None, regularisator=None):
-    '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
-    conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
+    '''Reconstruct a three-dimensional magnetic distribution from given phase maps via
+    steepest descent method. This is slow, but works best for non l2-regularisators.
+
 
     Parameters
     ----------
@@ -129,8 +131,7 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
     first_fuess : :class:`~pyramid.magdata.MagData`
         magnetization to start the non-linear iteration with.
     regularisator : :class:`~.Regularisator`, optional
-        Regularisator class that's responsible for the regularisation term. Defaults to zero
-        order Tikhonov if none is provided.
+        Regularisator class that's responsible for the regularisation term.
 
     Returns
     -------
@@ -140,9 +141,9 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
     '''
     import jutil.minimizer as jmin
     import jutil.norms as jnorms
-    LOG.debug('Calling optimize_cg')
+    LOG.debug('Calling optimize_nonlin')
     if first_guess is None:
-        first_guess = MagData(data.a, np.zeros((3,)+data.dim))
+        first_guess = MagData(data.a, np.zeros((3,) + data.dim))
 
     x_0 = first_guess.get_vector(data.mask)
     cost = Costfunction(data, regularisator)
@@ -152,12 +153,13 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
     q = 1. / (1. - (1. / p))
     lp = regularisator.norm
     lq = jnorms.LPPow(q, 1e-20)
+
     def preconditioner(_, direc):
         direc_p = direc / abs(direc).max()
         direc_p = 10 * (1. / q) * lq.jac(direc_p)
         return direc_p
 
-    # This Method is semi-best for L1 type problems. Takes forever, though
+    # This Method is semi-best for Lp type problems. Takes forever, though
     LOG.info('Cost before optimization: {}'.format(cost(np.zeros(cost.n))))
     result = jmin.minimize(
         cost, x_0,
@@ -166,14 +168,18 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
         tol={"max_iteration": 10000})
     x_opt = result.x
     LOG.info('Cost after optimization: {}'.format(cost(x_opt)))
-    mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
+    mag_opt = MagData(data.a, np.zeros((3,) + data.dim))
     mag_opt.set_vector(x_opt, data.mask)
     return mag_opt
 
 
 def optimize_splitbregman(data, weight, lam, mu):
-    '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
-    conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
+    '''
+    Reconstructs magnet distribution from phase image measurements using a split bregman
+    algorithm with a dedicated TV-l1 norm. Very dedicated, frickle, brittle, and difficult
+    to get to work, but fastest option available if it works.
+
+    Seems to work for some 2D examples with weight=lam=1 and mu in [1, .., 1e4].
 
     Parameters
     ----------
@@ -181,11 +187,12 @@ def optimize_splitbregman(data, weight, lam, mu):
         :class:`~.DataSet` object containing all phase maps in :class:`~.PhaseMap` objects and all
         projection directions in :class:`~.Projector` objects. These provide the essential
         information for the reconstruction.
-    first_fuess : :class:`~pyramid.magdata.MagData`
-        magnetization to start the non-linear iteration with.
-    regularisator : :class:`~.Regularisator`, optional
-        Regularisator class that's responsible for the regularisation term. Defaults to zero
-        order Tikhonov if none is provided.
+    weight : float
+        Obscure split bregman parameter
+    lam : float
+        Cryptic split bregman parameter
+    mu : float
+        flabberghasting split bregman paramter
 
     Returns
     -------
@@ -198,28 +205,31 @@ def optimize_splitbregman(data, weight, lam, mu):
     import jutil.diff as jdiff
     from pyramid.regularisator import FirstOrderRegularisator
     LOG.debug('Calling optimize_splitbregman')
-    regularisator = FirstOrderRegularisator(data.mask, lam, 1)
-    x_0 = MagData(data.a, np.zeros((3,)+data.dim)).get_vector(data.mask)
-    cost = Costfunction(data, regularisator)
-    print cost(x_0)
 
+    # regularisator is actually not necessary, but this makes the cost
+    # function to that which is supposedly optimized by split bregman.
+    # Thus cost can be used to verify convergence
+    regularisator = FirstOrderRegularisator(data.mask, lam / mu, 1)
+    x_0 = MagData(data.a, np.zeros((3,) + data.dim)).get_vector(data.mask)
+    cost = Costfunction(data, regularisator)
     fwd_mod = cost.fwd_model
+
     A = joperator.Function(
         (cost.m, cost.n),
         lambda x: fwd_mod.jac_dot(None, x),
         FT=lambda x: fwd_mod.jac_T_dot(None, x))
-    D0 = jdiff.get_diff_operator(data.mask, 0, 3)
-    D1 = jdiff.get_diff_operator(data.mask, 1, 3)
-    D = joperator.VStack([D0, D1])
+    D = joperator.VStack([
+        jdiff.get_diff_operator(data.mask, 0, 3),
+        jdiff.get_diff_operator(data.mask, 1, 3)])
     y = np.asarray(cost.y, dtype=np.double)
+
     x_opt = jsb.split_bregman_2d(
         A, D, y,
-        weight=1000, mu=10, lambd=1e-6, max_iter=100)
-    print cost(x_opt)
-    mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
+        weight=weight, mu=mu, lambd=lam, max_iter=1000)
+
+    mag_opt = MagData(data.a, np.zeros((3,) + data.dim))
     mag_opt.set_vector(x_opt, data.mask)
     return mag_opt
-
 
 
 def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
@@ -259,7 +269,7 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
     dim = mask.shape  # Dimensions of the mag. distr.
     count = mask.sum()  # Number of pixels with magnetization
     # Create empty MagData object for the reconstruction:
-    mag_data_rec = MagData(a, np.zeros((3,)+dim))
+    mag_data_rec = MagData(a, np.zeros((3,) + dim))
 
     # Function that returns the phase map for a magnetic configuration x:
     def F(x):
@@ -294,6 +304,6 @@ def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
     # Reconstruct the magnetization components:
     # TODO Use jutil.minimizer.minimize(jutil.costfunction.LeastSquaresCostFunction(J_DICT[order],
     # ...) or a simpler frontend.
-    x_rec, _ = leastsq(J_DICT[order], np.zeros(3*count))
+    x_rec, _ = leastsq(J_DICT[order], np.zeros(3 * count))
     mag_data_rec.set_vector(x_rec, mask)
     return mag_data_rec
