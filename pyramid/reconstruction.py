@@ -83,7 +83,7 @@ class PrintIterator(object):
         return self.iteration
 
 
-def optimize_linear(data, regularisator=None, maxiter=1000, verbosity=0):
+def optimize_linear(data, regularisator=None, max_iter=None):
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
 
@@ -93,19 +93,9 @@ def optimize_linear(data, regularisator=None, maxiter=1000, verbosity=0):
         :class:`~.DataSet` object containing all phase maps in :class:`~.PhaseMap` objects and all
         projection directions in :class:`~.Projector` objects. These provide the essential
         information for the reconstruction.
-    Se_inv : :class:`~numpy.ndarray` (N=2), optional
-        Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
-        being the length of the targetvector y (vectorized phase map information). Defaults to
-        an appropriate unity matrix if none is provided.
     regularisator : :class:`~.Regularisator`, optional
         Regularisator class that's responsible for the regularisation term. Defaults to zero
         order Tikhonov if none is provided.
-    maxiter : int
-        Maximum number of iterations.
-    verbosity : {0, 1, 2}, optional
-        Parameter defining the verposity of the output. `2` will show the current number of the
-        iteration and the cost of the current distribution. `1` will just show the iteration
-        number and `0` is the default and will prevent output all together.
 
     Returns
     -------
@@ -113,13 +103,13 @@ def optimize_linear(data, regularisator=None, maxiter=1000, verbosity=0):
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
     '''
-    import jutil
+    import jutil.cg as jcg
     LOG.debug('Calling optimize_sparse_cg')
     # Set up necessary objects:
     cost = Costfunction(data, regularisator)
-    print cost(np.zeros(cost.n))
-    x_opt = jutil.cg.conj_grad_minimize(cost, max_iter=20)
-    print cost(x_opt)
+    LOG.info('Cost before optimization: {}'.format(cost(np.zeros(cost.n))))
+    x_opt = jcg.conj_grad_minimize(cost, max_iter=max_iter)
+    LOG.info('Cost after optimization: {}'.format(cost(x_opt)))
     # Create and return fitting MagData object:
     mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
     mag_opt.set_vector(x_opt, data.mask)
@@ -136,10 +126,11 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
         :class:`~.DataSet` object containing all phase maps in :class:`~.PhaseMap` objects and all
         projection directions in :class:`~.Projector` objects. These provide the essential
         information for the reconstruction.
-    verbosity : {2, 1, 0}, optional
-        Parameter defining the verposity of the output. `2` is the default and will show the
-        current number of the iteration and the cost of the current distribution. `2` will just
-        show the iteration number and `0` will prevent output all together.
+    first_fuess : :class:`~pyramid.magdata.MagData`
+        magnetization to start the non-linear iteration with.
+    regularisator : :class:`~.Regularisator`, optional
+        Regularisator class that's responsible for the regularisation term. Defaults to zero
+        order Tikhonov if none is provided.
 
     Returns
     -------
@@ -147,42 +138,88 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
     '''
-    import jutil
+    import jutil.minimizer as jmin
+    import jutil.norms as jnorms
     LOG.debug('Calling optimize_cg')
     if first_guess is None:
         first_guess = MagData(data.a, np.zeros((3,)+data.dim))
+
     x_0 = first_guess.get_vector(data.mask)
     cost = Costfunction(data, regularisator)
-
-#    proj = fwd_model.data_set.projectors[0]
-#    proj_jac1 = np.array([proj.jac_dot(np.eye(proj.m, 1, -i).squeeze()) for i in range(proj.m)])
-#    proj_jac2 = np.array([proj.jac_T_dot(np.eye(proj.n, 1, -i).squeeze()) for i in range(proj.n)])
-#    print jac1, jac2.T, abs(jac1-jac2.T).sum()
-#    print jac1.shape, jac2.shape
-
-#    pm = fwd_model.phase_mappers[proj.dim_uv]
-#    pm_jac1 = np.array([pm.jac_dot(np.eye(pm.m)[:, i]) for i in range(pm.m)])
-#    pm_jac2 = np.array([pm.jac_T_dot(np.eye(pm.n)[:, i]) for i in range(pm.n)])
-#    print jac1, jac2.T, abs(jac1-jac2.T).sum()
-#    print jac1.shape, jac2.shape
-
-
- #   jac1 = np.array([fwd_model.jac_dot(x_0, np.eye(fwd_model.m)[:, i]) for i in range(fwd_model.m)])
- #   jac2 = np.array([fwd_model.jac_T_dot(x_0, np.eye(fwd_model.n)[:, i]) for i in range(fwd_model.n)])
- #   print proj_jac1.dot(pm_jac1)
- #   print (pm_jac2.dot(proj_jac2)).T
- #   print jac1
-#    print jac2.T
-#    print abs(jac1-jac2.T).sum()
-#    print jac1.shape, jac2.shape
-
     assert len(x_0) == cost.n, (len(x_0), cost.m, cost.n)
-    result = jutil.minimizer.minimize(cost, x_0, options={"conv_rel":1e-2}, tol={"max_iteration":4})
+
+    p = regularisator.p
+    q = 1. / (1. - (1. / p))
+    lp = regularisator.norm
+    lq = jnorms.LPPow(q, 1e-20)
+    def preconditioner(_, direc):
+        direc_p = direc / direc.max()
+        direc_p = 10 * (1. / q) * lq.jac(direc_p)
+        return direc_p
+
+    # This Method is semi-best for L1 type problems. Takes forever, though
+    LOG.info('Cost before optimization: {}'.format(cost(np.zeros(cost.n))))
+    result = jmin.minimize(
+        cost, x_0,
+        method="SteepestDescent",
+        options={"preconditioner": preconditioner},
+        tol={"max_iteration": 10000})
     x_opt = result.x
+    LOG.info('Cost after optimization: {}'.format(cost(x_opt)))
+    mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
+    mag_opt.set_vector(x_opt, data.mask)
+    return mag_opt
+
+
+def optimize_splitbregman(data, weight, lam, mu):
+    '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
+    conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
+
+    Parameters
+    ----------
+    data : :class:`~.DataSet`
+        :class:`~.DataSet` object containing all phase maps in :class:`~.PhaseMap` objects and all
+        projection directions in :class:`~.Projector` objects. These provide the essential
+        information for the reconstruction.
+    first_fuess : :class:`~pyramid.magdata.MagData`
+        magnetization to start the non-linear iteration with.
+    regularisator : :class:`~.Regularisator`, optional
+        Regularisator class that's responsible for the regularisation term. Defaults to zero
+        order Tikhonov if none is provided.
+
+    Returns
+    -------
+    mag_data : :class:`~pyramid.magdata.MagData`
+        The reconstructed magnetic distribution as a :class:`~.MagData` object.
+
+    '''
+    import jutil.splitbregman as jsb
+    import jutil.operator as joperator
+    import jutil.diff as jdiff
+    from pyramid.regularisator import FirstOrderRegularisator
+    LOG.debug('Calling optimize_splitbregman')
+    regularisator = FirstOrderRegularisator(data.mask, lam, 1)
+    x_0 = MagData(data.a, np.zeros((3,)+data.dim)).get_vector(data.mask)
+    cost = Costfunction(data, regularisator)
+    print cost(x_0)
+
+    fwd_mod = cost.fwd_model
+    A = joperator.Function(
+        (cost.m, cost.n),
+        lambda x: fwd_mod.jac_dot(None, x),
+        FT=lambda x: fwd_mod.jac_T_dot(None, x))
+    D0 = jdiff.get_diff_operator(data.mask, 0, 3)
+    D1 = jdiff.get_diff_operator(data.mask, 1, 3)
+    D = joperator.VStack([D0, D1])
+    y = np.asarray(cost.y, dtype=np.double)
+    x_opt = jsb.split_bregman_2d(
+        A, D, y,
+        weight=1000, mu=10, lambd=1e-6, max_iter=100)
     print cost(x_opt)
     mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
     mag_opt.set_vector(x_opt, data.mask)
     return mag_opt
+
 
 
 def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
