@@ -153,7 +153,7 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
     lp = regularisator.norm
     lq = jnorms.LPPow(q, 1e-20)
     def preconditioner(_, direc):
-        direc_p = direc / direc.max()
+        direc_p = direc / abs(direc).max()
         direc_p = 10 * (1. / q) * lq.jac(direc_p)
         return direc_p
 
