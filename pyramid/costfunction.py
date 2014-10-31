@@ -10,7 +10,7 @@ from scipy.sparse import eye
 
 from pyramid.forwardmodel import ForwardModel
 from pyramid.regularisator import ZeroOrderRegularisator
-
+from pyramid.regularisator import NoneRegularisator
 import logging
 
 
@@ -54,6 +54,8 @@ class Costfunction(object):
         self.data_set = data_set
         self.fwd_model = ForwardModel(data_set)
         self.regularisator = regularisator
+        if self.regularisator is None:
+            self.regularisator = NoneRegularisator()
         # Extract important information:
         self.y = data_set.phase_vec
         self.Se_inv = data_set.Se_inv

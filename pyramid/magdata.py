@@ -11,9 +11,6 @@ from scipy.ndimage.interpolation import zoom
 import matplotlib.pyplot as plt
 import matplotlib.cm as cmx
 from matplotlib.ticker import MaxNLocator
-from mayavi import mlab
-
-from lxml import etree
 
 from numbers import Number
 
@@ -519,6 +516,8 @@ class MagData(object):
 
         '''
         self.LOG.debug('Calling quiver_plot3D')
+        from mayavi import mlab
+
         a = self.a
         dim = self.dim
         # Create points and vector components as lists:
@@ -553,6 +552,8 @@ class MagData(object):
 
         '''
         self.LOG.debug('Calling save_to_x3d')
+        from lxml import etree
+
         dim = self.dim
         # Create points and vector components as lists:
         zz, yy, xx = np.mgrid[0.5:(dim[0]-0.5):dim[0]*1j,
