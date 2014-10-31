@@ -117,7 +117,7 @@ def optimize_linear(data, regularisator=None, maxiter=1000, verbosity=0):
     # Set up necessary objects:
     cost = Costfunction(data, regularisator)
     print cost(np.zeros(cost.n))
-    x_opt = jutil.cg.conj_grad_minimize(cost, max_iter=20)
+    x_opt = cg.conj_grad_minimize(cost, max_iter=20)
     print cost(x_opt)
     # Create and return fitting MagData object:
     mag_opt = MagData(data.a, np.zeros((3,)+data.dim))
@@ -164,18 +164,19 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
 #    print jac1, jac2.T, abs(jac1-jac2.T).sum()
 #    print jac1.shape, jac2.shape
 
-
- #   jac1 = np.array([fwd_model.jac_dot(x_0, np.eye(fwd_model.m)[:, i]) for i in range(fwd_model.m)])
- #   jac2 = np.array([fwd_model.jac_T_dot(x_0, np.eye(fwd_model.n)[:, i]) for i in range(fwd_model.n)])
- #   print proj_jac1.dot(pm_jac1)
- #   print (pm_jac2.dot(proj_jac2)).T
- #   print jac1
+#   jac1 = np.array([fwd_model.jac_dot(x_0, np.eye(fwd_model.m)[:, i])
+#                    for i in range(fwd_model.m)])
+#   jac2 = np.array([fwd_model.jac_T_dot(x_0, np.eye(fwd_model.n)[:, i])
+#                    for i in range(fwd_model.n)])
+#   print proj_jac1.dot(pm_jac1)
+#   print (pm_jac2.dot(proj_jac2)).T
+#   print jac1
 #    print jac2.T
 #    print abs(jac1-jac2.T).sum()
 #    print jac1.shape, jac2.shape
 
     assert len(x_0) == cost.n, (len(x_0), cost.m, cost.n)
-    result = jutil.minimizer.minimize(cost, x_0, options={"conv_rel":1e-2}, tol={"max_iteration":4})
+    result = minimizer.minimize(cost, x_0, options={"conv_rel": 1e-2}, tol={"max_iteration": 4})
     x_opt = result.x
     print cost(x_opt)
     mag_opt = MagData(data.a, np.zeros((3,)+data.dim))

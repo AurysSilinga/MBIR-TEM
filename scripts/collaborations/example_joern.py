@@ -38,7 +38,7 @@ inter = 'none'
 dim = (1,) + (64, 64)
 dim_small = (64, 64)
 smoothed_pictures = True
-lam = 1E-4
+lam = 1E-6
 order = 1
 log = True
 PATH = '../../output/joern/'
@@ -65,7 +65,8 @@ mag_data_rec = rc.optimize_linear(data_set, regularisator=regularisator)
 print 'reconstruction time:', clock() - tic
 # Display the reconstructed phase map and holography image:
 phase_map_rec = pm(mag_data_rec)
-phase_map_rec.display_combined('Reconstr. Distribution', gain=gain, interpolation=inter, show=False)
+phase_map_rec.display_combined('Reconstr. Distribution', gain=gain,
+                               interpolation=inter, show=False)
 plt.savefig(dirname + "/reconstr.png")
 
 # Plot the magnetization:
@@ -82,14 +83,16 @@ plt.savefig(dirname + "/difference.png")
 # Get the average difference from the experimental results:
 print 'Average difference:', np.average(phase_diff.phase)
 # Plot holographic contour maps with overlayed magnetic distributions:
-axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1, interpolation=inter, show=False)
+axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1,
+                                  interpolation=inter, show=False)
 mag_data_rec.quiver_plot(axis=axis, show=False)
 axis = plt.gca()
 axis.set_xlim(20, 45)
 axis.set_ylim(20, 45)
 plt.savefig(dirname + "/overlay_normal.png")
 
-axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1, interpolation=inter, show=False)
+axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1,
+                                  interpolation=inter, show=False)
 mag_data_rec.quiver_plot(axis=axis, log=log, show=False)
 axis = plt.gca()
 axis.set_xlim(20, 45)
