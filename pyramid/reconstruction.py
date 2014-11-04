@@ -109,7 +109,7 @@ def optimize_linear(data, regularisator=None, max_iter=None):
     # Set up necessary objects:
     cost = Costfunction(data, regularisator)
     LOG.info('Cost before optimization: {}'.format(cost(np.zeros(cost.n))))
-    x_opt = jcg.conj_grad_minimize(cost, max_iter=max_iter)
+    x_opt = jcg.conj_grad_minimize(cost, max_iter=max_iter).x
     LOG.info('Cost after optimization: {}'.format(cost(x_opt)))
     # Create and return fitting MagData object:
     mag_opt = MagData(data.a, np.zeros((3,) + data.dim))

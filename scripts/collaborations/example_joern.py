@@ -54,7 +54,7 @@ else:
 LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
 
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
-logging.basicConfig(level=logging.INFO)
+#logging.basicConfig(level=logging.INFO)
 
 ###################################################################################################
 threshold = 1
@@ -62,18 +62,16 @@ a = 1.0  # in nm
 gain = 5
 b_0 = 1
 inter = 'none'
-dim = (1,) + (64, 64)
-dim_small = (64, 64)
 smoothed_pictures = True
 lam = 1E-6
 log = True
 PATH = '../../output/joern/'
 ###################################################################################################
 # Read in files:
-phase_map = PhaseMap.load_from_netcdf4(PATH+'phase_map.nc')
-#mask = np.genfromtxt('mask.txt', dtype=bool)
-with open(PATH + 'mask.pickle') as pf:
+phase_map = PhaseMap.load_from_netcdf4(PATH+'phase_map_2.nc')
+with open(PATH + 'mask_2.pickle') as pf:
     mask = pickle.load(pf)
+dim = mask.shape
 # Setup:
 if not use_mask:
     mask = np.ones_like(mask, dtype=bool)
@@ -109,8 +107,8 @@ plt.savefig(dirname + "/reconstr.png")
 
 # Plot the magnetization:
 axis = (mag_data_rec*(1/mag_data_rec.magnitude.max())).quiver_plot(show=False)
-axis.set_xlim(20, 45)
-axis.set_ylim(20, 45)
+axis.set_xlim(int(20/64*dim[1], 45/64*dim[2])
+axis.set_ylim(int(20/64*dim[1], 45/64*dim[2])
 plt.savefig(dirname + "/quiver.png")
 
 # Display the Phase:
@@ -125,14 +123,14 @@ axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1,
                                   interpolation=inter, show=False)
 mag_data_rec.quiver_plot(axis=axis, show=False)
 axis = plt.gca()
-axis.set_xlim(20, 45)
-axis.set_ylim(20, 45)
+axis.set_xlim(int(20/64*dim[1], 45/64*dim[2])
+axis.set_ylim(int(20/64*dim[1], 45/64*dim[2])
 plt.savefig(dirname + "/overlay_normal.png")
 
 axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1,
                                   interpolation=inter, show=False)
 mag_data_rec.quiver_plot(axis=axis, log=log, show=False)
 axis = plt.gca()
-axis.set_xlim(20, 45)
-axis.set_ylim(20, 45)
+axis.set_xlim(int(20/64*dim[1], 45/64*dim[2])
+axis.set_ylim(int(20/64*dim[1], 45/64*dim[2])
 plt.savefig(dirname + "/overlay_log.png")

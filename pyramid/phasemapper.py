@@ -82,7 +82,7 @@ class PhaseMapperRDFC(PhaseMapper):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.PMConvolve')
+    LOG = logging.getLogger(__name__+'.PhaseMapperRDFC')
 
     def __init__(self, kernel):
         self.LOG.debug('Calling __init__')
@@ -161,10 +161,57 @@ class PhaseMapperRDFC(PhaseMapper):
         self.LOG.debug('Calling jac_T_dot')
         assert len(vector) == self.m, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
-        # TODO: directly? ask Jörn again!
         result = np.zeros(self.n)
-        nc.jac_T_dot_real_convolve(self.kernel.dim_uv[0], self.kernel.dim_uv[1],
-                                   self.kernel.u, self.kernel.v, vector, result)
+
+        import jutil.fft as jfft
+        from jutil.taketime import TakeTime
+
+        with TakeTime('fft_adjoint'):
+
+            phase = vector.reshape(self.kernel.dim_uv)
+            p0 = self.kernel.dim_fft[0]-self.kernel.dim_uv[0]
+            p1 = self.kernel.dim_fft[1]-self.kernel.dim_uv[1]
+            phase = np.pad(phase, ((0, p0), (0, p1)), 'constant')
+
+            phase_fft = jfft.irfft2_adj(phase)
+            u_mag_fft = phase_fft * self.kernel.u_fft
+            v_mag_fft = phase_fft * -self.kernel.v_fft
+            u_mag = jfft.rfft2_adj(u_mag_fft, self.kernel.dim_fft[1])[self.kernel.slice_fft]
+            v_mag = jfft.rfft2_adj(v_mag_fft, self.kernel.dim_fft[1])[self.kernel.slice_fft]
+            result = -np.concatenate((u_mag.flatten(), v_mag.flatten()))
+
+#        # TODO: directly? ask Jörn again!
+#        phase = vector.reshape(self.kernel.dim_uv)
+#        phase_fft = np.fft.fft(phase, self.kernel.dim_fft)
+#        u_mag_fft = phase_fft * self.kernel.u_fft_compl
+#        v_mag_fft = phase_fft * -self.kernel.v_fft_compl
+#        u_mag = np.fft.ifft(u_mag_fft, self.kernel.dim_fft)[self.kernel.slice_fft]
+#        v_mag = np.fft.ifft(u_mag_fft, self.kernel.dim_fft)[self.kernel.slice_fft]
+#        result = np.concatenate((u_mag.flatten(), v_mag.flatten()))
+#        return result
+
+    #TODO: np.split()
+    #TODO: TakeTime()
+    #TODO: 'constant' in np.pad()
+
+#        result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))
+#        result[s+self.m] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))
+#
+#        # Fourier transform the projected magnetisation:
+#        u_mag_fft = np.fft.rfftn(u_mag, self.kernel.dim_fft)
+#        v_mag_fft = np.fft.rfftn(v_mag, self.kernel.dim_fft)
+#        # Convolve the magnetization with the kernel in Fourier space:
+#        phase_fft = u_mag_fft*self.kernel.u_fft - v_mag_fft*self.kernel.v_fft
+#        # Return the result:
+#        return np.fft.irfftn(phase_fft, self.kernel.dim_fft)[self.kernel.slice_fft]
+
+#        with TakeTime('oldschool'):
+#            compare = np.zeros(self.n)
+#            nc.jac_T_dot_real_convolve(self.kernel.dim_uv[0], self.kernel.dim_uv[1],
+#                                       self.kernel.u, self.kernel.v, vector, compare)
+
+#        import pdb; pdb.set_trace()
+#        assert np.testing.assert_almost_equal(result, compare)
         return result
 
 
@@ -199,7 +246,7 @@ class PhaseMapperRDRC(PhaseMapper):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.PMReal')
+    LOG = logging.getLogger(__name__+'.PhaseMapperRDRC')
 
     def __init__(self, kernel, threshold=0, numcore=True):
         self.LOG.debug('Calling __init__')
@@ -349,7 +396,7 @@ class PhaseMapperFDFC(PhaseMapper):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.PMFourier')
+    LOG = logging.getLogger(__name__+'.PhaseMapperFDFC')
     PHI_0 = -2067.83   # magnetic flux in T*nm²
 
     def __init__(self, a, dim_uv, b_0=1, padding=0):
@@ -458,7 +505,7 @@ class PhaseMapperElectric(PhaseMapper):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.PMElectric')
+    LOG = logging.getLogger(__name__+'.PhaseMapperElectric')
     H_BAR = 6.626E-34  # Planck constant in J*s
     M_E = 9.109E-31    # electron mass in kg
     Q_E = 1.602E-19    # electron charge in C
