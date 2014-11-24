@@ -7,57 +7,50 @@ import unittest
 import numpy as np
 from numpy import pi
 
+from numpy.testing import assert_allclose
+
 import pyramid.analytic as an
 
 
 class TestCaseAnalytic(unittest.TestCase):
     """TestCase for the analytic module."""
 
-    def setUp(self):
-        self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_analytic/')
-        self.dim = (4, 4, 4)
-        self.res = 10.0
-        self.phi = pi/4
-        self.center = (self.dim[0]/2-0.5, self.dim[1]/2-0.5, self.dim[2]/2-0.5)
-        self.radius = self.dim[2]/4
-
-    def tearDown(self):
-        self.path = None
-        self.dim = None
-        self.res = None
-        self.phi = None
-        self.center = None
-        self.radius = None
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_analytic/')
+    dim = (4, 4, 4)
+    a = 10.0
+    phi = pi/4
+    center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2-0.5)
+    radius = dim[2]/4
 
     def test_phase_mag_slab(self):
         '''Test of the phase_mag_slab method.'''
         width = (self.dim[0]/2, self.dim[1]/2, self.dim[2]/2)
-        phase = an.phase_mag_slab(self.dim, self.res, self.phi, self.center, width)
+        phase = an.phase_mag_slab(self.dim, self.a, self.phi, self.center, width).phase
         reference = np.load(os.path.join(self.path, 'ref_phase_slab.npy'))
-        np.testing.assert_almost_equal(phase, reference,  err_msg='Unexpected behavior in phase_mag_slab()')
+        assert_allclose(phase, reference,  err_msg='Unexpected behavior in phase_mag_slab()')
 
     def test_phase_mag_disc(self):
         '''Test of the phase_mag_disc method.'''
         radius = self.dim[2]/4
         height = self.dim[2]/2
-        phase = an.phase_mag_disc(self.dim, self.res, self.phi, self.center, radius, height)
+        phase = an.phase_mag_disc(self.dim, self.a, self.phi, self.center, radius, height).phase
         reference = np.load(os.path.join(self.path, 'ref_phase_disc.npy'))
-        np.testing.assert_almost_equal(phase, reference,  err_msg='Unexpected behavior in phase_mag_disc()')
+        assert_allclose(phase, reference,  err_msg='Unexpected behavior in phase_mag_disc()')
 
     def test_phase_mag_sphere(self):
         '''Test of the phase_mag_sphere method.'''
         radius = self.dim[2]/4
-        phase = an.phase_mag_sphere(self.dim, self.res, self.phi, self.center, radius)
+        phase = an.phase_mag_sphere(self.dim, self.a, self.phi, self.center, radius).phase
         reference = np.load(os.path.join(self.path, 'ref_phase_sphere.npy'))
-        np.testing.assert_almost_equal(phase, reference,  err_msg='Unexpected behavior in phase_mag_sphere()')
+        assert_allclose(phase, reference,  err_msg='Unexpected behavior in phase_mag_sphere()')
 
     def test_phase_mag_vortex(self):
         '''Test of the phase_mag_vortex method.'''
         radius = self.dim[2]/4
         height = self.dim[2]/2
-        phase = an.phase_mag_vortex(self.dim, self.res, self.center, radius, height)
+        phase = an.phase_mag_vortex(self.dim, self.a, self.center, radius, height).phase
         reference = np.load(os.path.join(self.path, 'ref_phase_vort.npy'))
-        np.testing.assert_almost_equal(phase, reference, err_msg='Unexpected behavior in phase_mag_vortex()')
+        assert_allclose(phase, reference, err_msg='Unexpected behavior in phase_mag_vortex()')
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseAnalytic)

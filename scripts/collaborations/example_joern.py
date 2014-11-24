@@ -68,8 +68,8 @@ log = True
 PATH = '../../output/joern/'
 ###################################################################################################
 # Read in files:
-phase_map = PhaseMap.load_from_netcdf4(PATH+'phase_map_2.nc')
-with open(PATH + 'mask_2.pickle') as pf:
+phase_map = PhaseMap.load_from_netcdf4(PATH+'phase_map.nc')
+with open(PATH + 'mask.pickle') as pf:
     mask = pickle.load(pf)
 dim = mask.shape
 # Setup:
@@ -88,7 +88,7 @@ else:
 tic = clock()
 
 if p == 2:
-    mag_data_rec = rc.optimize_linear(data_set, regularisator=regularisator)
+    mag_data_rec = rc.optimize_linear(data_set, regularisator=regularisator, max_iter=50)
 else:
     print regularisator.p
     mag_data_rec = rc.optimize_nonlin(data_set, regularisator=regularisator)
@@ -101,36 +101,33 @@ with open(dirname + "result.pickle", "wb") as pf:
 print 'reconstruction time:', clock() - tic
 # Display the reconstructed phase map and holography image:
 phase_map_rec = pm(mag_data_rec)
-phase_map_rec.display_combined('Reconstr. Distribution', gain=gain,
-                               interpolation=inter, show=False)
+phase_map_rec.display_combined('Reconstr. Distribution', gain=gain, interpolation=inter)
 plt.savefig(dirname + "/reconstr.png")
 
 # Plot the magnetization:
-axis = (mag_data_rec*(1/mag_data_rec.magnitude.max())).quiver_plot(show=False)
-axis.set_xlim(int(20/64*dim[1], 45/64*dim[2])
-axis.set_ylim(int(20/64*dim[1], 45/64*dim[2])
+axis = (mag_data_rec*(1/mag_data_rec.magnitude.max())).quiver_plot()
+axis.set_xlim(20./64*dim[1], 45/64*dim[2])
+axis.set_ylim(20./64*dim[1], 45/64*dim[2])
 plt.savefig(dirname + "/quiver.png")
 
 # Display the Phase:
 phase_diff = phase_map_rec-phase_map
-phase_diff.display_phase('Difference', show=False)
+phase_diff.display_phase('Difference')
 plt.savefig(dirname + "/difference.png")
 
 # Get the average difference from the experimental results:
 print 'Average difference:', np.average(phase_diff.phase)
 # Plot holographic contour maps with overlayed magnetic distributions:
-axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1,
-                                  interpolation=inter, show=False)
-mag_data_rec.quiver_plot(axis=axis, show=False)
+axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1, interpolation=inter)
+mag_data_rec.quiver_plot(axis=axis)
 axis = plt.gca()
-axis.set_xlim(int(20/64*dim[1], 45/64*dim[2])
-axis.set_ylim(int(20/64*dim[1], 45/64*dim[2])
+axis.set_xlim(20./64*dim[1], 45/64*dim[2])
+axis.set_ylim(20./64*dim[1], 45/64*dim[2])
 plt.savefig(dirname + "/overlay_normal.png")
 
-axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1,
-                                  interpolation=inter, show=False)
-mag_data_rec.quiver_plot(axis=axis, log=log, show=False)
+axis = phase_map_rec.display_holo('Magnetization Overlay', gain=0.1, interpolation=inter)
+mag_data_rec.quiver_plot(axis=axis, log=log)
 axis = plt.gca()
-axis.set_xlim(int(20/64*dim[1], 45/64*dim[2])
-axis.set_ylim(int(20/64*dim[1], 45/64*dim[2])
+axis.set_xlim(20./64*dim[1], 45/64*dim[2])
+axis.set_ylim(20./64*dim[1], 45/64*dim[2])
 plt.savefig(dirname + "/overlay_log.png")

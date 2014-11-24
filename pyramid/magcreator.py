@@ -21,7 +21,8 @@ import abc
 import logging
 
 
-LOG = logging.getLogger(__name__)
+__all__ = ['Shapes', 'create_mag_dist_homog', 'create_mag_dist_vortex']
+_log = logging.getLogger(__name__)
 
 
 class Shapes(object):
@@ -36,7 +37,7 @@ class Shapes(object):
     '''
 
     __metaclass__ = abc.ABCMeta
-    LOG = logging.getLogger(__name__+'.Shapes')
+    _log = logging.getLogger(__name__+'.Shapes')
 
     @classmethod
     def slab(cls, dim, center, width):
@@ -57,7 +58,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         '''
-        cls.LOG.debug('Calling slab')
+        cls._log.debug('Calling slab')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a tuple of length 3!'
@@ -92,7 +93,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         '''
-        cls.LOG.debug('Calling disc')
+        cls._log.debug('Calling disc')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'
@@ -141,7 +142,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         '''
-        cls.LOG.debug('Calling ellipse')
+        cls._log.debug('Calling ellipse')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert np.shape(width) == (2,), 'Parameter width has to be a a tuple of length 2!'
@@ -189,7 +190,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         '''
-        cls.LOG.debug('Calling sphere')
+        cls._log.debug('Calling sphere')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'
@@ -220,7 +221,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         '''
-        cls.LOG.debug('Calling ellipsoid')
+        cls._log.debug('Calling ellipsoid')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a a tuple of length 3!'
@@ -253,7 +254,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         '''
-        cls.LOG.debug('Calling filament')
+        cls._log.debug('Calling filament')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(pos) == (2,), 'Parameter pos has to be a tuple of length 2!'
         assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'
@@ -283,7 +284,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         '''
-        cls.LOG.debug('Calling pixel')
+        cls._log.debug('Calling pixel')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(pixel) == (3,), 'Parameter pixel has to be a tuple of length 3!'
         mag_shape = np.zeros(dim)
@@ -313,7 +314,7 @@ def create_mag_dist_homog(mag_shape, phi, theta=pi/2, magnitude=1):
         `x`-, `y`- and `z`-direction on the 3-dimensional grid.
 
     '''
-    LOG.debug('Calling create_mag_dist_homog')
+    _log.debug('Calling create_mag_dist_homog')
     dim = np.shape(mag_shape)
     assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
     z_mag = np.ones(dim) * np.cos(theta) * mag_shape * magnitude
@@ -345,7 +346,7 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
         `x`-, `y`- and `z`-direction on the 3-dimensional grid.
 
     '''
-    LOG.debug('Calling create_mag_dist_vortex')
+    _log.debug('Calling create_mag_dist_vortex')
     dim = np.shape(mag_shape)
     assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
     assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'

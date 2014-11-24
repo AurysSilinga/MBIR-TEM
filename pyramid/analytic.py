@@ -16,8 +16,10 @@ from pyramid.phasemap import PhaseMap
 import logging
 
 
-LOG = logging.getLogger(__name__)
-PHI_0 = -2067.83  # magnetic flux in T*nm²
+__all__ = ['phase_mag_slab', 'phase_mag_slab', 'phase_mag_sphere', 'phase_mag_vortex']
+_log = logging.getLogger(__name__)
+
+PHI_0 = 2067.83  # magnetic flux in T*nm²
 
 
 def phase_mag_slab(dim, a, phi, center, width, b_0=1):
@@ -45,7 +47,7 @@ def phase_mag_slab(dim, a, phi, center, width, b_0=1):
         The phase as a 2-dimensional array.
 
     '''
-    LOG.debug('Calling phase_mag_slab')
+    _log.debug('Calling phase_mag_slab')
 
     # Function for the phase:
     def phi_mag(x, y):
@@ -66,7 +68,7 @@ def phase_mag_slab(dim, a, phi, center, width, b_0=1):
     y0 = a * (center[1] + 0.5)  # y0, x0 define the center of a pixel,
     x0 = a * (center[2] + 0.5)  # hence: (cellindex + 0.5) * grid spacing
     Lz, Ly, Lx = a * width[0], a * width[1], a * width[2]
-    coeff = b_0 / (4*PHI_0)
+    coeff = - b_0 / (4*PHI_0)  # Minus because of negative z-direction
     # Create grid:
     x = np.linspace(a/2, x_dim*a-a/2, num=x_dim)
     y = np.linspace(a/2, y_dim*a-a/2, num=y_dim)
@@ -102,7 +104,7 @@ def phase_mag_disc(dim, a, phi, center, radius, height, b_0=1):
         The phase as a 2-dimensional array.
 
     '''
-    LOG.debug('Calling phase_mag_disc')
+    _log.debug('Calling phase_mag_disc')
 
     # Function for the phase:
     def phi_mag(x, y):
@@ -118,7 +120,7 @@ def phase_mag_disc(dim, a, phi, center, radius, height, b_0=1):
     x0 = a * (center[2] + 0.5)  # hence: cellindex + 0.5
     Lz = a * height
     R = a * radius
-    coeff = - pi * b_0 / (2*PHI_0)
+    coeff = pi * b_0 / (2*PHI_0)  # Minus is gone because of negative z-direction
     # Create grid:
     x = np.linspace(a/2, x_dim*a-a/2, num=x_dim)
     y = np.linspace(a/2, y_dim*a-a/2, num=y_dim)
@@ -152,7 +154,7 @@ def phase_mag_sphere(dim, a, phi, center, radius, b_0=1):
         The phase as a 2-dimensional array.
 
     '''
-    LOG.debug('Calling phase_mag_sphere')
+    _log.debug('Calling phase_mag_sphere')
 
     # Function for the phase:
     def phi_mag(x, y):
@@ -167,7 +169,7 @@ def phase_mag_sphere(dim, a, phi, center, radius, b_0=1):
     y0 = a * (center[1] + 0.5)  # y0, x0 have to be in the center of a pixel,
     x0 = a * (center[2] + 0.5)  # hence: cellindex + 0.5
     R = a * radius
-    coeff = - 2./3. * pi * b_0 / PHI_0
+    coeff = 2./3. * pi * b_0 / PHI_0  # Minus is gone because of negative z-direction
     # Create grid:
     x = np.linspace(a / 2, x_dim * a - a / 2, num=x_dim)
     y = np.linspace(a / 2, y_dim * a - a / 2, num=y_dim)
@@ -201,7 +203,7 @@ def phase_mag_vortex(dim, a, center, radius, height, b_0=1):
         The phase as a 2-dimensional array.
 
     '''
-    LOG.debug('Calling phase_mag_vortex')
+    _log.debug('Calling phase_mag_vortex')
 
     # Function for the phase:
     def phi_mag(x, y):
@@ -215,7 +217,7 @@ def phase_mag_vortex(dim, a, center, radius, height, b_0=1):
     x0 = a * (center[2] + 0.5)  # hence: cellindex + 0.5
     Lz = a * height
     R = a * radius
-    coeff = pi * b_0 * Lz / PHI_0
+    coeff = - pi * b_0 * Lz / PHI_0  # Minus because of negative z-direction
     # Create grid:
     x = np.linspace(a/2, x_dim*a-a/2, num=x_dim)
     y = np.linspace(a/2, y_dim*a-a/2, num=y_dim)

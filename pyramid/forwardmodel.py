@@ -9,6 +9,9 @@ from pyramid.magdata import MagData
 import logging
 
 
+__all__ = ['ForwardModel']
+
+
 class ForwardModel(object):
 
     '''Class for mapping 3D magnetic distributions to 2D phase maps.
@@ -37,28 +40,29 @@ class ForwardModel(object):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.ForwardModel')
+    _log = logging.getLogger(__name__+'.ForwardModel')
 
     def __init__(self, data_set):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.data_set = data_set
         self.phase_mappers = data_set.phase_mappers
         self.m = data_set.m
         self.n = data_set.n
+        self.shape = (self.m, self.n)
         self.hook_points = data_set.hook_points
         self.mag_data = MagData(data_set.a, np.zeros((3,)+data_set.dim))
-        self.LOG.debug('Creating '+str(self))
+        self._log.debug('Creating '+str(self))
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(data_set=%r)' % (self.__class__, self.data_set)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'ForwardModel(data_set=%s)' % (self.data_set)
 
     def __call__(self, x):
-        self.LOG.debug('Calling __call__')
+        self._log.debug('Calling __call__')
         self.mag_data.magnitude[:] = 0
         self.mag_data.set_vector(x, self.data_set.mask)
         # TODO: Multiprocessing
@@ -89,7 +93,7 @@ class ForwardModel(object):
             `vector`.
 
         '''
-        self.LOG.debug('Calling jac_dot')
+#        self._log.debug('Calling jac_dot')  # TODO: Profiler says this was slow...
         self.mag_data.magnitude[:] = 0
         self.mag_data.set_vector(vector, self.data_set.mask)
         result = np.zeros(self.m)
@@ -119,8 +123,7 @@ class ForwardModel(object):
             the input `vector`.
 
         '''
-        self.LOG.debug('Calling jac_T_dot')
-
+#        self._log.debug('Calling jac_T_dot')  # TODO: Profiler says this was slow...
         result = np.zeros(3*np.prod(self.data_set.dim))
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):

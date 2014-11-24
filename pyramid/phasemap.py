@@ -18,6 +18,9 @@ import netCDF4
 import logging
 
 
+__all__ = ['PhaseMap']
+
+
 class PhaseMap(object):
 
     '''Class for storing phase map data.
@@ -51,7 +54,7 @@ class PhaseMap(object):
 
     '''
 
-    LOG = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
     UNITDICT = {u'rad': 1E0,
                 u'mrad': 1E3,
@@ -141,72 +144,72 @@ class PhaseMap(object):
         self._unit = unit
 
     def __init__(self, a, phase, unit='rad'):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.a = a
         self.phase = phase
         self.unit = unit
-        self.LOG.debug('Created '+str(self))
+        self._log.debug('Created '+str(self))
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(a=%r, phase=%r, unit=%r)' % \
             (self.__class__, self.a, self.phase, self.unit)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'PhaseMap(a=%s, dim_uv=%s)' % (self.a, self.dim_uv)
 
     def __neg__(self):  # -self
-        self.LOG.debug('Calling __neg__')
+        self._log.debug('Calling __neg__')
         return PhaseMap(self.a, -self.phase, self.unit)
 
     def __add__(self, other):  # self + other
-        self.LOG.debug('Calling __add__')
+        self._log.debug('Calling __add__')
         assert isinstance(other, (PhaseMap, Number)), \
             'Only PhaseMap objects and scalar numbers (as offsets) can be added/subtracted!'
         if isinstance(other, PhaseMap):
-            self.LOG.debug('Adding two PhaseMap objects')
+            self._log.debug('Adding two PhaseMap objects')
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
             assert other.phase.shape == self.dim_uv, \
                 'Added magnitude has to have the same dimensions!'
             return PhaseMap(self.a, self.phase+other.phase, self.unit)
         else:  # other is a Number
-            self.LOG.debug('Adding an offset')
+            self._log.debug('Adding an offset')
             return PhaseMap(self.a, self.phase+other, self.unit)
 
     def __sub__(self, other):  # self - other
-        self.LOG.debug('Calling __sub__')
+        self._log.debug('Calling __sub__')
         return self.__add__(-other)
 
     def __mul__(self, other):  # self * other
-        self.LOG.debug('Calling __mul__')
+        self._log.debug('Calling __mul__')
         assert (isinstance(other, Number)
                 or (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
         return PhaseMap(self.a, other*self.phase, self.unit)
 
     def __radd__(self, other):  # other + self
-        self.LOG.debug('Calling __radd__')
+        self._log.debug('Calling __radd__')
         return self.__add__(other)
 
     def __rsub__(self, other):  # other - self
-        self.LOG.debug('Calling __rsub__')
+        self._log.debug('Calling __rsub__')
         return -self.__sub__(other)
 
     def __rmul__(self, other):  # other * self
-        self.LOG.debug('Calling __rmul__')
+        self._log.debug('Calling __rmul__')
         return self.__mul__(other)
 
     def __iadd__(self, other):  # self += other
-        self.LOG.debug('Calling __iadd__')
+        self._log.debug('Calling __iadd__')
         return self.__add__(other)
 
     def __isub__(self, other):  # self -= other
-        self.LOG.debug('Calling __isub__')
+        self._log.debug('Calling __isub__')
         return self.__sub__(other)
 
     def __imul__(self, other):  # self *= other
-        self.LOG.debug('Calling __imul__')
+        self._log.debug('Calling __imul__')
         return self.__mul__(other)
 
     def save_to_txt(self, filename='..\output\phasemap_output.txt'):
@@ -223,7 +226,7 @@ class PhaseMap(object):
         None
 
         '''
-        self.LOG.debug('Calling save_to_txt')
+        self._log.debug('Calling save_to_txt')
         with open(filename, 'w') as phase_file:
             phase_file.write('{}\n'.format(filename.replace('.txt', '')))
             phase_file.write('grid spacing = {} nm\n'.format(self.a))
@@ -244,7 +247,7 @@ class PhaseMap(object):
             A :class:`~.PhaseMap` object containing the loaded data.
 
         '''
-        cls.LOG.debug('Calling load_from_txt')
+        cls._log.debug('Calling load_from_txt')
         with open(filename, 'r') as phase_file:
             phase_file.readline()  # Headerline is not used
             a = float(phase_file.readline()[15:-4])
@@ -265,7 +268,7 @@ class PhaseMap(object):
         None
 
         '''
-        self.LOG.debug('Calling save_to_netcdf4')
+        self._log.debug('Calling save_to_netcdf4')
         phase_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
         phase_file.a = self.a
         phase_file.createDimension('v_dim', self.dim_uv[0])
@@ -289,16 +292,15 @@ class PhaseMap(object):
             A :class:`~.PhaseMap` object containing the loaded data.
 
         '''
-        cls.LOG.debug('Calling load_from_netcdf4')
+        cls._log.debug('Calling load_from_netcdf4')
         phase_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = phase_file.a
         phase = phase_file.variables['phase'][:]
-        #phase = phase[28:36, 28:36]
         phase_file.close()
         return PhaseMap(a, phase)
 
     def display_phase(self, title='Phase Map', cmap='RdBu', limit=None,
-                      norm=None, axis=None, cbar=True, show=True):
+                      norm=None, axis=None, cbar=True):
         '''Display the phasemap as a colormesh.
 
         Parameters
@@ -318,8 +320,6 @@ class PhaseMap(object):
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         cbar : bool, optional
             A switch determining if the colorbar should be plotted or not. Default is True.
-        show : bool, optional
-            A switch which determines if the plot is shown at the end of plotting.
 
         Returns
         -------
@@ -327,7 +327,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         '''
-        self.LOG.debug('Calling display_phase')
+        self._log.debug('Calling display_phase')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[self.unit]
         if limit is None:
@@ -358,13 +358,10 @@ class PhaseMap(object):
             cbar = fig.colorbar(im, cax=cbar_ax)
             cbar.ax.tick_params(labelsize=14)
             cbar.set_label(u'phase shift [{}]'.format(self.unit), fontsize=15)
-        # Show plot:
-        if show:
-            plt.show()
         # Return plotting axis:
         return axis
 
-    def display_phase3d(self, title='Phase Map', cmap='RdBu', show=True):
+    def display_phase3d(self, title='Phase Map', cmap='RdBu'):
         '''Display the phasemap as a 3-D surface with contourplots.
 
         Parameters
@@ -374,8 +371,6 @@ class PhaseMap(object):
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             The default is 'RdBu'.
-        show: bool, optional
-            A switch which determines if the plot is shown at the end of plotting. Default is True.
 
         Returns
         -------
@@ -383,7 +378,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         '''
-        self.LOG.debug('Calling display_phase3d')
+        self._log.debug('Calling display_phase3d')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[self.unit]
         # Create figure and axis:
@@ -400,14 +395,11 @@ class PhaseMap(object):
         axis.set_xlabel('u-axis [px]')
         axis.set_ylabel('v-axis [px]')
         axis.set_zlabel('phase shift [{}]'.format(self.unit))
-        # Show Plot:
-        if show:
-            plt.show()
         # Return plotting axis:
         return axis
 
     def display_holo(self, title=None, gain='auto', axis=None, grad_encode='bright',
-                     interpolation='none', show=True):
+                     interpolation='none'):
         '''Display the color coded holography image.
 
         Parameters
@@ -435,7 +427,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         '''
-        self.LOG.debug('Calling display_holo')
+        self._log.debug('Calling display_holo')
         # Calculate gain if 'auto' is selected:
         if gain == 'auto':
             gain = 4 * 2*pi/self.phase.max()
@@ -453,19 +445,19 @@ class PhaseMap(object):
             phase_saturation = np.dstack((saturation,)*4)
         # Color code the angle and create the holography image:
         if grad_encode == 'dark':
-            self.LOG.debug('gradient encoding: dark')
+            self._log.debug('gradient encoding: dark')
             rgba = self.HOLO_CMAP(phase_angle)
             rgb = (255.999 * img_holo.T * saturation.T * rgba[:, :, :3].T).T.astype(np.uint8)
         elif grad_encode == 'bright':
-            self.LOG.debug('gradient encoding: bright')
+            self._log.debug('gradient encoding: bright')
             rgba = self.HOLO_CMAP(phase_angle)+(1-phase_saturation)*self.HOLO_CMAP_INV(phase_angle)
             rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
         elif grad_encode == 'color':
-            self.LOG.debug('gradient encoding: color')
+            self._log.debug('gradient encoding: color')
             rgba = self.HOLO_CMAP(phase_angle)
             rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
         elif grad_encode == 'none':
-            self.LOG.debug('gradient encoding: none')
+            self._log.debug('gradient encoding: none')
             rgba = self.HOLO_CMAP(phase_angle)+self.HOLO_CMAP_INV(phase_angle)
             rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
         else:
@@ -488,14 +480,11 @@ class PhaseMap(object):
         axis.set_ylim(0, self.dim_uv[0])
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
-        # Show Plot:
-        if show:
-            plt.show()
         # Return plotting axis:
         return axis
 
     def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
-                         gain='auto', interpolation='none', grad_encode='bright', show=True):
+                         gain='auto', interpolation='none', grad_encode='bright'):
         '''Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -522,8 +511,6 @@ class PhaseMap(object):
             encodes the direction (without gradient strength), 'dark' modulates the gradient
             strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
             the gradient strength with color saturation.
-        show: bool, optional
-            A switch which determines if the plot is shown at the end of plotting. Default is True.
 
         Returns
         -------
@@ -531,39 +518,35 @@ class PhaseMap(object):
             The axes on which the graphs are plotted.
 
         '''
-        self.LOG.debug('Calling display_combined')
+        self._log.debug('Calling display_combined')
         # Create combined plot and set title:
         fig = plt.figure(figsize=(16, 7))
         fig.suptitle(title, fontsize=20)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
         self.display_holo(gain=gain, axis=holo_axis, interpolation=interpolation,
-                          show=False, grad_encode=grad_encode)
+                          grad_encode=grad_encode)
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         fig.subplots_adjust(right=0.85)
-        self.display_phase(cmap='RdBu', limit=limit, norm=norm, axis=phase_axis, show=False)
-        # Show Plot:
-        if show:
-            plt.show()
+        self.display_phase(cmap='RdBu', limit=limit, norm=norm, axis=phase_axis)
         # Return the plotting axes:
         return phase_axis, holo_axis
 
     @classmethod
-    def make_color_wheel(cls, show=True):
+    def make_color_wheel(cls):
         '''Display a color wheel to illustrate the color coding of the gradient direction.
 
         Parameters
         ----------
-        show: bool, optional
-            A switch which determines if the plot is shown at the end of plotting. Default is True.
+        None
 
         Returns
         -------
         None
 
         '''
-        cls.LOG.debug('Calling make_color_wheel')
+        cls._log.debug('Calling make_color_wheel')
         x = np.linspace(-256, 256, num=512)
         y = np.linspace(-256, 256, num=512)
         xx, yy = np.meshgrid(x, y)
@@ -582,6 +565,3 @@ class PhaseMap(object):
         axis.imshow(color_wheel, origin='lower')
         axis.xaxis.set_major_locator(NullLocator())
         axis.yaxis.set_major_locator(NullLocator())
-        # Show Plot:
-        if show:
-            plt.show()

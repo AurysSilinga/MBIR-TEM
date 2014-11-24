@@ -18,7 +18,18 @@ from pyramid.phasemap import PhaseMap
 from pyramid.projector import SimpleProjector
 from pyramid.kernel import Kernel
 
+import jutil.fft as jfft
+
 import logging
+
+
+__all__ = ['PhaseMapperRDFC', 'PhaseMapperRDRC', 'PhaseMapperFDFC', 'pm']
+
+PHI_0 = 2067.83   # magnetic flux in T*nm²
+H_BAR = 6.626E-34  # Planck constant in J*s
+M_E = 9.109E-31    # electron mass in kg
+Q_E = 1.602E-19    # electron charge in C
+C = 2.998E8        # speed of light in m/s
 
 
 class PhaseMapper(object):
@@ -35,21 +46,21 @@ class PhaseMapper(object):
     '''
 
     __metaclass__ = abc.ABCMeta
-    LOG = logging.getLogger(__name__+'.PhaseMapper')
+    _log = logging.getLogger(__name__+'.PhaseMapper')
 
     @abc.abstractmethod
     def __call__(self, mag_data):
-        self.LOG.debug('Calling __call__')
+        self._log.debug('Calling __call__')
         raise NotImplementedError()
 
     @abc.abstractmethod
     def jac_dot(self, vector):
-        self.LOG.debug('Calling jac_dot')
+        self._log.debug('Calling jac_dot')
         raise NotImplementedError()
 
     @abc.abstractmethod
     def jac_T_dot(self, vector):
-        self.LOG.debug('Calling jac_T_dot')
+        self._log.debug('Calling jac_T_dot')
         raise NotImplementedError()
 
 
@@ -82,41 +93,67 @@ class PhaseMapperRDFC(PhaseMapper):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.PhaseMapperRDFC')
+    _log = logging.getLogger(__name__+'.PhaseMapperRDFC')
 
     def __init__(self, kernel):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.kernel = kernel
         self.m = np.prod(kernel.dim_uv)
         self.n = 2 * self.m
-        self.LOG.debug('Created '+str(self))
+        if self.kernel.use_fftw:  # if possible use FFTW
+            import pyfftw
+            n = pyfftw.simd_alignment
+            self.u_mag = pyfftw.n_byte_align_empty(self.kernel.dim_uv, n, dtype='float32')
+            self.v_mag = pyfftw.n_byte_align_empty(self.kernel.dim_uv, n, dtype='float32')
+#            self.phase = pyfftw.n_byte_align_empty(self.kernel.dim_uv, n, dtype='float32')
+            self.u_mag_fft = pyfftw.n_byte_align_empty(self.kernel.dim_fft, n, dtype='complex64')
+            self.v_mag_fft = pyfftw.n_byte_align_empty(self.kernel.dim_fft, n, dtype='complex64')
+            self.phase_fft = pyfftw.n_byte_align_empty(self.kernel.dim_fft, n, dtype='complex64')
+            self._rfft2 = pyfftw.builders.rfftn(self.u_mag, self.kernel.dim_pad,
+                                                threads=self.kernel.threads)
+            self._irfft2 = pyfftw.builders.irfftn(self.phase_fft, self.kernel.dim_pad,
+                                                  threads=self.kernel.threads)
+            self._rfft2_adj = self._rfft2_adj_fftw
+            self._irfft2_adj = self._irfft2_adj_fftw
+        else:  # otherwise use numpy
+            self.u_mag = np.empty(self.kernel.dim_uv, dtype=float)
+            self.v_mag = np.empty(self.kernel.dim_uv, dtype=float)
+#            self.phase = np.empty(self.kernel.dim_uv, dtype=float)
+            self.u_mag_fft = np.empty(self.kernel.dim_fft, dtype=complex)
+            self.v_mag_fft = np.empty(self.kernel.dim_fft, dtype=complex)
+            self.phase_fft = np.empty(self.kernel.dim_fft, dtype=complex)
+            self._rfft2 = lambda x: np.fft.rfftn(x, self.kernel.dim_pad)
+            self._irfft2 = lambda x: np.fft.irfftn(x, self.kernel.dim_pad)
+            self._rfft2_adj = jfft.irfft2_adj
+            self._rfft2_adj = jfft.irfft2_adj
+        self._log.debug('Created '+str(self))
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(kernel=%r)' % (self.__class__, self.kernel)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'PhaseMapperRDFC(kernel=%s)' % (self.kernel)
 
     def __call__(self, mag_data):
-        self.LOG.debug('Calling __call__')
+        self._log.debug('Calling __call__')
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert mag_data.a == self.kernel.a, 'Grid spacing has to match!'
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
         assert mag_data.dim[1:3] == self.kernel.dim_uv, 'Dimensions do not match!'
         # Process input parameters:
-        u_mag, v_mag = mag_data.magnitude[0:2, 0, ...]
-        return PhaseMap(mag_data.a, self._convolve(u_mag, v_mag))
+        self.u_mag[...], self.v_mag[...] = mag_data.magnitude[0:2, 0, ...]
+        return PhaseMap(mag_data.a, self._convolve())
 
-    def _convolve(self, u_mag, v_mag):
+    def _convolve(self):
         # Fourier transform the projected magnetisation:
-        u_mag_fft = np.fft.rfftn(u_mag, self.kernel.dim_fft)
-        v_mag_fft = np.fft.rfftn(v_mag, self.kernel.dim_fft)
+        self.u_mag_fft[...] = self._rfft2(self.u_mag)
+        self.v_mag_fft[...] = self._rfft2(self.v_mag)
         # Convolve the magnetization with the kernel in Fourier space:
-        phase_fft = u_mag_fft*self.kernel.u_fft - v_mag_fft*self.kernel.v_fft
+        self.phase_fft[...] = self.u_mag_fft*self.kernel.u_fft - self.v_mag_fft*self.kernel.v_fft
         # Return the result:
-        return np.fft.irfftn(phase_fft, self.kernel.dim_fft)[self.kernel.slice_fft]
+        return self._irfft2(self.phase_fft)[self.kernel.slice_fft]
 
     def jac_dot(self, vector):
         '''Calculate the product of the Jacobi matrix with a given `vector`.
@@ -134,13 +171,12 @@ class PhaseMapperRDFC(PhaseMapper):
             Product of the Jacobi matrix (which is not explicitely calculated) with the vector.
 
         '''
-        self.LOG.debug('Calling jac_dot')
+#        self._log.debug('Calling jac_dot')  # TODO: Profiler says this was slow...
         assert len(vector) == self.n, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
-        u_mag, v_mag = np.reshape(vector, (2,)+self.kernel.dim_uv)
-        result = self._convolve(u_mag, v_mag).reshape(-1)
+        self.u_mag[...], self.v_mag[...] = np.reshape(vector, (2,)+self.kernel.dim_uv)
+        result = self._convolve().reshape(-1)
         return result
-        #return self.kernel._multiply_jacobi(vector)
 
     def jac_T_dot(self, vector):
         '''Calculate the product of the transposed Jacobi matrix with a given `vector`.
@@ -158,61 +194,84 @@ class PhaseMapperRDFC(PhaseMapper):
             the vector, which has ``2*N**2`` entries like a 2D magnetic projection.
 
         '''
-        self.LOG.debug('Calling jac_T_dot')
+#        self._log.debug('Calling jac_T_dot')  # TODO: Profiler says this was slow...
         assert len(vector) == self.m, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
-        result = np.zeros(self.n)
+        phase = vector.reshape(self.kernel.dim_uv)
+        p0 = self.kernel.dim_pad[0]-self.kernel.dim_uv[0]
+        p1 = self.kernel.dim_pad[1]-self.kernel.dim_uv[1]
+        phase = np.pad(phase, ((0, p0), (0, p1)), 'constant')
+        phase_fft = jfft.irfft2_adj(phase)
+        u_mag_fft = phase_fft * self.kernel.u_fft
+        v_mag_fft = phase_fft * -self.kernel.v_fft
+        u_mag = jfft.rfft2_adj(u_mag_fft, self.kernel.dim_pad[1])[self.kernel.slice_fft]
+        v_mag = jfft.rfft2_adj(v_mag_fft, self.kernel.dim_pad[1])[self.kernel.slice_fft]
+        return -np.concatenate((u_mag.flatten(), v_mag.flatten()))  # TODO: why the minus?
 
-        import jutil.fft as jfft
-        from jutil.taketime import TakeTime
+#   TODO: save arrays in PADDED form (kernel and the self.u/v/... stuff) to save padding time
+#   TODO: also gets rid of (..., self.kernel.dim_pad) argument
+#        if a.shape[axis] != n:
+#            s = list(a.shape)
+#        if s[axis] > n:
+#            index = [slice(None)]*len(s)
+#            index[axis] = slice(0, n)
+#            a = a[index]
+#        else:
+#            index = [slice(None)]*len(s)
+#            index[axis] = slice(0, s[axis])
+#            s[axis] = n
+#            z = zeros(s, a.dtype.char)
+#            z[index] = a
+#            a = z
 
-        with TakeTime('fft_adjoint'):
+    def _rfft2_adj_fftw(x, n=None):
+        """
+        Adjoint of the 2-D Real Fast Fourier Transform, that is the product of the adjoint
+        Jacobian of the numpy rfftn with vector x.
 
-            phase = vector.reshape(self.kernel.dim_uv)
-            p0 = self.kernel.dim_fft[0]-self.kernel.dim_uv[0]
-            p1 = self.kernel.dim_fft[1]-self.kernel.dim_uv[1]
-            phase = np.pad(phase, ((0, p0), (0, p1)), 'constant')
+        Parameters
+        ----------
+        x : array_like
+        n : int, optional
+            Length of second dimension of original array (the one, the size of which is
+            changed by employing the rfft2)
 
-            phase_fft = jfft.irfft2_adj(phase)
-            u_mag_fft = phase_fft * self.kernel.u_fft
-            v_mag_fft = phase_fft * -self.kernel.v_fft
-            u_mag = jfft.rfft2_adj(u_mag_fft, self.kernel.dim_fft[1])[self.kernel.slice_fft]
-            v_mag = jfft.rfft2_adj(v_mag_fft, self.kernel.dim_fft[1])[self.kernel.slice_fft]
-            result = -np.concatenate((u_mag.flatten(), v_mag.flatten()))
+        Returns
+        -------
+        array_like
+        """
+        print 'rfftn2_adj input:', x.shape
+        if n is None:
+            n = 2 * (x.shape[1] - 1)
+        xp = np.zeros((x.shape[0], n), dtype=x.dtype)
+        xp[:, :x.shape[1]] = x
+        print 'rfftn2_adj output:', np.fft.ifftn(xp).real * x.shape[0] * n
+        return np.fft.ifftn(xp).real * x.shape[0] * n
 
-#        # TODO: directly? ask Jörn again!
-#        phase = vector.reshape(self.kernel.dim_uv)
-#        phase_fft = np.fft.fft(phase, self.kernel.dim_fft)
-#        u_mag_fft = phase_fft * self.kernel.u_fft_compl
-#        v_mag_fft = phase_fft * -self.kernel.v_fft_compl
-#        u_mag = np.fft.ifft(u_mag_fft, self.kernel.dim_fft)[self.kernel.slice_fft]
-#        v_mag = np.fft.ifft(u_mag_fft, self.kernel.dim_fft)[self.kernel.slice_fft]
-#        result = np.concatenate((u_mag.flatten(), v_mag.flatten()))
-#        return result
+    def _irfft2_adj_fftw(x):
+        """
+        Adjoint of the 2-D Inverse Real Fast Fourier Transform, that is the product of the
+        adjoint Jacobian of the numpy irfftn with vector x.
 
-    #TODO: np.split()
-    #TODO: TakeTime()
-    #TODO: 'constant' in np.pad()
+        Parameters
+        ----------
+        x : array_like
 
-#        result[s] = np.sum(vector*self.u[v_min:v_max, u_min:u_max].reshape(-1))
-#        result[s+self.m] = np.sum(vector*-self.v[v_min:v_max, u_min:u_max].reshape(-1))
-#
-#        # Fourier transform the projected magnetisation:
-#        u_mag_fft = np.fft.rfftn(u_mag, self.kernel.dim_fft)
-#        v_mag_fft = np.fft.rfftn(v_mag, self.kernel.dim_fft)
-#        # Convolve the magnetization with the kernel in Fourier space:
-#        phase_fft = u_mag_fft*self.kernel.u_fft - v_mag_fft*self.kernel.v_fft
-#        # Return the result:
-#        return np.fft.irfftn(phase_fft, self.kernel.dim_fft)[self.kernel.slice_fft]
-
-#        with TakeTime('oldschool'):
-#            compare = np.zeros(self.n)
-#            nc.jac_T_dot_real_convolve(self.kernel.dim_uv[0], self.kernel.dim_uv[1],
-#                                       self.kernel.u, self.kernel.v, vector, compare)
-
-#        import pdb; pdb.set_trace()
-#        assert np.testing.assert_almost_equal(result, compare)
-        return result
+        Returns
+        -------
+        array_like
+        """
+        print 'irfftn2_adj input:', x.shape
+        n_out = x.shape[1] / 2 + 1
+        xp = np.fft.fft(x, axis=1) / x.shape[1]
+        if x.shape[1] % 2 == 0:
+            xp[:, 1:n_out - 1] += np.conj(xp[:, :n_out-1:-1])
+    #        xp[:, n_out - 1] = xp[:, n_out - 1].real
+        else:
+            xp[:, 1:n_out] += np.conj(xp[:, :n_out-1:-1])
+    #    xp[:, 0] = xp[:, 0].real
+        print 'rfftn2_adj output:', np.fft.ifftn(xp).real * x.shape[0] * n
+        return np.fft.fft(xp[:, :n_out], axis=0) / xp.shape[0]
 
 
 class PhaseMapperRDRC(PhaseMapper):
@@ -246,29 +305,29 @@ class PhaseMapperRDRC(PhaseMapper):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.PhaseMapperRDRC')
+    _log = logging.getLogger(__name__+'.PhaseMapperRDRC')
 
     def __init__(self, kernel, threshold=0, numcore=True):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.kernel = kernel
         self.threshold = threshold
         self.numcore = numcore
         self.m = np.prod(kernel.dim_uv)
         self.n = 2 * self.m
-        self.LOG.debug('Created '+str(self))
+        self._log.debug('Created '+str(self))
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(kernel=%r, threshold=%r, numcore=%r)' % \
             (self.__class__, self.kernel, self.threshold, self.numcore)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'PhaseMapperRDRC(kernel=%s, threshold=%s, numcore=%s)' % \
             (self.kernel, self.threshold, self.numcore)
 
     def __call__(self, mag_data):
-        self.LOG.debug('Calling __call__')
+        self._log.debug('Calling __call__')
         dim_uv = self.kernel.dim_uv
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert mag_data.a == self.kernel.a, 'Grid spacing has to match!'
@@ -314,7 +373,7 @@ class PhaseMapperRDRC(PhaseMapper):
             Product of the Jacobi matrix (which is not explicitely calculated) with the vector.
 
         '''
-        self.LOG.debug('Calling jac_dot')
+        self._log.debug('Calling jac_dot')
         assert len(vector) == self.n, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
         v_dim, u_dim = self.kernel.dim_uv
@@ -350,7 +409,7 @@ class PhaseMapperRDRC(PhaseMapper):
             the vector, which has ``2*N**2`` entries like a 2D magnetic projection.
 
         '''
-        self.LOG.debug('Calling jac_T_dot')
+        self._log.debug('Calling jac_T_dot')
         assert len(vector) == self.m, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
         v_dim, u_dim = self.dim_uv
@@ -396,31 +455,30 @@ class PhaseMapperFDFC(PhaseMapper):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.PhaseMapperFDFC')
-    PHI_0 = -2067.83   # magnetic flux in T*nm²
+    _log = logging.getLogger(__name__+'.PhaseMapperFDFC')
 
     def __init__(self, a, dim_uv, b_0=1, padding=0):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.a = a
         self.dim_uv = dim_uv
         self.b_0 = b_0
         self.padding = padding
         self.m = np.prod(dim_uv)
         self.n = 2 * self.m
-        self.LOG.debug('Created '+str(self))
+        self._log.debug('Created '+str(self))
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(a=%r, dim_uv=%r, b_0=%r, padding=%r)' % \
             (self.__class__, self.a, self.dim_uv, self.b_0, self.padding)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'PhaseMapperFDFC(a=%s, dim_uv=%s, b_0=%s, padding=%s)' % \
             (self.a, self.dim_uv, self.b_0, self.padding)
 
     def __call__(self, mag_data):
-        self.LOG.debug('Calling __call__')
+        self._log.debug('Calling __call__')
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert mag_data.a == self.a, 'Grid spacing has to match!'
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
@@ -430,8 +488,8 @@ class PhaseMapperFDFC(PhaseMapper):
         # Create zero padded matrices:
         u_pad = int(u_dim/2 * self.padding)
         v_pad = int(v_dim/2 * self.padding)
-        u_mag_pad = np.pad(u_mag, ((v_pad, v_pad), (u_pad, u_pad)), 'constant', constant_values=0)
-        v_mag_pad = np.pad(v_mag, ((v_pad, v_pad), (u_pad, u_pad)), 'constant', constant_values=0)
+        u_mag_pad = np.pad(u_mag, ((v_pad, v_pad), (u_pad, u_pad)), 'constant')
+        v_mag_pad = np.pad(v_mag, ((v_pad, v_pad), (u_pad, u_pad)), 'constant')
         # Fourier transform of the two components:
         u_mag_fft = np.fft.fftshift(np.fft.rfft2(u_mag_pad), axes=0)
         v_mag_fft = np.fft.fftshift(np.fft.rfft2(v_mag_pad), axes=0)
@@ -440,7 +498,7 @@ class PhaseMapperFDFC(PhaseMapper):
         f_u = np.linspace(0, f_nyq, u_mag_fft.shape[1])
         f_v = np.linspace(-f_nyq, f_nyq, u_mag_fft.shape[0], endpoint=False)
         f_uu, f_vv = np.meshgrid(f_u, f_v)
-        coeff = (1j*self.b_0*self.a) / (2*self.PHI_0)
+        coeff = - (1j*self.b_0*self.a) / (2*PHI_0)  # Minus because of negative z-direction
         phase_fft = coeff * (u_mag_fft*f_vv - v_mag_fft*f_uu) / (f_uu**2 + f_vv**2 + 1e-30)
         # Transform to real space and revert padding:
         phase_pad = np.fft.irfft2(np.fft.ifftshift(phase_fft, axes=0))
@@ -448,7 +506,7 @@ class PhaseMapperFDFC(PhaseMapper):
         return PhaseMap(mag_data.a, phase)
 
     def jac_dot(self, vector):
-        self.LOG.debug('Calling jac_dot')
+        self._log.debug('Calling jac_dot')
         '''Calculate the product of the Jacobi matrix with a given `vector`.
 
         Parameters
@@ -464,7 +522,7 @@ class PhaseMapperFDFC(PhaseMapper):
             Product of the Jacobi matrix (which is not explicitely calculated) with the vector.
 
         '''
-        self.LOG.debug('Calling jac_dot')
+        self._log.debug('Calling jac_dot')
         assert len(vector) == self.n, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
         mag_proj = MagData(self.a, np.zeros((3, 1)+self.dim_uv))
@@ -474,7 +532,7 @@ class PhaseMapperFDFC(PhaseMapper):
         return self(mag_proj).phase_vec
 
     def jac_T_dot(self, vector):
-        self.LOG.debug('Calling jac_T_dot')
+        self._log.debug('Calling jac_T_dot')
         raise NotImplementedError()
         # TODO: Implement!
 
@@ -505,14 +563,10 @@ class PhaseMapperElectric(PhaseMapper):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.PhaseMapperElectric')
-    H_BAR = 6.626E-34  # Planck constant in J*s
-    M_E = 9.109E-31    # electron mass in kg
-    Q_E = 1.602E-19    # electron charge in C
-    C = 2.998E8        # speed of light in m/s
+    _log = logging.getLogger(__name__+'.PhaseMapperElectric')
 
     def __init__(self, a, dim_uv, v_0=1, v_acc=30000, threshold=0):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.a = a
         self.dim_uv = dim_uv
         self.v_0 = v_0
@@ -521,24 +575,23 @@ class PhaseMapperElectric(PhaseMapper):
         self.m = np.prod(self.dim_uv)
         self.n = np.prod(self.dim_uv)
         # Coefficient calculation:
-        H_BAR, M_E, Q_E, C = self.H_BAR, self.M_E, self.Q_E, self.C
         lam = H_BAR / np.sqrt(2 * M_E * Q_E * v_acc * (1 + Q_E*v_acc / (2*M_E*C**2)))
         C_e = 2*pi*Q_E/lam * (Q_E*v_acc + M_E*C**2) / (Q_E*v_acc * (Q_E*v_acc + 2*M_E*C**2))
         self.coeff = v_0 * C_e * a * 1E-9
-        self.LOG.debug('Created '+str(self))
+        self._log.debug('Created '+str(self))
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(a=%r, dim_uv=%r, v_0=%r, v_acc=%r, threshold=%r)' % \
             (self.__class__, self.a, self.dim_uv, self.v_0, self.v_acc, self.threshold)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'PhaseMapperElectric(a=%s, dim_uv=%s, v_0=%s, v_acc=%s, threshold=%s)' % \
             (self.a, self.dim_uv, self.v_0, self.v_acc, self.threshold)
 
     def __call__(self, mag_data):
-        self.LOG.debug('Calling __call__')
+        self._log.debug('Calling __call__')
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert mag_data.a == self.a, 'Grid spacing has to match!'
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
@@ -553,12 +606,12 @@ class PhaseMapperElectric(PhaseMapper):
         return PhaseMap(mag_data.a, phase)
 
     def jac_dot(self, vector):
-        self.LOG.debug('Calling jac_dot')
+        self._log.debug('Calling jac_dot')
         raise NotImplementedError()
         # TODO: Implement?
 
     def jac_T_dot(self, vector):
-        self.LOG.debug('Calling jac_T_dot')
+        self._log.debug('Calling jac_T_dot')
         raise NotImplementedError()
         # TODO: Implement?
 
@@ -582,7 +635,7 @@ def pm(mag_data, axis='z', dim_uv=None, b_0=1):
     mag_data : :class:`~pyramid.magdata.MagData`
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
-    '''
+    '''  # TODO: use_fftw false to notes
     projector = SimpleProjector(mag_data.dim, axis=axis, dim_uv=dim_uv)
-    phasemapper = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))
+    phasemapper = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv, use_fftw=False))
     return phasemapper(projector(mag_data))

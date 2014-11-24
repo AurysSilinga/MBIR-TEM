@@ -209,13 +209,13 @@ class UI_MagSlicerMain(QtGui.QWidget):
             self.update_slice()
             self.phase_mapper = PhaseMapperRDFC(Kernel(self.mag_data.a, self.projector.dim_uv))
             self.phase_map = self.phase_mapper(self.projector(self.mag_data))
-            self.phase_map.display_phase(axis=self.mplWidgetPhase.axes, cbar=False, show=False)
+            self.phase_map.display_phase(axis=self.mplWidgetPhase.axes, cbar=False)
             if self.checkBoxSmooth.isChecked():
                 interpolation = 'bilinear'
             else:
                 interpolation = 'none'
             self.phase_map.display_holo(axis=self.mplWidgetHolo.axes, gain=gain,
-                                        interpolation=interpolation, show=False)
+                                        interpolation=interpolation)
             self.mplWidgetPhase.draw()
             self.mplWidgetHolo.draw()
 
@@ -224,8 +224,7 @@ class UI_MagSlicerMain(QtGui.QWidget):
             self.mag_data.quiver_plot(axis=self.mplWidgetMag.axes, proj_axis=self.mode,
                                       ax_slice=self.spinBoxSlice.value(),
                                       log=self.checkBoxLog.isChecked(),
-                                      scaled=self.checkBoxScale.isChecked(),
-                                      show=False)
+                                      scaled=self.checkBoxScale.isChecked())
             self.mplWidgetMag.draw()
 
     def load(self):

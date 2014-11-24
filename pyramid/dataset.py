@@ -6,7 +6,7 @@ and additional data like corresponding projectors."""
 import numpy as np
 from numbers import Number
 
-import scipy.sparse as sp
+from scipy.sparse import eye as sparse_eye
 
 import matplotlib.pyplot as plt
 
@@ -16,6 +16,9 @@ from pyramid.projector import Projector
 from pyramid.kernel import Kernel
 
 import logging
+
+
+__all__ = ['DataSet']
 
 
 class DataSet(object):
@@ -53,7 +56,7 @@ class DataSet(object):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.DataSet')
+    _log = logging.getLogger(__name__+'.DataSet')
 
     @property
     def m(self):
@@ -62,7 +65,7 @@ class DataSet(object):
     @property
     def Se_inv(self):
         # TODO: better implementation, maybe get-method? more flexible? input in append?
-        return sp.eye(self.m)
+        return sparse_eye(self.m)
 
     @property
     def phase_vec(self):
@@ -82,7 +85,7 @@ class DataSet(object):
         return {kernel.dim_uv: PhaseMapperRDFC(kernel) for kernel in kernel_list}
 
     def __init__(self, a, dim, b_0=1, mask=None):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         assert isinstance(a, Number), 'Grid spacing has to be a number!'
         assert a >= 0, 'Grid spacing has to be a positive number!'
         assert isinstance(dim, tuple) and len(dim) == 3, \
@@ -98,14 +101,14 @@ class DataSet(object):
         self.mask = mask
         self.phase_maps = []
         self.projectors = []
-        self.LOG.debug('Created: '+str(self))
+        self._log.debug('Created: '+str(self))
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(a=%r, dim=%r, b_0=%r)' % (self.__class__, self.a, self.dim, self.b_0)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'DataSet(a=%s, dim=%s, b_0=%s)' % (self.a, self.dim, self.b_0)
 
     def append(self, phase_map, projector):  # TODO: include Se_inv or 2D mask??
@@ -123,7 +126,7 @@ class DataSet(object):
         None
 
         '''
-        self.LOG.debug('Calling append')
+        self._log.debug('Calling append')
         assert isinstance(phase_map, PhaseMap) and isinstance(projector, Projector),  \
             'Argument has to be a tuple of a PhaseMap and a Projector object!'
         assert projector.dim == self.dim, '3D dimensions must match!'
@@ -176,7 +179,7 @@ class DataSet(object):
         None
 
         '''
-        self.LOG.debug('Calling display')
+        self._log.debug('Calling display')
         if mag_data is not None:
             phase_maps = self.create_phase_maps(mag_data)
         else:
@@ -223,7 +226,7 @@ class DataSet(object):
         None
 
         '''
-        self.LOG.debug('Calling display_combined')
+        self._log.debug('Calling display_combined')
         if mag_data is not None:
             phase_maps = self.create_phase_maps(mag_data)
         else:

@@ -17,6 +17,9 @@ from pyramid.magdata import MagData
 import logging
 
 
+__all__ = ['XTiltProjector', 'YTiltProjector', 'SimpleProjector']
+
+
 class Projector(object):
 
     '''Abstract base class representing a projection function.
@@ -53,11 +56,11 @@ class Projector(object):
     '''
 
     __metaclass__ = abc.ABCMeta
-    LOG = logging.getLogger(__name__+'.Projector')
+    _log = logging.getLogger(__name__+'.Projector')
 
     @abc.abstractmethod
     def __init__(self, dim, dim_uv, weight, coeff):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.dim = dim
         self.dim_uv = dim_uv
         self.weight = weight
@@ -65,26 +68,26 @@ class Projector(object):
         self.size_2d, self.size_3d = weight.shape
         self.n = 3 * np.prod(dim)
         self.m = 2 * np.prod(dim_uv)
-        self.LOG.debug('Created '+str(self))
+        self._log.debug('Created '+str(self))
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(dim=%r, dim_uv=%r, weight=%r, coeff=%r)' % \
             (self.__class__, self.dim, self.dim_uv, self.weight, self.coeff)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'Projector(dim=%s, dim_uv=%s, coeff=%s)' % (self.dim, self.dim_uv, self.coeff)
 
     def __call__(self, mag_data):
-        self.LOG.debug('Calling as function')
+        self._log.debug('Calling as function')
         mag_proj = MagData(mag_data.a, np.zeros((3, 1)+self.dim_uv))
         magnitude_proj = self.jac_dot(mag_data.mag_vec).reshape((2, )+self.dim_uv)
         mag_proj.magnitude[0:2, 0, ...] = magnitude_proj
         return mag_proj
 
     def _vector_field_projection(self, vector):
-        self.LOG.debug('Calling _vector_field_projection')
+#        self._log.debug('Calling _vector_field_projection')  # TODO: Profiler says this was slow...
         size_2d, size_3d = self.size_2d, self.size_3d
         result = np.zeros(2*size_2d)
         # Go over all possible component projections (z, y, x) to (u, v):
@@ -103,7 +106,7 @@ class Projector(object):
         return result
 
     def _vector_field_projection_T(self, vector):
-        self.LOG.debug('Calling _vector_field_projection_T')
+#        self._log.debug('Calling _vector_field_projection_T')  # TODO: Profiler says this was slow...
         size_2d, size_3d = self.size_2d, self.size_3d
         result = np.zeros(3*size_3d)
         # Go over all possible component projections (u, v) to (z, y, x):
@@ -122,11 +125,11 @@ class Projector(object):
         return result
 
     def _scalar_field_projection(self, vector):
-        self.LOG.debug('Calling _scalar_field_projection')
+        self._log.debug('Calling _scalar_field_projection')
         return np.array(self.weight.dot(vector))
 
     def _scalar_field_projection_T(self, vector):
-        self.LOG.debug('Calling _scalar_field_projection_T')
+        self._log.debug('Calling _scalar_field_projection_T')
         return np.array(self.weight.T.dot(vector))
 
     def jac_dot(self, vector):
@@ -145,12 +148,12 @@ class Projector(object):
             always`size_2d`.
 
         '''
-        self.LOG.debug('Calling jac_dot')
+#        self._log.debug('Calling jac_dot')  # TODO: Profiler says this was slow...
         if len(vector) == 3*self.size_3d:  # mode == 'vector'
-            self.LOG.debug('mode == vector')
+#            self._log.debug('mode == vector')  # TODO: Profiler says this was slow...
             return self._vector_field_projection(vector)
         elif len(vector) == self.size_3d:  # mode == 'scalar'
-            self.LOG.debug('mode == scalar')
+#            self._log.debug('mode == scalar')  # TODO: Profiler says this was slow...
             return self._scalar_field_projection(vector)
         else:
             raise AssertionError('Vector size has to be suited either for '
@@ -172,12 +175,12 @@ class Projector(object):
             of the :class:`~.Projector` object.
 
         '''
-        self.LOG.debug('Calling jac_T_dot')
+#        self._log.debug('Calling jac_T_dot')  # TODO: Profiler says this was slow...
         if len(vector) == 2*self.size_2d:  # mode == 'vector'
-            self.LOG.debug('mode == vector')
+#            self._log.debug('mode == vector')  # TODO: Profiler says this was slow...
             return self._vector_field_projection_T(vector)
         elif len(vector) == self.size_2d:  # mode == 'scalar'
-            self.LOG.debug('mode == scalar')
+#            self._log.debug('mode == scalar')  # TODO: Profiler says this was slow...
             return self._scalar_field_projection_T(vector)
         else:
             raise AssertionError('Vector size has to be suited either for '
@@ -219,22 +222,22 @@ class XTiltProjector(Projector):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.XTiltProjector')
+    _log = logging.getLogger(__name__+'.XTiltProjector')
 
     def __init__(self, dim, tilt, dim_uv=None):
 
         def get_position(p, m, b, size):
-            self.LOG.debug('Calling get_position')
+            self._log.debug('Calling get_position')
             y, x = np.array(p)[:, 0]+0.5, np.array(p)[:, 1]+0.5
             return (y-m*x-b)/np.sqrt(m**2+1) + size/2.
 
         def get_impact(pos, r, size):
-            self.LOG.debug('Calling get_impact')
+            self._log.debug('Calling get_impact')
             return [x for x in np.arange(np.floor(pos-r), np.floor(pos+r)+1, dtype=int)
                     if 0 <= x < size]
 
         def get_weight(delta, rho):  # use circles to represent the voxels
-            self.LOG.debug('Calling get_weight')
+            self._log.debug('Calling get_weight')
             lo, up = delta-rho, delta+rho
             # Upper boundary:
             if up >= 1:
@@ -248,7 +251,7 @@ class XTiltProjector(Projector):
                 w_lo = (lo*np.sqrt(1-lo**2) + np.arctan(lo/np.sqrt(1-lo**2))) / pi
             return w_up - w_lo
 
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.tilt = tilt
         # Set starting variables:
         # length along projection (proj, z), perpendicular (perp, y) and rotation (rot, x) axis:
@@ -292,7 +295,7 @@ class XTiltProjector(Projector):
                                        shape=(size_2d, size_3d)))
         coeff = [[1, 0, 0], [0, np.cos(tilt), np.sin(tilt)]]
         super(XTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
-        self.LOG.debug('Created '+str(self))
+        self._log.debug('Created '+str(self))
 
     def get_info(self):
         '''Get specific information about the projector as a string.
@@ -329,7 +332,7 @@ class YTiltProjector(Projector):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.YTiltProjector')
+    _log = logging.getLogger(__name__+'.YTiltProjector')
 
     def __init__(self, dim, tilt, dim_uv=None):
 
@@ -355,7 +358,7 @@ class YTiltProjector(Projector):
                 w_lo = (lo*np.sqrt(1-lo**2) + np.arctan(lo/np.sqrt(1-lo**2))) / pi
             return w_up - w_lo
 
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.tilt = tilt
         # Set starting variables:
         # length along projection (proj, z), rotation (rot, y) and perpendicular (perp, x) axis:
@@ -399,7 +402,7 @@ class YTiltProjector(Projector):
                                        shape=(size_2d, size_3d)))
         coeff = [[np.cos(tilt), 0, np.sin(tilt)], [0, 1, 0]]
         super(YTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
-        self.LOG.debug('Created '+str(self))
+        self._log.debug('Created '+str(self))
 
     def get_info(self):
         '''Get specific information about the projector as a string.
@@ -437,31 +440,34 @@ class SimpleProjector(Projector):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.SimpleProjector')
+    _log = logging.getLogger(__name__+'.SimpleProjector')
     AXIS_DICT = {'z': (0, 1, 2), 'y': (1, 0, 2), 'x': (2, 1, 0)}  # (0:z, 1:y, 2:x) -> (proj, v, u)
 
     def __init__(self, dim, axis='z', dim_uv=None):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         assert axis in {'z', 'y', 'x'}, 'Projection axis has to be x, y or z (given as a string)!'
         proj, v, u = self.AXIS_DICT[axis]
-        dim_proj, dim_v, dim_u = dim[proj], dim[v], dim[u]
+        if axis=='x':
+            dim_proj, dim_v, dim_u = dim[proj], dim[u], dim[v]  # coordinate switch for 'x'!
+        else:
+            dim_proj, dim_v, dim_u = dim[proj], dim[v], dim[u]
         dim_z, dim_y, dim_x = dim
         size_2d = dim_u * dim_v
         size_3d = np.prod(dim)
         data = np.repeat(1, size_3d)  # size_3d ones in the matrix (each voxel is projected)
         indptr = np.arange(0, size_3d+1, dim_proj)  # each row has dim_proj ones
         if axis == 'z':
-            self.LOG.debug('Projecting along the z-axis')
+            self._log.debug('Projecting along the z-axis')
             coeff = [[1, 0, 0], [0, 1, 0]]
             indices = np.array([np.arange(row, size_3d, size_2d)
                                 for row in range(size_2d)]).reshape(-1)
         elif axis == 'y':
-            self.LOG.debug('Projection along the y-axis')
+            self._log.debug('Projection along the y-axis')
             coeff = [[1, 0, 0], [0, 0, 1]]
             indices = np.array([np.arange(row%dim_x, dim_x*dim_y, dim_x)+int(row/dim_x)*dim_x*dim_y
                                 for row in range(size_2d)]).reshape(-1)
         elif axis == 'x':
-            self.LOG.debug('Projection along the x-axis')
+            self._log.debug('Projection along the x-axis')
             coeff = [[0, 0, 1], [0, 1, 0]]  # Caution, coordinate switch: u, v --> z, y (not y, z!)
             #  indices = np.array([np.arange(dim_proj) + row*dim_proj
             #                      for row in range(size_2d)]).reshape(-1)  # this is u, v --> y, z
@@ -484,7 +490,7 @@ class SimpleProjector(Projector):
         # Create weight-matrix:
         weight = csr_matrix((data, indices, indptr), shape=(size_2d, size_3d))
         super(SimpleProjector, self).__init__(dim, dim_uv, weight, coeff)
-        self.LOG.debug('Created '+str(self))
+        self._log.debug('Created '+str(self))
 
     def get_info(self):
         '''Get specific information about the projector as a string.

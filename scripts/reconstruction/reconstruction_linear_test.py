@@ -7,16 +7,16 @@ import os
 import numpy as np
 from numpy import pi
 
-from time import clock
-
 import pyramid
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
 from pyramid.projector import YTiltProjector, XTiltProjector
 from pyramid.dataset import DataSet
-from pyramid.regularisator import ZeroOrderRegularisator
+from pyramid.regularisator import FirstOrderRegularisator
 import pyramid.magcreator as mc
 import pyramid.reconstruction as rc
+
+from jutil.taketime import TakeTime
 
 import logging
 import logging.config
@@ -32,23 +32,28 @@ print('--Generating input phase_maps')
 
 a = 10.
 b_0 = 1.
-dim = (8, 32, 32)
+dim = (32, 32, 32)
 dim_uv = dim[1:3]
 count = 16
+lam = 1E-4
+center = (dim[0]/2-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
+radius_core = dim[1]/8
+radius_shell = dim[1]/4
+height = dim[0]/2
+# Create magnetic shape:
+mag_shape_core = mc.Shapes.disc(dim, center, radius_core, height)
+mag_shape_outer = mc.Shapes.disc(dim, center, radius_shell, height)
+mag_shape_shell = np.logical_xor(mag_shape_outer, mag_shape_core)
+mag_data = MagData(a, mc.create_mag_dist_vortex(mag_shape_shell, magnitude=0.75))
+mag_data += MagData(a, mc.create_mag_dist_homog(mag_shape_core, phi=0, theta=0))
 
-center = (int(dim[0]/2)-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
-mag_shape = mc.Shapes.disc(dim, center, dim[2]/4, dim[2]/2)
-magnitude = mc.create_mag_dist_vortex(mag_shape)
+shape = mc.Shapes.disc(dim, center, radius_shell, height)
+magnitude = mc.create_mag_dist_vortex(shape)
 mag_data = MagData(a, magnitude)
 
-#vortex_shape = mc.Shapes.disc(dim, (3.5, 9.5, 9.5), 5, 4)
-#sphere_shape = mc.Shapes.sphere(dim, (3.5, 22.5, 9.5), 3)
-#slab_shape = mc.Shapes.slab(dim, (3.5, 15.5, 22.5), (5, 8, 8))
-#mag_data = MagData(a, mc.create_mag_dist_vortex(vortex_shape, (3.5, 9.5, 9.5)))
-#mag_data += MagData(a, mc.create_mag_dist_homog(sphere_shape, pi/4, pi/4))
-#mag_data += MagData(a, mc.create_mag_dist_homog(slab_shape, -pi/6))
-
-mag_data.quiver_plot3d()
+#mag_data.quiver_plot('z-projection', proj_axis='z')
+#mag_data.quiver_plot('y-projection', proj_axis='y')
+#mag_data.quiver_plot3d('Original distribution')
 
 tilts_full = np.linspace(-pi/2, pi/2, num=count/2, endpoint=False)
 tilts_miss = np.linspace(-pi/3, pi/3, num=count/2, endpoint=False)
@@ -65,35 +70,31 @@ projectors_xy_miss.extend(projectors_x_miss)
 projectors_xy_miss.extend(projectors_y_miss)
 
 ###################################################################################################
-projectors = projectors_xy_full
-noise = 0.0
+projectors = projectors_xy_miss
+noise = 0
 ###################################################################################################
 print('--Setting up data collection')
 
-data = DataSet(a, dim, b_0)
+mask = mag_data.get_mask()
+data = DataSet(a, dim, b_0, mask)
 data.projectors = projectors
 data.phase_maps = data.create_phase_maps(mag_data)
 
 if noise != 0:
-    for phase_map in data.phase_maps:
+    for i, phase_map in enumerate(data.phase_maps):
         phase_map += PhaseMap(a, np.random.normal(0, noise, dim_uv))
+        data.phase_maps[i] = phase_map
 
 ###################################################################################################
-print('--Test simple solver')
+print('--Reconstruction')
 
-lam = 1E-4
-reg = ZeroOrderRegularisator(lam)
-start = clock()
-mag_data_opt = rc.optimize_sparse_cg(data, regularisator=reg, maxiter=100, verbosity=2)
-print 'Time:', str(clock()-start)
-mag_data_opt.quiver_plot3d()
-(mag_data_opt - mag_data).quiver_plot3d()
+reg = FirstOrderRegularisator(mask, lam, p=2)
+with TakeTime('reconstruction'):
+    mag_data_opt = rc.optimize_linear(data, regularisator=reg, max_iter=100)
 
 ###################################################################################################
 print('--Plot stuff')
 
-phase_maps_opt = data.create_phase_maps(mag_data_opt)
-#data.display_phase()
-#data.display_phase(phase_maps_opt)
-phase_diffs = [(data.phase_maps[i]-phase_maps_opt[i]) for i in range(len(data.phase_maps))]
-[phase_diff.display_phase() for phase_diff in phase_diffs]
+mag_data_opt.quiver_plot3d('Reconstructed distribution')
+#(mag_data_opt - mag_data).quiver_plot3d('Difference')
+#phase_maps_opt = data.create_phase_maps(mag_data_opt)

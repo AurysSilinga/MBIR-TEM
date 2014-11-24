@@ -19,6 +19,7 @@ from pyramid.kernel import Kernel
 
 import time
 import shelve
+import gc
 
 import logging
 import logging.config
@@ -59,8 +60,9 @@ key = 'ch5-4-method_comparison_new'
 if key in data_shelve and not force_calculation:
     print '--LOAD METHOD DATA'
     (data_disc_fourier0, data_vort_fourier0,
+     data_disc_fourier1, data_vort_fourier1,
      data_disc_fourier3, data_vort_fourier3,
-     data_disc_fourier10, data_vort_fourier10,
+     data_disc_fourier7, data_vort_fourier7,
      data_disc_real, data_vort_real) = data_shelve[key]
 else:
     # Input parameters:
@@ -84,10 +86,12 @@ else:
     dim_list = [dim[2]/2**i for i in range(steps)]
     data_disc_fourier0 = np.vstack((dim_list, np.zeros((3, steps))))
     data_vort_fourier0 = np.vstack((dim_list, np.zeros((3, steps))))
+    data_disc_fourier1 = np.vstack((dim_list, np.zeros((3, steps))))
+    data_vort_fourier1 = np.vstack((dim_list, np.zeros((3, steps))))
     data_disc_fourier3 = np.vstack((dim_list, np.zeros((3, steps))))
     data_vort_fourier3 = np.vstack((dim_list, np.zeros((3, steps))))
-    data_disc_fourier10 = np.vstack((dim_list, np.zeros((3, steps))))
-    data_vort_fourier10 = np.vstack((dim_list, np.zeros((3, steps))))
+    data_disc_fourier7 = np.vstack((dim_list, np.zeros((3, steps))))
+    data_vort_fourier7 = np.vstack((dim_list, np.zeros((3, steps))))
     data_disc_real = np.vstack((dim_list, np.zeros((3, steps))))
     data_vort_real = np.vstack((dim_list, np.zeros((3, steps))))
 
@@ -104,8 +108,9 @@ else:
         # Create projector along z-axis and phasemapper:
         projector = SimpleProjector(dim)
         pm_fourier0 = PhaseMapperFDFC(a, projector.dim_uv, padding=0)
+        pm_fourier1 = PhaseMapperFDFC(a, projector.dim_uv, padding=1)
         pm_fourier3 = PhaseMapperFDFC(a, projector.dim_uv, padding=3)
-        pm_fourier10 = PhaseMapperFDFC(a, projector.dim_uv, padding=7)
+        pm_fourier7 = PhaseMapperFDFC(a, projector.dim_uv, padding=7)
         pm_real = PhaseMapperRDFC(Kernel(a, projector.dim_uv))
 
         print '----CALCULATE RMS/DURATION HOMOG. MAGN. DISC'
@@ -118,6 +123,13 @@ else:
         phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
         print 'phase mean:', np.mean(phase_num_disc.phase)
         data_disc_fourier0[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
+        # Fourier padding 1:
+        phase_num_disc, t, dt = get_time(pm_fourier1, projector, mag_data_disc, n)
+        data_disc_fourier1[2, i], data_disc_fourier1[3, i] = t, dt
+        print '------time (disc, fourier3) =', data_disc_fourier1[2, i]
+        phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
+        print 'phase mean:', np.mean(phase_num_disc.phase)
+        data_disc_fourier1[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
         # Fourier padding 3:
         phase_num_disc, t, dt = get_time(pm_fourier3, projector, mag_data_disc, n)
         data_disc_fourier3[2, i], data_disc_fourier3[3, i] = t, dt
@@ -126,12 +138,12 @@ else:
         print 'phase mean:', np.mean(phase_num_disc.phase)
         data_disc_fourier3[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
         # Fourier padding 10:
-        phase_num_disc, t, dt = get_time(pm_fourier10, projector, mag_data_disc, n)
-        data_disc_fourier10[2, i], data_disc_fourier10[3, i] = t, dt
-        print '------time (disc, fourier10) =', data_disc_fourier10[2, i]
+        phase_num_disc, t, dt = get_time(pm_fourier7, projector, mag_data_disc, n)
+        data_disc_fourier7[2, i], data_disc_fourier7[3, i] = t, dt
+        print '------time (disc, fourier10) =', data_disc_fourier7[2, i]
         phase_diff_disc = (phase_ana_disc-phase_num_disc) * 1E3  # in mrad -> *1000
         print 'phase mean:', np.mean(phase_num_disc.phase)
-        data_disc_fourier10[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
+        data_disc_fourier7[1, i] = np.sqrt(np.mean(phase_diff_disc.phase**2))
         # Real space disc:
         phase_num_disc, t, dt = get_time(pm_real, projector, mag_data_disc, n)
         data_disc_real[2, i], data_disc_real[3, i] = t, dt
@@ -155,6 +167,15 @@ else:
         print 'phase mean:', np.mean(phase_num_vort.phase)
         phase_diff_vort -= np.mean(phase_diff_vort.phase)
         data_vort_fourier0[1, i] = np.sqrt(np.mean(phase_diff_vort.phase**2))
+        # Fourier padding 1:
+        phase_num_vort, t, dt = get_time(pm_fourier1, projector, mag_data_vort, n)
+        phase_fft3 = phase_num_vort
+        data_vort_fourier1[2, i], data_vort_fourier1[3, i] = t, dt
+        print '------time (vortex, fourier3) =', data_vort_fourier1[2, i]
+        phase_diff_vort = (phase_ana_vort-phase_num_vort) * 1E3  # in mrad -> *1000
+        print 'phase mean:', np.mean(phase_num_vort.phase)
+        phase_diff_vort -= np.mean(phase_diff_vort.phase)
+        data_vort_fourier1[1, i] = np.sqrt(np.mean(phase_diff_vort.phase**2))
         # Fourier padding 3:
         phase_num_vort, t, dt = get_time(pm_fourier3, projector, mag_data_vort, n)
         phase_fft3 = phase_num_vort
@@ -165,14 +186,14 @@ else:
         phase_diff_vort -= np.mean(phase_diff_vort.phase)
         data_vort_fourier3[1, i] = np.sqrt(np.mean(phase_diff_vort.phase**2))
         # Fourier padding 10:
-        phase_num_vort, t, dt = get_time(pm_fourier10, projector, mag_data_vort, n)
+        phase_num_vort, t, dt = get_time(pm_fourier7, projector, mag_data_vort, n)
         phase_fft10 = phase_num_vort
-        data_vort_fourier10[2, i], data_vort_fourier10[3, i] = t, dt
-        print '------time (vortex, fourier10) =', data_vort_fourier10[2, i]
+        data_vort_fourier7[2, i], data_vort_fourier7[3, i] = t, dt
+        print '------time (vortex, fourier10) =', data_vort_fourier7[2, i]
         phase_diff_vort = (phase_ana_vort-phase_num_vort) * 1E3  # in mrad -> *1000
         print 'phase mean:', np.mean(phase_num_vort.phase)
         phase_diff_vort -= np.mean(phase_diff_vort.phase)
-        data_vort_fourier10[1, i] = np.sqrt(np.mean(phase_diff_vort.phase**2))
+        data_vort_fourier7[1, i] = np.sqrt(np.mean(phase_diff_vort.phase**2))
         # Real space disc:
         phase_num_vort, t, dt = get_time(pm_real, projector, mag_data_vort, n)
         phase_real = phase_num_vort
@@ -189,11 +210,14 @@ else:
         # Scale down for next iteration:
         mag_data_disc.scale_down()
         mag_data_vort.scale_down()
+        # Force garbage collection:
+        gc.collect()
 
     print '--SHELVE METHOD DATA'
     data_shelve[key] = (data_disc_fourier0, data_vort_fourier0,
+                        data_disc_fourier1, data_vort_fourier1,
                         data_disc_fourier3, data_vort_fourier3,
-                        data_disc_fourier10, data_vort_fourier10,
+                        data_disc_fourier7, data_vort_fourier7,
                         data_disc_real, data_vort_real)
 
 print '--PLOT/SAVE METHOD DATA'
@@ -207,8 +231,9 @@ fig.suptitle('Method Comparison', fontsize=20)
 axes[1, 0].set_xscale('log')
 axes[1, 0].set_yscale('log')
 axes[1, 0].plot(data_disc_fourier0[0], data_disc_fourier0[1], ':bs')
+axes[1, 0].plot(data_disc_fourier1[0], data_disc_fourier1[1], ':bd')
 axes[1, 0].plot(data_disc_fourier3[0], data_disc_fourier3[1], ':bo')
-axes[1, 0].plot(data_disc_fourier10[0], data_disc_fourier10[1], ':b^')
+axes[1, 0].plot(data_disc_fourier7[0], data_disc_fourier7[1], ':b^')
 axes[1, 0].plot(data_disc_real[0], data_disc_real[1], '--ro')
 axes[1, 0].set_xlabel('grid size [px]', fontsize=15)
 axes[1, 0].set_ylabel('RMS [mrad]', fontsize=15)
@@ -225,12 +250,14 @@ axes[0, 0].set_xscale('log')
 axes[0, 0].set_yscale('log')
 axes[0, 0].errorbar(data_disc_fourier0[0], data_disc_fourier0[2],
                     yerr=0*data_vort_fourier3[3], fmt=':bs')
+axes[0, 0].errorbar(data_disc_fourier1[0], data_disc_fourier1[2],
+                    yerr=0*data_vort_fourier1[3], fmt=':bd')
 axes[0, 0].errorbar(data_disc_fourier3[0], data_disc_fourier3[2],
                     yerr=0*data_vort_fourier3[3], fmt=':bo')
-axes[0, 0].errorbar(data_disc_fourier10[0], data_disc_fourier10[2],
-                    yerr=0*data_vort_fourier3[3], fmt=':b^')
+axes[0, 0].errorbar(data_disc_fourier7[0], data_disc_fourier7[2],
+                    yerr=0*data_vort_fourier7[3], fmt=':b^')
 axes[0, 0].errorbar(data_disc_real[0], data_disc_real[2],
-                    yerr=0*data_vort_fourier3[3], fmt='--ro')
+                    yerr=0*data_disc_real[3], fmt='--ro')
 axes[0, 0].set_title('Homog. magn. disc', fontsize=18)
 axes[0, 0].set_ylabel('duration [s]', fontsize=15)
 axes[0, 0].set_xlim(25, 350)
@@ -246,10 +273,12 @@ axes[1, 1].set_xscale('log')
 axes[1, 1].set_yscale('log')
 axes[1, 1].plot(data_vort_fourier0[0], data_vort_fourier0[1], ':bs',
                 label='Fourier padding=0')
+axes[1, 1].plot(data_vort_fourier1[0], data_vort_fourier1[1], ':bd',
+                label='Fourier padding=1')
 axes[1, 1].plot(data_vort_fourier3[0], data_vort_fourier3[1], ':bo',
                 label='Fourier padding=3')
-axes[1, 1].plot(data_vort_fourier10[0], data_vort_fourier10[1], ':b^',
-                label='Fourier padding=10')
+axes[1, 1].plot(data_vort_fourier7[0], data_vort_fourier7[1], ':b^',
+                label='Fourier padding=7')
 axes[1, 1].plot(data_vort_real[0], data_vort_real[1], '--ro',
                 label='Real space')
 axes[1, 1].set_xlabel('grid size [px]', fontsize=15)
@@ -267,13 +296,15 @@ axes[0, 1].errorbar(data_vort_fourier0[0], data_vort_fourier0[2], yerr=0*data_vo
                     fmt=':bs', label='Fourier padding=0')
 axes[0, 1].errorbar(data_vort_fourier3[0], data_vort_fourier3[2], yerr=0*data_vort_fourier3[3],
                     fmt=':bo', label='Fourier padding=3')
-axes[0, 1].errorbar(data_vort_fourier10[0], data_vort_fourier10[2], yerr=0*data_vort_fourier3[3],
-                    fmt=':b^', label='Fourier padding=10')
+axes[0, 1].errorbar(data_vort_fourier1[0], data_vort_fourier1[2], yerr=0*data_vort_fourier3[3],
+                    fmt=':bd', label='Fourier padding=1')
+axes[0, 1].errorbar(data_vort_fourier7[0], data_vort_fourier7[2], yerr=0*data_vort_fourier3[3],
+                    fmt=':b^', label='Fourier padding=7')
 axes[0, 1].errorbar(data_vort_real[0], data_vort_real[2], yerr=0*data_vort_fourier3[3],
                     fmt='--ro', label='Real space')
 axes[0, 1].set_title('Vortex state disc', fontsize=18)
 axes[0, 1].set_xlim(25, 350)
-axes[0, 1].set_ylim(1E-4, 1E1)
+axes[0, 1].set_ylim(5E-4, 5E0)
 axes[0, 1].tick_params(axis='both', which='major', labelsize=14)
 axes[0, 1].xaxis.set_major_locator(LogLocator(base=2))
 axes[0, 1].xaxis.set_major_formatter(LogFormatter(base=2))

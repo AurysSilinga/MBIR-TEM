@@ -18,14 +18,14 @@ from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.costfunction import Costfunction
 from pyramid.magdata import MagData
 
-from jutil import cg, minimizer
-
 from scipy.optimize import leastsq
 
 import logging
 
 
-LOG = logging.getLogger(__name__)
+__all__ = ['optimize_linear', 'optimize_nonlin', 'optimize_splitbregman',
+           'optimize_simple_leastsq']
+_log = logging.getLogger(__name__)
 
 
 class PrintIterator(object):
@@ -50,18 +50,18 @@ class PrintIterator(object):
 
     '''
 
-    LOG = logging.getLogger(__name__ + '.PrintIterator')
+    _log = logging.getLogger(__name__ + '.PrintIterator')
 
     def __init__(self, cost, verbosity):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.cost = cost
         self.verbosity = verbosity
         assert verbosity in {0, 1, 2}, 'verbosity has to be set to 0, 1 or 2!'
         self.iteration = 0
-        self.LOG.debug('Created ' + str(self))
+        self._log.debug('Created ' + str(self))
 
     def __call__(self, xk):
-        self.LOG.debug('Calling __call__')
+        self._log.debug('Calling __call__')
         if self.verbosity == 0:
             return
         print 'iteration #', self.next(),
@@ -71,11 +71,11 @@ class PrintIterator(object):
             print ''
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(cost=%r, verbosity=%r)' % (self.__class__, self.cost, self.verbosity)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'PrintIterator(cost=%s, verbosity=%s)' % (self.cost, self.verbosity)
 
     def next(self):
@@ -83,7 +83,7 @@ class PrintIterator(object):
         return self.iteration
 
 
-def optimize_linear(data, regularisator=None, max_iter=None):
+def optimize_linear(data, regularisator=None, max_iter=None, info=None):
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
     Blazingly fast for l2-based cost functions.
@@ -105,15 +105,17 @@ def optimize_linear(data, regularisator=None, max_iter=None):
 
     '''
     import jutil.cg as jcg
-    LOG.debug('Calling optimize_linear')
+    _log.debug('Calling optimize_linear')
     # Set up necessary objects:
     cost = Costfunction(data, regularisator)
-    LOG.info('Cost before optimization: {}'.format(cost(np.zeros(cost.n))))
+    _log.info('Cost before optimization: {}'.format(cost(np.zeros(cost.n))))
     x_opt = jcg.conj_grad_minimize(cost, max_iter=max_iter).x
-    LOG.info('Cost after optimization: {}'.format(cost(x_opt)))
+    _log.info('Cost after optimization: {}'.format(cost(x_opt)))
     # Create and return fitting MagData object:
     mag_opt = MagData(data.a, np.zeros((3,) + data.dim))
     mag_opt.set_vector(x_opt, data.mask)
+    if info is not None:
+        info[:] = cost.chisq, cost.chisq_m, cost.chisq_a
     return mag_opt
 
 
@@ -141,7 +143,7 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
     '''
     import jutil.minimizer as jmin
     import jutil.norms as jnorms
-    LOG.debug('Calling optimize_nonlin')
+    _log.debug('Calling optimize_nonlin')
     if first_guess is None:
         first_guess = MagData(data.a, np.zeros((3,) + data.dim))
 
@@ -160,14 +162,14 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
         return direc_p
 
     # This Method is semi-best for Lp type problems. Takes forever, though
-    LOG.info('Cost before optimization: {}'.format(cost(np.zeros(cost.n))))
+    _log.info('Cost before optimization: {}'.format(cost(np.zeros(cost.n))))
     result = jmin.minimize(
         cost, x_0,
         method="SteepestDescent",
         options={"preconditioner": preconditioner},
         tol={"max_iteration": 10000})
     x_opt = result.x
-    LOG.info('Cost after optimization: {}'.format(cost(x_opt)))
+    _log.info('Cost after optimization: {}'.format(cost(x_opt)))
     mag_opt = MagData(data.a, np.zeros((3,) + data.dim))
     mag_opt.set_vector(x_opt, data.mask)
     return mag_opt
@@ -203,7 +205,7 @@ def optimize_splitbregman(data, weight, lam, mu):
     import jutil.operator as joperator
     import jutil.diff as jdiff
     from pyramid.regularisator import FirstOrderRegularisator
-    LOG.debug('Calling optimize_splitbregman')
+    _log.debug('Calling optimize_splitbregman')
 
     # regularisator is actually not necessary, but this makes the cost
     # function to that which is supposedly optimized by split bregman.

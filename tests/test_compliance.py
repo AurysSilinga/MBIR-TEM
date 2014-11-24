@@ -15,11 +15,7 @@ import pep8
 class TestCaseCompliance(unittest.TestCase):
     """TestCase for checking the pep8 compliance of the pyramid package."""
 
-    def setUp(self):
-        self.path = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]  # Pyramid dir
-
-    def tearDown(self):
-        self.path = None
+    path = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]  # Pyramid dir
 
     def get_files_to_check(self, rootdir):
         filepaths = []

@@ -6,12 +6,14 @@ the so called `cost` of a threedimensional magnetization distribution."""
 import numpy as np
 
 from scipy.sparse.linalg import LinearOperator
-from scipy.sparse import eye
 
 from pyramid.forwardmodel import ForwardModel
-from pyramid.regularisator import ZeroOrderRegularisator
 from pyramid.regularisator import NoneRegularisator
+
 import logging
+
+
+__all__ = ['Costfunction']
 
 
 class Costfunction(object):
@@ -47,10 +49,10 @@ class Costfunction(object):
 
     '''
 
-    LOG = logging.getLogger(__name__+'.Costfunction')
+    _log = logging.getLogger(__name__+'.Costfunction')
 
     def __init__(self, data_set, regularisator):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.data_set = data_set
         self.fwd_model = ForwardModel(data_set)
         self.regularisator = regularisator
@@ -61,28 +63,28 @@ class Costfunction(object):
         self.Se_inv = data_set.Se_inv
         self.n = data_set.n
         self.m = data_set.m
-        self.LOG.debug('Created '+str(self))
+        self._log.debug('Created '+str(self))
 
     def __repr__(self):
-        self.LOG.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')
         return '%s(data_set=%r, fwd_model=%r, regularisator=%r)' % \
             (self.__class__, self.data_set, self.fwd_model, self.regularisator)
 
     def __str__(self):
-        self.LOG.debug('Calling __str__')
+        self._log.debug('Calling __str__')
         return 'Costfunction(data_set=%s, fwd_model=%s, regularisator=%s)' % \
             (self.data_set, self.fwd_model, self.regularisator)
 
-    def init(self, x):
-        self(x)
-
     def __call__(self, x):
-        self.LOG.debug('Calling __call__')
+        self._log.debug('Calling __call__')
         delta_y = self.fwd_model(x) - self.y
         self.chisq_m = delta_y.dot(self.Se_inv.dot(delta_y))
         self.chisq_a = self.regularisator(x)
         self.chisq = self.chisq_m + self.chisq_a
         return self.chisq
+
+    def init(self, x):
+        self(x)
 
     def jac(self, x):
         '''Calculate the derivative of the costfunction for a given magnetization distribution.
@@ -98,7 +100,7 @@ class Costfunction(object):
             Jacobi vector which represents the cost derivative of all voxels of the magnetization.
 
         '''
-        self.LOG.debug('Calling jac')
+        self._log.debug('Calling jac')
         assert len(x) == self.n
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model(x) - self.y))
                 + self.regularisator.jac(x))
@@ -122,7 +124,7 @@ class Costfunction(object):
             Product of the input `vector` with the Hessian matrix of the costfunction.
 
         '''
-        self.LOG.debug('Calling hess_dot')
+#        self._log.debug('Calling hess_dot')  # TODO: Profiler says this was slow...
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model.jac_dot(x, vector)))
                 + self.regularisator.hess_dot(x, vector))
 
@@ -148,10 +150,10 @@ class CFAdapterScipyCG(LinearOperator):
     '''
     # TODO: make obsolete!
 
-    LOG = logging.getLogger(__name__+'.CFAdapterScipyCG')
+    _log = logging.getLogger(__name__+'.CFAdapterScipyCG')
 
     def __init__(self, cost):
-        self.LOG.debug('Calling __init__')
+        self._log.debug('Calling __init__')
         self.cost = cost
 
     def matvec(self, vector):
@@ -164,7 +166,7 @@ class CFAdapterScipyCG(LinearOperator):
             costfunction.
 
         '''
-        self.LOG.debug('Calling matvec')
+        self._log.debug('Calling matvec')
         return self.cost.hess_dot(None, vector)
 
     @property
