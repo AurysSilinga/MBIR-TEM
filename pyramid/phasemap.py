@@ -121,7 +121,7 @@ class PhaseMap(object):
     def phase(self, phase):
         assert isinstance(phase, np.ndarray), 'Phase has to be a numpy array!'
         assert len(phase.shape) == 2, 'Phase has to be 2-dimensional!'
-        self._phase = phase
+        self._phase = np.asarray(phase, dtype=np.float32)
         self._dim_uv = phase.shape
 
     @property
@@ -344,8 +344,8 @@ class PhaseMap(object):
         axis.set_ylim(0, self.dim_uv[0])
         axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
-        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.a)))
-        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.a)))
+        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x*self.a)))
+        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x*self.a)))
         axis.tick_params(axis='both', which='major', labelsize=14)
         axis.set_title(title, fontsize=18)
         axis.set_xlabel('u-axis [nm]', fontsize=15)

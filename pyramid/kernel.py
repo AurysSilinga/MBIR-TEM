@@ -53,7 +53,7 @@ class Kernel(object):
         A tuple of :class:`slice` objects to extract the original field of view from the increased
         size (`size_fft`) of the grid for the FFT-convolution.
 
-    '''  # TODO: overview what all dim_??? mean! and use_fftw
+    '''  # TODO: overview what all dim_??? mean! and use_fftw, slice(_fft), etc.
 
     _log = logging.getLogger(__name__+'.Kernel')
 
@@ -66,32 +66,36 @@ class Kernel(object):
         self.a = a
         self.geometry = geometry
         # Set up FFT:
-        if use_fftw:
+        if not use_fftw:
+            self.dim_pad = tuple(2**np.ceil(np.log2(2*np.array(dim_uv))).astype(int))  # pow(2)
+            self.use_fftw = False
+        else:
             try:
                 import pyfftw
+                self.dim_pad = tuple(2*np.array(dim_uv))  # is at least even (not nec. power of 2)
+                self.use_fftw = True
             except ImportError:
-                use_fftw = False
+                self.dim_pad = tuple(2**np.ceil(np.log2(2*np.array(dim_uv))).astype(int))  # pow(2)
+                self.use_fftw = False
                 self._log.info('pyFFTW could not be imported, using numpy instead!')
-        if use_fftw:  # use pyfftw (FFTW wrapper for python)
-            self.dim_pad = tuple(2*np.array(dim_uv))  # is at least even (not nec. power of 2)
-            self.dim_fft = (self.dim_pad[0], self.dim_pad[1]/2.+1)  # last axis is real
-            n = pyfftw.simd_alignment
-            self.u = pyfftw.n_byte_align_empty(self.dim_kern, n, dtype='float32')
-            self.v = pyfftw.n_byte_align_empty(self.dim_kern, n, dtype='float32')
-            self.u_fft = pyfftw.n_byte_align_empty(self.dim_fft, n, dtype='complex64')
-            self.v_fft = pyfftw.n_byte_align_empty(self.dim_fft, n, dtype='complex64')
+        self.dim_fft = (self.dim_pad[0], self.dim_pad[1]/2+1)  # last axis is real
+        self.slice_phase = (slice(dim_uv[0]-1, self.dim_kern[0]),  # Shift because kernel center
+                            slice(dim_uv[1]-1, self.dim_kern[1]))  # is not at (0, 0)!
+        self.slice_mag = (slice(0, dim_uv[0]),  # Magnetization is padded on the far end!
+                          slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
+        self.u = np.zeros(self.dim_kern, dtype=np.float32)
+        self.v = np.zeros(self.dim_kern, dtype=np.float32)
+        self.u_fft = np.zeros(self.dim_fft, dtype=np.complex64)
+        self.v_fft = np.zeros(self.dim_fft, dtype=np.complex64)
+        if self.use_fftw:  # use pyfftw (FFTW wrapper for python)
+            self.u = pyfftw.n_byte_align(self.u, pyfftw.simd_alignment)
+            self.v = pyfftw.n_byte_align(self.v, pyfftw.simd_alignment)
+            self.u_fft = pyfftw.n_byte_align(self.u_fft, pyfftw.simd_alignment)
+            self.v_fft = pyfftw.n_byte_align(self.v_fft, pyfftw.simd_alignment)
             rfftn = pyfftw.builders.rfftn(self.u, self.dim_pad, threads=threads)
             self.threads = threads
-            self.use_fftw = True
         else:  # otherwise use numpy
-            self.dim_pad = tuple(2**np.ceil(np.log2(2*np.array(dim_uv))).astype(int))  # pow(2)
-            self.dim_fft = (self.dim_pad[0], self.dim_pad[1]/2+1)  # last axis is real
-            self.u = np.empty(self.dim_kern, dtype=float)
-            self.v = np.empty(self.dim_kern, dtype=float)
-            self.u_fft = np.empty(self.dim_fft, dtype=complex)
-            self.v_fft = np.empty(self.dim_fft, dtype=complex)
             rfftn = lambda x: np.fft.rfftn(x, self.dim_pad)
-            self.use_fftw = False
         # Calculate kernel (single pixel phase):
         coeff = b_0 * a**2 / (2*PHI_0)   # Minus is gone because of negative z-direction
         v_dim, u_dim = dim_uv
@@ -101,7 +105,6 @@ class Kernel(object):
         self.u[...] = coeff * self._get_elementary_phase(geometry, uu, vv, a)
         self.v[...] = coeff * self._get_elementary_phase(geometry, vv, uu, a)
         # Calculate Fourier trafo of kernel components:
-        self.slice_fft = (slice(dim_uv[0]-1, 2*dim_uv[0]-1), slice(dim_uv[1]-1, 2*dim_uv[1]-1))
         self.u_fft[...] = rfftn(self.u)
         self.v_fft[...] = rfftn(self.v)
         self._log.debug('Created '+str(self))
@@ -137,5 +140,13 @@ class Kernel(object):
             return 0.5 * (F_a(n-0.5, m-0.5) - F_a(n+0.5, m-0.5)
                           - F_a(n-0.5, m+0.5) + F_a(n+0.5, m+0.5))
 
-    def get_info(self):
-        pass
+    def print_info(self):
+        print 'Shape of the FOV   :', self.dim_uv
+        print 'Shape of the Kernel:', self.dim_kern
+        print 'Zero-padded shape  :', self.dim_pad
+        print 'Shape of the FFT   :', self.dim_fft
+        print 'Slice for the phase:', self.slice_phase
+        print 'Slice for the magn.:', self.slice_mag
+        print 'Grid spacing: {} nm'.format(self.a)
+        print 'Geometry:', self.geometry
+        print 'Use FFTW: {}; with {} thread(s)'.format(self.use_fftw, self.threads)

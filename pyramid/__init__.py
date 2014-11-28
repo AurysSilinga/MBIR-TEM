@@ -51,6 +51,7 @@ from .phasemap import *
 from .phasemapper import *
 from .projector import *
 from .regularisator import *
+from .util import *
 from .version import version as __version__
 from .version import hg_revision as __hg_revision__
 
@@ -68,3 +69,4 @@ __all__.extend(phasemap.__all__)
 __all__.extend(phasemapper.__all__)
 __all__.extend(projector.__all__)
 __all__.extend(regularisator.__all__)
+__all__.extend(util.__all__)

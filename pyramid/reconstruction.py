@@ -103,7 +103,7 @@ def optimize_linear(data, regularisator=None, max_iter=None, info=None):
     mag_data : :class:`~pyramid.magdata.MagData`
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
-    '''
+    '''  # TODO: info document!
     import jutil.cg as jcg
     _log.debug('Calling optimize_linear')
     # Set up necessary objects:

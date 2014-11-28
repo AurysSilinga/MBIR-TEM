@@ -5,6 +5,7 @@ the so called `cost` of a threedimensional magnetization distribution."""
 
 import numpy as np
 
+from scipy.sparse import eye as sparse_eye
 from scipy.sparse.linalg import LinearOperator
 
 from pyramid.forwardmodel import ForwardModel
@@ -60,9 +61,12 @@ class Costfunction(object):
             self.regularisator = NoneRegularisator()
         # Extract important information:
         self.y = data_set.phase_vec
-        self.Se_inv = data_set.Se_inv
         self.n = data_set.n
         self.m = data_set.m
+        if data_set.Se_inv is not None:
+            self.Se_inv = data_set.Se_inv
+        else:
+            self.Se_inv = sparse_eye(self.m)
         self._log.debug('Created '+str(self))
 
     def __repr__(self):

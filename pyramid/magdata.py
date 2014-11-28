@@ -73,7 +73,7 @@ class MagData(object):
         assert isinstance(magnitude, np.ndarray), 'Magnitude has to be a numpy array!'
         assert len(magnitude.shape) == 4, 'Magnitude has to be 4-dimensional!'
         assert magnitude.shape[0] == 3, 'First dimension of the magnitude has to be 3!'
-        self._magnitude = magnitude
+        self._magnitude = np.asarray(magnitude, dtype=np.float32)
         self._dim = magnitude.shape[1:]
 
     @property
@@ -419,7 +419,7 @@ class MagData(object):
         return MagData(a, magnitude)
 
     def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
-                    ax_slice=None, log=False, scaled=True):
+                    ar_dens=1, ax_slice=None, log=False, scaled=True):  # TODO: Doc ar_dens
         '''Plot a slice of the magnetization as a quiver plot.
 
         Parameters
@@ -494,8 +494,9 @@ class MagData(object):
         if scaled:
             plot_u /= np.hypot(plot_u, plot_v).max()
             plot_v /= np.hypot(plot_u, plot_v).max()
-        axis.quiver(plot_u, plot_v, pivot='middle', units='xy', angles=angles,
-                    scale_units='xy', scale=1, headwidth=6, headlength=7)
+        ad = ar_dens
+        axis.quiver(plot_u[::ad, ::ad], plot_v[::ad, ::ad], pivot='middle', units='xy',
+                    angles=angles, scale_units='xy', scale=1, headwidth=6, headlength=7)
         axis.set_xlim(-1, np.shape(plot_u)[1])
         axis.set_ylim(-1, np.shape(plot_u)[0])
         axis.set_title(title, fontsize=18)

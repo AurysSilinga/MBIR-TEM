@@ -6,7 +6,7 @@ and additional data like corresponding projectors."""
 import numpy as np
 from numbers import Number
 
-from scipy.sparse import eye as sparse_eye
+from scipy import sparse
 
 import matplotlib.pyplot as plt
 
@@ -63,11 +63,6 @@ class DataSet(object):
         return np.sum([len(p.phase_vec) for p in self.phase_maps])
 
     @property
-    def Se_inv(self):
-        # TODO: better implementation, maybe get-method? more flexible? input in append?
-        return sparse_eye(self.m)
-
-    @property
     def phase_vec(self):
         return np.concatenate([p.phase_vec for p in self.phase_maps])
 
@@ -80,11 +75,13 @@ class DataSet(object):
 
     @property
     def phase_mappers(self):
-        dim_uv_list = np.unique([p.dim_uv for p in self.projectors])
-        kernel_list = [Kernel(self.a, tuple(dim_uv)) for dim_uv in dim_uv_list]
+        dim_uv_set = set([p.dim_uv for p in self.projectors])
+        kernel_list = [Kernel(self.a, dim_uv, use_fftw=self.use_fftw, threads=self.threads)
+                       for dim_uv in dim_uv_set]
         return {kernel.dim_uv: PhaseMapperRDFC(kernel) for kernel in kernel_list}
 
-    def __init__(self, a, dim, b_0=1, mask=None):
+    def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None, use_fftw=True, threads=1):
+        # TODO: document!
         self._log.debug('Calling __init__')
         assert isinstance(a, Number), 'Grid spacing has to be a number!'
         assert a >= 0, 'Grid spacing has to be a positive number!'
@@ -99,6 +96,9 @@ class DataSet(object):
         self.dim = dim
         self.b_0 = b_0
         self.mask = mask
+        self.Se_inv = Se_inv
+        self.use_fftw = use_fftw
+        self.threads = threads
         self.phase_maps = []
         self.projectors = []
         self._log.debug('Created: '+str(self))
@@ -111,7 +111,7 @@ class DataSet(object):
         self._log.debug('Calling __str__')
         return 'DataSet(a=%s, dim=%s, b_0=%s)' % (self.a, self.dim, self.b_0)
 
-    def append(self, phase_map, projector):  # TODO: include Se_inv or 2D mask??
+    def append(self, phase_map, projector):
         '''Appends a data pair of phase map and projection infos to the data collection.`
 
         Parameters
@@ -151,6 +151,15 @@ class DataSet(object):
         '''
         return [self.phase_mappers[projector.dim_uv](projector(mag_data))
                 for projector in self.projectors]
+
+    def set_Se_inv_block_diag(self, cov_list):
+        # TODO: Document!
+        self.Se_inv = sparse.block_diag(cov_list).tocsr()
+
+    def set_Se_inv_diag_with_masks(self, mask_list):
+        # TODO: Document!
+        cov_list = [sparse.diags(m.flatten(), 0) for m in mask_list]
+        self.set_Se_inv_block_diag(cov_list)
 
     def display_phase(self, mag_data=None, title='Phase Map',
                       cmap='RdBu', limit=None, norm=None):
@@ -235,5 +244,3 @@ class DataSet(object):
                                     cmap, limit, norm, gain, interpolation, grad_encode)
             for (i, phase_map) in enumerate(phase_maps)]
         plt.show()
-
-# TODO: method for constructing 3D mask from 2D masks?

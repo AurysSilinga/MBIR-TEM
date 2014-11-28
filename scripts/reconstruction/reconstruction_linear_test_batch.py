@@ -11,12 +11,7 @@ import itertools
 
 from mayavi import mlab
 
-import pyramid
-from pyramid.magdata import MagData
-from pyramid.phasemap import PhaseMap
-from pyramid.projector import YTiltProjector, XTiltProjector
-from pyramid.dataset import DataSet
-from pyramid.regularisator import ZeroOrderRegularisator, FirstOrderRegularisator
+from pyramid import *  #analysis:ignore
 import pyramid.magcreator as mc
 import pyramid.reconstruction as rc
 
@@ -32,7 +27,7 @@ import logging.config
 
 
 LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
-PATH = '../../output/3d reconstruction/'
+PATH = '../../output/3d reconstruction/Phase 1/'
 
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 if not os.path.exists(PATH):
@@ -48,36 +43,38 @@ b_0 = 1.
 print('--Magnetization distributions')
 
 dim = (32, 32, 32)
-center = (dim[0]/2-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
+center = (dim[0]/2-0.5, dim[1]/2-0.5, dim[2]/2-0.5)
 radius_core = dim[1]/8
 radius_shell = dim[1]/4
 height = dim[0]/2
+width_cube = (dim[0]/4, dim[1]/4, dim[2]/4)
+width_slab = (dim[0]/4, dim[1]/4, dim[2]/2)
 # Vortex:
 mag_shape_disc = mc.Shapes.disc(dim, center, radius_shell, height)
 mag_data_vortex = MagData(a, mc.create_mag_dist_vortex(mag_shape_disc))
-# Sphere:
-mag_shape_sphere = mc.Shapes.sphere(dim, center, radius_shell)
-mag_data_sphere = MagData(a, mc.create_mag_dist_homog(mag_shape_sphere, phi=pi/4, theta=pi/4))
 # Core-Shell:
 mag_shape_core = mc.Shapes.disc(dim, center, radius_core, height)
 mag_shape_shell = np.logical_xor(mag_shape_disc, mag_shape_core)
 mag_data_core_shell = MagData(a, mc.create_mag_dist_vortex(mag_shape_shell, magnitude=0.75))
 mag_data_core_shell += MagData(a, mc.create_mag_dist_homog(mag_shape_core, phi=0, theta=0))
-
-# TODO: cubic bar magnet, rectangular bar magnet, -sphere
+# Cubic slab:
+mag_shape_cube = mc.Shapes.slab(dim, center, width_cube)
+mag_data_cube = MagData(a, mc.create_mag_dist_homog(mag_shape_cube, 0))
+# Rectangular slab:
+mag_shape_slab = mc.Shapes.slab(dim, center, width_slab)
+mag_data_slab = MagData(a, mc.create_mag_dist_homog(mag_shape_slab, 0))
 
 ###################################################################################################
 print('--Set up configurations')
 
-mag_datas = {'vortex_disc': mag_data_vortex, 'homog_sphere': mag_data_sphere,
-             'core_shell': mag_data_core_shell}
-masks = {'mask': True}
-xy_tilts = {'xy': [True, True]}
+mag_datas = {'rect_slab': mag_data_slab}
+masks = {'mask': True, 'nomask': False}
+xy_tilts = {'y': [False, True]}
 max_tilts = [60]
 tilt_steps = [10]
 noises = [0]
 orders = [1]
-lambdas = [1E-4]
+lambdas = [1E-2, 1E-3, 1E-4, 1E-5, 1E-6]
 # Combining everything:
 config_list = [mag_datas.keys(), masks.keys(), xy_tilts.keys(),
                max_tilts, tilt_steps, noises, orders, lambdas]
@@ -93,13 +90,15 @@ for key in mag_datas:
 ###################################################################################################
 print('--Reconstruction')
 
-print 'Number of configurations:', len(list(itertools.product(*config_list)))
+total_number = len(list(itertools.product(*config_list)))
+print 'Number of configurations:', total_number
 
-for configuration in itertools.product(*config_list):
+for i, configuration in enumerate(itertools.product(*config_list)):
     # Extract keys:
     mag_key, mask_key, xy_key, max_tilt, tilt_step, noise, order, lam = configuration
-    print '----CONFIG:', configuration
-    name = '{}_{}_{}tilts_max{}_in{}steps_{}noise_{}order_{}lam'.format(*configuration)
+    print '----CONFIG {} of {}:'.format(i+1, total_number)
+    print configuration
+    name = '{}_{}_{}tilts_max{}_in{}steps_{}noise_{}order_{:.0E}lam'.format(*configuration)
     dim = mag_datas[mag_key].dim
     # Mask:
     if masks[mask_key]:
@@ -140,7 +139,7 @@ for configuration in itertools.product(*config_list):
     (mag_data_rec - mag_datas[mag_key]).quiver_plot3d('Difference ({})'.format(mag_key))
     mlab.savefig('{}{}_DIFF.png'.format(PATH, name), size=(800, 800))
     mlab.close(all=True)
-    data_shelve = shelve.open(PATH+'/3d_shelve')
+    data_shelve = shelve.open(PATH+'3d_shelve')
     data_shelve[name] = info
     data_shelve.close()
     print 'chisq = {:.6f}, chisq_m = {:.6f}, chisq_a = {:.6f}'.format(*info)

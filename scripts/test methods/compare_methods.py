@@ -30,10 +30,8 @@ logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 b_0 = 1.0    # in T
 a = 1.0  # in nm
 phi = pi/4
-numcore = False
-padding = 1
 gain = 'auto'
-dim = (32, 256, 256)  # in px (z, y, x)
+dim = (16, 128, 128)  # in px (z, y, x)
 
 # Create magnetic shape:
 geometry = 'disc'
@@ -59,23 +57,32 @@ mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
 projector = SimpleProjector(dim)
 projection = projector(mag_data)
 # Construct PhaseMapper objects:
-pm_real = PhaseMapperRDRC(Kernel(a, projector.dim_uv, b_0), numcore=numcore)
-pm_conv = PhaseMapperRDFC(Kernel(a, projector.dim_uv, b_0))
-pm_four = PhaseMapperFDFC(a, projector.dim_uv, b_0, padding=padding)
+pm_real_slow = PhaseMapperRDRC(Kernel(a, projector.dim_uv, b_0), numcore=False)
+pm_real_fast = PhaseMapperRDRC(Kernel(a, projector.dim_uv, b_0), numcore=True)
+pm_conv_slow = PhaseMapperRDFC(Kernel(a, projector.dim_uv, b_0, use_fftw=False))
+pm_conv_fast = PhaseMapperRDFC(Kernel(a, projector.dim_uv, b_0, use_fftw=True))
+pm_four_pad0 = PhaseMapperFDFC(a, projector.dim_uv, b_0, padding=0)
+pm_four_pad1 = PhaseMapperFDFC(a, projector.dim_uv, b_0, padding=1)
 
 # Get times for different approaches:
 start_time = time.time()
-phase_map_real = pm_real(projection)
-print 'Time for RDRC: ', time.time() - start_time
+phase_map_real = pm_real_slow(projection)
+print 'Time for RDRC no numcore :', time.time() - start_time
 start_time = time.time()
-phase_map_conv = pm_conv(projection)
-print 'Time for RDFC: ', time.time() - start_time
+phase_map_real = pm_real_fast(projection)
+print 'Time for RDRC    numcore :', time.time() - start_time
 start_time = time.time()
-phase_map_conv = pm_conv(projection)
-print 'Time for RDFC: ', time.time() - start_time
+phase_map_conv = pm_conv_slow(projection)
+print 'Time for RDFC numpy conv.:', time.time() - start_time
 start_time = time.time()
-phase_map_four = pm_four(projection)
-print 'Time for FDFC: ', time.time() - start_time
+phase_map_conv = pm_conv_fast(projection)
+print 'Time for RDFC FFTW  conv.:', time.time() - start_time
+start_time = time.time()
+phase_map_four = pm_four_pad0(projection)
+print 'Time for FDFC padding 0  :', time.time() - start_time
+start_time = time.time()
+phase_map_four = pm_four_pad1(projection)
+print 'Time for FDFC padding 1  :', time.time() - start_time
 
 # Display the combinated plots with phasemap and holography image:
 phase_map_ana.display_combined('Analytic Solution', gain=gain)

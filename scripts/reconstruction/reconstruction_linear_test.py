@@ -36,6 +36,7 @@ dim = (32, 32, 32)
 dim_uv = dim[1:3]
 count = 16
 lam = 1E-4
+use_fftw = True
 center = (dim[0]/2-0.5, int(dim[1]/2)-0.5, int(dim[2]/2)-0.5)
 radius_core = dim[1]/8
 radius_shell = dim[1]/4
@@ -51,9 +52,9 @@ shape = mc.Shapes.disc(dim, center, radius_shell, height)
 magnitude = mc.create_mag_dist_vortex(shape)
 mag_data = MagData(a, magnitude)
 
-#mag_data.quiver_plot('z-projection', proj_axis='z')
-#mag_data.quiver_plot('y-projection', proj_axis='y')
-#mag_data.quiver_plot3d('Original distribution')
+mag_data.quiver_plot('z-projection', proj_axis='z')
+mag_data.quiver_plot('y-projection', proj_axis='y')
+mag_data.quiver_plot3d('Original distribution')
 
 tilts_full = np.linspace(-pi/2, pi/2, num=count/2, endpoint=False)
 tilts_miss = np.linspace(-pi/3, pi/3, num=count/2, endpoint=False)
@@ -76,7 +77,7 @@ noise = 0
 print('--Setting up data collection')
 
 mask = mag_data.get_mask()
-data = DataSet(a, dim, b_0, mask)
+data = DataSet(a, dim, b_0, mask, use_fftw=use_fftw)
 data.projectors = projectors
 data.phase_maps = data.create_phase_maps(mag_data)
 
@@ -89,12 +90,13 @@ if noise != 0:
 print('--Reconstruction')
 
 reg = FirstOrderRegularisator(mask, lam, p=2)
+info = []
 with TakeTime('reconstruction'):
-    mag_data_opt = rc.optimize_linear(data, regularisator=reg, max_iter=100)
+    mag_data_opt = rc.optimize_linear(data, regularisator=reg, max_iter=100, info=info)
 
 ###################################################################################################
 print('--Plot stuff')
 
 mag_data_opt.quiver_plot3d('Reconstructed distribution')
-#(mag_data_opt - mag_data).quiver_plot3d('Difference')
-#phase_maps_opt = data.create_phase_maps(mag_data_opt)
+(mag_data_opt - mag_data).quiver_plot3d('Difference')
+phase_maps_opt = data.create_phase_maps(mag_data_opt)

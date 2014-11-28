@@ -100,32 +100,29 @@ class PhaseMapperRDFC(PhaseMapper):
         self.kernel = kernel
         self.m = np.prod(kernel.dim_uv)
         self.n = 2 * self.m
+        self.u_mag = np.zeros(kernel.dim_pad, dtype=np.float32)
+        self.v_mag = np.zeros(kernel.dim_pad, dtype=np.float32)
+        self.mag_adj = np.zeros(kernel.dim_pad, dtype=np.float32)
+        self.u_mag_fft = np.zeros(kernel.dim_fft, dtype=np.complex64)
+        self.v_mag_fft = np.zeros(kernel.dim_fft, dtype=np.complex64)
+        self.phase_fft = np.zeros(kernel.dim_fft, dtype=np.complex64)
         if self.kernel.use_fftw:  # if possible use FFTW
             import pyfftw
-            n = pyfftw.simd_alignment
-            self.u_mag = pyfftw.n_byte_align_empty(self.kernel.dim_uv, n, dtype='float32')
-            self.v_mag = pyfftw.n_byte_align_empty(self.kernel.dim_uv, n, dtype='float32')
-#            self.phase = pyfftw.n_byte_align_empty(self.kernel.dim_uv, n, dtype='float32')
-            self.u_mag_fft = pyfftw.n_byte_align_empty(self.kernel.dim_fft, n, dtype='complex64')
-            self.v_mag_fft = pyfftw.n_byte_align_empty(self.kernel.dim_fft, n, dtype='complex64')
-            self.phase_fft = pyfftw.n_byte_align_empty(self.kernel.dim_fft, n, dtype='complex64')
-            self._rfft2 = pyfftw.builders.rfftn(self.u_mag, self.kernel.dim_pad,
-                                                threads=self.kernel.threads)
-            self._irfft2 = pyfftw.builders.irfftn(self.phase_fft, self.kernel.dim_pad,
-                                                  threads=self.kernel.threads)
+            self.u_mag = pyfftw.n_byte_align(self.u_mag, pyfftw.simd_alignment)
+            self.v_mag = pyfftw.n_byte_align(self.v_mag, pyfftw.simd_alignment)
+            self.mag_adj = pyfftw.n_byte_align(self.mag_adj, pyfftw.simd_alignment)
+            self.u_mag_fft = pyfftw.n_byte_align(self.u_mag_fft, pyfftw.simd_alignment)
+            self.v_mag_fft = pyfftw.n_byte_align(self.v_mag_fft, pyfftw.simd_alignment)
+            self.phase_fft = pyfftw.n_byte_align(self.phase_fft, pyfftw.simd_alignment)
+            self._rfft2 = pyfftw.builders.rfftn(self.u_mag, threads=kernel.threads)
+            self._irfft2 = pyfftw.builders.irfftn(self.phase_fft, threads=kernel.threads)
             self._rfft2_adj = self._rfft2_adj_fftw
             self._irfft2_adj = self._irfft2_adj_fftw
         else:  # otherwise use numpy
-            self.u_mag = np.empty(self.kernel.dim_uv, dtype=float)
-            self.v_mag = np.empty(self.kernel.dim_uv, dtype=float)
-#            self.phase = np.empty(self.kernel.dim_uv, dtype=float)
-            self.u_mag_fft = np.empty(self.kernel.dim_fft, dtype=complex)
-            self.v_mag_fft = np.empty(self.kernel.dim_fft, dtype=complex)
-            self.phase_fft = np.empty(self.kernel.dim_fft, dtype=complex)
-            self._rfft2 = lambda x: np.fft.rfftn(x, self.kernel.dim_pad)
-            self._irfft2 = lambda x: np.fft.irfftn(x, self.kernel.dim_pad)
-            self._rfft2_adj = jfft.irfft2_adj
-            self._rfft2_adj = jfft.irfft2_adj
+            self._rfft2 = np.fft.rfftn
+            self._irfft2 = np.fft.irfftn
+            self._rfft2_adj = lambda x: jfft.rfft2_adj(x, self.kernel.dim_pad[1])
+            self._irfft2_adj = jfft.irfft2_adj
         self._log.debug('Created '+str(self))
 
     def __repr__(self):
@@ -143,7 +140,8 @@ class PhaseMapperRDFC(PhaseMapper):
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
         assert mag_data.dim[1:3] == self.kernel.dim_uv, 'Dimensions do not match!'
         # Process input parameters:
-        self.u_mag[...], self.v_mag[...] = mag_data.magnitude[0:2, 0, ...]
+        self.u_mag[self.kernel.slice_mag] = mag_data.magnitude[0, 0, ...]  # u-component
+        self.v_mag[self.kernel.slice_mag] = mag_data.magnitude[1, 0, ...]  # v-component
         return PhaseMap(mag_data.a, self._convolve())
 
     def _convolve(self):
@@ -153,7 +151,7 @@ class PhaseMapperRDFC(PhaseMapper):
         # Convolve the magnetization with the kernel in Fourier space:
         self.phase_fft[...] = self.u_mag_fft*self.kernel.u_fft - self.v_mag_fft*self.kernel.v_fft
         # Return the result:
-        return self._irfft2(self.phase_fft)[self.kernel.slice_fft]
+        return self._irfft2(self.phase_fft)[self.kernel.slice_phase]
 
     def jac_dot(self, vector):
         '''Calculate the product of the Jacobi matrix with a given `vector`.
@@ -174,8 +172,9 @@ class PhaseMapperRDFC(PhaseMapper):
 #        self._log.debug('Calling jac_dot')  # TODO: Profiler says this was slow...
         assert len(vector) == self.n, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
-        self.u_mag[...], self.v_mag[...] = np.reshape(vector, (2,)+self.kernel.dim_uv)
-        result = self._convolve().reshape(-1)
+        self.u_mag[self.kernel.slice_mag], self.v_mag[self.kernel.slice_mag] = \
+            np.reshape(vector, (2,)+self.kernel.dim_uv)
+        result = self._convolve().flatten()
         return result
 
     def jac_T_dot(self, vector):
@@ -197,81 +196,50 @@ class PhaseMapperRDFC(PhaseMapper):
 #        self._log.debug('Calling jac_T_dot')  # TODO: Profiler says this was slow...
         assert len(vector) == self.m, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
-        phase = vector.reshape(self.kernel.dim_uv)
-        p0 = self.kernel.dim_pad[0]-self.kernel.dim_uv[0]
-        p1 = self.kernel.dim_pad[1]-self.kernel.dim_uv[1]
-        phase = np.pad(phase, ((0, p0), (0, p1)), 'constant')
-        phase_fft = jfft.irfft2_adj(phase)
-        u_mag_fft = phase_fft * self.kernel.u_fft
-        v_mag_fft = phase_fft * -self.kernel.v_fft
-        u_mag = jfft.rfft2_adj(u_mag_fft, self.kernel.dim_pad[1])[self.kernel.slice_fft]
-        v_mag = jfft.rfft2_adj(v_mag_fft, self.kernel.dim_pad[1])[self.kernel.slice_fft]
-        return -np.concatenate((u_mag.flatten(), v_mag.flatten()))  # TODO: why the minus?
+        self.mag_adj[self.kernel.slice_mag] = vector.reshape(self.kernel.dim_uv)
+        mag_adj_fft = self._irfft2_adj(self.mag_adj)
+        self.u_mag_fft[...] = mag_adj_fft * self.kernel.u_fft  # u/v_mag_fft is just used as cache
+        self.v_mag_fft[...] = mag_adj_fft * -self.kernel.v_fft  # they are really 'adjoint' phases
+        u_phase_adj = self._rfft2_adj(self.u_mag_fft)[self.kernel.slice_phase]
+        v_phase_adj = self._rfft2_adj(self.v_mag_fft)[self.kernel.slice_phase]
+        return -np.concatenate((u_phase_adj.flatten(), v_phase_adj.flatten()))  # TODO: why minus?
 
-#   TODO: save arrays in PADDED form (kernel and the self.u/v/... stuff) to save padding time
-#   TODO: also gets rid of (..., self.kernel.dim_pad) argument
-#        if a.shape[axis] != n:
-#            s = list(a.shape)
-#        if s[axis] > n:
-#            index = [slice(None)]*len(s)
-#            index[axis] = slice(0, n)
-#            a = a[index]
-#        else:
-#            index = [slice(None)]*len(s)
-#            index[axis] = slice(0, s[axis])
-#            s[axis] = n
-#            z = zeros(s, a.dtype.char)
-#            z[index] = a
-#            a = z
-
-    def _rfft2_adj_fftw(x, n=None):
-        """
-        Adjoint of the 2-D Real Fast Fourier Transform, that is the product of the adjoint
-        Jacobian of the numpy rfftn with vector x.
-
-        Parameters
-        ----------
-        x : array_like
-        n : int, optional
-            Length of second dimension of original array (the one, the size of which is
-            changed by employing the rfft2)
-
-        Returns
-        -------
-        array_like
-        """
-        print 'rfftn2_adj input:', x.shape
-        if n is None:
-            n = 2 * (x.shape[1] - 1)
-        xp = np.zeros((x.shape[0], n), dtype=x.dtype)
+    def _rfft2_adj_fftw(self, phase_adj):
+        x = phase_adj
+        xp = np.zeros(self.kernel.dim_pad, dtype=np.complex64)
         xp[:, :x.shape[1]] = x
-        print 'rfftn2_adj output:', np.fft.ifftn(xp).real * x.shape[0] * n
-        return np.fft.ifftn(xp).real * x.shape[0] * n
+        phase_adj_fft = np.fft.ifftn(xp).real * np.prod(self.kernel.dim_pad)  # TODO: Convert to FFTW
+        return phase_adj_fft
+        import pyfftw
+        kernel = self.kernel
+        self.phase_adj = np.zeros(kernel.dim_pad, dtype=np.complex64)
+        self.phase_adj = pyfftw.n_byte_align(self.phase_adj, pyfftw.simd_alignment)
+        self.phase_adj[:, :phase_adj.shape[1]] = phase_adj
+        self._ifft2 = pyfftw.builders.ifftn(self.u_mag, threads=kernel.threads)
+        phase_adj_fft_TEST = self._ifft2(self.phase_adj).real * np.prod(self.kernel.dim_pad)
+        import pdb; pdb.set_trace()
+        return phase_adj_fft
 
-    def _irfft2_adj_fftw(x):
-        """
-        Adjoint of the 2-D Inverse Real Fast Fourier Transform, that is the product of the
-        adjoint Jacobian of the numpy irfftn with vector x.
-
-        Parameters
-        ----------
-        x : array_like
-
-        Returns
-        -------
-        array_like
-        """
-        print 'irfftn2_adj input:', x.shape
-        n_out = x.shape[1] / 2 + 1
-        xp = np.fft.fft(x, axis=1) / x.shape[1]
-        if x.shape[1] % 2 == 0:
-            xp[:, 1:n_out - 1] += np.conj(xp[:, :n_out-1:-1])
-    #        xp[:, n_out - 1] = xp[:, n_out - 1].real
-        else:
-            xp[:, 1:n_out] += np.conj(xp[:, :n_out-1:-1])
-    #    xp[:, 0] = xp[:, 0].real
-        print 'rfftn2_adj output:', np.fft.ifftn(xp).real * x.shape[0] * n
-        return np.fft.fft(xp[:, :n_out], axis=0) / xp.shape[0]
+    def _irfft2_adj_fftw(self, mag_adj_fft):
+        x = mag_adj_fft
+        n_out = self.kernel.dim_fft[1]
+        xp = np.zeros(self.kernel.dim_pad, dtype=np.complex64)
+        xp[...] = np.fft.fft(x, axis=1) / self.kernel.dim_pad[1]  # TODO: Convert to FFTW
+        xp[:, 1:n_out - 1] += np.conj(xp[:, :n_out-1:-1])  # if even (guaranteed for dim_pad)
+        mag_adj = np.fft.fft(xp[:, :n_out], axis=0) / self.kernel.dim_pad[0]  # TODO: Convert to FFTW
+        return mag_adj
+        import pyfftw
+        kernel = self.kernel
+        self.mag_adj = np.zeros(kernel.dim_pad, dtype=np.complex64)
+        self.mag_adj = pyfftw.n_byte_align(self.mag_adj, pyfftw.simd_alignment)
+        self._fft_ax0 = pyfftw.FFTW(self.mag_adj, threads=kernel.threads)
+        self._fft_ax1 = pyfftw.FFTW(self.mag_adj, threads=kernel.threads)
+        n_out = self.kernel.dim_fft[1]
+        self.mag_adj[...] = np.fft.fft(phase_adj, axis=1) / self.kernel.dim_pad[1]  # TODO: Convert to FFTW
+        self.mag_adj[:, 1:n_out - 1] += np.conj(self.mag_adj[:, :n_out-1:-1])  # if even (guaranteed for dim_pad)
+        mag_adj_TEST = np.fft.fft(self.mag_adj[:, :n_out], axis=0) / self.kernel.dim_pad[0]  # TODO: Convert to FFTW
+        import pdb; pdb.set_trace()
+        return mag_adj
 
 
 class PhaseMapperRDRC(PhaseMapper):
@@ -339,7 +307,7 @@ class PhaseMapperRDRC(PhaseMapper):
         u_phi = self.kernel.u
         v_phi = self.kernel.v
         # Calculation of the phase:
-        phase = np.zeros(dim_uv)
+        phase = np.zeros(dim_uv, dtype=np.float32)
         if self.numcore:
             nc.phasemapper_real_convolve(dim_uv[0], dim_uv[1], v_phi, u_phi,
                                          v_mag, u_mag, phase, self.threshold)

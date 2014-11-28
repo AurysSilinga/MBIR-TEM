@@ -19,9 +19,9 @@ cimport numpy as np
 @cython.wraparound(False)
 def phasemapper_real_convolve(
         unsigned int v_dim, unsigned int u_dim,
-        double[:, :] v_phi, double[:, :] u_phi,
-        double[:, :] v_mag, double[:, :] u_mag,
-        double[:, :] phase, float threshold):
+        float[:, :] v_phi, float[:, :] u_phi,
+        float[:, :] v_mag, float[:, :] u_mag,
+        float[:, :] phase, float threshold):
     '''Numerical core routine for the phase calculation using the real space approach.
 
     Parameters
@@ -43,7 +43,7 @@ def phasemapper_real_convolve(
 
     '''
     cdef unsigned int i, j, p, q, p_c, q_c
-    cdef double u_m, v_m
+    cdef float u_m, v_m
     for j in range(v_dim):
         for i in range(u_dim):
             u_m = u_mag[j, i]
@@ -64,9 +64,9 @@ def phasemapper_real_convolve(
 @cython.wraparound(False)
 def jac_dot_real_convolve(
         unsigned int v_dim, unsigned int u_dim,
-        double[:, :] u_phi, double[:, :] v_phi,
-        double[:] vector,
-        double[:] result):
+        float[:, :] u_phi, float[:, :] v_phi,
+        float[:] vector,
+        float[:] result):
     '''Numerical core routine for the Jacobi matrix multiplication for the phase mapper.
 
     Parameters
@@ -113,9 +113,9 @@ def jac_dot_real_convolve(
 @cython.wraparound(False)
 def jac_T_dot_real_convolve(
         unsigned int v_dim, unsigned int u_dim,
-        double[:, :] u_phi, double[:, :] v_phi,
-        double[:] vector,
-        double[:] result):
+        float[:, :] u_phi, float[:, :] v_phi,
+        float[:] vector,
+        float[:] result):
     '''Core routine for the transposed Jacobi multiplication for the phase mapper.
 
     Parameters
