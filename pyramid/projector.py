@@ -80,14 +80,13 @@ class Projector(object):
         return 'Projector(dim=%s, dim_uv=%s, coeff=%s)' % (self.dim, self.dim_uv, self.coeff)
 
     def __call__(self, mag_data):
-        self._log.debug('Calling as function')
+        self._log.debug('Calling __call__')
         mag_proj = MagData(mag_data.a, np.zeros((3, 1)+self.dim_uv))
         magnitude_proj = self.jac_dot(mag_data.mag_vec).reshape((2, )+self.dim_uv)
         mag_proj.magnitude[0:2, 0, ...] = magnitude_proj
         return mag_proj
 
     def _vector_field_projection(self, vector):
-#        self._log.debug('Calling _vector_field_projection')  # TODO: Profiler says this was slow...
         size_2d, size_3d = self.size_2d, self.size_3d
         result = np.zeros(2*size_2d)
         # Go over all possible component projections (z, y, x) to (u, v):
@@ -106,7 +105,6 @@ class Projector(object):
         return result
 
     def _vector_field_projection_T(self, vector):
-#        self._log.debug('Calling _vector_field_projection_T')  # TODO: Profiler says this was slow...
         size_2d, size_3d = self.size_2d, self.size_3d
         result = np.zeros(3*size_3d)
         # Go over all possible component projections (u, v) to (z, y, x):
@@ -148,12 +146,9 @@ class Projector(object):
             always`size_2d`.
 
         '''
-#        self._log.debug('Calling jac_dot')  # TODO: Profiler says this was slow...
         if len(vector) == 3*self.size_3d:  # mode == 'vector'
-#            self._log.debug('mode == vector')  # TODO: Profiler says this was slow...
             return self._vector_field_projection(vector)
         elif len(vector) == self.size_3d:  # mode == 'scalar'
-#            self._log.debug('mode == scalar')  # TODO: Profiler says this was slow...
             return self._scalar_field_projection(vector)
         else:
             raise AssertionError('Vector size has to be suited either for '
@@ -175,12 +170,9 @@ class Projector(object):
             of the :class:`~.Projector` object.
 
         '''
-#        self._log.debug('Calling jac_T_dot')  # TODO: Profiler says this was slow...
         if len(vector) == 2*self.size_2d:  # mode == 'vector'
-#            self._log.debug('mode == vector')  # TODO: Profiler says this was slow...
             return self._vector_field_projection_T(vector)
         elif len(vector) == self.size_2d:  # mode == 'scalar'
-#            self._log.debug('mode == scalar')  # TODO: Profiler says this was slow...
             return self._scalar_field_projection_T(vector)
         else:
             raise AssertionError('Vector size has to be suited either for '
@@ -227,17 +219,14 @@ class XTiltProjector(Projector):
     def __init__(self, dim, tilt, dim_uv=None):
 
         def get_position(p, m, b, size):
-            self._log.debug('Calling get_position')
             y, x = np.array(p)[:, 0]+0.5, np.array(p)[:, 1]+0.5
             return (y-m*x-b)/np.sqrt(m**2+1) + size/2.
 
         def get_impact(pos, r, size):
-            self._log.debug('Calling get_impact')
             return [x for x in np.arange(np.floor(pos-r), np.floor(pos+r)+1, dtype=int)
                     if 0 <= x < size]
 
         def get_weight(delta, rho):  # use circles to represent the voxels
-            self._log.debug('Calling get_weight')
             lo, up = delta-rho, delta+rho
             # Upper boundary:
             if up >= 1:

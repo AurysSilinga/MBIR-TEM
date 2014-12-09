@@ -93,7 +93,6 @@ class ForwardModel(object):
             `vector`.
 
         '''
-#        self._log.debug('Calling jac_dot')  # TODO: Profiler says this was slow...
         self.mag_data.magnitude[:] = 0
         self.mag_data.set_vector(vector, self.data_set.mask)
         result = np.zeros(self.m)
@@ -123,7 +122,6 @@ class ForwardModel(object):
             the input `vector`.
 
         '''
-#        self._log.debug('Calling jac_T_dot')  # TODO: Profiler says this was slow...
         result = np.zeros(3*np.prod(self.data_set.dim))
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):

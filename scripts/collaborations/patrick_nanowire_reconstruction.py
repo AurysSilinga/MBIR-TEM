@@ -26,13 +26,13 @@ gain = 5
 b_0 = 1
 lam = 1E-6
 PATH = '../../output/patrick/'
-PHASE = '-10_pha'
-MASK = 'mask_-10_elong_0'
+PHASE = '30_pha'
+MASK = 'mask30_elong_5'
 longFOV = True
 longFOV_string = np.where(longFOV, 'longFOV', 'normalFOV')
 IMAGENAME = '{}_{}_{}_'.format(MASK, PHASE, longFOV_string)
-PHASE_MAX = 0.92  # -10°: 0.92, 30°: 7.68
-PHASE_MIN = -16.85  # -10°: -16.85, 30°: -18.89
+PHASE_MAX = 7.68  # -10°: 0.92, 30°: 7.68
+PHASE_MIN = -18.89  # -10°: -16.85, 30°: -18.89
 PHASE_DELTA = PHASE_MAX - PHASE_MIN
 ###################################################################################################
 
@@ -45,9 +45,9 @@ im_phase = Image.open(PATH+PHASE+'.tif')
 mask = np.array(np.array(im_mask)/255, dtype=bool)
 dim_uv = mask.shape
 phase = (np.array(im_phase)/255.-0.5) * PHASE_DELTA
-pad = dim_uv[0] - phase.shape[0]
+pad = dim_uv[0] - phase.shape[0]#25
 phase_pad = np.zeros(dim_uv)
-phase_pad[pad:, :] = phase
+phase_pad[pad:, :] = phase#[pad:-pad, pad:-pad] = phase
 
 mask = np.expand_dims(mask, axis=0)
 dim = mask.shape
@@ -60,8 +60,8 @@ data_set.append(phase_map_pad, SimpleProjector(dim))
 
 # Create Se_inv
 if longFOV:
-    mask_Se = np.ones(dim_uv)
-    mask_Se[:pad, :] = 0
+    mask_Se = np.ones(dim_uv)#np.zeros(dim_uv)
+    mask_Se[:pad, :] = 0#[pad:-pad, pad:-pad] = 1
     data_set.set_Se_inv_diag_with_masks([mask_Se])
 
 regularisator = FirstOrderRegularisator(mask, lam, p=2)
@@ -70,7 +70,7 @@ with TakeTime('reconstruction time'):
     mag_data_rec = rc.optimize_linear(data_set, regularisator=regularisator, max_iter=50)
 
 phase_map_rec_pad = pm(mag_data_rec)
-phase_map_rec = PhaseMap(a, phase_map_rec_pad.phase[pad:, :])
+phase_map_rec = PhaseMap(a, phase_map_rec_pad.phase[pad:, :])#[pad:-pad, pad:-pad])
 phase_map_diff = phase_map_rec - phase_map
 
 # Display the reconstructed phase map and holography image:

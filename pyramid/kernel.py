@@ -5,6 +5,8 @@ single magnetized pixel."""
 
 import numpy as np
 
+from pyramid import fft
+
 import logging
 
 
@@ -57,65 +59,38 @@ class Kernel(object):
 
     _log = logging.getLogger(__name__+'.Kernel')
 
-    def __init__(self, a, dim_uv, b_0=1., geometry='disc', use_fftw=True, threads=1):
+    def __init__(self, a, dim_uv, b_0=1., geometry='disc', threads=1):
         self._log.debug('Calling __init__')
         # Set basic properties:
         self.dim_uv = dim_uv  # Dimensions of the FOV
         self.dim_kern = tuple(2*np.array(dim_uv)-1)  # Dimensions of the kernel
-#        self.size = np.prod(dim_uv)  # TODO: is this even used? (Pixel count)
         self.a = a
         self.geometry = geometry
         # Set up FFT:
-        if not use_fftw:
+        if fft.BACKEND == 'pyfftw':
+            self.dim_pad = tuple(2*np.array(dim_uv))  # is at least even (not nec. power of 2)
+        elif fft.BACKEND == 'numpy':
             self.dim_pad = tuple(2**np.ceil(np.log2(2*np.array(dim_uv))).astype(int))  # pow(2)
-            self.use_fftw = False
-        else:
-            try:
-                import pyfftw
-                self.dim_pad = tuple(2*np.array(dim_uv))  # is at least even (not nec. power of 2)
-                self.use_fftw = True
-            except ImportError:
-                self.dim_pad = tuple(2**np.ceil(np.log2(2*np.array(dim_uv))).astype(int))  # pow(2)
-                self.use_fftw = False
-                self._log.info('pyFFTW could not be imported, using numpy instead!')
-        self.dim_fft = (self.dim_pad[0], self.dim_pad[1]/2+1)  # last axis is real
+        self.dim_fft = (self.dim_pad[0], self.dim_pad[1]//2+1)  # last axis is real
         self.slice_phase = (slice(dim_uv[0]-1, self.dim_kern[0]),  # Shift because kernel center
                             slice(dim_uv[1]-1, self.dim_kern[1]))  # is not at (0, 0)!
         self.slice_mag = (slice(0, dim_uv[0]),  # Magnetization is padded on the far end!
                           slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
-        self.u = np.zeros(self.dim_kern, dtype=np.float32)
-        self.v = np.zeros(self.dim_kern, dtype=np.float32)
-        self.u_fft = np.zeros(self.dim_fft, dtype=np.complex64)
-        self.v_fft = np.zeros(self.dim_fft, dtype=np.complex64)
-        if self.use_fftw:  # use pyfftw (FFTW wrapper for python)
-            self.u = pyfftw.n_byte_align(self.u, pyfftw.simd_alignment)
-            self.v = pyfftw.n_byte_align(self.v, pyfftw.simd_alignment)
-            self.u_fft = pyfftw.n_byte_align(self.u_fft, pyfftw.simd_alignment)
-            self.v_fft = pyfftw.n_byte_align(self.v_fft, pyfftw.simd_alignment)
-            rfftn = pyfftw.builders.rfftn(self.u, self.dim_pad, threads=threads)
-            self.threads = threads
-        else:  # otherwise use numpy
-            rfftn = lambda x: np.fft.rfftn(x, self.dim_pad)
+        self.threads = threads  # TODO: make obsolete!
         # Calculate kernel (single pixel phase):
         coeff = b_0 * a**2 / (2*PHI_0)   # Minus is gone because of negative z-direction
         v_dim, u_dim = dim_uv
         u = np.linspace(-(u_dim-1), u_dim-1, num=2*u_dim-1)
         v = np.linspace(-(v_dim-1), v_dim-1, num=2*v_dim-1)
         uu, vv = np.meshgrid(u, v)
+        self.u = fft.empty(self.dim_kern, fft.FLOAT)
+        self.v = fft.empty(self.dim_kern, fft.FLOAT)
         self.u[...] = coeff * self._get_elementary_phase(geometry, uu, vv, a)
         self.v[...] = coeff * self._get_elementary_phase(geometry, vv, uu, a)
         # Calculate Fourier trafo of kernel components:
-        self.u_fft[...] = rfftn(self.u)
-        self.v_fft[...] = rfftn(self.v)
+        self.u_fft = fft.rfftn(self.u, self.dim_pad)
+        self.v_fft = fft.rfftn(self.v, self.dim_pad)
         self._log.debug('Created '+str(self))
-
-        # TODO: make pyfftw optional (SLOW if kernel has to be build every time like in pm()!)
-        # TODO: test if prior build of kernel brings speed up in test_method() or test_fftw()
-        # TODO: implement fftw also in phasemapper (JUST there, here: FFT TWICE and big overhead)
-        # TODO: BUT allocation of u/v/u_fft/v_fft could be beneficial (try useing with numpy.fft)
-        # TODO: Set plan manually? Save computation time also for kernel?
-        # TODO: Multithreading?
-        # TODO: TakeTime multiple runs?
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
@@ -128,7 +103,7 @@ class Kernel(object):
             (self.a, self.dim_uv, self.geometry)
 
     def _get_elementary_phase(self, geometry, n, m, a):
-        # TODO: Docstring! Function for the phase of an elementary geometry:
+        self._log.debug('Calling _get_elementary_phase')
         if geometry == 'disc':
             in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
             return m / (n**2 + m**2 + 1E-30) * in_or_out
@@ -141,6 +116,8 @@ class Kernel(object):
                           - F_a(n-0.5, m+0.5) + F_a(n+0.5, m+0.5))
 
     def print_info(self):
+        # TODO: Docstring!
+        self._log.debug('Calling print_info')
         print 'Shape of the FOV   :', self.dim_uv
         print 'Shape of the Kernel:', self.dim_kern
         print 'Zero-padded shape  :', self.dim_pad

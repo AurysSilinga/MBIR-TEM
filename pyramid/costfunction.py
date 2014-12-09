@@ -104,7 +104,6 @@ class Costfunction(object):
             Jacobi vector which represents the cost derivative of all voxels of the magnetization.
 
         '''
-        self._log.debug('Calling jac')
         assert len(x) == self.n
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model(x) - self.y))
                 + self.regularisator.jac(x))
@@ -128,11 +127,11 @@ class Costfunction(object):
             Product of the input `vector` with the Hessian matrix of the costfunction.
 
         '''
-#        self._log.debug('Calling hess_dot')  # TODO: Profiler says this was slow...
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model.jac_dot(x, vector)))
                 + self.regularisator.hess_dot(x, vector))
 
     def hess_diag(self, _):
+        # TODO: Docstring!
         return np.ones(self.n)
 
 

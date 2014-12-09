@@ -76,8 +76,7 @@ class DataSet(object):
     @property
     def phase_mappers(self):
         dim_uv_set = set([p.dim_uv for p in self.projectors])
-        kernel_list = [Kernel(self.a, dim_uv, use_fftw=self.use_fftw, threads=self.threads)
-                       for dim_uv in dim_uv_set]
+        kernel_list = [Kernel(self.a, dim_uv, threads=self.threads) for dim_uv in dim_uv_set]
         return {kernel.dim_uv: PhaseMapperRDFC(kernel) for kernel in kernel_list}
 
     def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None, use_fftw=True, threads=1):
@@ -244,3 +243,6 @@ class DataSet(object):
                                     cmap, limit, norm, gain, interpolation, grad_encode)
             for (i, phase_map) in enumerate(phase_maps)]
         plt.show()
+
+
+# TODO: method for constructing 3D mask from 2D masks?

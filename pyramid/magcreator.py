@@ -388,3 +388,6 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
         y_mag = -np.ones(dim) * np.cos(phi) * mag_shape * magnitude
         x_mag = np.zeros(dim)
     return np.array([x_mag, y_mag, z_mag])
+
+# TODO: Smooth Vortex!
+# m(x,y) = (-y/r cos(phi(r/R)), x/r sin(phi(r/R)), cos(phi(r))); phi in range[0, 1]

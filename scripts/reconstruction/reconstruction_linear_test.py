@@ -52,9 +52,9 @@ shape = mc.Shapes.disc(dim, center, radius_shell, height)
 magnitude = mc.create_mag_dist_vortex(shape)
 mag_data = MagData(a, magnitude)
 
-mag_data.quiver_plot('z-projection', proj_axis='z')
-mag_data.quiver_plot('y-projection', proj_axis='y')
-mag_data.quiver_plot3d('Original distribution')
+#mag_data.quiver_plot('z-projection', proj_axis='z')
+#mag_data.quiver_plot('y-projection', proj_axis='y')
+#mag_data.quiver_plot3d('Original distribution')
 
 tilts_full = np.linspace(-pi/2, pi/2, num=count/2, endpoint=False)
 tilts_miss = np.linspace(-pi/3, pi/3, num=count/2, endpoint=False)
@@ -98,5 +98,7 @@ with TakeTime('reconstruction'):
 print('--Plot stuff')
 
 mag_data_opt.quiver_plot3d('Reconstructed distribution')
-(mag_data_opt - mag_data).quiver_plot3d('Difference')
-phase_maps_opt = data.create_phase_maps(mag_data_opt)
+#(mag_data_opt - mag_data).quiver_plot3d('Difference')
+#phase_maps_opt = data.create_phase_maps(mag_data_opt)
+
+# TODO: iterations in jutil is one to many!

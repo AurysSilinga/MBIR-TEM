@@ -69,8 +69,8 @@ def hg_version():
 
 def write_version_py(filename='pyramid/version.py'):
     version_string = "# THIS FILE IS GENERATED FROM THE PYRAMID SETUP.PY\n" + \
-        'version="{}"\n'.format(VERSION) + \
-        'hg_revision="{}"\n'.format(hg_version())
+        'version = "{}"\n'.format(VERSION) + \
+        'hg_revision = "{}"\n'.format(hg_version())
     with open(os.path.join(os.path.dirname(__file__), filename), 'w') as vfile:
         vfile.write(version_string)
 
@@ -107,7 +107,7 @@ setup(name=DISTNAME,
       ext_package='pyramid/numcore',
       ext_modules=[
           Extension('phasemapper_core', ['pyramid/numcore/phasemapper_core.pyx'],
-                    include_dirs=[numpy.get_include(), numpy.get_numarray_include()],
+                    include_dirs=[numpy.get_include()],
                     extra_compile_args=['-march=native', '-mtune=native']
                     )
           ]

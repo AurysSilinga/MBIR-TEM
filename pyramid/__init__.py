@@ -42,6 +42,7 @@ import logging
 from . import analytic
 from . import magcreator
 from . import reconstruction
+from . import fft
 from .costfunction import *
 from .dataset import *
 from .forwardmodel import *
@@ -51,7 +52,6 @@ from .phasemap import *
 from .phasemapper import *
 from .projector import *
 from .regularisator import *
-from .util import *
 from .version import version as __version__
 from .version import hg_revision as __hg_revision__
 
@@ -59,7 +59,7 @@ _log = logging.getLogger(__name__)
 _log.info("Starting PYRAMID V{} HG{}".format(__version__, __hg_revision__))
 del logging
 
-__all__ = ['__version__', '__hg_revision__', 'analytic', 'magcreator', 'reconstruction']
+__all__ = ['__version__', '__hg_revision__', 'analytic', 'magcreator', 'reconstruction', 'fft']
 __all__.extend(costfunction.__all__)
 __all__.extend(dataset.__all__)
 __all__.extend(forwardmodel.__all__)
@@ -69,4 +69,3 @@ __all__.extend(phasemap.__all__)
 __all__.extend(phasemapper.__all__)
 __all__.extend(projector.__all__)
 __all__.extend(regularisator.__all__)
-__all__.extend(util.__all__)

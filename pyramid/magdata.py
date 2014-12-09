@@ -84,7 +84,8 @@ class MagData(object):
     def mag_vec(self, mag_vec):
         assert isinstance(mag_vec, np.ndarray), 'Vector has to be a numpy array!'
         assert np.size(mag_vec) == 3*np.prod(self.dim), \
-            'Vector has to match magnitude dimensions! {} {}'.format(mag_vec.shape, 3*np.prod(self.dim))
+            'Vector has to match magnitude dimensions! {} {}'.format(mag_vec.shape,
+                                                                     3*np.prod(self.dim))
         self.magnitude = mag_vec.reshape((3,)+self.dim)
 
     def __init__(self, a, magnitude):
@@ -494,11 +495,15 @@ class MagData(object):
         if scaled:
             plot_u /= np.hypot(plot_u, plot_v).max()
             plot_v /= np.hypot(plot_u, plot_v).max()
+        # Setup quiver:
+        dim_uv = plot_u.shape
         ad = ar_dens
-        axis.quiver(plot_u[::ad, ::ad], plot_v[::ad, ::ad], pivot='middle', units='xy',
-                    angles=angles, scale_units='xy', scale=1, headwidth=6, headlength=7)
-        axis.set_xlim(-1, np.shape(plot_u)[1])
-        axis.set_ylim(-1, np.shape(plot_u)[0])
+        xx, yy = np.meshgrid(np.arange(dim_uv[0]), np.arange(dim_uv[1]))
+        axis.quiver(xx[::ad, ::ad], yy[::ad, ::ad], plot_u[::ad, ::ad], plot_v[::ad, ::ad],
+                    pivot='middle', units='xy', angles=angles[::ad, ::ad],
+                    scale_units='xy', scale=1./ad, headwidth=6, headlength=7)
+        axis.set_xlim(-1, dim_uv[1])
+        axis.set_ylim(-1, dim_uv[0])
         axis.set_title(title, fontsize=18)
         axis.set_xlabel(u_label, fontsize=15)
         axis.set_ylabel(v_label, fontsize=15)
@@ -507,7 +512,35 @@ class MagData(object):
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         return axis
 
-    def quiver_plot3d(self, title='Magnetization Distribution'):
+    # TODO: Switch with mayavi or combine
+    def quiver_plot3d_matplotlib(self, title='Magnetization Distribution', ar_dens=1):  # TODO: Doc ar_dens
+        from mpl_toolkits.mplot3d import axes3d  #analysis:ignore
+        # TODO: more arguments like in the other plots and document!!!
+        a = self.a
+        dim = self.dim
+        ad = ar_dens
+        # Create points and vector components as lists:
+        zz, yy, xx = np.mgrid[a/2:(dim[0]*a-a/2):dim[0]*1j,
+                              a/2:(dim[1]*a-a/2):dim[1]*1j,
+                              a/2:(dim[2]*a-a/2):dim[2]*1j]
+        xx = xx[::ad, ::ad, ::ad]
+        yy = yy[::ad, ::ad, ::ad]
+        zz = zz[::ad, ::ad, ::ad]
+        x_mag = self.magnitude[0, ::ad, ::ad, ::ad]
+        y_mag = self.magnitude[1, ::ad, ::ad, ::ad]
+        z_mag = self.magnitude[2, ::ad, ::ad, ::ad]
+        # Plot them as vectors:
+        fig = plt.figure(figsize=(8.5, 7))
+        axis = fig.add_subplot(1, 1, 1)
+        axis = fig.gca(projection='3d')
+        axis.quiver(xx, yy, zz, x_mag, y_mag, z_mag)
+        axis.set_title(title, fontsize=18)
+        # TODO: add colorbar!
+#        mlab.colorbar(None, label_fmt='%.2f')
+#        mlab.colorbar(None, orientation='vertical')
+        return axis
+
+    def quiver_plot3d(self, title='Magnetization Distribution', ar_dens=1):  # TODO: Doc ar_dens
         '''Plot the magnetization as 3D-vectors in a quiverplot.
 
         Parameters
@@ -521,19 +554,19 @@ class MagData(object):
         '''
         self._log.debug('Calling quiver_plot3D')
         from mayavi import mlab
-
         a = self.a
         dim = self.dim
+        ad = ar_dens
         # Create points and vector components as lists:
         zz, yy, xx = np.mgrid[a/2:(dim[0]*a-a/2):dim[0]*1j,
                               a/2:(dim[1]*a-a/2):dim[1]*1j,
                               a/2:(dim[2]*a-a/2):dim[2]*1j]
-        xx = xx.reshape(-1)
-        yy = yy.reshape(-1)
-        zz = zz.reshape(-1)
-        x_mag = np.reshape(self.magnitude[0], (-1))
-        y_mag = np.reshape(self.magnitude[1], (-1))
-        z_mag = np.reshape(self.magnitude[2], (-1))
+        xx = xx[::ad, ::ad, ::ad].flatten()#reshape(-1)
+        yy = yy[::ad, ::ad, ::ad].flatten()#.reshape(-1)
+        zz = zz[::ad, ::ad, ::ad].flatten()#.reshape(-1)
+        x_mag = self.magnitude[0][::ad, ::ad, ::ad].flatten()#, (-1))
+        y_mag = self.magnitude[1][::ad, ::ad, ::ad].flatten()#, (-1))
+        z_mag = self.magnitude[2][::ad, ::ad, ::ad].flatten()#, (-1))
         # Plot them as vectors:
         mlab.figure()
         plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode='arrow')

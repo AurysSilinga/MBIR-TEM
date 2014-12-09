@@ -16,6 +16,7 @@ from pyramid.projector import SimpleProjector
 from pyramid.phasemapper import PhaseMapperRDRC, PhaseMapperRDFC, PhaseMapperFDFC
 from pyramid.kernel import Kernel
 from pyramid.magdata import MagData
+from pyramid import fft
 
 import logging
 import logging.config
@@ -31,7 +32,7 @@ b_0 = 1.0    # in T
 a = 1.0  # in nm
 phi = pi/4
 gain = 'auto'
-dim = (16, 128, 128)  # in px (z, y, x)
+dim = (128, 128, 128)  # in px (z, y, x)
 
 # Create magnetic shape:
 geometry = 'disc'
@@ -56,30 +57,41 @@ elif geometry == 'sphere':
 mag_data = MagData(a, mc.create_mag_dist_homog(mag_shape, phi))
 projector = SimpleProjector(dim)
 projection = projector(mag_data)
-# Construct PhaseMapper objects:
-pm_real_slow = PhaseMapperRDRC(Kernel(a, projector.dim_uv, b_0), numcore=False)
-pm_real_fast = PhaseMapperRDRC(Kernel(a, projector.dim_uv, b_0), numcore=True)
-pm_conv_slow = PhaseMapperRDFC(Kernel(a, projector.dim_uv, b_0, use_fftw=False))
-pm_conv_fast = PhaseMapperRDFC(Kernel(a, projector.dim_uv, b_0, use_fftw=True))
-pm_four_pad0 = PhaseMapperFDFC(a, projector.dim_uv, b_0, padding=0)
-pm_four_pad1 = PhaseMapperFDFC(a, projector.dim_uv, b_0, padding=1)
 
-# Get times for different approaches:
+# RDRC no numcore:
+pm_real_slow = PhaseMapperRDRC(Kernel(a, projector.dim_uv, b_0), numcore=False)
 start_time = time.time()
 phase_map_real = pm_real_slow(projection)
 print 'Time for RDRC no numcore :', time.time() - start_time
+
+# RDRC with numcore:
+pm_real_fast = PhaseMapperRDRC(Kernel(a, projector.dim_uv, b_0), numcore=True)
 start_time = time.time()
 phase_map_real = pm_real_fast(projection)
 print 'Time for RDRC    numcore :', time.time() - start_time
+
+# RDFC numpy convolution:
+fft.configure_backend('numpy')
+pm_conv_slow = PhaseMapperRDFC(Kernel(a, projector.dim_uv, b_0))
 start_time = time.time()
 phase_map_conv = pm_conv_slow(projection)
 print 'Time for RDFC numpy conv.:', time.time() - start_time
+
+# RDFC FFTW convolution:
+fft.configure_backend('fftw')
+pm_conv_fast = PhaseMapperRDFC(Kernel(a, projector.dim_uv, b_0))
 start_time = time.time()
 phase_map_conv = pm_conv_fast(projection)
 print 'Time for RDFC FFTW  conv.:', time.time() - start_time
+
+# FDFC padding 0:
+pm_four_pad0 = PhaseMapperFDFC(a, projector.dim_uv, b_0, padding=0)
 start_time = time.time()
 phase_map_four = pm_four_pad0(projection)
 print 'Time for FDFC padding 0  :', time.time() - start_time
+
+# FDFC padding 1:
+pm_four_pad1 = PhaseMapperFDFC(a, projector.dim_uv, b_0, padding=1)
 start_time = time.time()
 phase_map_four = pm_four_pad1(projection)
 print 'Time for FDFC padding 1  :', time.time() - start_time
