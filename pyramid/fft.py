@@ -171,7 +171,15 @@ def load_wisdom(fname):
 
 
 # Array setups:
-def zeros(shape, dtype):
+def empty(shape, dtype=FLOAT):
+    # TODO: Docstring!
+    result = np.empty(shape, dtype)
+    if pyfftw is not None:
+        result = pyfftw.n_byte_align(result, pyfftw.simd_alignment)
+    return result
+
+
+def zeros(shape, dtype=FLOAT):
     # TODO: Docstring!
     result = np.zeros(shape, dtype)
     if pyfftw is not None:
@@ -179,9 +187,9 @@ def zeros(shape, dtype):
     return result
 
 
-def empty(shape, dtype):
+def ones(shape, dtype=FLOAT):
     # TODO: Docstring!
-    result = np.empty(shape, dtype)
+    result = np.ones(shape, dtype)
     if pyfftw is not None:
         result = pyfftw.n_byte_align(result, pyfftw.simd_alignment)
     return result

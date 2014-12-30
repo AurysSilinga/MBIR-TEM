@@ -26,7 +26,7 @@ if not os.path.exists(directory):
 # Input parameters:
 filename = directory + '/mag_dist_multiple_samples.txt'
 a = 10.0  # nm
-dim = (64, 128, 128)
+dim = (64, 128, 256)
 # Slab:
 center = (32, 32, 32)  # in px (z, y, x), index starts with 0!
 width = (48, 48, 48)  # in px (z, y, x)

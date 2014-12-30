@@ -28,6 +28,10 @@ costfunction
     Class for the evaluation of the cost of a function.
 reconstruction
     Reconstruct magnetic distributions from given phasemaps.
+regularisator
+    Class to instantiate different regularisation strategies.
+fft
+    Class for custom FFT functions using numpy or FFTW.
 
 Subpackages
 -----------

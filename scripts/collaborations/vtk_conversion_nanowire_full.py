@@ -170,6 +170,7 @@ for i in range(mag_data.magnitude.shape[1]):
     if i == 100:
         mag_data.quiver_plot(ax_slice=i)
         plt.savefig(PATH+'_quiver_500_post.png')
+mag_data.save_to_netcdf4(PATH+'_90deg_around_z.nc')
 # Iterate over all angles:
 for angle in angles:
     angle_rad = angle * np.pi/180
@@ -199,7 +200,7 @@ for angle in angles:
     PM = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))
     phase_map_tip = PhaseMap(mag_data.a, PM(projector(mag_data_bot)).phase[50+shift:225+shift, :])
     phase_map_tip.display_combined('Phase Map Nanowire Bottom', gain=gain,
-                                   interpolation='bilinear')
+                    b               interpolation='bilinear')
     plt.savefig(PATH+'_nanowire_bot_xtilt_{}_no_frame.png'.format(angle))
     mag_data_bot.scale_down()
     mag_proj_bot = projector_scaled(mag_data_bot)

@@ -132,7 +132,26 @@ class Costfunction(object):
 
     def hess_diag(self, _):
         # TODO: Docstring!
+        # TODO: What for again?
         return np.ones(self.n)
+
+    def estimate_lambda(self):
+        # TODO: Docstring!
+        # TODO: Not very efficient? Is this even correct?
+
+        def unit_vec(length, index):
+            result = np.zeros(length)
+            result[index] = 1
+            return result
+
+        fwd, reg = self.fwd_model, self.regularisator
+        trace_fwd = np.sum([fwd.jac_T_dot(None, fwd.jac_dot(None, unit_vec(self.n, i)))
+                            for i in range(self.n)])
+        trace_reg = np.sum([reg(unit_vec(self.n, i)) for i in range(self.n)])
+        print 'fwd:', trace_fwd
+        print 'reg:', trace_reg
+        import pdb; pdb.set_trace()
+        return trace_fwd / trace_reg
 
 
 class CFAdapterScipyCG(LinearOperator):

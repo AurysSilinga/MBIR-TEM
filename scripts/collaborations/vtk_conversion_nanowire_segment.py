@@ -142,7 +142,7 @@ else:
 mag_data.quiver_plot()
 ###################################################################################################
 # Phasemapping:
-phase_map = pm(mag_data)
+phase_map = pm(mag_data, dim_uv=(300, 300))
 (-phase_map).display_combined(title=r'Combined Plot (B$_0$={} T, Cos x {})'.format(b_0, gain),
                               gain=gain)
 plt.savefig(PATH+'_{}T_cosx{}.png'.format(b_0, gain))

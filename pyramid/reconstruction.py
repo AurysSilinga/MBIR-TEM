@@ -83,7 +83,7 @@ class PrintIterator(object):
         return self.iteration
 
 
-def optimize_linear(data, regularisator=None, max_iter=None, info=None):
+def optimize_linear(data, regularisator=None, max_iter=None):
     '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
     Blazingly fast for l2-based cost functions.
@@ -114,9 +114,7 @@ def optimize_linear(data, regularisator=None, max_iter=None, info=None):
     # Create and return fitting MagData object:
     mag_opt = MagData(data.a, np.zeros((3,) + data.dim))
     mag_opt.set_vector(x_opt, data.mask)
-    if info is not None:
-        info[:] = cost.chisq, cost.chisq_m, cost.chisq_a
-    return mag_opt
+    return mag_opt, cost
 
 
 def optimize_nonlin(data, first_guess=None, regularisator=None):

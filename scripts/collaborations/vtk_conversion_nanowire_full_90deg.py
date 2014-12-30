@@ -136,45 +136,46 @@ for i in range(mag_data.magnitude.shape[2]):
     magnitude_new[1, ..., i] = -z_rot
     magnitude_new[2, ..., i] = y_rot
 mag_data.magnitude = magnitude_new
+mag_data.save_to_netcdf4(PATH+'_lying_down.nc')
 # Iterate over all angles:
-for angle in angles:
-    angle_rad = angle * np.pi/180
-    projector = YTiltProjector(dim, angle_rad, dim_uv)
-    projector_scaled = YTiltProjector((dim[0]/2, dim[1]/2, dim[2]/2), angle_rad,
-                                      (dim_uv[0]/2, dim_uv[1]/2))
-    # Tip:
-    mag_data_tip = MagData(mag_data.a, mag_data.magnitude[:, :, 608:, :])
-    PM = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))
-    phase_map_tip = PhaseMap(mag_data.a, PM(projector(mag_data_tip)).phase[350:530, :])
-    phase_map_tip.display_combined('Phase Map Nanowire Tip', gain=gain,
-                                   interpolation='bilinear')
-    plt.savefig(PATH+'_nanowire_tip_xtilt_{}.png'.format(angle))
-    mag_data_tip.scale_down()
-    mag_proj_tip = projector_scaled(mag_data_tip)
-    axis = mag_proj_tip.quiver_plot()
-#    axis.set_xlim(17, 55)
-#    axis.set_ylim(180-shift/2, 240-shift/2)
-    plt.savefig(PATH+'_nanowire_tip_mag_xtilt_{}.png'.format(angle))
-    axis = mag_proj_tip.quiver_plot(log=True)
-#    axis.set_xlim(17, 55)
-#    axis.set_ylim(180-shift/2, 240-shift/2)
-    plt.savefig(PATH+'_nanowire_tip_mag_log_xtilt_{}.png'.format(angle))
-    # Bottom:
-    mag_data_bot = MagData(mag_data.a, mag_data.magnitude[:, :, :300, :])
-    PM = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))
-    phase_map_tip = PhaseMap(mag_data.a, PM(projector(mag_data_bot)).phase[50:225, :])
-    phase_map_tip.display_combined('Phase Map Nanowire Bottom', gain=gain,
-                                   interpolation='bilinear')
-    plt.savefig(PATH+'_nanowire_bot_xtilt_{}_no_frame.png'.format(angle))
-    mag_data_bot.scale_down()
-    mag_proj_bot = projector_scaled(mag_data_bot)
-    axis = mag_proj_bot.quiver_plot()
-#    axis.set_xlim(17, 55)
-#    axis.set_ylim(50+shift/2, 110+shift/2)
-    plt.savefig(PATH+'_nanowire_bot_mag_xtilt_{}.png'.format(angle))
-    axis = mag_proj_bot.quiver_plot(log=True)
-#    axis.set_xlim(17, 55)
-#    axis.set_ylim(50+shift/2, 110+shift/2)
-    plt.savefig(PATH+'_nanowire_bot_mag_log_xtilt_{}.png'.format(angle))
-    # Close plots:
-    plt.close('all')
+#for angle in angles:
+#    angle_rad = angle * np.pi/180
+#    projector = YTiltProjector(dim, angle_rad, dim_uv)
+#    projector_scaled = YTiltProjector((dim[0]/2, dim[1]/2, dim[2]/2), angle_rad,
+#                                      (dim_uv[0]/2, dim_uv[1]/2))
+#    # Tip:
+#    mag_data_tip = MagData(mag_data.a, mag_data.magnitude[:, :, 608:, :])
+#    PM = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))
+#    phase_map_tip = PhaseMap(mag_data.a, PM(projector(mag_data_tip)).phase[350:530, :])
+#    phase_map_tip.display_combined('Phase Map Nanowire Tip', gain=gain,
+#                                   interpolation='bilinear')
+#    plt.savefig(PATH+'_nanowire_tip_xtilt_{}.png'.format(angle))
+#    mag_data_tip.scale_down()
+#    mag_proj_tip = projector_scaled(mag_data_tip)
+#    axis = mag_proj_tip.quiver_plot()
+##    axis.set_xlim(17, 55)
+##    axis.set_ylim(180-shift/2, 240-shift/2)
+#    plt.savefig(PATH+'_nanowire_tip_mag_xtilt_{}.png'.format(angle))
+#    axis = mag_proj_tip.quiver_plot(log=True)
+##    axis.set_xlim(17, 55)
+##    axis.set_ylim(180-shift/2, 240-shift/2)
+#    plt.savefig(PATH+'_nanowire_tip_mag_log_xtilt_{}.png'.format(angle))
+#    # Bottom:
+#    mag_data_bot = MagData(mag_data.a, mag_data.magnitude[:, :, :300, :])
+#    PM = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))
+#    phase_map_tip = PhaseMap(mag_data.a, PM(projector(mag_data_bot)).phase[50:225, :])
+#    phase_map_tip.display_combined('Phase Map Nanowire Bottom', gain=gain,
+#                                   interpolation='bilinear')
+#    plt.savefig(PATH+'_nanowire_bot_xtilt_{}_no_frame.png'.format(angle))
+#    mag_data_bot.scale_down()
+#    mag_proj_bot = projector_scaled(mag_data_bot)
+#    axis = mag_proj_bot.quiver_plot()
+##    axis.set_xlim(17, 55)
+##    axis.set_ylim(50+shift/2, 110+shift/2)
+#    plt.savefig(PATH+'_nanowire_bot_mag_xtilt_{}.png'.format(angle))
+#    axis = mag_proj_bot.quiver_plot(log=True)
+##    axis.set_xlim(17, 55)
+##    axis.set_ylim(50+shift/2, 110+shift/2)
+#    plt.savefig(PATH+'_nanowire_bot_mag_log_xtilt_{}.png'.format(angle))
+#    # Close plots:
+#    plt.close('all')

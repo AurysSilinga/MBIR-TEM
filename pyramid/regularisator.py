@@ -52,12 +52,10 @@ class Regularisator(object):
 
     def jac(self, x):
         # TODO: Docstring!
-        self._log.debug('Calling jac')
         return self.lam * self.norm.jac(x)
 
     def hess_dot(self, x, vector):
         # TODO: Docstring!
-#        self._log.debug('Calling hess_dot')  # TODO: Profiler says this was slow...
         return self.lam * self.norm.hess_dot(x, vector)
 
     def hess_diag(self, x, vector):
@@ -85,12 +83,10 @@ class NoneRegularisator(Regularisator):
 
     def jac(self, x):
         # TODO: Docstring!
-        self._log.debug('Calling jac')
         return np.zeros_like(x)
 
     def hess_dot(self, x, vector):
         # TODO: Docstring!
-        self._log.debug('Calling hess_dot')
         return np.zeros_like(vector)
 
     def hess_diag(self, x, vector):

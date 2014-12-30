@@ -498,9 +498,9 @@ class MagData(object):
         # Setup quiver:
         dim_uv = plot_u.shape
         ad = ar_dens
-        xx, yy = np.meshgrid(np.arange(dim_uv[0]), np.arange(dim_uv[1]))
+        xx, yy = np.meshgrid(np.arange(dim_uv[1]), np.arange(dim_uv[0]))
         axis.quiver(xx[::ad, ::ad], yy[::ad, ::ad], plot_u[::ad, ::ad], plot_v[::ad, ::ad],
-                    pivot='middle', units='xy', angles=angles[::ad, ::ad],
+                    pivot='middle', units='xy', angles=angles[::ad, ::ad], minlength=0.25,
                     scale_units='xy', scale=1./ad, headwidth=6, headlength=7)
         axis.set_xlim(-1, dim_uv[1])
         axis.set_ylim(-1, dim_uv[0])

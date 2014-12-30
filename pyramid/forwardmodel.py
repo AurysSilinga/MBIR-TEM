@@ -93,7 +93,7 @@ class ForwardModel(object):
             `vector`.
 
         '''
-        self.mag_data.magnitude[:] = 0
+        self.mag_data.magnitude[...] = 0
         self.mag_data.set_vector(vector, self.data_set.mask)
         result = np.zeros(self.m)
         hp = self.hook_points
