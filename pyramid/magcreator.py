@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """Create simple magnetic distributions.
 
 The :mod:`~.magcreator` module is responsible for the creation of simple distributions of
@@ -165,7 +168,7 @@ class Shapes(object):
         elif axis == 'x':
             mag_shape = np.array([[[np.hypot((y-center[1])/(width[1]/2.),
                                              (z-center[0])/(width[0]/2.)) <= 1
-                                 and abs(z - center[0]) <= height / 2
+                                 and abs(x - center[2]) <= height / 2
                                  for x in range(dim[2])]
                                  for y in range(dim[1])]
                                  for z in range(dim[0])])
@@ -225,9 +228,9 @@ class Shapes(object):
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a a tuple of length 3!'
-        mag_shape = np.array([[[np.sqrt((x-center[2])**2/(width[2]/2)**2
-                                        + (y-center[1])**2/(width[1]/2)**2
-                                        + (z-center[0])**2/(width[0]/2)**2) <= 1
+        mag_shape = np.array([[[(x-center[2])**2/(width[2]/2)**2
+                                + (y-center[1])**2/(width[1]/2)**2
+                                + (z-center[0])**2/(width[0]/2)**2 <= 1
                              for x in range(dim[2])]
                              for y in range(dim[1])]
                              for z in range(dim[0])])
@@ -388,6 +391,3 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
         y_mag = -np.ones(dim) * np.cos(phi) * mag_shape * magnitude
         x_mag = np.zeros(dim)
     return np.array([x_mag, y_mag, z_mag])
-
-# TODO: Smooth Vortex!
-# m(x,y) = (-y/r cos(phi(r/R)), x/r sin(phi(r/R)), cos(phi(r))); phi in range[0, 1]

@@ -20,26 +20,29 @@ LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)),
 
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 
+# TODO: read in input via txt-file dictionary?
+
 ###################################################################################################
 a = 1.455  # in nm
 gain = 5
 b_0 = 1
-lam = 1E-6
+lam = 1E-4
 PATH = '../../output/patrick/'
-PHASE = '30_pha'
-MASK = 'mask30_elong_5'
-longFOV = True
+PHASE = 'pos3_40deg_magphase'
+MASK = 'pos3_40deg_maskbyhand'
+FORMAT = '.bmp'
+longFOV = False
 longFOV_string = np.where(longFOV, 'longFOV', 'normalFOV')
 IMAGENAME = '{}_{}_{}_'.format(MASK, PHASE, longFOV_string)
-PHASE_MAX = 7.68  # -10°: 0.92, 30°: 7.68
-PHASE_MIN = -18.89  # -10°: -16.85, 30°: -18.89
+PHASE_MAX = 0.5  # -10°: 0.92, 30°: 7.68
+PHASE_MIN = -0.5  # -10°: -16.85, 30°: -18.89
 PHASE_DELTA = PHASE_MAX - PHASE_MIN
 ###################################################################################################
 
 # Read in files:
-im_mask = Image.open(PATH+MASK+'.tif')
+im_mask = Image.open(PATH+MASK+FORMAT)
 #im_mask.thumbnail((125, 175), Image.ANTIALIAS)
-im_phase = Image.open(PATH+PHASE+'.tif')
+im_phase = Image.open(PATH+PHASE+FORMAT)
 #im_phase.thumbnail((125, 125), Image.ANTIALIAS)
 
 mask = np.array(np.array(im_mask)/255, dtype=bool)
@@ -67,7 +70,7 @@ if longFOV:
 regularisator = FirstOrderRegularisator(mask, lam, p=2)
 
 with TakeTime('reconstruction time'):
-    mag_data_rec = rc.optimize_linear(data_set, regularisator=regularisator, max_iter=50)
+    mag_data_rec = rc.optimize_linear(data_set, regularisator=regularisator, max_iter=1000)[0]
 
 phase_map_rec_pad = pm(mag_data_rec)
 phase_map_rec = PhaseMap(a, phase_map_rec_pad.phase[pad:, :])#[pad:-pad, pad:-pad])
@@ -83,6 +86,6 @@ phase_map_rec.display_combined('Reconstr. Distribution', gain=4)
 plt.savefig(PATH+IMAGENAME+'RECONSTRUCTION.png')
 phase_map_diff.display_combined('Difference')
 plt.savefig(PATH+IMAGENAME+'DIFFERENCE.png')
-mag_data_rec.scale_down(4)
-mag_data_rec.quiver_plot(log=True)
+#mag_data_rec.scale_down(4)
+mag_data_rec.quiver_plot(log=True, ar_dens=8)
 plt.savefig(PATH+IMAGENAME+'MAGNETIZATION_DOWNSCALE4.png')

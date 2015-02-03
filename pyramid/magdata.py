@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """This module provides the :class:`~.MagData` class for storing of magnetization data."""
 
 
@@ -11,6 +14,8 @@ from scipy.ndimage.interpolation import zoom
 import matplotlib.pyplot as plt
 import matplotlib.cm as cmx
 from matplotlib.ticker import MaxNLocator
+
+import pyramid.fft as fft
 
 from numbers import Number
 
@@ -43,6 +48,8 @@ class MagData(object):
     magnitude: :class:`~numpy.ndarray` (N=4)
         The `x`-, `y`- and `z`-component of the magnetization vector for every 3D-gridpoint
         as a 4-dimensional numpy array (first dimension has to be 3, because of the 3 components).
+    mag_amp: :class:`~numpy.ndarray` (N=3)
+        The length (amplitude) of the magnetization vectors as a 3D-array.
     mag_vec: :class:`~numpy.ndarray` (N=1)
         Vector containing the magnetic distribution.
 
@@ -73,8 +80,12 @@ class MagData(object):
         assert isinstance(magnitude, np.ndarray), 'Magnitude has to be a numpy array!'
         assert len(magnitude.shape) == 4, 'Magnitude has to be 4-dimensional!'
         assert magnitude.shape[0] == 3, 'First dimension of the magnitude has to be 3!'
-        self._magnitude = np.asarray(magnitude, dtype=np.float32)
+        self._magnitude = np.asarray(magnitude, dtype=fft.FLOAT)
         self._dim = magnitude.shape[1:]
+
+    @property
+    def mag_amp(self):
+        return np.sqrt(np.sum(self.magnitude**2, axis=0))
 
     @property
     def mag_vec(self):
@@ -82,7 +93,7 @@ class MagData(object):
 
     @mag_vec.setter
     def mag_vec(self, mag_vec):
-        assert isinstance(mag_vec, np.ndarray), 'Vector has to be a numpy array!'
+        mag_vec = np.asarray(mag_vec, dtype=fft.FLOAT)
         assert np.size(mag_vec) == 3*np.prod(self.dim), \
             'Vector has to match magnitude dimensions! {} {}'.format(mag_vec.shape,
                                                                      3*np.prod(self.dim))
@@ -270,7 +281,7 @@ class MagData(object):
             Mask of the pixels where the amplitude of the magnetization lies above `threshold`.
 
         '''
-        return np.sqrt(np.sum(np.array(self.magnitude)**2, axis=0)) > threshold
+        return self.mag_amp > threshold
 
     def get_vector(self, mask):
         '''Returns the magnetic components arranged in a vector, specified by a mask.
@@ -289,11 +300,10 @@ class MagData(object):
         '''
         if mask is not None:
             return np.reshape([self.magnitude[0][mask],
-                           self.magnitude[1][mask],
-                           self.magnitude[2][mask]], -1)
+                               self.magnitude[1][mask],
+                               self.magnitude[2][mask]], -1)
         else:
             return self.mag_vec
-
 
     def set_vector(self, vector, mask=None):
         '''Set the magnetic components of the masked pixels to the values specified by `vector`.
@@ -311,6 +321,7 @@ class MagData(object):
         None
 
         '''
+        vector = np.asarray(vector, dtype=fft.FLOAT)
         assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
         count = np.size(vector)/3
         if mask is not None:
@@ -337,9 +348,7 @@ class MagData(object):
         self._log.debug('Calling save_to_llg')
         a = self.a * 1.0E-9 / 1.0E-2  # from nm to cm
         # Create 3D meshgrid and reshape it and the magnetization into a list where x varies first:
-        zz, yy, xx = np.mgrid[a/2:(self.dim[0]*a-a/2):self.dim[0]*1j,
-                              a/2:(self.dim[1]*a-a/2):self.dim[1]*1j,
-                              a/2:(self.dim[2]*a-a/2):self.dim[2]*1j].reshape(3, -1)
+        zz, yy, xx = (np.indices(self.dim)-a/2).reshape(3, -1)
         x_vec, y_vec, z_vec = self.magnitude.reshape(3, -1)
         # Save data to file:
         data = np.array([xx, yy, zz, x_vec, y_vec, z_vec]).T
@@ -419,8 +428,66 @@ class MagData(object):
         mag_file.close()
         return MagData(a, magnitude)
 
+    def save_to_x3d(self, filename='..\..\output\magdata_output.x3d', maximum=1):
+        '''Output the magnetization in the .x3d format for the Fraunhofer InstantReality Player.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        '''
+        self._log.debug('Calling save_to_x3d')
+        from lxml import etree
+
+        dim = self.dim
+        # Create points and vector components as lists:
+        zz, yy, xx = (np.indices(dim)-0.5).reshape(3, -1)
+        x_mag = np.reshape(self.magnitude[0], (-1))
+        y_mag = np.reshape(self.magnitude[1], (-1))
+        z_mag = np.reshape(self.magnitude[2], (-1))
+        # Load template, load tree and write viewpoint information:
+        template = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'template.x3d')
+        parser = etree.XMLParser(remove_blank_text=True)
+        tree = etree.parse(template, parser)
+        scene = tree.find('Scene')
+        etree.SubElement(scene, 'Viewpoint', position='0 0 {}'.format(1.5*dim[0]),
+                         fieldOfView='1')
+        # Write each "spin"-tag separately:
+        for i in range(np.prod(dim)):
+            mag = np.sqrt(x_mag[i]**2+y_mag[i]**2+z_mag[i]**2)
+            if mag != 0:
+                spin_position = (xx[i]-dim[2]/2., yy[i]-dim[1]/2., zz[i]-dim[0]/2.)
+                sx_ref = 0
+                sy_ref = 1
+                sz_ref = 0
+                rot_x = sy_ref*z_mag[i] - sz_ref*y_mag[i]
+                rot_y = sz_ref*x_mag[i] - sx_ref*z_mag[i]
+                rot_z = sx_ref*y_mag[i] - sy_ref*x_mag[i]
+                angle = np.arccos(y_mag[i]/mag)
+                if norm((rot_x, rot_y, rot_z)) < 1E-10:
+                    rot_x, rot_y, rot_z = 1, 0, 0
+                spin_rotation = (rot_x, rot_y, rot_z, angle)
+                spin_color = cmx.RdYlGn(mag/maximum)[:3]
+                spin_scale = (1., 1., 1.)
+                spin = etree.SubElement(scene, 'ProtoInstance',
+                                        DEF='Spin {}'.format(i), name='Spin_Proto')
+                etree.SubElement(spin, 'fieldValue', name='spin_position',
+                                 value='{} {} {}'.format(*spin_position))
+                etree.SubElement(spin, 'fieldValue', name='spin_rotation',
+                                 value='{} {} {} {}'.format(*spin_rotation))
+                etree.SubElement(spin, 'fieldValue', name='spin_color',
+                                 value='{} {} {}'.format(*spin_color))
+                etree.SubElement(spin, 'fieldValue', name='spin_scale',
+                                 value='{} {} {}'.format(*spin_scale))
+        # Write the tree into the file in pretty print format:
+        tree.write(filename, pretty_print=True)
+
     def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
-                    ar_dens=1, ax_slice=None, log=False, scaled=True):  # TODO: Doc ar_dens
+                    ar_dens=1, ax_slice=None, log=False, scaled=True):
         '''Plot a slice of the magnetization as a quiver plot.
 
         Parameters
@@ -431,6 +498,9 @@ class MagData(object):
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         proj_axis : {'z', 'y', 'x'}, optional
             The axis, from which a slice is plotted. The default is 'z'.
+        ar_dens: int (optional)
+            Number defining the arrow density which is plotted. A higher ar_dens number skips more
+            arrows (a number of 2 plots every second arrow). Default is 1.
         ax_slice : int, optional
             The slice-index of the axis specified in `proj_axis`. Is set to the center of
             `proj_axis` if not specified.
@@ -498,7 +568,7 @@ class MagData(object):
         # Setup quiver:
         dim_uv = plot_u.shape
         ad = ar_dens
-        xx, yy = np.meshgrid(np.arange(dim_uv[1]), np.arange(dim_uv[0]))
+        yy, xx = np.indices(dim_uv)
         axis.quiver(xx[::ad, ::ad], yy[::ad, ::ad], plot_u[::ad, ::ad], plot_v[::ad, ::ad],
                     pivot='middle', units='xy', angles=angles[::ad, ::ad], minlength=0.25,
                     scale_units='xy', scale=1./ad, headwidth=6, headlength=7)
@@ -512,129 +582,57 @@ class MagData(object):
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         return axis
 
-    # TODO: Switch with mayavi or combine
-    def quiver_plot3d_matplotlib(self, title='Magnetization Distribution', ar_dens=1):  # TODO: Doc ar_dens
-        from mpl_toolkits.mplot3d import axes3d  #analysis:ignore
-        # TODO: more arguments like in the other plots and document!!!
-        a = self.a
-        dim = self.dim
-        ad = ar_dens
-        # Create points and vector components as lists:
-        zz, yy, xx = np.mgrid[a/2:(dim[0]*a-a/2):dim[0]*1j,
-                              a/2:(dim[1]*a-a/2):dim[1]*1j,
-                              a/2:(dim[2]*a-a/2):dim[2]*1j]
-        xx = xx[::ad, ::ad, ::ad]
-        yy = yy[::ad, ::ad, ::ad]
-        zz = zz[::ad, ::ad, ::ad]
-        x_mag = self.magnitude[0, ::ad, ::ad, ::ad]
-        y_mag = self.magnitude[1, ::ad, ::ad, ::ad]
-        z_mag = self.magnitude[2, ::ad, ::ad, ::ad]
-        # Plot them as vectors:
-        fig = plt.figure(figsize=(8.5, 7))
-        axis = fig.add_subplot(1, 1, 1)
-        axis = fig.gca(projection='3d')
-        axis.quiver(xx, yy, zz, x_mag, y_mag, z_mag)
-        axis.set_title(title, fontsize=18)
-        # TODO: add colorbar!
-#        mlab.colorbar(None, label_fmt='%.2f')
-#        mlab.colorbar(None, orientation='vertical')
-        return axis
-
-    def quiver_plot3d(self, title='Magnetization Distribution', ar_dens=1):  # TODO: Doc ar_dens
+    def quiver_plot3d(self, title='Magnetization Distribution', limit=None, cmap='cool',
+                      ar_dens=1, mode='arrow', show_pipeline=False):
         '''Plot the magnetization as 3D-vectors in a quiverplot.
 
         Parameters
         ----------
-        None
+        title : string, optional
+            The title for the plot.
+        limit : float, optional
+            Plotlimit for the magnetization arrow length used to scale the colormap.
+        cmap : string, optional
+            String describing the colormap which is used (default is 'cool').
+        ar_dens: int (optional)
+            Number defining the arrow density which is plotted. A higher ar_dens number skips more
+            arrows (a number of 2 plots every second arrow). Default is 1.
+        mode: string, optional
+            Mode, determining the glyphs used in the 3D plot. Default is 'arrow', which corresponds
+            to 3D arrows. For large amounts of arrows, '2darrow' should be used.
+        show_pipeline : boolean, optional
+            If True, the mayavi pipeline, a GUI used for image manipulation is shown. The default
+            is False.
 
         Returns
         -------
-        None
+        plot : :class:`mayavi.modules.vectors.Vectors`
+            The plot object.
 
         '''
         self._log.debug('Calling quiver_plot3D')
         from mayavi import mlab
         a = self.a
         dim = self.dim
+        if limit is None:
+            limit = np.max(self.mag_amp)
         ad = ar_dens
         # Create points and vector components as lists:
-        zz, yy, xx = np.mgrid[a/2:(dim[0]*a-a/2):dim[0]*1j,
-                              a/2:(dim[1]*a-a/2):dim[1]*1j,
-                              a/2:(dim[2]*a-a/2):dim[2]*1j]
-        xx = xx[::ad, ::ad, ::ad].flatten()#reshape(-1)
-        yy = yy[::ad, ::ad, ::ad].flatten()#.reshape(-1)
-        zz = zz[::ad, ::ad, ::ad].flatten()#.reshape(-1)
-        x_mag = self.magnitude[0][::ad, ::ad, ::ad].flatten()#, (-1))
-        y_mag = self.magnitude[1][::ad, ::ad, ::ad].flatten()#, (-1))
-        z_mag = self.magnitude[2][::ad, ::ad, ::ad].flatten()#, (-1))
+        zz, yy, xx = (np.indices(dim)-a/2).reshape(3, -1)
+        x_mag = self.magnitude[0][::ad, ::ad, ::ad].flatten()
+        y_mag = self.magnitude[1][::ad, ::ad, ::ad].flatten()
+        z_mag = self.magnitude[2][::ad, ::ad, ::ad].flatten()
         # Plot them as vectors:
         mlab.figure()
-        plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode='arrow')
+        plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode=mode, colormap=cmap)
+        plot.glyph.glyph_source.glyph_position = 'center'
+        plot.module_manager.vector_lut_manager.data_range = np.array([0, limit])
         mlab.outline(plot)
         mlab.axes(plot)
         mlab.title(title, height=0.95, size=0.35)
-        mlab.colorbar(None, label_fmt='%.2f')
-        mlab.colorbar(None, orientation='vertical')
-
-    def save_to_x3d(self, filename='..\..\output\magdata_output.x3d', maximum=1):
-        '''Output the magnetization in the .x3d format for the Fraunhofer InstantReality Player.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-
-        '''
-        self._log.debug('Calling save_to_x3d')
-        from lxml import etree
-
-        dim = self.dim
-        # Create points and vector components as lists:
-        zz, yy, xx = np.mgrid[0.5:(dim[0]-0.5):dim[0]*1j,
-                              0.5:(dim[1]-0.5):dim[1]*1j,
-                              0.5:(dim[2]-0.5):dim[2]*1j]
-        xx = xx.reshape(-1)
-        yy = yy.reshape(-1)
-        zz = zz.reshape(-1)
-        x_mag = np.reshape(self.magnitude[0], (-1))
-        y_mag = np.reshape(self.magnitude[1], (-1))
-        z_mag = np.reshape(self.magnitude[2], (-1))
-        # Load template, load tree and write viewpoint information:
-        template = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'template.x3d')
-        parser = etree.XMLParser(remove_blank_text=True)
-        tree = etree.parse(template, parser)
-        scene = tree.find('Scene')
-        etree.SubElement(scene, 'Viewpoint', position='0 0 {}'.format(1.5*dim[0]),
-                         fieldOfView='1')
-        # Write each "spin"-tag separately:
-        for i in range(np.prod(dim)):
-            mag = np.sqrt(x_mag[i]**2+y_mag[i]**2+z_mag[i]**2)
-            if mag != 0:
-                spin_position = (xx[i]-dim[2]/2., yy[i]-dim[1]/2., zz[i]-dim[0]/2.)
-                sx_ref = 0
-                sy_ref = 1
-                sz_ref = 0
-                rot_x = sy_ref*z_mag[i] - sz_ref*y_mag[i]
-                rot_y = sz_ref*x_mag[i] - sx_ref*z_mag[i]
-                rot_z = sx_ref*y_mag[i] - sy_ref*x_mag[i]
-                angle = np.arccos(y_mag[i]/mag)
-                if norm((rot_x, rot_y, rot_z)) < 1E-10:
-                    rot_x, rot_y, rot_z = 1, 0, 0
-                spin_rotation = (rot_x, rot_y, rot_z, angle)
-                spin_color = cmx.RdYlGn(mag/maximum)[:3]
-                spin_scale = (1., 1., 1.)
-                spin = etree.SubElement(scene, 'ProtoInstance',
-                                        DEF='Spin {}'.format(i), name='Spin_Proto')
-                etree.SubElement(spin, 'fieldValue', name='spin_position',
-                                 value='{} {} {}'.format(*spin_position))
-                etree.SubElement(spin, 'fieldValue', name='spin_rotation',
-                                 value='{} {} {} {}'.format(*spin_rotation))
-                etree.SubElement(spin, 'fieldValue', name='spin_color',
-                                 value='{} {} {}'.format(*spin_color))
-                etree.SubElement(spin, 'fieldValue', name='spin_scale',
-                                 value='{} {} {}'.format(*spin_scale))
-        # Write the tree into the file in pretty print format:
-        tree.write(filename, pretty_print=True)
+        mlab.colorbar(label_fmt='%.2f')
+        mlab.colorbar(orientation='vertical')
+        mlab.orientation_axes()
+        if show_pipeline:
+            mlab.show_pipeline()
+        return plot

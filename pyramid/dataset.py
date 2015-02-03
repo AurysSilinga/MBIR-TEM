@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """This module provides the :class:`~.DataSet` class for the collection of phase maps
 and additional data like corresponding projectors."""
 
@@ -49,6 +52,9 @@ class DataSet(object):
         A list of all stored :class:`~.PhaseMap` objects.
     phase_vec: :class:`~numpy.ndarray` (N=1)
         The concatenaded, vectorized phase of all ;class:`~.PhaseMap` objects.
+    Se_inv : :class:`~numpy.ndarray` (N=2), optional
+        Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
+        being the length of the targetvector y (vectorized phase map information).
     m: int
         Size of the image space.
     n: int
@@ -76,11 +82,10 @@ class DataSet(object):
     @property
     def phase_mappers(self):
         dim_uv_set = set([p.dim_uv for p in self.projectors])
-        kernel_list = [Kernel(self.a, dim_uv, threads=self.threads) for dim_uv in dim_uv_set]
+        kernel_list = [Kernel(self.a, dim_uv) for dim_uv in dim_uv_set]
         return {kernel.dim_uv: PhaseMapperRDFC(kernel) for kernel in kernel_list}
 
-    def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None, use_fftw=True, threads=1):
-        # TODO: document!
+    def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None):
         self._log.debug('Calling __init__')
         assert isinstance(a, Number), 'Grid spacing has to be a number!'
         assert a >= 0, 'Grid spacing has to be a positive number!'
@@ -96,8 +101,6 @@ class DataSet(object):
         self.b_0 = b_0
         self.mask = mask
         self.Se_inv = Se_inv
-        self.use_fftw = use_fftw
-        self.threads = threads
         self.phase_maps = []
         self.projectors = []
         self._log.debug('Created: '+str(self))
@@ -152,11 +155,33 @@ class DataSet(object):
                 for projector in self.projectors]
 
     def set_Se_inv_block_diag(self, cov_list):
-        # TODO: Document!
+        '''Set the Se_inv matrix as a block diagonal matrix
+
+        Parameters
+        ----------
+        cov_list: list of :class:`~numpy.ndarray`
+            List of inverted covariance matrices (one for each projection).
+
+        Returns
+        -------
+            None
+
+        '''
         self.Se_inv = sparse.block_diag(cov_list).tocsr()
 
     def set_Se_inv_diag_with_masks(self, mask_list):
-        # TODO: Document!
+        '''Set the Se_inv matrix as a block diagonal matrix from a list of masks
+
+        Parameters
+        ----------
+        mask_list: list of :class:`~numpy.ndarray`
+            List of 2D masks (one for each projection) which define trust regions.
+
+        Returns
+        -------
+            None
+
+        '''
         cov_list = [sparse.diags(m.flatten(), 0) for m in mask_list]
         self.set_Se_inv_block_diag(cov_list)
 

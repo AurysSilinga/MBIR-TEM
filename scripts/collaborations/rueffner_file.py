@@ -11,6 +11,9 @@ from tqdm import tqdm
 
 import tables
 
+import psutil
+import gc
+
 import pyramid
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
@@ -25,6 +28,7 @@ LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)),
 
 
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
+proc = psutil.Process(os.getpid())
 ###################################################################################################
 PATH = '../../output/'
 dim = (16, 190, 220)
@@ -68,7 +72,7 @@ zs = np.arange(-dim[0]/2, dim[0]/2)
 xx, yy = np.meshgrid(xs, ys)
 
 
-def calculate(t):  # TODO: Somehow avoid memory error :-(...
+def calculate(t):
     print 't =', t
     vectors = h5file.root.data.fields.m.read(field='m_CoFeb')[t, ...]
     data = np.hstack((points, vectors))
@@ -103,3 +107,5 @@ def calculate(t):  # TODO: Somehow avoid memory error :-(...
 # Interpolation and phase calculation for all timesteps:
 for t in np.arange(0, 1001, 5):
     calculate(t)
+    gc.collect()
+    print 'RSS = {:.2f} MB'.format(proc.memory_info().rss/1024.**2)

@@ -4,7 +4,9 @@
 
 import os
 import unittest
+
 import numpy as np
+from numpy.testing import assert_allclose
 
 from pyramid.magdata import MagData
 
@@ -13,77 +15,80 @@ class TestCaseMagData(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_magdata')
-        magnitude = (np.zeros((4, 4, 4)), np.zeros((4, 4, 4)), np.zeros((4, 4, 4)))
-        magnitude[0][1:-1, 1:-1, 1:-1] = 1
-        magnitude[1][1:-1, 1:-1, 1:-1] = 1
-        magnitude[2][1:-1, 1:-1, 1:-1] = 1
+        magnitude = np.zeros((3, 4, 4, 4))
+        magnitude[:, 1:-1, 1:-1, 1:-1] = 1
         self.mag_data = MagData(10.0, magnitude)
 
     def tearDown(self):
         self.path = None
         self.mag_data = None
 
-    def test_add_magnitude(self):
-        reference = (np.ones((4, 4, 4)), np.ones((4, 4, 4)), np.ones((4, 4, 4)))
-        self.mag_data.add_magnitude(reference)
-        reference[0][1:-1, 1:-1, 1:-1] = 2
-        reference[1][1:-1, 1:-1, 1:-1] = 2
-        reference[2][1:-1, 1:-1, 1:-1] = 2
-        np.testing.assert_equal(self.mag_data.magnitude, reference,
-                                'Unexpected behavior in add_magnitude()!')
+    def test_copy(self):
+        mag_data = self.mag_data
+        mag_data_copy = self.mag_data.copy()
+        assert mag_data == self.mag_data, 'Unexpected behaviour in copy()!'
+        assert mag_data_copy != self.mag_data, 'Unexpected behaviour in copy()!'
+
+    def test_scale_down(self):
+        self.mag_data.scale_down()
+        reference = 1/8. * np.ones((3, 2, 2, 2))
+        assert_allclose(self.mag_data.magnitude, reference,
+                        err_msg='Unexpected behavior in scale_down()!')
+        assert_allclose(self.mag_data.a, 20,
+                        err_msg='Unexpected behavior in scale_down()!')
+
+    def test_scale_up(self):
+        self.mag_data.scale_up()
+        reference = np.zeros((3, 8, 8, 8))
+        reference[:, 2:6, 2:6, 2:6] = 1
+        assert_allclose(self.mag_data.magnitude, reference,
+                        err_msg='Unexpected behavior in scale_down()!')
+        assert_allclose(self.mag_data.a, 5,
+                        err_msg='Unexpected behavior in scale_down()!')
+
+    def test_pad(self):
+        reference = self.mag_data.magnitude.copy()
+        self.mag_data.pad(1, 1, 1)
+        reference = np.pad(reference, ((0, 0), (1, 1), (1, 1), (1, 1)), mode='constant')
+        assert_allclose(self.mag_data.magnitude, reference,
+                        err_msg='Unexpected behavior in scale_down()!')
 
     def test_get_mask(self):
         mask = self.mag_data.get_mask()
         reference = np.zeros((4, 4, 4))
         reference[1:-1, 1:-1, 1:-1] = True
-        np.testing.assert_equal(mask, reference, 'Unexpected behavior in get_mask()!')
+        assert_allclose(mask, reference,
+                        err_msg='Unexpected behavior in get_mask()!')
 
     def test_get_vector(self):
         mask = self.mag_data.get_mask()
         vector = self.mag_data.get_vector(mask)
-        reference = np.ones(np.count_nonzero(self.mag_data.magnitude[0])*3)
-        np.testing.assert_equal(vector, reference, 'Unexpected behavior in get_mask()!')
+        reference = np.ones(np.sum(mask)*3)
+        assert_allclose(vector, reference,
+                        err_msg='Unexpected behavior in get_vector()!')
 
     def test_set_vector(self):
         mask = self.mag_data.get_mask()
-        vector = 2 * np.ones(np.count_nonzero(self.mag_data.magnitude[0])*3)
-        self.mag_data.set_vector(mask, vector)
-        reference = (np.zeros((4, 4, 4)), np.zeros((4, 4, 4)), np.zeros((4, 4, 4)))
-        reference[0][1:-1, 1:-1, 1:-1] = 2
-        reference[1][1:-1, 1:-1, 1:-1] = 2
-        reference[2][1:-1, 1:-1, 1:-1] = 2
-        np.testing.assert_equal(self.mag_data.magnitude, reference,
-                                'Unexpected behavior in set_mask()!')
-
-    def test_scale_down(self):
-        self.mag_data.scale_down()
-        reference = (1/8. * np.ones((2, 2, 2)),
-                     1/8. * np.ones((2, 2, 2)),
-                     1/8. * np.ones((2, 2, 2)))
-        np.testing.assert_equal(self.mag_data.magnitude, reference,
-                                'Unexpected behavior in scale_down()!')
-        np.testing.assert_equal(self.mag_data.res, 20, 'Unexpected behavior in scale_down()!')
+        vector = 2 * np.ones(np.sum(mask)*3)
+        self.mag_data.set_vector(vector, mask)
+        reference = np.zeros((3, 4, 4, 4))
+        reference[:, 1:-1, 1:-1, 1:-1] = 2
+        assert_allclose(self.mag_data.magnitude, reference,
+                        err_msg='Unexpected behavior in set_vector()!')
 
     def test_load_from_llg(self):
-        self.mag_data = MagData.load_from_llg(os.path.join(self.path, 'ref_mag_data.txt'))
-        reference = (np.zeros((4, 4, 4)), np.zeros((4, 4, 4)), np.zeros((4, 4, 4)))
-        reference[0][1:-1, 1:-1, 1:-1] = 1
-        reference[1][1:-1, 1:-1, 1:-1] = 1
-        reference[2][1:-1, 1:-1, 1:-1] = 1
-        np.testing.assert_equal(self.mag_data.magnitude, reference,
-                                'Unexpected behavior in load_from_llg()!')
-        np.testing.assert_equal(self.mag_data.res, 10, 'Unexpected behavior in load_from_llg()!')
+        mag_data = MagData.load_from_llg(os.path.join(self.path, 'ref_mag_data.txt'))
+        assert_allclose(mag_data.magnitude, self.mag_data.magnitude,
+                        err_msg='Unexpected behavior in load_from_llg()!')
+        assert_allclose(mag_data.a, self.mag_data.a,
+                        err_msg='Unexpected behavior in load_from_llg()!')
 
     def test_load_from_netcdf4(self):
-        self.mag_data = MagData.load_from_netcdf4(os.path.join(self.path, 'ref_mag_data.nc'))
-        reference = (np.zeros((4, 4, 4)), np.zeros((4, 4, 4)), np.zeros((4, 4, 4)))
-        reference[0][1:-1, 1:-1, 1:-1] = 1
-        reference[1][1:-1, 1:-1, 1:-1] = 1
-        reference[2][1:-1, 1:-1, 1:-1] = 1
-        np.testing.assert_equal(self.mag_data.magnitude, reference,
-                                'Unexpected behavior in load_from_netcdf4()!')
-        np.testing.assert_equal(self.mag_data.res, 10,
-                                'Unexpected behavior in load_from_netcdf4()!')
+        mag_data = MagData.load_from_netcdf4(os.path.join(self.path, 'ref_mag_data.nc'))
+        assert_allclose(mag_data.magnitude, self.mag_data.magnitude,
+                        err_msg='Unexpected behavior in load_from_netcdf4()!')
+        assert_allclose(mag_data.a, self.mag_data.a,
+                        err_msg='Unexpected behavior in load_from_netcdf4()!')
 
 
 if __name__ == '__main__':

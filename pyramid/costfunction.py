@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """This module provides the :class:`~.Costfunction` class which represents a strategy to calculate
 the so called `cost` of a threedimensional magnetization distribution."""
 
@@ -6,7 +9,6 @@ the so called `cost` of a threedimensional magnetization distribution."""
 import numpy as np
 
 from scipy.sparse import eye as sparse_eye
-from scipy.sparse.linalg import LinearOperator
 
 from pyramid.forwardmodel import ForwardModel
 from pyramid.regularisator import NoneRegularisator
@@ -34,7 +36,6 @@ class Costfunction(object):
         :class:`~dataset.DataSet` object, which stores all information for the cost calculation.
     regularisator : :class:`~.Regularisator`
         Regularisator class that's responsible for the regularisation term.
-    regularisator: :class:`~Regularisator`
     y : :class:`~numpy.ndarray` (N=1)
         Vector which lists all pixel values of all phase maps one after another.
     fwd_model : :class:`~.ForwardModel`
@@ -131,70 +132,12 @@ class Costfunction(object):
                 + self.regularisator.hess_dot(x, vector))
 
     def hess_diag(self, _):
-        # TODO: Docstring!
-        # TODO: What for again?
-        return np.ones(self.n)
-
-    def estimate_lambda(self):
-        # TODO: Docstring!
-        # TODO: Not very efficient? Is this even correct?
-
-        def unit_vec(length, index):
-            result = np.zeros(length)
-            result[index] = 1
-            return result
-
-        fwd, reg = self.fwd_model, self.regularisator
-        trace_fwd = np.sum([fwd.jac_T_dot(None, fwd.jac_dot(None, unit_vec(self.n, i)))
-                            for i in range(self.n)])
-        trace_reg = np.sum([reg(unit_vec(self.n, i)) for i in range(self.n)])
-        print 'fwd:', trace_fwd
-        print 'reg:', trace_reg
-        import pdb; pdb.set_trace()
-        return trace_fwd / trace_reg
-
-
-class CFAdapterScipyCG(LinearOperator):
-
-    '''Adapter class making the :class:`~.Costfunction` class accessible for scipy cg methods.
-
-    This class provides an adapter for the :class:`~.Costfunction` to be usable with the
-    :func:`~.scipy.sparse.linalg.cg` function. the :func:`~.matvec` function is overwritten to
-    implement a multiplication with the Hessian of the adapted costfunction. This is used in the
-    :func:`~pyramid.reconstruction.optimise_sparse_cg` function of the
-    :mod:`~pyramid.reconstruction` module.
-
-    Attributes
-    ----------
-    cost : :class:`~.Costfunction`
-        Costfunction which should be made usable in the :func:`~.scipy.sparse.linalg.cg` function.
-
-    '''
-    # TODO: make obsolete!
-
-    _log = logging.getLogger(__name__+'.CFAdapterScipyCG')
-
-    def __init__(self, cost):
-        self._log.debug('Calling __init__')
-        self.cost = cost
-
-    def matvec(self, vector):
-        '''Matrix-vector multiplication with the Hessian of the adapted costfunction.
+        ''' Return the diagonal of the Hessian.
 
         Parameters
         ----------
-        vector : :class:`~numpy.ndarray` (N=1)
-            Vector which will be multiplied by the Hessian matrix provided by the adapted
-            costfunction.
+        _ : undefined
+            Unused input
 
         '''
-        self._log.debug('Calling matvec')
-        return self.cost.hess_dot(None, vector)
-
-    @property
-    def shape(self):
-        return (self.cost.data_set.n, self.cost.data_set.n)
-
-    @property
-    def dtype(self):
-        return np.dtype("d")
+        return np.ones(self.n)

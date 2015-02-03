@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """Create phase maps for magnetic distributions with analytic solutions.
 
 This module provides methods for the calculation of the magnetic phase for simple geometries for

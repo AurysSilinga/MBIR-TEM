@@ -4,9 +4,9 @@
 
 import os
 import unittest
+
 import numpy as np
 from numpy import pi
-
 from numpy.testing import assert_allclose
 
 import pyramid.analytic as an

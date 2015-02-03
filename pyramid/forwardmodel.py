@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """This module provides the :class:`~.ForwardModel` class which represents a strategy to map a
 threedimensional magnetization distribution onto a two-dimensional phase map."""
 
@@ -65,7 +68,6 @@ class ForwardModel(object):
         self._log.debug('Calling __call__')
         self.mag_data.magnitude[:] = 0
         self.mag_data.set_vector(x, self.data_set.mask)
-        # TODO: Multiprocessing
         result = np.zeros(self.m)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):

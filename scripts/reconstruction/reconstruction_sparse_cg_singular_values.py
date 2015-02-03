@@ -64,7 +64,7 @@ F = ForwardModel(data)
 M = np.asmatrix([F.jac_dot(None, np.eye(3*size_3d)[:, i]) for i in range(3*size_3d)]).T
 # MTM = M.T * M + lam * np.asmatrix(np.eye(3*size_3d))
 
-U, s, V = np.linalg.svd(M)  # TODO: M or MTM?
+U, s, V = np.linalg.svd(M)  # TODO: M or MTM
 
 for i in range(len(s)):
     print 'Singular value:', s[i]

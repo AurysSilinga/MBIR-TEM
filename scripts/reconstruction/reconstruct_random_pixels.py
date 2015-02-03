@@ -13,6 +13,8 @@ import pyramid
 import pyramid.magcreator as mc
 from pyramid.magdata import MagData
 from pyramid.phasemapper import pm
+from pyramid.dataset import DataSet
+from pyramid.projector import SimpleProjector
 import pyramid.reconstruction as rc
 
 import logging
@@ -45,7 +47,10 @@ phase_map = pm(mag_data)
 phase_map.display_combined('Generated Distribution', gain=10)
 
 # Reconstruct the magnetic distribution:
-mag_data_rec = rc.optimize_simple_leastsq(phase_map, mag_data.get_mask(), b_0, lam=1E-4, order=1)
+
+data = DataSet(a, dim, b_0, mag_data.get_mask())
+data.append(phase_map, SimpleProjector(dim))
+mag_data_rec, cost = rc.optimize_linear(data, max_iter=100)
 
 # Display the reconstructed phase map and holography image:
 phase_map_rec = pm(mag_data_rec)

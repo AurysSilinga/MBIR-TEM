@@ -31,10 +31,26 @@ class TestCaseMagCreator(unittest.TestCase):
         assert_allclose(test_disc_x, np.load(os.path.join(self.path, 'ref_disc_x.npy')),
                         err_msg='Created disc in x-direction does not match expectation!')
 
+    def test_shape_ellipse(self):
+        test_ellipse_z = mc.Shapes.ellipse((7, 8, 9), (3, 4, 5), (3, 5), 1, 'z')
+        test_ellipse_y = mc.Shapes.ellipse((7, 8, 9), (3, 4, 5), (3, 5), 1, 'y')
+        test_ellipse_x = mc.Shapes.ellipse((7, 8, 9), (3, 4, 5), (3, 5), 1, 'x')
+        assert_allclose(test_ellipse_z, np.load(os.path.join(self.path, 'ref_ellipse_z.npy')),
+                        err_msg='Created ellipse does not match expectation!')
+        assert_allclose(test_ellipse_y, np.load(os.path.join(self.path, 'ref_ellipse_y.npy')),
+                        err_msg='Created ellipse does not match expectation!')
+        assert_allclose(test_ellipse_x, np.load(os.path.join(self.path, 'ref_ellipse_x.npy')),
+                        err_msg='Created ellipse does not match expectation!')
+
     def test_shape_sphere(self):
         test_sphere = mc.Shapes.sphere((5, 6, 7), (2, 3, 4), 2)
         assert_allclose(test_sphere, np.load(os.path.join(self.path, 'ref_sphere.npy')),
                         err_msg='Created sphere does not match expectation!')
+
+    def test_shape_ellipsoid(self):
+        test_ellipsoid = mc.Shapes.ellipsoid((7, 8, 9), (3, 4, 4), (3, 5, 7))
+        assert_allclose(test_ellipsoid, np.load(os.path.join(self.path, 'ref_ellipsoid.npy')),
+                        err_msg='Created ellipsoid does not match expectation!')
 
     def test_shape_filament(self):
         test_filament_z = mc.Shapes.filament((5, 6, 7), (2, 3), 'z')

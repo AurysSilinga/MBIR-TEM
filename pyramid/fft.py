@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Nov 28 15:30:10 2014
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
+"""Custom FFT module with numpy and FFTW support.
 
-@author: Jan
+This module provides custom methods for FFTs including inverse, adjoint and real variants. The
+FFTW library is supported and is used as a default if the import succeeds. Otherwise the numpy.fft
+pack will be used. FFTW objects are saved in a cache after creation which speeds up further similar
+FFT operations.
+
 """
 
-# TODO: Document!
 
 import numpy as np
 import cPickle as pickle
@@ -27,9 +32,20 @@ except ImportError:
     BACKEND = 'numpy'
     print("pyFFTW module not found. Using numpy implementation.")
 
+try:
+    import psutil
+    NTHREADS = psutil.cpu_count()
+except ImportError:
+    try:
+        import multiprocessing
+        NTHREADS = multiprocessing.cpu_count()
+    except ImportError:
+        NTHREADS = 1
 
-__all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'NTHREADS', 'dump_wisdom', 'load_wisdom', 'zeros', 'empty',
-           'configure_backend', 'fftn', 'ifftn', 'rfftn', 'irfftn', 'rfftn_adj', 'irfftn_adj']
+
+__all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'NTHREADS', 'dump_wisdom', 'load_wisdom', #analysis:ignore
+           'zeros', 'empty', 'configure_backend',
+           'fftn', 'ifftn', 'rfftn', 'irfftn', 'rfftn_adj', 'irfftn_adj']
 
 
 class FFTWCache(object):
@@ -53,7 +69,6 @@ class FFTWCache(object):
 PLANS = FFTWCache()
 FLOAT = np.float32      # One convenient place to
 COMPLEX = np.complex64  # change from 32 to 64 bit
-NTHREADS = 1
 
 
 # Numpy functions:
@@ -98,7 +113,7 @@ def _fftn_fftw(a, s=None, axes=None):
         raise TypeError('Wrong input type!')
     fftw = PLANS.lookup_fftw('fftn', a, s, axes, NTHREADS)
     if fftw is None:
-        fftw = pyfftw.builders.fftn(a, s, axes)
+        fftw = pyfftw.builders.fftn(a, s, axes, threads=NTHREADS)
         PLANS.add_fftw('fftn', fftw, s, axes, NTHREADS)
     return fftw(a).copy()
 
@@ -108,7 +123,7 @@ def _ifftn_fftw(a, s=None, axes=None):
         raise TypeError('Wrong input type!')
     fftw = PLANS.lookup_fftw('ifftn', a, s, axes, NTHREADS)
     if fftw is None:
-        fftw = pyfftw.builders.ifftn(a, s, axes)
+        fftw = pyfftw.builders.ifftn(a, s, axes, threads=NTHREADS)
         PLANS.add_fftw('ifftn', fftw, s, axes, NTHREADS)
     return fftw(a).copy()
 
@@ -118,7 +133,7 @@ def _rfftn_fftw(a, s=None, axes=None):
         raise TypeError('Wrong input type!')
     fftw = PLANS.lookup_fftw('rfftn', a, s, axes, NTHREADS)
     if fftw is None:
-        fftw = pyfftw.builders.rfftn(a, s, axes)
+        fftw = pyfftw.builders.rfftn(a, s, axes, threads=NTHREADS)
         PLANS.add_fftw('rfftn', fftw, s, axes, NTHREADS)
     return fftw(a).copy()
 
@@ -128,7 +143,7 @@ def _irfftn_fftw(a, s=None, axes=None):
         raise TypeError('Wrong input type!')
     fftw = PLANS.lookup_fftw('irfftn', a, s, axes, NTHREADS)
     if fftw is None:
-        fftw = pyfftw.builders.irfftn(a, s, axes)
+        fftw = pyfftw.builders.irfftn(a, s, axes, threads=NTHREADS)
         PLANS.add_fftw('irfftn', fftw, s, axes, NTHREADS)
     return fftw(a).copy()
 
@@ -154,14 +169,36 @@ def _irfftn_adj_fftw(a):
 
 # These wisdom functions do nothing if pyFFTW is not available
 def dump_wisdom(fname):
-    # TODO: Docstring!
+    '''Wrapper function for the pyfftw.export_wisdom(), which uses a pickle dump.
+
+    Parameters
+    ----------
+    fname: string
+        Name of the file in which the wisdom is saved.
+
+    Returns
+    -------
+    None
+
+    '''
     if pyfftw is not None:
         with open(fname, 'wb') as fp:
             pickle.dump(pyfftw.export_wisdom(), fp, pickle.HIGHEST_PROTOCOL)
 
 
 def load_wisdom(fname):
-    # TODO: Docstring!
+    '''Wrapper function for the pyfftw.import_wisdom(), which uses a pickle to load a file.
+
+    Parameters
+    ----------
+    fname: string
+        Name of the file from which the wisdom is loaded.
+
+    Returns
+    -------
+    None
+
+    '''
     if pyfftw is not None:
         if not os.path.exists(fname):
             print("Warning: Wisdom file does not exist. First time use?")
@@ -172,7 +209,21 @@ def load_wisdom(fname):
 
 # Array setups:
 def empty(shape, dtype=FLOAT):
-    # TODO: Docstring!
+    '''Return a new array of given shape and type without initializing entries.
+
+    Parameters
+    ----------
+    shape: int or tuple of int
+        Shape of the array.
+    dtype: data-type, optional
+        Desired output data-type.
+
+    Returns
+    -------
+    out: :class:`~numpy.ndarray`
+        The created array.
+
+    '''
     result = np.empty(shape, dtype)
     if pyfftw is not None:
         result = pyfftw.n_byte_align(result, pyfftw.simd_alignment)
@@ -180,7 +231,21 @@ def empty(shape, dtype=FLOAT):
 
 
 def zeros(shape, dtype=FLOAT):
-    # TODO: Docstring!
+    '''Return a new array of given shape and type, filled with zeros.
+
+    Parameters
+    ----------
+    shape: int or tuple of int
+        Shape of the array.
+    dtype: data-type, optional
+        Desired output data-type.
+
+    Returns
+    -------
+    out: :class:`~numpy.ndarray`
+        The created array.
+
+    '''
     result = np.zeros(shape, dtype)
     if pyfftw is not None:
         result = pyfftw.n_byte_align(result, pyfftw.simd_alignment)
@@ -188,7 +253,21 @@ def zeros(shape, dtype=FLOAT):
 
 
 def ones(shape, dtype=FLOAT):
-    # TODO: Docstring!
+    '''Return a new array of given shape and type, filled with ones.
+
+    Parameters
+    ----------
+    shape: int or tuple of int
+        Shape of the array.
+    dtype: data-type, optional
+        Desired output data-type.
+
+    Returns
+    -------
+    out: :class:`~numpy.ndarray`
+        The created array.
+
+    '''
     result = np.ones(shape, dtype)
     if pyfftw is not None:
         result = pyfftw.n_byte_align(result, pyfftw.simd_alignment)
@@ -197,11 +276,18 @@ def ones(shape, dtype=FLOAT):
 
 # Configure backend:
 def configure_backend(backend):
-    """
-    Change FFT backend.
+    '''Change FFT backend.
 
-    Supported values are "numpy" and "fftw".
-    """
+    Parameters
+    ----------
+    backend: string
+        Backend to use. Supported values are "numpy" and "fftw".
+
+    Returns
+    -------
+    None
+
+    '''
     global fftn
     global ifftn
     global rfftn

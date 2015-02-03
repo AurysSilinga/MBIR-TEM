@@ -28,7 +28,7 @@ length = 300
 cutoff = 50
 trans = 40
 pads = [100, 250, 500, 800]
-INPATH = '../../output/vtk data\longtube_withcap/'
+INPATH = '../../output/vtk data/longtube_withcap/'
 OUTPATH = '../../output/patrick/'
 FILE = 'CoFeB_tube_cap_4nm_lying_down'
 ###################################################################################################

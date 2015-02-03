@@ -22,8 +22,8 @@ class TestCaseCompliance(unittest.TestCase):
         for root, dirs, files in os.walk(rootdir):
             for filename in files:
                 if ((filename.endswith('.py') or filename.endswith('.pyx'))
-                    and root != os.path.join(self.path, 'scripts', 'gui')):
-                        filepaths.append(os.path.join(root, filename))
+                        and root != os.path.join(self.path, 'scripts', 'gui')):
+                            filepaths.append(os.path.join(root, filename))
         return filepaths
 
     def test_pep8(self):

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """This module provides the abstract base class :class:`~.Projector` and concrete subclasses for
 projections of vector and scalar fields."""
 
@@ -436,7 +439,7 @@ class SimpleProjector(Projector):
         self._log.debug('Calling __init__')
         assert axis in {'z', 'y', 'x'}, 'Projection axis has to be x, y or z (given as a string)!'
         proj, v, u = self.AXIS_DICT[axis]
-        if axis=='x':
+        if axis == 'x':
             dim_proj, dim_v, dim_u = dim[proj], dim[u], dim[v]  # coordinate switch for 'x'!
         else:
             dim_proj, dim_v, dim_u = dim[proj], dim[v], dim[u]
@@ -453,14 +456,14 @@ class SimpleProjector(Projector):
         elif axis == 'y':
             self._log.debug('Projection along the y-axis')
             coeff = [[1, 0, 0], [0, 0, 1]]
-            indices = np.array([np.arange(row%dim_x, dim_x*dim_y, dim_x)+int(row/dim_x)*dim_x*dim_y
+            indices = np.array([np.arange(row % dim_x, dim_x*dim_y, dim_x) + row//dim_x*dim_x*dim_y
                                 for row in range(size_2d)]).reshape(-1)
         elif axis == 'x':
             self._log.debug('Projection along the x-axis')
             coeff = [[0, 0, 1], [0, 1, 0]]  # Caution, coordinate switch: u, v --> z, y (not y, z!)
             #  indices = np.array([np.arange(dim_proj) + row*dim_proj
             #                      for row in range(size_2d)]).reshape(-1)  # this is u, v --> y, z
-            indices = np.array([np.arange(dim_x) + (row%dim_z)*dim_x*dim_y + int(row/dim_z)*dim_x
+            indices = np.array([np.arange(dim_x) + (row % dim_z)*dim_x*dim_y + row//dim_z*dim_x
                                 for row in range(size_2d)]).reshape(-1)
         if dim_uv is not None:
             indptr = indptr.tolist()  # convert to use insert() and append()
@@ -495,3 +498,5 @@ class SimpleProjector(Projector):
 
         '''
         return 'projected along {}-axis'.format(self.axis)
+
+# TODO: Arbitrary Projections!

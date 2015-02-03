@@ -106,7 +106,6 @@ def jac_dot_real_convolve(
                     result[r] -= vector[s+size] * v_phi[v, u]
                     r += 1
             s += 1
-    # TODO: linearize u and v, too?
 
 
 @cython.boundscheck(False)
@@ -155,4 +154,3 @@ def jac_T_dot_real_convolve(
                     result[r+size] -= vector[s] * v_phi[v, u]
                     s += 1
             r += 1
-    # TODO: linearize u and v, too?

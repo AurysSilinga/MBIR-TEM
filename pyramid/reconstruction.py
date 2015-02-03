@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """Reconstruct magnetic distributions from given phasemaps.
 
 This module reconstructs 3-dimensional magnetic distributions (as :class:`~pyramid.magdata.MagData`
@@ -12,75 +15,14 @@ the distribution.
 
 import numpy as np
 
-from pyramid.kernel import Kernel
-from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.costfunction import Costfunction
 from pyramid.magdata import MagData
-
-from scipy.optimize import leastsq
 
 import logging
 
 
-__all__ = ['optimize_linear', 'optimize_nonlin', 'optimize_splitbregman',
-           'optimize_simple_leastsq']
+__all__ = ['optimize_linear', 'optimize_nonlin', 'optimize_splitbregman']
 _log = logging.getLogger(__name__)
-
-
-class PrintIterator(object):
-
-    '''Iterator class which is responsible to give feedback during reconstruction iterations.
-
-    Parameters
-    ----------
-    cost : :class:`~.Costfunction`
-        :class:`~.Costfunction` class for outputting the `cost` of the current magnetization
-        distribution. This should decrease per iteration if the algorithm converges and is only
-        printed for a `verbosity` of 2.
-    verbosity : {0, 1, 2}, optional
-        Parameter defining the verbosity of the output. `2` will show the current number of the
-        iteration and the cost of the current distribution. `1` will just show the iteration
-        number and `0` will prevent output all together.
-
-    Notes
-    -----
-    Normally this class should not be used by the user and is instantiated whithin the
-    :mod:`~.reconstruction` module itself.
-
-    '''
-
-    _log = logging.getLogger(__name__ + '.PrintIterator')
-
-    def __init__(self, cost, verbosity):
-        self._log.debug('Calling __init__')
-        self.cost = cost
-        self.verbosity = verbosity
-        assert verbosity in {0, 1, 2}, 'verbosity has to be set to 0, 1 or 2!'
-        self.iteration = 0
-        self._log.debug('Created ' + str(self))
-
-    def __call__(self, xk):
-        self._log.debug('Calling __call__')
-        if self.verbosity == 0:
-            return
-        print 'iteration #', self.next(),
-        if self.verbosity > 1:
-            print 'cost =', self.cost(xk)
-        else:
-            print ''
-
-    def __repr__(self):
-        self._log.debug('Calling __repr__')
-        return '%s(cost=%r, verbosity=%r)' % (self.__class__, self.cost, self.verbosity)
-
-    def __str__(self):
-        self._log.debug('Calling __str__')
-        return 'PrintIterator(cost=%s, verbosity=%s)' % (self.cost, self.verbosity)
-
-    def next(self):
-        self.iteration += 1
-        return self.iteration
 
 
 def optimize_linear(data, regularisator=None, max_iter=None):
@@ -103,7 +45,7 @@ def optimize_linear(data, regularisator=None, max_iter=None):
     mag_data : :class:`~pyramid.magdata.MagData`
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
-    '''  # TODO: info document!
+    '''
     import jutil.cg as jcg
     _log.debug('Calling optimize_linear')
     # Set up necessary objects:
@@ -128,7 +70,7 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
         :class:`~.DataSet` object containing all phase maps in :class:`~.PhaseMap` objects and all
         projection directions in :class:`~.Projector` objects. These provide the essential
         information for the reconstruction.
-    first_fuess : :class:`~pyramid.magdata.MagData`
+    first_guess : :class:`~pyramid.magdata.MagData`
         magnetization to start the non-linear iteration with.
     regularisator : :class:`~.Regularisator`, optional
         Regularisator class that's responsible for the regularisation term.
@@ -151,7 +93,6 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
 
     p = regularisator.p
     q = 1. / (1. - (1. / p))
-    lp = regularisator.norm
     lq = jnorms.LPPow(q, 1e-20)
 
     def preconditioner(_, direc):
@@ -171,6 +112,7 @@ def optimize_nonlin(data, first_guess=None, regularisator=None):
     mag_opt = MagData(data.a, np.zeros((3,) + data.dim))
     mag_opt.set_vector(x_opt, data.mask)
     return mag_opt
+
 
 def optimize_splitbregman(data, weight, lam, mu):
     '''
@@ -209,7 +151,6 @@ def optimize_splitbregman(data, weight, lam, mu):
     # function to that which is supposedly optimized by split bregman.
     # Thus cost can be used to verify convergence
     regularisator = FirstOrderRegularisator(data.mask, lam / mu, 1)
-    x_0 = MagData(data.a, np.zeros((3,) + data.dim)).get_vector(data.mask)
     cost = Costfunction(data, regularisator)
     fwd_mod = cost.fwd_model
 
@@ -229,80 +170,3 @@ def optimize_splitbregman(data, weight, lam, mu):
     mag_opt = MagData(data.a, np.zeros((3,) + data.dim))
     mag_opt.set_vector(x_opt, data.mask)
     return mag_opt
-
-
-def optimize_simple_leastsq(phase_map, mask, b_0=1, lam=1E-4, order=0):
-    '''Reconstruct a magnetic distribution for a 2-D problem with known pixel locations.
-
-    Parameters
-    ----------
-    phase_map : :class:`~pyramid.phasemap.PhaseMap`
-        A :class:`~pyramid.phasemap.PhaseMap` object, representing the phase from which to
-        reconstruct the magnetic distribution.
-    mask : :class:`~numpy.ndarray` (N=3)
-        A boolean matrix (or a matrix consisting of ones and zeros), representing the
-        positions of the magnetized voxels in 3 dimensions.
-    b_0 : float, optional
-        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
-        The default is 1.
-    lam : float, optional
-        The regularisation parameter. Defaults to 1E-4.
-    order : int {0, 1}, optional
-        order of the regularisation function. Default is 0 for a Tikhonov regularisation of order
-        zero. A first order regularisation, which uses the derivative is available with value 1.
-
-    Returns
-    -------
-    mag_data : :class:`~pyramid.magdata.MagData`
-        The reconstructed magnetic distribution as a :class:`~.MagData` object.
-
-    Notes
-    -----
-    Only works for a single phase_map, if the positions of the magnetized voxels are known and
-    for slice thickness of 1 (constraint for the `z`-dimension).
-
-    '''
-    # Read in parameters:
-    y_m = phase_map.phase_vec  # Measured phase map as a vector
-    a = phase_map.a  # Grid spacing
-    dim = mask.shape  # Dimensions of the mag. distr.
-    count = mask.sum()  # Number of pixels with magnetization
-    # Create empty MagData object for the reconstruction:
-    mag_data_rec = MagData(a, np.zeros((3,) + dim))
-
-    # Function that returns the phase map for a magnetic configuration x:
-    def F(x):
-        mag_data_rec.set_vector(x, mask)
-        proj = SimpleProjector(dim)
-        phase_map = PhaseMapperRDFC(Kernel(a, proj.dim_uv, b_0))(proj(mag_data_rec))
-        return phase_map.phase_vec
-
-    # Cost function of order zero which should be minimized:
-    def J_0(x_i):
-        y_i = F(x_i)
-        term1 = (y_i - y_m)
-        term2 = lam * x_i
-        return np.concatenate([term1, term2])
-
-    # First order cost function which should be minimized:
-    def J_1(x_i):
-        y_i = F(x_i)
-        term1 = (y_i - y_m)
-        mag_data = mag_data_rec.magnitude
-        term2 = []
-        for i in range(3):
-            component = mag_data[i, ...]
-            for j in range(3):
-                if component.shape[j] > 1:
-                    term2.append(np.diff(component, axis=j).reshape(-1))
-
-        term2 = lam * np.concatenate(term2)
-        return np.concatenate([term1, term2])
-
-    J_DICT = [J_0, J_1]  # list of cost-functions with different regularisations
-    # Reconstruct the magnetization components:
-    # TODO Use jutil.minimizer.minimize(jutil.costfunction.LeastSquaresCostFunction(J_DICT[order],
-    # ...) or a simpler frontend.
-    x_rec, _ = leastsq(J_DICT[order], np.zeros(3 * count))
-    mag_data_rec.set_vector(x_rec, mask)
-    return mag_data_rec

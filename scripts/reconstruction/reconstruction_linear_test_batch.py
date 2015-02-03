@@ -108,7 +108,7 @@ for i, configuration in enumerate(itertools.product(*config_list)):
     # DataSet:
     data = DataSet(a, dim, b_0, mask)
     # Tilts:
-    tilts = np.arange(-max_tilt/180.*pi, max_tilt/180.*pi, tilt_step/180.*pi)
+    tilts = np.deg2rad(np.arange(-max_tilt, max_tilt, tilt_step))
     # Projectors:
     projectors = []
     if xy_tilts[xy_key][0]:

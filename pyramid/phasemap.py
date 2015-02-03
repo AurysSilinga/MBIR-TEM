@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """This module provides the :class:`~.PhaseMap` class for storing phase map data."""
 
 
@@ -323,8 +326,8 @@ class PhaseMap(object):
 
         Returns
         -------
-        axis: :class:`~matplotlib.axes.AxesSubplot`
-            The axis on which the graph is plotted.
+        axis, cbar: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted and the colorbar.
 
         '''
         self._log.debug('Calling display_phase')
@@ -359,7 +362,7 @@ class PhaseMap(object):
             cbar.ax.tick_params(labelsize=14)
             cbar.set_label(u'phase shift [{}]'.format(self.unit), fontsize=15)
         # Return plotting axis:
-        return axis
+        return axis, cbar
 
     def display_phase3d(self, title='Phase Map', cmap='RdBu'):
         '''Display the phasemap as a 3-D surface with contourplots.
@@ -385,9 +388,7 @@ class PhaseMap(object):
         fig = plt.figure()
         axis = Axes3D(fig)
         # Plot surface and contours:
-        u = range(self.dim_uv[1])
-        v = range(self.dim_uv[0])
-        uu, vv = np.meshgrid(u, v)
+        vv, uu = np.indices(self.dim_uv)
         axis.plot_surface(uu, vv, phase, rstride=4, cstride=4, alpha=0.7, cmap=cmap,
                           linewidth=0, antialiased=False)
         axis.contourf(uu, vv, phase, 15, zdir='z', offset=np.min(phase), cmap=cmap)
@@ -547,9 +548,7 @@ class PhaseMap(object):
 
         '''
         cls._log.debug('Calling make_color_wheel')
-        x = np.linspace(-256, 256, num=512)
-        y = np.linspace(-256, 256, num=512)
-        xx, yy = np.meshgrid(x, y)
+        yy, xx = np.indices((512, 512)) - 256
         r = np.sqrt(xx ** 2 + yy ** 2)
         # Create the wheel:
         color_wheel_magnitude = (1 - np.cos(r * pi/360)) / 2

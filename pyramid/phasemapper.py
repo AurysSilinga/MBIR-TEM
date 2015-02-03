@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 """This module executes several forward models to calculate the magnetic or electric phase map from
 a given projection of a 3-dimensional magnetic distribution (see :mod:`~pyramid.projector`).
 For the magnetic phase map, an approach using real space and one using Fourier space is provided.
@@ -431,12 +434,10 @@ class PhaseMapperFDFC(PhaseMapper):
         mag_proj = MagData(self.a, np.zeros((3, 1)+self.dim_uv))
         magnitude_proj = self.jac_dot(vector).reshape((2, )+self.dim_uv)
         mag_proj.magnitude[1:3, 0, ...] = magnitude_proj
-        # TODO: instead call common subroutine operating on u_mag, v_mag with __call__?
         return self(mag_proj).phase_vec
 
     def jac_T_dot(self, vector):
         raise NotImplementedError()
-        # TODO: Implement!
 
 
 class PhaseMapperElectric(PhaseMapper):
@@ -509,11 +510,9 @@ class PhaseMapperElectric(PhaseMapper):
 
     def jac_dot(self, vector):
         raise NotImplementedError()
-        # TODO: Implement?
 
     def jac_T_dot(self, vector):
         raise NotImplementedError()
-        # TODO: Implement?
 
 
 def pm(mag_data, axis='z', dim_uv=None, b_0=1):

@@ -128,13 +128,13 @@ dim_uv = (600, 150)
 angles = [0, 10, 20, 30, 40, 50, 60]
 # Turn magnetization around by 90° around x-axis:
 magnitude_new = np.zeros((3, mag_data.dim[1], mag_data.dim[0], mag_data.dim[2]))
-for i in range(mag_data.magnitude.shape[2]):
+for i in range(mag_data.dim[2]):
     x_rot = np.rot90(mag_data.magnitude[0, ..., i]).copy()
     y_rot = np.rot90(mag_data.magnitude[1, ..., i]).copy()
     z_rot = np.rot90(mag_data.magnitude[2, ..., i]).copy()
     magnitude_new[0, ..., i] = x_rot
-    magnitude_new[1, ..., i] = -z_rot
-    magnitude_new[2, ..., i] = y_rot
+    magnitude_new[1, ..., i] = z_rot
+    magnitude_new[2, ..., i] = -y_rot
 mag_data.magnitude = magnitude_new
 mag_data.save_to_netcdf4(PATH+'_lying_down.nc')
 # Iterate over all angles:
