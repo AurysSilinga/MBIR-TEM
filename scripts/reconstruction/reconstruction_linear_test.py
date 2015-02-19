@@ -32,7 +32,7 @@ print('--Generating input phase_maps')
 
 a = 10.
 b_0 = 1.
-dim = (32, 32, 32)
+dim = (64, 64, 64)
 dim_uv = dim[1:3]
 count = 16
 lam = 1E-4
@@ -90,45 +90,44 @@ with TakeTime('reconstruction'):
 print 'Cost:', cost.chisq
 
 ###################################################################################################
-print('--Plot stuff')
-
-limit = 1.2
-mag_data.quiver_plot3d('Original distribution', limit=limit)
-mag_data_opt.quiver_plot3d('Reconstructed distribution', limit=limit)
-(mag_data_opt - mag_data).quiver_plot3d('Difference')
-phase_maps_opt = data.create_phase_maps(mag_data_opt)
-
-
-from pyramid.diagnostics import Diagnostics
-from matplotlib.patches import Rectangle
-
-
-diag = Diagnostics(mag_data_opt.mag_vec, cost, max_iter=2000)
-
-print 'position:', diag.pos
-print 'std:', diag.std
-gain_maps = diag.get_gain_row_maps()
-axis, cbar = gain_maps[count//2].display_phase()
-axis.add_patch(Rectangle((diag.pos[3], diag.pos[2]), 1, 1, linewidth=2, color='g', fill=False))
-cbar.set_label(u'magnetization/phase [1/rad]', fontsize=15)
-diag.get_avg_kern_row().quiver_plot3d()
-mcon = diag.measure_contribution
-print 'measurement contr. (min - max): {:.2f} - {:.2f}'.format(mcon.min(), mcon.max())
-px_avrg, fwhm, (x, y, z) = diag.calculate_averaging()
-print 'px_avrg:', px_avrg
-print 'fwhm:', fwhm
-
-diag.pos = (1, dim[0]//2, dim[1]//2, dim[2]//2)
-
-print 'position:', diag.pos
-print 'std:', diag.std
-gain_maps = diag.get_gain_row_maps()
-axis, cbar = gain_maps[count//2].display_phase()
-axis.add_patch(Rectangle((diag.pos[3], diag.pos[2]), 1, 1, linewidth=2, color='g', fill=False))
-cbar.set_label(u'magnetization/phase [1/rad]', fontsize=15)
-diag.get_avg_kern_row().quiver_plot3d()
-mcon = diag.measure_contribution
-print 'measurement contr. (min - max): {:.2f} - {:.2f}'.format(mcon.min(), mcon.max())
-px_avrg, fwhm, (x, y, z) = diag.calculate_averaging()
-print 'px_avrg:', px_avrg
-print 'fwhm:', fwhm
+#print('--Plot stuff')
+#
+#limit = 1.2
+#mag_data.quiver_plot3d('Original distribution', limit=limit)
+#mag_data_opt.quiver_plot3d('Reconstructed distribution', limit=limit)
+#(mag_data_opt - mag_data).quiver_plot3d('Difference')
+#phase_maps_opt = data.create_phase_maps(mag_data_opt)
+#
+#
+#from pyramid.diagnostics import Diagnostics
+#from matplotlib.patches import Rectangle
+#
+#
+#diag = Diagnostics(mag_data_opt.mag_vec, cost, max_iter=2000)
+#
+#print 'position:', diag.pos
+#print 'std:', diag.std
+#gain_maps = diag.get_gain_row_maps()
+#axis, cbar = gain_maps[count//2].display_phase()
+#axis.add_patch(Rectangle((diag.pos[3], diag.pos[2]), 1, 1, linewidth=2, color='g', fill=False))
+#cbar.set_label(u'magnetization/phase [1/rad]', fontsize=15)
+#diag.get_avg_kern_row().quiver_plot3d()
+#mcon = diag.measure_contribution
+#print 'measurement contr. (min - max): {:.2f} - {:.2f}'.format(mcon.min(), mcon.max())
+#px_avrg, fwhm, (x, y, z) = diag.calculate_averaging()
+#print 'px_avrg:', px_avrg
+#print 'fwhm:', fwhm
+#
+#diag.pos = (1, dim[0]//2, dim[1]//2, dim[2]//2)
+#print 'position:', diag.pos
+#print 'std:', diag.std
+#gain_maps = diag.get_gain_row_maps()
+#axis, cbar = gain_maps[count//2].display_phase()
+#axis.add_patch(Rectangle((diag.pos[3], diag.pos[2]), 1, 1, linewidth=2, color='g', fill=False))
+#cbar.set_label(u'magnetization/phase [1/rad]', fontsize=15)
+#diag.get_avg_kern_row().quiver_plot3d()
+#mcon = diag.measure_contribution
+#print 'measurement contr. (min - max): {:.2f} - {:.2f}'.format(mcon.min(), mcon.max())
+#px_avrg, fwhm, (x, y, z) = diag.calculate_averaging()
+#print 'px_avrg:', px_avrg
+#print 'fwhm:', fwhm

@@ -180,7 +180,6 @@ class Diagnostics(object):
 
         '''# TODO: Docstring!
         mag_data_avg_kern = self.get_avg_kern_row(pos)
-        print self.pos
         mag_x, mag_y, mag_z = mag_data_avg_kern.magnitude
         x = mag_x.sum(axis=(0, 1))
         y = mag_y.sum(axis=(0, 2))

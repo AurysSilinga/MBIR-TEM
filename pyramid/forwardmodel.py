@@ -66,7 +66,7 @@ class ForwardModel(object):
 
     def __call__(self, x):
         self._log.debug('Calling __call__')
-        self.mag_data.magnitude[:] = 0
+        self.mag_data.magnitude[...] = 0
         self.mag_data.set_vector(x, self.data_set.mask)
         result = np.zeros(self.m)
         hp = self.hook_points
@@ -102,7 +102,7 @@ class ForwardModel(object):
         for i, projector in enumerate(self.data_set.projectors):
             mag_vec = self.mag_data.mag_vec
             res = self.phase_mappers[projector.dim_uv].jac_dot(projector.jac_dot(mag_vec))
-            result[hp[i]:hp[i+1]] = res.flatten()
+            result[hp[i]:hp[i+1]] = res
         return result
 
     def jac_T_dot(self, x, vector):

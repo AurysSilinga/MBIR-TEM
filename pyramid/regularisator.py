@@ -91,22 +91,30 @@ class Regularisator(object):
         Returns
         -------
         result : :class:`~numpy.ndarray` (N=1)
-            Product of the input `vector` with the Hessian matrix of the costfunction.
+            Product of the input `vector` with the Hessian matrix.
 
         '''
         return self.lam * self.norm.hess_dot(x, vector)
 
-    def hess_diag(self, x, vector):
+    def hess_diag(self, x):
         ''' Return the diagonal of the Hessian.
 
         Parameters
         ----------
-        _ : undefined
-            Unused input
+        x : :class:`~numpy.ndarray` (N=1)
+            Vectorized magnetization distribution at which the Hessian is calculated. The Hessian
+            is constant in this case, thus `x` can be set to None (it is not used int the
+            computation). It is implemented for the case that in the future nonlinear problems
+            have to be solved.
+
+        Returns
+        -------
+        result : :class:`~numpy.ndarray` (N=1)
+            Diagonal of the Hessian matrix.
 
         '''
         self._log.debug('Calling hess_diag')
-        return self.lam * self.norm.hess_diag(x, vector)
+        return self.lam * self.norm.hess_diag(x)
 
 
 class NoneRegularisator(Regularisator):
@@ -159,10 +167,10 @@ class NoneRegularisator(Regularisator):
         ----------
         x : :class:`~numpy.ndarray` (N=1)
             Vectorized magnetization distribution at which the Hessian is calculated. The Hessian
-            is constant in this case, thus `x` can be set to None (it is not used int the
+            is constant in this case, thus `x` can be set to None (it is not used in the
             computation). It is implemented for the case that in the future nonlinear problems
             have to be solved.
-        vector : :class:`~numpy.ndarray` (N=1)
+         vector : :class:`~numpy.ndarray` (N=1)
             Vectorized magnetization distribution which is multiplied by the Hessian.
 
         Returns
@@ -173,17 +181,25 @@ class NoneRegularisator(Regularisator):
         '''
         return np.zeros_like(vector)
 
-    def hess_diag(self, x, vector):
+    def hess_diag(self, x):
         ''' Return the diagonal of the Hessian.
 
         Parameters
         ----------
-        _ : undefined
-            Unused input
+        x : :class:`~numpy.ndarray` (N=1)
+            Vectorized magnetization distribution at which the Hessian is calculated. The Hessian
+            is constant in this case, thus `x` can be set to None (it is not used int the
+            computation). It is implemented for the case that in the future nonlinear problems
+            have to be solved.
+
+        Returns
+        -------
+        result : :class:`~numpy.ndarray` (N=1)
+            Diagonal of the Hessian matrix.
 
         '''
         self._log.debug('Calling hess_diag')
-        return np.zeros_like(vector)
+        return np.zeros_like(x)
 
 
 class ZeroOrderRegularisator(Regularisator):
@@ -204,7 +220,7 @@ class ZeroOrderRegularisator(Regularisator):
 
     _log = logging.getLogger(__name__+'.ZeroOrderRegularisator')
 
-    def __init__(self, _, lam, p=2):
+    def __init__(self, _=None, lam=1E-4, p=2):
         self._log.debug('Calling __init__')
         self.p = p
         if p == 2:
@@ -234,7 +250,7 @@ class FirstOrderRegularisator(Regularisator):
 
     '''
 
-    def __init__(self, mask, lam, p=2):
+    def __init__(self, mask, lam=1E-4, p=2):
         self.p = p
         D0 = jdiff.get_diff_operator(mask, 0, 3)
         D1 = jdiff.get_diff_operator(mask, 1, 3)

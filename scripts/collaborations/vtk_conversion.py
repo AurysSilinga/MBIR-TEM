@@ -12,6 +12,9 @@ import pickle
 import vtk
 from tqdm import tqdm
 
+import psutil
+import gc
+
 import pyramid
 from pyramid.magdata import MagData
 from pyramid.projector import XTiltProjector
@@ -26,6 +29,7 @@ LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)),
 
 
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
+proc = psutil.Process(os.getpid())
 ###################################################################################################
 PATH = '../../output/vtk data/tube_160x30x1100nm/02758'
 b_0 = 1.54
@@ -158,31 +162,37 @@ mag_data.quiver_plot()
 
 dim = mag_data.dim
 dim_uv = (500, 200)
-angles = [0, 20, 40, 60]
+angles = np.arange(-60, 61, 5)#[0, 20, 40, 60]
 
-mag_data_xy = mag_data.copy()
-mag_data_xy.magnitude[2] = 0
-
-mag_data_z = mag_data.copy()
-mag_data_z.magnitude[0] = 0
-mag_data_z.magnitude[1] = 0
+#mag_data_xy = mag_data.copy()
+#mag_data_xy.magnitude[2] = 0
+#
+#mag_data_z = mag_data.copy()
+#mag_data_z.magnitude[0] = 0
+#mag_data_z.magnitude[1] = 0
 
 # Iterate over all angles:
 for angle in angles:
     angle_rad = np.pi/2 + angle*np.pi/180
     projector = XTiltProjector(dim, angle_rad, dim_uv)
-    mag_proj = projector(mag_data_z)
+    mag_proj = projector(mag_data)
     phase_map = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))(mag_proj)
-    phase_map.display_combined('Phase Map Nanowire Tip', gain=gain,
-                               interpolation='bilinear')
-    plt.savefig(PATH+'_nanowire_z_xtilt_{}.png'.format(angle), dpi=500)
-    mag_proj.scale_down(2)
-    axis = mag_proj.quiver_plot()
-    plt.savefig(PATH+'_nanowire_z_mag_xtilt_{}.png'.format(angle), dpi=500)
-    axis = mag_proj.quiver_plot(log=True)
-    plt.savefig(PATH+'_nanowire_z_mag_log_xtilt_{}.png'.format(angle), dpi=500)
+    phase_map.display_phase('Phase Map Nanowire Tip', cmap='gray')
+    plt.savefig(PATH+'_nanowire_xtilt_{}.png'.format(angle), dpi=500)
+#    phase_map = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))(mag_proj)
+#    phase_map.display_combined('Phase Map Nanowire Tip', gain=gain,
+#                               interpolation='bilinear')
+#    plt.savefig(PATH+'_nanowire_xtilt_{}.png'.format(angle), dpi=500)
+#    mag_proj.scale_down(2)
+#    axis = mag_proj.quiver_plot()
+#    plt.savefig(PATH+'_nanowire_mag_xtilt_{}.png'.format(angle), dpi=500)
+#    axis = mag_proj.quiver_plot(log=True)
+#    plt.savefig(PATH+'_nanowire_mag_log_xtilt_{}.png'.format(angle), dpi=500)
     # Close plots:
     plt.close('all')
+    gc.collect()
+    print 'RSS = {:.2f} MB'.format(proc.memory_info().rss/1024.**2)
+    print angle, 'deg. done!'
 
 
 #mag_data.scale_down(2)

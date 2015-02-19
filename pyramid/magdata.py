@@ -344,7 +344,7 @@ class MagData(object):
         -------
         None
 
-        '''
+        '''  # TODO: Implement default folder for all mag_data and phasemaps!!!
         self._log.debug('Calling save_to_llg')
         a = self.a * 1.0E-9 / 1.0E-2  # from nm to cm
         # Create 3D meshgrid and reshape it and the magnetization into a list where x varies first:

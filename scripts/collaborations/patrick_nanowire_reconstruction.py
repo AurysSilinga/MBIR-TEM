@@ -24,13 +24,13 @@ logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 
 ###################################################################################################
 a = 1.455  # in nm
-gain = 5
+gain = 50
 b_0 = 1
 lam = 1E-4
 PATH = '../../output/patrick/'
-PHASE = 'pos3_40deg_magphase'
-MASK = 'pos3_40deg_maskbyhand'
-FORMAT = '.bmp'
+PHASE = 'Reza_30_uj_tube_M'
+MASK = 'Reza_30_uj_tube_maskbygimp'
+FORMAT = '.tif'
 longFOV = False
 longFOV_string = np.where(longFOV, 'longFOV', 'normalFOV')
 IMAGENAME = '{}_{}_{}_'.format(MASK, PHASE, longFOV_string)
@@ -70,19 +70,19 @@ if longFOV:
 regularisator = FirstOrderRegularisator(mask, lam, p=2)
 
 with TakeTime('reconstruction time'):
-    mag_data_rec = rc.optimize_linear(data_set, regularisator=regularisator, max_iter=1000)[0]
+    mag_data_rec = rc.optimize_linear(data_set, regularisator=regularisator, max_iter=500)[0]
 
 phase_map_rec_pad = pm(mag_data_rec)
 phase_map_rec = PhaseMap(a, phase_map_rec_pad.phase[pad:, :])#[pad:-pad, pad:-pad])
 phase_map_diff = phase_map_rec - phase_map
 
 # Display the reconstructed phase map and holography image:
-phase_map.display_combined('Input PhaseMap', gain=4)
+phase_map.display_combined('Input PhaseMap', gain=gain)
 plt.savefig(PATH+IMAGENAME+'ORIGINAL.png')
-phase_map_pad.display_combined('Input PhaseMap (padded)', gain=4)
-phase_map_rec_pad.display_combined('Reconstr. Distribution (padded)', gain=4)
+phase_map_pad.display_combined('Input PhaseMap (padded)', gain=gain)
+phase_map_rec_pad.display_combined('Reconstr. Distribution (padded)', gain=gain)
 plt.savefig(PATH+IMAGENAME+'RECONSTRUCTION_PADDED.png')
-phase_map_rec.display_combined('Reconstr. Distribution', gain=4)
+phase_map_rec.display_combined('Reconstr. Distribution', gain=gain)
 plt.savefig(PATH+IMAGENAME+'RECONSTRUCTION.png')
 phase_map_diff.display_combined('Difference')
 plt.savefig(PATH+IMAGENAME+'DIFFERENCE.png')

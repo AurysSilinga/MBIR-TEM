@@ -89,6 +89,18 @@ class Costfunction(object):
         return self.chisq
 
     def init(self, x):
+        '''Initialise the costfunction by calculating the different cost terms.
+
+        Parameters
+        ----------
+        x : :class:`~numpy.ndarray` (N=1)
+            Vectorized magnetization distribution, for which the cost is calculated.
+
+        Returns
+        -------
+        None
+
+        '''
         self(x)
 
     def jac(self, x):

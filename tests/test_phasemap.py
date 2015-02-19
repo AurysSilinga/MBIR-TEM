@@ -4,7 +4,9 @@
 
 import os
 import unittest
+
 import numpy as np
+from numpy.testing import assert_allclose
 
 from pyramid.phasemap import PhaseMap
 
@@ -21,28 +23,19 @@ class TestCasePhaseMap(unittest.TestCase):
         self.path = None
         self.phase_map = None
 
-    def test_set_unit(self):
-        with self.assertRaises(AssertionError):
-            self.phase_map.set_unit('nonsense')
-        self.phase_map.set_unit('mrad')
-        self.assertEqual(self.phase_map.unit, 'mrad', 'Unexpected behavior in set_unit()')
-
     def test_load_from_txt(self):
-        self.mag_data = PhaseMap.load_from_txt(os.path.join(self.path, 'ref_phase_map.txt'))
-        reference = np.zeros((4, 4))
-        reference[1:-1, 1:-1] = 1
-        np.testing.assert_equal(self.phase_map.phase, reference,
-                                'Unexpected behavior in load_from_txt()!')
-        np.testing.assert_equal(self.phase_map.res, 10, 'Unexpected behavior in load_from_llg()!')
+        phase_map = PhaseMap.load_from_txt(os.path.join(self.path, 'ref_phase_map.txt'))
+        assert_allclose(phase_map.phase, self.phase_map.phase,
+                        err_msg='Unexpected behavior in load_from_txt()!')
+        assert_allclose(phase_map.a, self.phase_map.a,
+                        err_msg='Unexpected behavior in load_from_txt()!')
 
     def test_load_from_netcdf4(self):
-        self.mag_data = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'ref_phase_map.nc'))
-        reference = np.zeros((4, 4))
-        reference[1:-1, 1:-1] = 1
-        np.testing.assert_equal(self.phase_map.phase, reference,
-                                'Unexpected behavior in load_from_netcdf4()!')
-        np.testing.assert_equal(self.phase_map.res, 10,
-                                'Unexpected behavior in load_from_netcdf4()!')
+        phase_map = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'ref_phase_map.nc'))
+        assert_allclose(phase_map.phase, self.phase_map.phase,
+                        err_msg='Unexpected behavior in load_from_netcdf4()!')
+        assert_allclose(phase_map.a, self.phase_map.a,
+                        err_msg='Unexpected behavior in load_from_netcdf4()!')
 
 
 if __name__ == '__main__':

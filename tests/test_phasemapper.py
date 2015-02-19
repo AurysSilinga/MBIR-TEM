@@ -4,58 +4,178 @@
 
 import os
 import unittest
+
 import numpy as np
+from numpy.testing import assert_allclose
 
-import pyramid.phasemapper as pm
+from pyramid.magdata import MagData
+from pyramid.phasemap import PhaseMap
+from pyramid.kernel import Kernel
+from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperRDRC, PhaseMapperFDFC
+from pyramid.phasemapper import PhaseMapperElectric, pm
 
 
-class TestCasePhaseMapper(unittest.TestCase):
+class TestCasePhaseMapperRDFC(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.projection = (np.zeros((4, 4)), np.zeros((4, 4)), np.zeros((4, 4)))
-        self.projection[0][1:-1, 1:-1] = 1
-        self.projection[1][1:-1, 1:-1] = 1
-        self.projection[2][1:-1, 1:-1] = 1
-        self.res = 10.0
+        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+        self.mapper = PhaseMapperRDFC(Kernel(self.mag_proj.a, self.mag_proj.dim[1:]))
 
     def tearDown(self):
         self.path = None
-        self.projection = None
+        self.mag_proj = None
+        self.mapper = None
 
-    def test_phase_mag_fourier(self):
-        phase = pm.phase_mag_fourier(self.res, self.projection, padding=10)
-        reference = np.load(os.path.join(self.path, 'ref_phase_mag_fft.npy'))
-        np.testing.assert_almost_equal(phase, reference, 7,
-                                       'Unexpected behavior in phase_mag_fourier()')
+    def test_PhaseMapperRDFC_call(self):
+        phase_ref = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'phase_map.nc'))
+        phase_map = self.mapper(self.mag_proj)
+        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+                        err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
 
-    def test_phase_mag_real(self):
-        phase_slab = pm.phase_mag_real(self.res, self.projection, method='slab')
-        phase_disc = pm.phase_mag_real(self.res, self.projection, method='disc')
-        ref_slab = np.load(os.path.join(self.path, 'ref_phase_mag_slab.npy'))
-        ref_disc = np.load(os.path.join(self.path, 'ref_phase_mag_disc.npy'))
-        np.testing.assert_almost_equal(phase_slab, ref_slab, 7,
-                                       'Unexpected behavior in phase_mag_real() (slab)')
-        np.testing.assert_almost_equal(phase_disc, ref_disc, 7,
-                                       'Unexpected behavior in phase_mag_real() (disc)')
+    def test_PhaseMapperRDFC_jac_dot(self):
+        phase = self.mapper(self.mag_proj).phase
+        mag_proj_vec = self.mag_proj.magnitude[:2, ...].flatten()
+        phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.kernel.dim_uv)
+        assert_allclose(phase, phase_jac, atol=1E-7,
+                        err_msg='Inconsistency between __call__() and jac_dot()!')
+        n = self.mapper.n
+        jac = np.array([self.mapper.jac_dot(np.eye(n)[:, i]) for i in range(n)]).T
+        jac_ref = np.load(os.path.join(self.path, 'jac.npy'))
+        assert_allclose(jac, jac_ref, atol=1E-7,
+                        err_msg='Unexpected behaviour in the the jacobi matrix!')
 
-    def test_phase_mag_real_conv(self):
-        phase_slab = pm.phase_mag_real_conv(self.res, self.projection, method='slab')
-        phase_disc = pm.phase_mag_real_conv(self.res, self.projection, method='disc')
-        ref_slab = np.load(os.path.join(self.path, 'ref_phase_mag_slab.npy'))
-        ref_disc = np.load(os.path.join(self.path, 'ref_phase_mag_disc.npy'))
-        np.testing.assert_almost_equal(phase_slab, ref_slab, 7,
-                                       'Unexpected behavior in phase_mag_real_conv() (slab)')
-        np.testing.assert_almost_equal(phase_disc, ref_disc, 7,
-                                       'Unexpected behavior in phase_mag_real_conv() (disc)')
+    def test_PhaseMapperRDFC_jac_T_dot(self):
+        m = self.mapper.m
+        jac_T = np.array([self.mapper.jac_T_dot(np.eye(m)[:, i]) for i in range(m)]).T
+        jac_T_ref = np.load(os.path.join(self.path, 'jac.npy')).T
+        assert_allclose(jac_T, jac_T_ref, atol=1E-7,
+                        err_msg='Unexpected behaviour in the the transposed jacobi matrix!')
 
-    def test_phase_elec(self):
-        phase = pm.phase_elec(self.res, self.projection, v_0=1, v_acc=30000)
-        reference = np.load(os.path.join(self.path, 'ref_phase_elec.npy'))
-        np.testing.assert_almost_equal(phase, reference, 7,
-                                       'Unexpected behavior in phase_elec()')
+
+class TestCasePhaseMapperRDRC(unittest.TestCase):
+
+    def setUp(self):
+        self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
+        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+        self.mapper = PhaseMapperRDRC(Kernel(self.mag_proj.a, self.mag_proj.dim[1:]))
+
+    def tearDown(self):
+        self.path = None
+        self.mag_proj = None
+        self.mapper = None
+
+    def test_PhaseMapperRDRC_call(self):
+        phase_ref = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'phase_map.nc'))
+        phase_map = self.mapper(self.mag_proj)
+        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+                        err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
+
+    def test_PhaseMapperRDRC_jac_dot(self):
+        phase = self.mapper(self.mag_proj).phase
+        mag_proj_vec = self.mag_proj.magnitude[:2, ...].flatten()
+        phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.kernel.dim_uv)
+        assert_allclose(phase, phase_jac, atol=1E-7,
+                        err_msg='Inconsistency between __call__() and jac_dot()!')
+        n = self.mapper.n
+        jac = np.array([self.mapper.jac_dot(np.eye(n)[:, i]) for i in range(n)]).T
+        jac_ref = np.load(os.path.join(self.path, 'jac.npy'))
+        assert_allclose(jac, jac_ref, atol=1E-7,
+                        err_msg='Unexpected behaviour in the the jacobi matrix!')
+
+    def test_PhaseMapperRDRC_jac_T_dot(self):
+        m = self.mapper.m
+        jac_T = np.array([self.mapper.jac_T_dot(np.eye(m)[:, i]) for i in range(m)]).T
+        jac_T_ref = np.load(os.path.join(self.path, 'jac.npy')).T
+        assert_allclose(jac_T, jac_T_ref, atol=1E-7,
+                        err_msg='Unexpected behaviour in the the transposed jacobi matrix!')
+
+
+class TestCasePhaseMapperFDFC(unittest.TestCase):
+
+    def setUp(self):
+        self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
+        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+        self.mapper = PhaseMapperFDFC(self.mag_proj.a, self.mag_proj.dim[1:], padding=0)
+
+    def tearDown(self):
+        self.path = None
+        self.mag_proj = None
+        self.mapper = None
+
+    def test_PhaseMapperFDFC_call(self):
+        phase_ref = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'phase_map_fc.nc'))
+        phase_map = self.mapper(self.mag_proj)
+        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+                        err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
+
+    def test_PhaseMapperFDFC_jac_dot(self):
+        phase = self.mapper(self.mag_proj).phase
+        mag_proj_vec = self.mag_proj.magnitude[:2, ...].flatten()
+        phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.dim_uv)
+        assert_allclose(phase, phase_jac, atol=1E-7,
+                        err_msg='Inconsistency between __call__() and jac_dot()!')
+        n = self.mapper.n
+        jac = np.array([self.mapper.jac_dot(np.eye(n)[:, i]) for i in range(n)]).T
+        jac_ref = np.load(os.path.join(self.path, 'jac_fc.npy'))
+        assert_allclose(jac, jac_ref, atol=1E-7,
+                        err_msg='Unexpected behaviour in the the jacobi matrix!')
+
+    def test_PhaseMapperFDFC_jac_T_dot(self):
+        self.assertRaises(NotImplementedError, self.mapper.jac_T_dot, None)
+
+
+class TestCasePhaseMapperElectric(unittest.TestCase):
+
+    def setUp(self):
+        self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
+        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+        self.mapper = PhaseMapperElectric(self.mag_proj.a, self.mag_proj.dim[1:])
+
+    def tearDown(self):
+        self.path = None
+        self.mag_proj = None
+        self.mapper = None
+
+    def test_call(self):
+        self.assertRaises(NotImplementedError, self.mapper, None)
+
+    def test_jac_dot(self):
+        self.assertRaises(NotImplementedError, self.mapper.jac_dot, None)
+
+    def test_jac_T_dot(self):
+        self.assertRaises(NotImplementedError, self.mapper.jac_T_dot, None)
+
+
+class TestCasePM(unittest.TestCase):
+
+    def setUp(self):
+        self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
+        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+
+    def tearDown(self):
+        self.path = None
+        self.mag_proj = None
+        self.mapper = None
+
+    def test_pm(self):
+        phase_ref = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'phase_map.nc'))
+        phase_map = pm(self.mag_proj)
+        assert_allclose(phase_map.phase, phase_ref.phase, err_msg='Unexpected behavior in pm()!')
+        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in pm()!')
 
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePhaseMapper)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePhaseMapperRDFC)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePhaseMapperRDRC)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePhaseMapperFDFC)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePhaseMapperElectric)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePM)
     unittest.TextTestRunner(verbosity=2).run(suite)

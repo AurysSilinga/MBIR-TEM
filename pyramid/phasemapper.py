@@ -285,8 +285,10 @@ class PhaseMapperRDRC(PhaseMapper):
         assert len(vector) == self.n, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
         v_dim, u_dim = self.kernel.dim_uv
-        result = np.zeros(self.m)
+        result = np.zeros(self.m, dtype=np.float32)
         if self.numcore:
+            if vector.dtype != np.float32:
+                vector = vector.astype(np.float32)
             nc.jac_dot_real_convolve(v_dim, u_dim, self.kernel.u, self.kernel.v, vector, result)
         else:
             # Iterate over all contributing pixels (numbered consecutively)
@@ -319,9 +321,11 @@ class PhaseMapperRDRC(PhaseMapper):
         '''
         assert len(vector) == self.m, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
-        v_dim, u_dim = self.dim_uv
-        result = np.zeros(self.n)
+        v_dim, u_dim = self.kernel.dim_uv
+        result = np.zeros(self.n, dtype=np.float32)
         if self.numcore:
+            if vector.dtype != np.float32:
+                vector = vector.astype(np.float32)
             nc.jac_T_dot_real_convolve(v_dim, u_dim, self.kernel.u, self.kernel.v, vector, result)
         else:
             # Iterate over all contributing pixels (numbered consecutively):
@@ -431,9 +435,9 @@ class PhaseMapperFDFC(PhaseMapper):
         '''
         assert len(vector) == self.n, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
-        mag_proj = MagData(self.a, np.zeros((3, 1)+self.dim_uv))
-        magnitude_proj = self.jac_dot(vector).reshape((2, )+self.dim_uv)
-        mag_proj.magnitude[1:3, 0, ...] = magnitude_proj
+        mag_proj = MagData(self.a, np.zeros((3, 1)+self.dim_uv, dtype=np.float32))
+        magnitude_proj = np.reshape(vector, (2,)+self.dim_uv)
+        mag_proj.magnitude[:2, 0, ...] = magnitude_proj
         return self(mag_proj).phase_vec
 
     def jac_T_dot(self, vector):
@@ -494,6 +498,7 @@ class PhaseMapperElectric(PhaseMapper):
             (self.a, self.dim_uv, self.v_0, self.v_acc, self.threshold)
 
     def __call__(self, mag_data):
+        raise NotImplementedError()  # TODO: Implement right!
         self._log.debug('Calling __call__')
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert mag_data.a == self.a, 'Grid spacing has to match!'

@@ -8,7 +8,6 @@ import datetime
 import unittest
 
 import re
-
 import pep8
 
 
@@ -35,7 +34,6 @@ class TestCaseCompliance(unittest.TestCase):
         pep8.MAX_LINE_LENGTH = 99
         pep8style = pep8.StyleGuide(quiet=False)
         pep8style.options.ignore = ignores
-
         stdout_buffer = sys.stdout
         with open(os.path.join(self.path, 'output', 'pep8_log.txt'), 'w') as sys.stdout:
             print '<<< PEP8 LOGFILE >>>'
@@ -45,9 +43,9 @@ class TestCaseCompliance(unittest.TestCase):
             print '\nERRORS AND WARNINGS:'
             result = pep8style.check_files(files)
             if result.total_errors == 0:
-                print 'No Warnings or Errors detected!'
+                print 'No PEP8 violations detected!'
             else:
-                print '---->   {} Warnings and Errors detected!'.format(result.total_errors)
+                print '---->   {} PEP8 violations detected!'.format(result.total_errors)
             print '\nTODOS:'
             todos_found = False
             todo_count = 0
@@ -64,10 +62,10 @@ class TestCaseCompliance(unittest.TestCase):
                 print '---->   {} TODOs found!'.format(todo_count)
             else:
                 print 'No TODOS found!'
-
         sys.stdout = stdout_buffer
-
-        error_message = 'Found %s Errors and Warnings!' % result.total_errors
+        error_message = 'Found {} PEP8 violations!'.format(result.total_errors)
+        if todo_count > 0:
+            error_message += 'Found {} TODOs!'.format(todo_count)
         self.assertEqual(result.total_errors, 0, error_message)
 
 

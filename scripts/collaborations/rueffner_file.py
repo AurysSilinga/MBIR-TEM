@@ -29,6 +29,7 @@ LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)),
 
 logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
 proc = psutil.Process(os.getpid())
+
 ###################################################################################################
 PATH = '../../output/'
 dim = (16, 190, 220)
@@ -39,7 +40,9 @@ dens_z = 4E3
 dens_x = 1E2
 lim_z = 22
 lim_x = 0.35
+
 ###################################################################################################
+
 # Build projectors and phasemapper:
 projector_z = SimpleProjector(dim, axis='z', dim_uv=dim_uv)
 projector_x = SimpleProjector(dim, axis='x', dim_uv=dim_uv)

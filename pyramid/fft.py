@@ -149,6 +149,7 @@ def _irfftn_fftw(a, s=None, axes=None):
 
 
 def _rfftn_adj_fftw(a):
+    # TODO: Careful just works for even a (which is guaranteed by the kernel!)
     n = 2 * (a.shape[-1] - 1)
     out_shape = a.shape[:-1] + (n,)
     out_arr = zeros(out_shape, dtype=a.dtype)

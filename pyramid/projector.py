@@ -16,6 +16,7 @@ import itertools
 from scipy.sparse import coo_matrix, csr_matrix
 
 from pyramid.magdata import MagData
+import pyramid.fft as fft
 
 import logging
 
@@ -84,15 +85,16 @@ class Projector(object):
 
     def __call__(self, mag_data):
         self._log.debug('Calling __call__')
-        mag_proj = MagData(mag_data.a, np.zeros((3, 1)+self.dim_uv))
+        mag_proj = MagData(mag_data.a, fft.zeros((3, 1)+self.dim_uv, dtype=fft.FLOAT))
         magnitude_proj = self.jac_dot(mag_data.mag_vec).reshape((2, )+self.dim_uv)
         mag_proj.magnitude[0:2, 0, ...] = magnitude_proj
         return mag_proj
 
     def _vector_field_projection(self, vector):
         size_2d, size_3d = self.size_2d, self.size_3d
-        result = np.zeros(2*size_2d)
+        result = fft.zeros(2*size_2d, dtype=fft.FLOAT)
         # Go over all possible component projections (z, y, x) to (u, v):
+        # TODO: save self.weight.dot(...)
         if self.coeff[0][0] != 0:  # x to u
             result[:size_2d] += self.coeff[0][0] * self.weight.dot(vector[:size_3d])
         if self.coeff[0][1] != 0:  # y to u
@@ -109,7 +111,7 @@ class Projector(object):
 
     def _vector_field_projection_T(self, vector):
         size_2d, size_3d = self.size_2d, self.size_3d
-        result = np.zeros(3*size_3d)
+        result = np.zeros(3*size_3d, dtype=fft.FLOAT)
         # Go over all possible component projections (u, v) to (z, y, x):
         if self.coeff[0][0] != 0:  # u to x
             result[:size_3d] += self.coeff[0][0] * self.weight.T.dot(vector[:size_2d])
@@ -438,6 +440,7 @@ class SimpleProjector(Projector):
     def __init__(self, dim, axis='z', dim_uv=None):
         self._log.debug('Calling __init__')
         assert axis in {'z', 'y', 'x'}, 'Projection axis has to be x, y or z (given as a string)!'
+        self.axis = axis
         proj, v, u = self.AXIS_DICT[axis]
         if axis == 'x':
             dim_proj, dim_v, dim_u = dim[proj], dim[u], dim[v]  # coordinate switch for 'x'!

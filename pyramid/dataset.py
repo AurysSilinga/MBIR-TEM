@@ -91,15 +91,15 @@ class DataSet(object):
         assert a >= 0, 'Grid spacing has to be a positive number!'
         assert isinstance(dim, tuple) and len(dim) == 3, \
             'Dimension has to be a tuple of length 3!'
-        if mask is not None:
-            assert mask.shape == dim, 'Mask dimensions must match!'
-            self.n = 3 * np.sum(mask)
+        if mask is None:
+            self.mask = np.ones(dim, dtype=bool)
         else:
-            self.n = 3 * np.prod(dim)
+            assert mask.shape == dim, 'Mask dimensions must match!'
+            self.mask = mask
+        self.n = 3 * np.sum(self.mask)
         self.a = a
         self.dim = dim
         self.b_0 = b_0
-        self.mask = mask
         self.Se_inv = Se_inv
         self.phase_maps = []
         self.projectors = []
@@ -182,8 +182,12 @@ class DataSet(object):
             None
 
         '''
-        cov_list = [sparse.diags(m.flatten(), 0) for m in mask_list]
+        cov_list = [sparse.diags(m.flatten().astype(np.float32), 0) for m in mask_list]
         self.set_Se_inv_block_diag(cov_list)
+
+    def create_3d_mask(self, mask_list):
+        # TODO: method for constructing 3D mask from 2D masks?
+        raise NotImplementedError()
 
     def display_phase(self, mag_data=None, title='Phase Map',
                       cmap='RdBu', limit=None, norm=None):
@@ -223,7 +227,7 @@ class DataSet(object):
         plt.show()
 
     def display_combined(self, mag_data=None, title='Combined Plot', cmap='RdBu', limit=None,
-                         norm=None, gain=1, interpolation='none', grad_encode='bright'):
+                         norm=None, gain='auto', interpolation='none', grad_encode='bright'):
         '''Display all phasemaps and the resulting color coded holography images.
 
         Parameters
@@ -268,6 +272,3 @@ class DataSet(object):
                                     cmap, limit, norm, gain, interpolation, grad_encode)
             for (i, phase_map) in enumerate(phase_maps)]
         plt.show()
-
-
-# TODO: method for constructing 3D mask from 2D masks?
