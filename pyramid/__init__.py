@@ -57,6 +57,7 @@ from .phasemap import *  # analysis:ignore
 from .phasemapper import *  # analysis:ignore
 from .projector import *  # analysis:ignore
 from .regularisator import *  # analysis:ignore
+from .config import *  # analysis:ignore
 from .version import version as __version__
 from .version import hg_revision as __hg_revision__
 

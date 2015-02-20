@@ -331,7 +331,7 @@ class MagData(object):
         else:
             self.mag_vec = vector
 
-    def save_to_llg(self, filename='..\output\magdata_output.txt'):
+    def save_to_llg(self, filename='magdata.txt'):
         '''Save magnetization data in a file with LLG-format.
 
         Parameters
@@ -344,16 +344,22 @@ class MagData(object):
         -------
         None
 
-        '''  # TODO: Implement default folder for all mag_data and phasemaps!!!
+        '''
         self._log.debug('Calling save_to_llg')
-        a = self.a * 1.0E-9 / 1.0E-2  # from nm to cm
+        SCALE = 1.0E-9 / 1.0E-2  # from nm to cm
         # Create 3D meshgrid and reshape it and the magnetization into a list where x varies first:
-        zz, yy, xx = (np.indices(self.dim)-a/2).reshape(3, -1)
+        zz, yy, xx = self.a * SCALE * (np.indices(self.dim)+0.5).reshape(3, -1)
         x_vec, y_vec, z_vec = self.magnitude.reshape(3, -1)
-        # Save data to file:
         data = np.array([xx, yy, zz, x_vec, y_vec, z_vec]).T
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_MAGDATA
+            if not os.path.exists(DIR_MAGDATA):
+                os.makedirs(DIR_MAGDATA)
+            filename = os.path.join(DIR_MAGDATA, filename)
+        # Save data to file:
         with open(filename, 'w') as mag_file:
-            mag_file.write('LLGFileCreator: %s\n' % filename.replace('.txt', ''))
+            mag_file.write('LLGFileCreator: %s\n' % filename)
             mag_file.write('    %d    %d    %d\n' % (self.dim[2], self.dim[1], self.dim[0]))
             mag_file.writelines('\n'.join('   '.join('{:7.6e}'.format(cell)
                                           for cell in row) for row in data))
@@ -375,13 +381,20 @@ class MagData(object):
         '''
         cls._log.debug('Calling load_from_llg')
         SCALE = 1.0E-9 / 1.0E-2  # From cm to nm
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_MAGDATA
+            if not os.path.exists(DIR_MAGDATA):
+                os.makedirs(DIR_MAGDATA)
+            filename = os.path.join(DIR_MAGDATA, filename)
+        # Load data from file:
         data = np.genfromtxt(filename, skip_header=2)
         dim = tuple(np.genfromtxt(filename, dtype=int, skip_header=1, skip_footer=len(data[:, 0])))
         a = (data[1, 0] - data[0, 0]) / SCALE
         magnitude = data[:, 3:6].T.reshape((3,)+dim)
         return MagData(a, magnitude)
 
-    def save_to_netcdf4(self, filename='..\output\magdata_output.nc'):
+    def save_to_netcdf4(self, filename='magdata.nc'):
         '''Save magnetization data in a file with NetCDF4-format.
 
         Parameters
@@ -396,6 +409,13 @@ class MagData(object):
 
         '''
         self._log.debug('Calling save_to_netcdf4')
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_MAGDATA
+            if not os.path.exists(DIR_MAGDATA):
+                os.makedirs(DIR_MAGDATA)
+            filename = os.path.join(DIR_MAGDATA, filename)
+        # Save data to file:
         mag_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
         mag_file.a = self.a
         mag_file.createDimension('comp', 3)  # Number of components
@@ -421,14 +441,21 @@ class MagData(object):
             A :class:`~.MagData` object containing the loaded data.
 
         '''
-        cls._log.debug('Calling copy')
+        cls._log.debug('Calling load_from_netcdf4')
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_MAGDATA
+            if not os.path.exists(DIR_MAGDATA):
+                os.makedirs(DIR_MAGDATA)
+            filename = os.path.join(DIR_MAGDATA, filename)
+        # Load data from file:
         mag_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = mag_file.a
         magnitude = mag_file.variables['magnitude'][...]
         mag_file.close()
         return MagData(a, magnitude)
 
-    def save_to_x3d(self, filename='..\..\output\magdata_output.x3d', maximum=1):
+    def save_to_x3d(self, filename='magdata.x3d', maximum=1):
         '''Output the magnetization in the .x3d format for the Fraunhofer InstantReality Player.
 
         Parameters
@@ -442,7 +469,6 @@ class MagData(object):
         '''
         self._log.debug('Calling save_to_x3d')
         from lxml import etree
-
         dim = self.dim
         # Create points and vector components as lists:
         zz, yy, xx = (np.indices(dim)-0.5).reshape(3, -1)
@@ -483,6 +509,12 @@ class MagData(object):
                                  value='{} {} {}'.format(*spin_color))
                 etree.SubElement(spin, 'fieldValue', name='spin_scale',
                                  value='{} {} {}'.format(*spin_scale))
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_MAGDATA
+            if not os.path.exists(DIR_MAGDATA):
+                os.makedirs(DIR_MAGDATA)
+            filename = os.path.join(DIR_MAGDATA, filename)
         # Write the tree into the file in pretty print format:
         tree.write(filename, pretty_print=True)
 

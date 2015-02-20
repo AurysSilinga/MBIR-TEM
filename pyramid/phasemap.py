@@ -5,6 +5,8 @@
 """This module provides the :class:`~.PhaseMap` class for storing phase map data."""
 
 
+import os
+
 import numpy as np
 from numpy import pi
 
@@ -215,7 +217,7 @@ class PhaseMap(object):
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
 
-    def save_to_txt(self, filename='..\output\phasemap_output.txt'):
+    def save_to_txt(self, filename='phasemap.txt'):
         '''Save :class:`~.PhaseMap` data in a file with txt-format.
 
         Parameters
@@ -230,6 +232,13 @@ class PhaseMap(object):
 
         '''
         self._log.debug('Calling save_to_txt')
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_PHASEMAP
+            if not os.path.exists(DIR_PHASEMAP):
+                os.makedirs(DIR_PHASEMAP)
+            filename = os.path.join(DIR_PHASEMAP, filename)
+        # Save data to file:
         with open(filename, 'w') as phase_file:
             phase_file.write('{}\n'.format(filename.replace('.txt', '')))
             phase_file.write('grid spacing = {} nm\n'.format(self.a))
@@ -251,13 +260,20 @@ class PhaseMap(object):
 
         '''
         cls._log.debug('Calling load_from_txt')
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_PHASEMAP
+            if not os.path.exists(DIR_PHASEMAP):
+                os.makedirs(DIR_PHASEMAP)
+            filename = os.path.join(DIR_PHASEMAP, filename)
+        # Load data from file:
         with open(filename, 'r') as phase_file:
             phase_file.readline()  # Headerline is not used
             a = float(phase_file.readline()[15:-4])
             phase = np.loadtxt(filename, delimiter='\t', skiprows=2)
         return PhaseMap(a, phase)
 
-    def save_to_netcdf4(self, filename='..\output\phasemap_output.nc'):
+    def save_to_netcdf4(self, filename='phasemap.nc'):
         '''Save :class:`~.PhaseMap` data in a file with NetCDF4-format.
 
         Parameters
@@ -272,6 +288,13 @@ class PhaseMap(object):
 
         '''
         self._log.debug('Calling save_to_netcdf4')
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_PHASEMAP
+            if not os.path.exists(DIR_PHASEMAP):
+                os.makedirs(DIR_PHASEMAP)
+            filename = os.path.join(DIR_PHASEMAP, filename)
+        # Save data to file:
         phase_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
         phase_file.a = self.a
         phase_file.createDimension('v_dim', self.dim_uv[0])
@@ -296,6 +319,13 @@ class PhaseMap(object):
 
         '''
         cls._log.debug('Calling load_from_netcdf4')
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_PHASEMAP
+            if not os.path.exists(DIR_PHASEMAP):
+                os.makedirs(DIR_PHASEMAP)
+            filename = os.path.join(DIR_PHASEMAP, filename)
+        # Load data from file:
         phase_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = phase_file.a
         phase = phase_file.variables['phase'][:]
