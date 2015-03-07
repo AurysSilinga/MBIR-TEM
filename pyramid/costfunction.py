@@ -64,10 +64,9 @@ class Costfunction(object):
         self.y = data_set.phase_vec
         self.n = data_set.n
         self.m = data_set.m
-        if data_set.Se_inv is not None:
-            self.Se_inv = data_set.Se_inv
-        else:
-            self.Se_inv = sparse_eye(self.m)
+        if data_set.Se_inv is None:
+            data_set.set_Se_inv_diag_with_conf()
+        self.Se_inv = data_set.Se_inv
         self._log.debug('Created '+str(self))
 
     def __repr__(self):

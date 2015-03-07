@@ -184,12 +184,14 @@ class Projector(object):
                                  'vector- or scalar-field-projection!')
 
     @abc.abstractmethod
-    def get_info(self):
+    def get_info(self, verbose):
         '''Get specific information about the projector as a string.
 
         Parameters
         ----------
-        None
+        verbose: boolean, optional
+            If this is true, the text looks prettier (maybe using latex). Default is False for the
+            use in file names and such.
 
         Returns
         -------
@@ -223,9 +225,12 @@ class XTiltProjector(Projector):
 
     def __init__(self, dim, tilt, dim_uv=None):
 
-        def get_position(p, m, b, size):
-            y, x = np.array(p)[:, 0]+0.5, np.array(p)[:, 1]+0.5
-            return (y-m*x-b)/np.sqrt(m**2+1) + size/2.
+        def get_position(points, center, tilt, size):
+            point_vecs = np.asarray(points)+0.5 - np.asarray(center)  # vectors pointing to points
+            direc_vec = np.array((np.cos(tilt), -np.sin(tilt)))  # vector pointing along projection
+            distances = -np.cross(point_vecs, direc_vec)  # here (special case): divisor is one!
+            # minus because sign is derived of -sin(angle(point_vec, direc_vec)) neg between 0-180°
+            return distances + size/2.  # Shift to center the projection
 
         def get_impact(pos, r, size):
             return [x for x in np.arange(np.floor(pos-r), np.floor(pos+r)+1, dtype=int)
@@ -260,9 +265,7 @@ class XTiltProjector(Projector):
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-y-plane
         # Calculate positions along the projected pixel coordinate system:
         center = (dim_proj/2., dim_perp/2.)
-        m = np.where(tilt <= pi, -1/np.tan(tilt+1E-30), 1/np.tan(tilt+1E-30))
-        b = center[0] - m * center[1]
-        positions = get_position(voxels, m, b, dim_v)
+        positions = get_position(voxels, center, tilt, dim_v)
         # Calculate weight-matrix:
         r = 1/np.sqrt(np.pi)  # radius of the voxel circle
         rho = 0.5 / r
@@ -291,12 +294,14 @@ class XTiltProjector(Projector):
         super(XTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created '+str(self))
 
-    def get_info(self):
+    def get_info(self, verbose=False):
         '''Get specific information about the projector as a string.
 
         Parameters
         ----------
-        None
+        verbose: boolean, optional
+            If this is true, the text looks prettier (maybe using latex). Default is False for the
+            use in file names and such.
 
         Returns
         -------
@@ -304,7 +309,10 @@ class XTiltProjector(Projector):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
-        return 'x-tilt: $\phi = {:3.2f} \pi$'.format(self.tilt/pi)
+        if verbose:
+            return u'x-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt*180/pi)))
+        else:
+            return u'xtilt_phi={:d}°'.format(int(np.round(self.tilt*180/pi)))
 
 
 class YTiltProjector(Projector):
@@ -330,9 +338,12 @@ class YTiltProjector(Projector):
 
     def __init__(self, dim, tilt, dim_uv=None):
 
-        def get_position(p, m, b, size):
-            y, x = np.array(p)[:, 0]+0.5, np.array(p)[:, 1]+0.5
-            return (y-m*x-b)/np.sqrt(m**2+1) + size/2.
+        def get_position(points, center, tilt, size):
+            point_vecs = np.asarray(points)+0.5 - np.asarray(center)  # vectors pointing to points
+            direc_vec = np.array((np.cos(tilt), -np.sin(tilt)))  # vector pointing along projection
+            distances = -np.cross(point_vecs, direc_vec)  # here (special case): divisor is one!
+            # minus because sign is derived of -sin(angle(point_vec, direc_vec)) neg between 0-180°
+            return distances + size/2.  # Shift to center the projection
 
         def get_impact(pos, r, size):
             return [x for x in np.arange(np.floor(pos-r), np.floor(pos+r)+1, dtype=int)
@@ -367,9 +378,7 @@ class YTiltProjector(Projector):
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-x-plane
         # Calculate positions along the projected pixel coordinate system:
         center = (dim_proj/2., dim_perp/2.)
-        m = np.where(tilt <= pi, -1/np.tan(tilt+1E-30), 1/np.tan(tilt+1E-30))
-        b = center[0] - m * center[1]
-        positions = get_position(voxels, m, b, dim_u)
+        positions = get_position(voxels, center, tilt, dim_u)
         # Calculate weight-matrix:
         r = 1/np.sqrt(np.pi)  # radius of the voxel circle
         rho = 0.5 / r
@@ -398,12 +407,14 @@ class YTiltProjector(Projector):
         super(YTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created '+str(self))
 
-    def get_info(self):
+    def get_info(self, verbose=False):
         '''Get specific information about the projector as a string.
 
         Parameters
         ----------
-        None
+        verbose: boolean, optional
+            If this is true, the text looks prettier (maybe using latex). Default is False for the
+            use in file names and such.
 
         Returns
         -------
@@ -411,7 +422,10 @@ class YTiltProjector(Projector):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
-        return 'y-tilt: $\phi = {:3.2f} \pi$'.format(self.tilt/pi)
+        if verbose:
+            return u'y-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt*180/pi)))
+        else:
+            return u'ytilt_phi={:d}°'.format(int(np.round(self.tilt*180/pi)))
 
 
 class SimpleProjector(Projector):
@@ -436,16 +450,14 @@ class SimpleProjector(Projector):
 
     _log = logging.getLogger(__name__+'.SimpleProjector')
     AXIS_DICT = {'z': (0, 1, 2), 'y': (1, 0, 2), 'x': (2, 1, 0)}  # (0:z, 1:y, 2:x) -> (proj, v, u)
+    # coordinate switch for 'x': u, v --> z, y (not y, z!)!
 
     def __init__(self, dim, axis='z', dim_uv=None):
         self._log.debug('Calling __init__')
         assert axis in {'z', 'y', 'x'}, 'Projection axis has to be x, y or z (given as a string)!'
         self.axis = axis
         proj, v, u = self.AXIS_DICT[axis]
-        if axis == 'x':
-            dim_proj, dim_v, dim_u = dim[proj], dim[u], dim[v]  # coordinate switch for 'x'!
-        else:
-            dim_proj, dim_v, dim_u = dim[proj], dim[v], dim[u]
+        dim_proj, dim_v, dim_u = dim[proj], dim[v], dim[u]
         dim_z, dim_y, dim_x = dim
         size_2d = dim_u * dim_v
         size_3d = np.prod(dim)
@@ -464,13 +476,11 @@ class SimpleProjector(Projector):
         elif axis == 'x':
             self._log.debug('Projection along the x-axis')
             coeff = [[0, 0, 1], [0, 1, 0]]  # Caution, coordinate switch: u, v --> z, y (not y, z!)
-            #  indices = np.array([np.arange(dim_proj) + row*dim_proj
-            #                      for row in range(size_2d)]).reshape(-1)  # this is u, v --> y, z
             indices = np.array([np.arange(dim_x) + (row % dim_z)*dim_x*dim_y + row//dim_z*dim_x
                                 for row in range(size_2d)]).reshape(-1)
         if dim_uv is not None:
             indptr = indptr.tolist()  # convert to use insert() and append()
-            d_v, d_u = int((dim_uv[0]-dim_v)/2), int((dim_uv[1]-dim_u)/2)  # padding in u and v
+            d_v, d_u = (dim_uv[0]-dim_v)//2, (dim_uv[1]-dim_u)//2  # padding in u and v
             indptr[-1:-1] = [indptr[-1]] * d_v*dim_uv[1]  # append empty rows at the end
             for i in np.arange(dim_v, 0, -1):  # all slices in between
                 u, l = i*dim_u, (i-1)*dim_u+1  # upper / lower slice end
@@ -487,12 +497,14 @@ class SimpleProjector(Projector):
         super(SimpleProjector, self).__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created '+str(self))
 
-    def get_info(self):
+    def get_info(self, verbose=False):
         '''Get specific information about the projector as a string.
 
         Parameters
         ----------
-        None
+        verbose: boolean, optional
+            If this is true, the text looks prettier (maybe using latex). Default is False for the
+            use in file names and such.
 
         Returns
         -------
@@ -500,6 +512,9 @@ class SimpleProjector(Projector):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
-        return 'projected along {}-axis'.format(self.axis)
+        if verbose:
+            return 'projected along {}-axis'.format(self.axis)
+        else:
+            return '{}axis'.format(self.axis)
 
 # TODO: Arbitrary Projections!

@@ -58,17 +58,17 @@ class TestCaseDataSet(unittest.TestCase):
         assert self.data.Se_inv.diagonal().sum() == self.data.m, \
             'Unexpected behaviour in set_Se_inv_block_diag()!'
 
-    def test_set_Se_inv_diag_with_masks(self):
+    def test_set_Se_inv_diag_with_conf(self):
         self.data.append(self.phase_map, self.projector)
         self.data.append(self.phase_map, self.projector)
-        mask_2d = self.mask[1, ...]
-        self.data.set_Se_inv_diag_with_masks([mask_2d, mask_2d])
+        confidence = self.mask[1, ...]
+        self.data.set_Se_inv_diag_with_conf([confidence, confidence])
         assert self.data.Se_inv.shape == (self.data.m, self.data.m), \
             'Unexpected behaviour in set_Se_inv_diag_with_masks()!'
-        assert self.data.Se_inv.diagonal().sum() == 2*mask_2d.sum(), \
+        assert self.data.Se_inv.diagonal().sum() == 2*confidence.sum(), \
             'Unexpected behaviour in set_Se_inv_diag_with_masks()!'
 
-    def test_create_3d_mask(self):
+    def test_set_3d_mask(self):
         self.assertRaises(NotImplementedError, self.data.create_3d_mask, None)
 
 

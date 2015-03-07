@@ -331,6 +331,69 @@ class MagData(object):
         else:
             self.mag_vec = vector
 
+    def flip(self, axis='x'):
+        '''Flip/mirror the magnetization around the specified axis.
+
+        Parameters
+        ----------
+        axis: {'x', 'y', 'z'}, optional
+            The axis around which the magnetization is flipped.
+
+        Returns
+        -------
+        mag_data_flip: :class:`~.MagData`
+           A flipped copy of the :class:`~.MagData` object.
+
+        '''
+        if axis == 'x':
+            mag_x, mag_y, mag_z = self.magnitude[:, :, :, ::-1]
+            magnitude_flip = np.array((-mag_x, mag_y, mag_z))
+        elif axis == 'y':
+            mag_x, mag_y, mag_z = self.magnitude[:, :, ::-1, :]
+            magnitude_flip = np.array((mag_x, -mag_y, mag_z))
+        elif axis == 'z':
+            mag_x, mag_y, mag_z = self.magnitude[:, ::-1, :, :]
+            magnitude_flip = np.array((mag_x, mag_y, -mag_z))
+        else:
+            raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
+        return MagData(self.a, magnitude_flip)
+
+    def rot90(self, axis='x'):
+        '''Rotate the magnetization 90° around the specified axis (right hand rotation).
+
+        Parameters
+        ----------
+        axis: {'x', 'y', 'z'}, optional
+            The axis around which the magnetization is rotated.
+
+        Returns
+        -------
+        mag_data_rot: :class:`~.MagData`
+           A rotated copy of the :class:`~.MagData` object.
+
+        '''
+        if axis == 'x':
+            magnitude_rot = np.zeros((3, self.dim[1], self.dim[0], self.dim[2]))
+            for i in range(self.dim[2]):
+                mag_x, mag_y, mag_z = self.magnitude[:, :, :, i]
+                mag_xrot, mag_yrot, mag_zrot = np.rot90(mag_x), np.rot90(mag_y), np.rot90(mag_z)
+                magnitude_rot[:, :, :, i] = np.array((mag_xrot, mag_zrot, -mag_yrot))
+        elif axis == 'y':
+            magnitude_rot = np.zeros((3, self.dim[2], self.dim[1], self.dim[0]))
+            for i in range(self.dim[1]):
+                mag_x, mag_y, mag_z = self.magnitude[:, :, i, :]
+                mag_xrot, mag_yrot, mag_zrot = np.rot90(mag_x), np.rot90(mag_y), np.rot90(mag_z)
+                magnitude_rot[:, :, i, :] = np.array((mag_zrot, mag_yrot, -mag_xrot))
+        elif axis == 'z':
+            magnitude_rot = np.zeros((3, self.dim[0], self.dim[2], self.dim[1]))
+            for i in range(self.dim[0]):
+                mag_x, mag_y, mag_z = self.magnitude[:, i, :, :]
+                mag_xrot, mag_yrot, mag_zrot = np.rot90(mag_x), np.rot90(mag_y), np.rot90(mag_z)
+                magnitude_rot[:, i, :, :] = np.array((mag_yrot, -mag_xrot, mag_zrot))
+        else:
+            raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
+        return MagData(self.a, magnitude_rot)
+
     def save_to_llg(self, filename='magdata.txt'):
         '''Save magnetization data in a file with LLG-format.
 
@@ -353,10 +416,11 @@ class MagData(object):
         data = np.array([xx, yy, zz, x_vec, y_vec, z_vec]).T
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_MAGDATA
-            if not os.path.exists(DIR_MAGDATA):
-                os.makedirs(DIR_MAGDATA)
-            filename = os.path.join(DIR_MAGDATA, filename)
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'magdata')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
         # Save data to file:
         with open(filename, 'w') as mag_file:
             mag_file.write('LLGFileCreator: %s\n' % filename)
@@ -383,10 +447,11 @@ class MagData(object):
         SCALE = 1.0E-9 / 1.0E-2  # From cm to nm
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_MAGDATA
-            if not os.path.exists(DIR_MAGDATA):
-                os.makedirs(DIR_MAGDATA)
-            filename = os.path.join(DIR_MAGDATA, filename)
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'magdata')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
         # Load data from file:
         data = np.genfromtxt(filename, skip_header=2)
         dim = tuple(np.genfromtxt(filename, dtype=int, skip_header=1, skip_footer=len(data[:, 0])))
@@ -411,10 +476,11 @@ class MagData(object):
         self._log.debug('Calling save_to_netcdf4')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_MAGDATA
-            if not os.path.exists(DIR_MAGDATA):
-                os.makedirs(DIR_MAGDATA)
-            filename = os.path.join(DIR_MAGDATA, filename)
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'magdata')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
         # Save data to file:
         mag_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
         mag_file.a = self.a
@@ -444,10 +510,11 @@ class MagData(object):
         cls._log.debug('Calling load_from_netcdf4')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_MAGDATA
-            if not os.path.exists(DIR_MAGDATA):
-                os.makedirs(DIR_MAGDATA)
-            filename = os.path.join(DIR_MAGDATA, filename)
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'magdata')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
         # Load data from file:
         mag_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = mag_file.a
@@ -511,10 +578,11 @@ class MagData(object):
                                  value='{} {} {}'.format(*spin_scale))
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_MAGDATA
-            if not os.path.exists(DIR_MAGDATA):
-                os.makedirs(DIR_MAGDATA)
-            filename = os.path.join(DIR_MAGDATA, filename)
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'x3d')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
         # Write the tree into the file in pretty print format:
         tree.write(filename, pretty_print=True)
 
@@ -650,7 +718,10 @@ class MagData(object):
             limit = np.max(self.mag_amp)
         ad = ar_dens
         # Create points and vector components as lists:
-        zz, yy, xx = (np.indices(dim)-a/2).reshape(3, -1)
+        zz, yy, xx = (np.indices(dim)-a/2).reshape((3,)+dim)
+        zz = zz[::ad, ::ad, ::ad].flatten()
+        yy = yy[::ad, ::ad, ::ad].flatten()
+        xx = xx[::ad, ::ad, ::ad].flatten()
         x_mag = self.magnitude[0][::ad, ::ad, ::ad].flatten()
         y_mag = self.magnitude[1][::ad, ::ad, ::ad].flatten()
         z_mag = self.magnitude[2][::ad, ::ad, ::ad].flatten()

@@ -8,12 +8,14 @@
 # WARNING! All changes made in this file will be lost!
 
 
+import os
 import sys
 
 from PyQt4 import QtCore, QtGui
 
 from matplotlibwidget import MatplotlibWidget
 
+import pyramid
 from pyramid.magdata import MagData
 from pyramid.projector import SimpleProjector
 from pyramid.phasemapper import PhaseMapperRDFC
@@ -228,7 +230,8 @@ class UI_MagSlicerMain(QtGui.QWidget):
             self.mplWidgetMag.draw()
 
     def load(self):
-        mag_file = QtGui.QFileDialog.getOpenFileName(self, 'Open Data File', '',
+        directory = os.path.join(pyramid.DIR_FILES, 'magdata')
+        mag_file = QtGui.QFileDialog.getOpenFileName(self, 'Open Data File', directory,
                                                      'NetCDF files (*.nc)')
         self.mag_data = MagData.load_from_netcdf4(mag_file)
         self.mag_data_loaded = True

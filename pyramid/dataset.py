@@ -65,8 +65,34 @@ class DataSet(object):
     _log = logging.getLogger(__name__+'.DataSet')
 
     @property
+    def a(self):
+        return self._a
+
+    @a.setter
+    def a(self, a):
+        assert isinstance(a, Number), 'Grid spacing has to be a number!'
+        assert a >= 0, 'Grid spacing has to be a positive number!'
+        self._a = float(a)
+
+    @property
+    def mask(self):
+        return self._mask
+
+    @mask.setter
+    def mask(self, mask):
+        if mask is not None:
+            assert mask.shape == self.dim, 'Mask dimensions must match!'
+        else:
+            mask = np.ones(self.dim, dtype=bool)
+        self._mask = mask.astype(np.bool)
+
+    @property
     def m(self):
         return np.sum([len(p.phase_vec) for p in self.phase_maps])
+
+    @property
+    def n(self):
+        return 3 * np.sum(self.mask)
 
     @property
     def phase_vec(self):
@@ -87,19 +113,12 @@ class DataSet(object):
 
     def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None):
         self._log.debug('Calling __init__')
-        assert isinstance(a, Number), 'Grid spacing has to be a number!'
-        assert a >= 0, 'Grid spacing has to be a positive number!'
         assert isinstance(dim, tuple) and len(dim) == 3, \
             'Dimension has to be a tuple of length 3!'
-        if mask is None:
-            self.mask = np.ones(dim, dtype=bool)
-        else:
-            assert mask.shape == dim, 'Mask dimensions must match!'
-            self.mask = mask
-        self.n = 3 * np.sum(self.mask)
         self.a = a
         self.dim = dim
         self.b_0 = b_0
+        self.mask = mask
         self.Se_inv = Se_inv
         self.phase_maps = []
         self.projectors = []
@@ -167,27 +186,50 @@ class DataSet(object):
             None
 
         '''
+        assert len(cov_list) == len(self.phase_maps), 'Needs one covariance matrix per phase map!'
         self.Se_inv = sparse.block_diag(cov_list).tocsr()
 
-    def set_Se_inv_diag_with_masks(self, mask_list):
-        '''Set the Se_inv matrix as a block diagonal matrix from a list of masks
+    def set_Se_inv_diag_with_conf(self, conf_list=None):
+        '''Set the Se_inv matrix as a block diagonal matrix from a list of confidence matrizes.
 
         Parameters
         ----------
-        mask_list: list of :class:`~numpy.ndarray`
-            List of 2D masks (one for each projection) which define trust regions.
+        conf_list: list of :class:`~numpy.ndarray` (optional)
+            List of 2D confidence matrizes (one for each projection) which define trust regions.
+            If not given this uses the confidence matrizes of the phase maps.
 
         Returns
         -------
             None
 
         '''
-        cov_list = [sparse.diags(m.flatten().astype(np.float32), 0) for m in mask_list]
+        if conf_list is None:  # if no confidence matrizes are given, extract from the phase maps!
+            conf_list = [phase_map.confidence for phase_map in self.phase_maps]
+        cov_list = [sparse.diags(c.flatten().astype(np.float32), 0) for c in conf_list]
         self.set_Se_inv_block_diag(cov_list)
 
-    def create_3d_mask(self, mask_list):
-        # TODO: method for constructing 3D mask from 2D masks?
-        raise NotImplementedError()
+    def set_3d_mask(self, mask_list=None):
+        '''Set the 3D mask from a list of 2D masks.
+
+        Parameters
+        ----------
+        mask_list: list of :class:`~numpy.ndarray` (optional)
+            List of 2D masks, which represent the projections of the 3D mask. If not given this
+            uses the confidence matrizes of the phase maps. If just one phase map is present, the
+            according mask is simply expanded to 3D and used directly.
+
+        Returns
+        -------
+            None
+
+        '''
+        if mask_list is None:  # if no masks are given, extract from phase maps:
+            mask_list = [phase_map.mask for phase_map in self.phase_maps]
+        if len(mask_list) == 1:  # just one phase_map --> 3D mask equals 2D mask
+            self.mask = np.expand_dims(mask_list[0], axis=0)
+        else:  # 3D mask has to be constructed from 2D masks:
+            # TODO: method for constructing 3D mask from 2D masks? if no list use phase_map masks!
+            raise NotImplementedError()
 
     def display_phase(self, mag_data=None, title='Phase Map',
                       cmap='RdBu', limit=None, norm=None):

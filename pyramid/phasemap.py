@@ -9,6 +9,7 @@ import os
 
 import numpy as np
 from numpy import pi
+from scipy.ndimage.interpolation import zoom
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -52,6 +53,13 @@ class PhaseMap(object):
         Matrix containing the phase shift.
     phase_vec: :class:`~numpy.ndarray` (N=2)
         Vector containing the phase shift.
+    mask: :class:`~numpy.ndarray` (boolean, N=2, optional)
+        Mask which determines the projected magnetization distribution, gotten from MIP images or
+        otherwise acquired. Defaults to an array of ones (all pixels are considered).
+    confidence: :class:`~numpy.ndarray` (N=2, optional)
+        Confidence array which determines the trust of specific regions of the phase_map. A value
+        of 1 means the pixel is trustworthy, a value of 0 means it is not. Defaults to an array of
+        ones (full trust for all pixels). Can be used for the construction of Se_inv.
     unit: {'rad', 'mrad'}, optional
         Set the unit of the phase map. This is important for the :func:`display` function,
         because the phase is scaled accordingly. Does not change the phase itself, which is
@@ -126,7 +134,7 @@ class PhaseMap(object):
     def phase(self, phase):
         assert isinstance(phase, np.ndarray), 'Phase has to be a numpy array!'
         assert len(phase.shape) == 2, 'Phase has to be 2-dimensional!'
-        self._phase = np.asarray(phase, dtype=np.float32)
+        self._phase = phase.astype(dtype=np.float32)
         self._dim_uv = phase.shape
 
     @property
@@ -140,6 +148,31 @@ class PhaseMap(object):
         self.phase = phase_vec.reshape(self.dim_uv)
 
     @property
+    def mask(self):
+        return self._mask
+
+    @mask.setter
+    def mask(self, mask):
+        if mask is not None:
+            assert mask.shape == self.phase.shape, 'Mask and phase dimensions must match!!'
+        else:
+            mask = np.ones_like(self.phase, dtype=bool)
+        self._mask = mask.astype(np.bool)
+
+    @property
+    def confidence(self):
+        return self._confidence
+
+    @confidence.setter
+    def confidence(self, confidence):
+        if confidence is not None:
+            assert confidence.shape == self.phase.shape, \
+                'Confidence and phase dimensions must match!'
+        else:
+            confidence = np.ones_like(self.phase)
+        self._confidence = confidence.astype(dtype=np.float32)
+
+    @property
     def unit(self):
         return self._unit
 
@@ -148,25 +181,27 @@ class PhaseMap(object):
         assert unit in self.UNITDICT, 'Unit not supported!'
         self._unit = unit
 
-    def __init__(self, a, phase, unit='rad'):
+    def __init__(self, a, phase, mask=None, confidence=None, unit='rad'):
         self._log.debug('Calling __init__')
         self.a = a
         self.phase = phase
+        self.mask = mask
+        self.confidence = confidence
         self.unit = unit
         self._log.debug('Created '+str(self))
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
-        return '%s(a=%r, phase=%r, unit=%r)' % \
-            (self.__class__, self.a, self.phase, self.unit)
+        return '%s(a=%r, phase=%r, mask=%r, confidence=%r, unit=%r)' % \
+            (self.__class__, self.a, self.phase, self.mask, self.confidence, self.unit)
 
     def __str__(self):
         self._log.debug('Calling __str__')
-        return 'PhaseMap(a=%s, dim_uv=%s)' % (self.a, self.dim_uv)
+        return 'PhaseMap(a=%s, dim_uv=%s, mask=%s)' % (self.a, self.dim_uv, not np.all(self.mask))
 
     def __neg__(self):  # -self
         self._log.debug('Calling __neg__')
-        return PhaseMap(self.a, -self.phase, self.unit)
+        return PhaseMap(self.a, -self.phase, self.mask, self.confidence, self.unit)
 
     def __add__(self, other):  # self + other
         self._log.debug('Calling __add__')
@@ -177,10 +212,11 @@ class PhaseMap(object):
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
             assert other.phase.shape == self.dim_uv, \
                 'Added magnitude has to have the same dimensions!'
-            return PhaseMap(self.a, self.phase+other.phase, self.unit)
+            mask_comb = np.logical_or(self.mask, other.mask)  # masks combine, confidence resets!
+            return PhaseMap(self.a, self.phase+other.phase, mask_comb, None, self.unit)
         else:  # other is a Number
             self._log.debug('Adding an offset')
-            return PhaseMap(self.a, self.phase+other, self.unit)
+            return PhaseMap(self.a, self.phase+other, self.mask, self.confidence, self.unit)
 
     def __sub__(self, other):  # self - other
         self._log.debug('Calling __sub__')
@@ -191,7 +227,7 @@ class PhaseMap(object):
         assert (isinstance(other, Number)
                 or (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
-        return PhaseMap(self.a, other*self.phase, self.unit)
+        return PhaseMap(self.a, other*self.phase, self.mask, self.confidence, self.unit)
 
     def __radd__(self, other):  # other + self
         self._log.debug('Calling __radd__')
@@ -217,6 +253,86 @@ class PhaseMap(object):
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
 
+    def copy(self):
+        '''Returns a copy of the :class:`~.PhaseMap` object
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        phase_map: :class:`~.PhaseMap`
+            A copy of the :class:`~.PhaseMap`.
+
+        '''
+        self._log.debug('Calling copy')
+        return PhaseMap(self.a, self.phase.copy(), self.mask.copy(),
+                        self.confidence.copy(), self.unit)
+
+    def scale_down(self, n=1):
+        '''Scale down the phase map by averaging over two pixels along each axis.
+
+        Parameters
+        ----------
+        n : int, optional
+            Number of times the phase map is scaled down. The default is 1.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions and grid spacing accordingly.
+        Only possible, if each axis length is a power of 2!
+
+        '''
+        self._log.debug('Calling scale_down')
+        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
+        self.a = self.a * 2**n
+        for t in range(n):
+            # Pad if necessary:
+            pv, pu = self.dim_uv[0] % 2, self.dim_uv[1] % 2
+            if pv != 0 or pu != 0:
+                self.phase = np.pad(self.phase, ((0, pv), (0, pu)), mode='constant')
+            # Create coarser grid for the magnetization:
+            dim_uv = self.dim_uv
+            self.phase = self.phase.reshape(dim_uv[0]/2, 2, dim_uv[1]/2, 2).mean(axis=(3, 1))
+            mask = self.mask.reshape(dim_uv[0]/2, 2, dim_uv[1]/2, 2)
+            self.mask = mask[:, 0, :, 0] & mask[:, 1, :, 0] & mask[:, 0, :, 1] & mask[:, 1, :, 1]
+            self.confidence = self.confidence.reshape(dim_uv[0]/2, 2,
+                                                      dim_uv[1]/2, 2).mean(axis=(3, 1))
+
+    def scale_up(self, n=1, order=0):
+        '''Scale up the phase map using spline interpolation of the requested order.
+
+        Parameters
+        ----------
+        n : int, optional
+            Power of 2 with which the grid is scaled. Default is 1, which means every axis is
+            increased by a factor of ``2**1 = 2``.
+        order : int, optional
+            The order of the spline interpolation, which has to be in the range between 0 and 5
+            and defaults to 0.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions and grid spacing accordingly.
+        '''
+        self._log.debug('Calling scale_up')
+        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
+        assert 5 > order >= 0 and isinstance(order, (int, long)), \
+            'order must be a positive integer between 0 and 5!'
+        self.a = self.a / 2**n
+        self.phase = zoom(self.phase, zoom=2**n, order=order)
+        self.mask = zoom(self.mask, zoom=2**n, order=0)
+        self.confidence = zoom(self.confidence, zoom=2**n, order=order)
+
     def save_to_txt(self, filename='phasemap.txt'):
         '''Save :class:`~.PhaseMap` data in a file with txt-format.
 
@@ -234,10 +350,11 @@ class PhaseMap(object):
         self._log.debug('Calling save_to_txt')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_PHASEMAP
-            if not os.path.exists(DIR_PHASEMAP):
-                os.makedirs(DIR_PHASEMAP)
-            filename = os.path.join(DIR_PHASEMAP, filename)
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'phasemap')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
         # Save data to file:
         with open(filename, 'w') as phase_file:
             phase_file.write('{}\n'.format(filename.replace('.txt', '')))
@@ -258,14 +375,20 @@ class PhaseMap(object):
         phase_map : :class:`~.PhaseMap`
             A :class:`~.PhaseMap` object containing the loaded data.
 
+        Notes
+        -----
+        Does not recover the mask, confidence or unit of the original phase map, which default to
+        `None`, `None` and `'rad'`, respectively.
+
         '''
         cls._log.debug('Calling load_from_txt')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_PHASEMAP
-            if not os.path.exists(DIR_PHASEMAP):
-                os.makedirs(DIR_PHASEMAP)
-            filename = os.path.join(DIR_PHASEMAP, filename)
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'phasemap')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
         # Load data from file:
         with open(filename, 'r') as phase_file:
             phase_file.readline()  # Headerline is not used
@@ -286,21 +409,30 @@ class PhaseMap(object):
         -------
         None
 
+        Notes
+        -----
+        Does not save the unit of the original phase map.
+
         '''
         self._log.debug('Calling save_to_netcdf4')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_PHASEMAP
-            if not os.path.exists(DIR_PHASEMAP):
-                os.makedirs(DIR_PHASEMAP)
-            filename = os.path.join(DIR_PHASEMAP, filename)
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'phasemap')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
         # Save data to file:
         phase_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
         phase_file.a = self.a
         phase_file.createDimension('v_dim', self.dim_uv[0])
         phase_file.createDimension('u_dim', self.dim_uv[1])
         phase = phase_file.createVariable('phase', 'f', ('v_dim', 'u_dim'))
+        mask = phase_file.createVariable('mask', 'b', ('v_dim', 'u_dim'))
+        confidence = phase_file.createVariable('confidence', 'f', ('v_dim', 'u_dim'))
         phase[:] = self.phase
+        mask[:] = self.mask
+        confidence[:] = self.confidence
         phase_file.close()
 
     @classmethod
@@ -317,23 +449,30 @@ class PhaseMap(object):
         phase_map: :class:`~.PhaseMap`
             A :class:`~.PhaseMap` object containing the loaded data.
 
+        Notes
+        -----
+        Does not recover the unit of the original phase map, defaults to `'rad'`.
+
         '''
         cls._log.debug('Calling load_from_netcdf4')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_PHASEMAP
-            if not os.path.exists(DIR_PHASEMAP):
-                os.makedirs(DIR_PHASEMAP)
-            filename = os.path.join(DIR_PHASEMAP, filename)
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'phasemap')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
         # Load data from file:
         phase_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
         a = phase_file.a
         phase = phase_file.variables['phase'][:]
+        mask = phase_file.variables['mask'][:]
+        confidence = phase_file.variables['confidence'][:]
         phase_file.close()
-        return PhaseMap(a, phase)
+        return PhaseMap(a, phase, mask, confidence)
 
     def display_phase(self, title='Phase Map', cmap='RdBu', limit=None,
-                      norm=None, axis=None, cbar=True):
+                      norm=None, axis=None, cbar=True, show_mask=True):
         '''Display the phasemap as a colormesh.
 
         Parameters
@@ -372,6 +511,8 @@ class PhaseMap(object):
         axis.set_aspect('equal')
         # Plot the phasemap:
         im = axis.pcolormesh(phase, cmap=cmap, vmin=-limit, vmax=limit, norm=norm)
+        if show_mask and not np.all(self.mask):  # Plot mask if desired and not trivial!
+            axis.contour(self.mask, levels=[0.999999], colors='g')
         # Set the axes ticks and labels:
         axis.set_xlim(0, self.dim_uv[1])
         axis.set_ylim(0, self.dim_uv[0])
@@ -579,7 +720,7 @@ class PhaseMap(object):
         '''
         cls._log.debug('Calling make_color_wheel')
         yy, xx = np.indices((512, 512)) - 256
-        r = np.sqrt(xx ** 2 + yy ** 2)
+        r = np.sqrt(xx**2 + yy**2)
         # Create the wheel:
         color_wheel_magnitude = (1 - np.cos(r * pi/360)) / 2
         color_wheel_magnitude *= 0 * (r > 256) + 1 * (r <= 256)
