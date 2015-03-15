@@ -6,6 +6,8 @@
 projections of vector and scalar fields."""
 
 
+from __future__ import division
+
 import numpy as np
 from numpy import pi
 
@@ -16,12 +18,13 @@ import itertools
 from scipy.sparse import coo_matrix, csr_matrix
 
 from pyramid.magdata import MagData
+from pyramid.quaternion import Quaternion
 import pyramid.fft as fft
 
 import logging
 
 
-__all__ = ['XTiltProjector', 'YTiltProjector', 'SimpleProjector']
+__all__ = ['RotTiltProjector', 'XTiltProjector', 'YTiltProjector', 'SimpleProjector']
 
 
 class Projector(object):
@@ -91,40 +94,49 @@ class Projector(object):
         return mag_proj
 
     def _vector_field_projection(self, vector):
-        size_2d, size_3d = self.size_2d, self.size_3d
-        result = fft.zeros(2*size_2d, dtype=fft.FLOAT)
+        result = fft.zeros(2*self.size_2d, dtype=fft.FLOAT)
         # Go over all possible component projections (z, y, x) to (u, v):
-        # TODO: save self.weight.dot(...)
+        vec_x, vec_y, vec_z = np.split(vector, 3)
+        vec_x_weighted = self.weight.dot(vec_x)
+        vec_y_weighted = self.weight.dot(vec_y)
+        vec_z_weighted = self.weight.dot(vec_z)
+        slice_u = slice(0, self.size_2d)
+        slice_v = slice(self.size_2d, 2*self.size_2d)
         if self.coeff[0][0] != 0:  # x to u
-            result[:size_2d] += self.coeff[0][0] * self.weight.dot(vector[:size_3d])
+            result[slice_u] += self.coeff[0][0] * vec_x_weighted
         if self.coeff[0][1] != 0:  # y to u
-            result[:size_2d] += self.coeff[0][1] * self.weight.dot(vector[size_3d:2*size_3d])
+            result[slice_u] += self.coeff[0][1] * vec_y_weighted
         if self.coeff[0][2] != 0:  # z to u
-            result[:size_2d] += self.coeff[0][2] * self.weight.dot(vector[2*size_3d:])
+            result[slice_u] += self.coeff[0][2] * vec_z_weighted
         if self.coeff[1][0] != 0:  # x to v
-            result[size_2d:] += self.coeff[1][0] * self.weight.dot(vector[:size_3d])
+            result[slice_v] += self.coeff[1][0] * vec_x_weighted
         if self.coeff[1][1] != 0:  # y to v
-            result[size_2d:] += self.coeff[1][1] * self.weight.dot(vector[size_3d:2*size_3d])
+            result[slice_v] += self.coeff[1][1] * vec_y_weighted
         if self.coeff[1][2] != 0:  # z to v
-            result[size_2d:] += self.coeff[1][2] * self.weight.dot(vector[2*size_3d:])
+            result[slice_v] += self.coeff[1][2] * vec_z_weighted
         return result
 
     def _vector_field_projection_T(self, vector):
-        size_2d, size_3d = self.size_2d, self.size_3d
-        result = np.zeros(3*size_3d, dtype=fft.FLOAT)
+        result = np.zeros(3*self.size_3d, dtype=fft.FLOAT)
         # Go over all possible component projections (u, v) to (z, y, x):
+        vec_u, vec_v = np.split(vector, 2)
+        vec_u_weighted = self.weight.T.dot(vec_u)
+        vec_v_weighted = self.weight.T.dot(vec_v)
+        slice_x = slice(0, self.size_3d)
+        slice_y = slice(self.size_3d, 2*self.size_3d)
+        slice_z = slice(2*self.size_3d, 3*self.size_3d)
         if self.coeff[0][0] != 0:  # u to x
-            result[:size_3d] += self.coeff[0][0] * self.weight.T.dot(vector[:size_2d])
+            result[slice_x] += self.coeff[0][0] * vec_u_weighted
         if self.coeff[0][1] != 0:  # u to y
-            result[size_3d:2*size_3d] += self.coeff[0][1] * self.weight.T.dot(vector[:size_2d])
+            result[slice_y] += self.coeff[0][1] * vec_u_weighted
         if self.coeff[0][2] != 0:  # u to z
-            result[2*size_3d:] += self.coeff[0][2] * self.weight.T.dot(vector[:size_2d])
+            result[slice_z] += self.coeff[0][2] * vec_u_weighted
         if self.coeff[1][0] != 0:  # v to x
-            result[:size_3d] += self.coeff[1][0] * self.weight.T.dot(vector[size_2d:])
+            result[slice_x] += self.coeff[1][0] * vec_v_weighted
         if self.coeff[1][1] != 0:  # v to y
-            result[size_3d:2*size_3d] += self.coeff[1][1] * self.weight.T.dot(vector[size_2d:])
+            result[slice_y] += self.coeff[1][1] * vec_v_weighted
         if self.coeff[1][2] != 0:  # v to z
-            result[2*size_3d:] += self.coeff[1][2] * self.weight.T.dot(vector[size_2d:])
+            result[slice_z] += self.coeff[1][2] * vec_v_weighted
         return result
 
     def _scalar_field_projection(self, vector):
@@ -202,6 +214,173 @@ class Projector(object):
         raise NotImplementedError()
 
 
+class RotTiltProjector(Projector):
+
+    '''Class representing a projection function with a rotation around z followed by tilt around x.
+
+    The :class:`~.XTiltProjector` class represents a projection function for a 3-dimensional
+    vector- or scalar field onto a 2-dimensional grid, which is a concrete subclass of
+    :class:`~.Projector`.
+
+    Attributes
+    ----------
+    dim : tuple (N=3)
+        Dimensions (z, y, x) of the magnetization distribution.
+    rotation : float
+        Angle in `rad` describing the rotation around the z-axis before the tilt is happening.
+    tilt : float
+        Angle in `rad` describing the tilt of the beam direction relative to the x-axis.
+    dim_uv : tuple (N=2), optional
+        Dimensions (v, u) of the projection. If not set defaults to the (y, x)-dimensions.
+    subcount : int (optional)
+        Number of subpixels along one axis. This is used to create the lookup table which uses
+        a discrete subgrid to estimate the impact point of a voxel onto a pixel and the weight on
+        all surrounding pixels. Default is 11 (odd numbers provide a symmetric center).
+    sparsity : float
+        Measures the sparsity of the weighting (not the complete one!), 1 means completely sparse!
+
+    '''
+
+    _log = logging.getLogger(__name__+'.RotTiltProjector')
+
+    def __init__(self, dim, rotation, tilt, dim_uv=None, subcount=11):
+        self._log.debug('Calling __init__')
+        self.rotation = rotation
+        self.tilt = tilt
+        # Determine dimensions:
+        dim_z, dim_y, dim_x = dim
+        center = (dim_z/2., dim_y/2., dim_x/2.)
+        if dim_uv is None:
+            dim_v = max(dim_x, dim_y)  # first rotate around z-axis (take x and y into account)
+            dim_u = max(dim_v, dim_z)  # then tilt around x-axis (now z matters, too)
+            dim_uv = (dim_v, dim_u)
+        dim_v, dim_u = dim_uv
+        # Creating coordinate list of all voxels:
+        voxels = list(itertools.product(range(dim_z), range(dim_y), range(dim_x)))
+        # Calculate vectors to voxels relative to rotation center:
+        voxel_vecs = (np.asarray(voxels)+0.5 - np.asarray(center)).T
+        # Create tilt, rotation and combined quaternion, careful: Quaternion(w,x,y,z), not (z,y,x):
+        quat_x = Quaternion.from_axisangle((0, 1, 0), tilt)  # Tilt around y-axis
+        quat_z = Quaternion.from_axisangle((0, 0, 1), rotation)  # Rotate around z-axis
+        quat = quat_x * quat_z  # Combined quaternion (first rotate around z, then tilt around x)
+        # Calculate impact positions on the projected pixel coordinate grid (flip because quat.):
+        impacts = np.flipud(quat.matrix[:2, :].dot(np.flipud(voxel_vecs)))  # only care for x/y
+        impacts[1, :] += dim_u/2.  # Shift back to normal indices
+        impacts[0, :] += dim_v/2.  # Shift back to normal indices
+        # Calculate equivalence radius:
+        R = (3/(4*np.pi))**(1/3.)
+        # Prepare weight matrix calculation:
+        rows = []  # 2D projection
+        columns = []  # 3D distribution
+        data = []  # weights
+        # Create 4D lookup table (1&2: which neighbour weight?, 3&4: which subpixel is hit?)
+        weight_lookup = self._create_weight_lookup(subcount, R)
+        # Go over all voxels:
+        for i, voxel in enumerate(voxels):
+            column_index = voxel[0]*dim_y*dim_x + voxel[1]*dim_x + voxel[2]
+            remainder, impact = np.modf(impacts[:, i])  # split index of impact and remainder!
+            sub_pixel = (remainder * subcount).astype(dtype=np.int)  # sub_pixel inside impact px.
+            # Go over all influenced pixels (impact and neighbours, indices are [0, 1, 2]!):
+            for px_ind in list(itertools.product(range(3), range(3))):
+                # Pixel indices influenced by the impact (px_ind-1 to center them around impact):
+                pixel = (impact + np.array(px_ind)-1).astype(dtype=np.int)
+                # Check if pixel is out of bound:
+                if 0 <= pixel[0] < dim_uv[0] and 0 <= pixel[1] < dim_uv[1]:
+                    # Lookup weight in 4-dimensional lookup table!
+                    weight = weight_lookup[px_ind[0], px_ind[1], sub_pixel[0], sub_pixel[1]]
+                    # Only write into sparse matrix if weight is not zero:
+                    if weight != 0.:
+                        row_index = pixel[0]*dim_u + pixel[1]
+                        columns.append(column_index)
+                        rows.append(row_index)
+                        data.append(weight)
+        # Calculate weight matrix and coefficients for jacobi matrix:
+        shape = (np.prod(dim_uv), np.prod(dim))
+        self.sparsity = 1. - len(data)/np.prod(shape)
+        print self.sparsity
+        weights = csr_matrix(coo_matrix((data, (rows, columns)), shape=shape))
+        # Calculate coefficients by rotating unity matrix (unit vectors, (x,y,z)):
+        coeff = quat.matrix[:2, :].dot(np.eye(3))
+        super(RotTiltProjector, self).__init__(dim, dim_uv, weights, coeff)
+        self._log.debug('Created '+str(self))
+
+    def _create_weight_lookup(self, subcount, R):
+        s = subcount
+        Rz = R * s  # Radius in subgrid units
+        dim_zoom = (3*s, 3*s)  # Dimensions of the subgrid, (3, 3) because of neighbour count!
+        cent_zoom = (np.asarray(dim_zoom)/2.).astype(dtype=np.int)  # Center of the subgrid
+        y, x = np.indices(dim_zoom)
+        y -= cent_zoom[0]
+        x -= cent_zoom[1]
+        # Calculate projected thickness of an equivalence sphere (normed!):
+        d = np.where(np.hypot(x, y) <= Rz, np.sqrt(Rz**2-x**2-y**2), 0)
+        d /= d.sum()
+        # Create lookup table (4D):
+        lookup = np.zeros((3, 3, s, s))
+        # Go over all 9 pixels (center and neighbours):
+        for pixel in list(itertools.product(range(3), range(3))):
+            pixel_lb = np.array(pixel) * s  # Convert to subgrid, hit bottom left of the pixel!
+            # Go over all subpixels in the center that can be hit:
+            for sub_pixel in list(itertools.product(range(s), range(s))):
+                shift = np.array(sub_pixel) - np.array((s//2, s//2))  # relative to center!
+                lb = pixel_lb - shift  # Shift summing zone according to hit subpixel!
+                # Make sure, that the summing zone is in bounds (otherwise correct accordingly):
+                lb = np.where(lb >= 0, lb, [0, 0])
+                tr = np.where(lb < 3*s, lb+np.array((s, s)), [3*s, 3*s])
+                # Calculate weight by summing over the summing zone:
+                weight = d[lb[0]:tr[0], lb[1]:tr[1]].sum()
+                lookup[pixel[0], pixel[1], sub_pixel[0], sub_pixel[1]] = weight
+        return lookup
+
+    def _create_weight_lookupNEW(self, subcount, R):
+        s = subcount
+        Rz = R * s  # Radius in subgrid units
+        dim_zoom = (3*s, 3*s)  # Dimensions of the subgrid, (3, 3) because of neighbour count!
+        cent_zoom = (np.asarray(dim_zoom)/2.).astype(dtype=np.int)  # Center of the subgrid
+        y, x = np.indices(dim_zoom)
+        y -= cent_zoom[0]
+        x -= cent_zoom[1]
+        # Calculate projected thickness of an equivalence sphere (normed!):
+        d = np.where(np.hypot(x, y) <= Rz, np.sqrt(Rz**2-x**2-y**2), 0)
+        d /= d.sum()
+        # Create lookup table (4D):
+        lookup = np.zeros((3, 3, s, s))
+        # Go over all 9 pixels (center and neighbours):
+        for pixel in list(itertools.product(range(3), range(3))):
+            pixel_lb = np.array(pixel) * s  # Convert to subgrid, hit bottom left of the pixel!
+            # Go over all subpixels in the center that can be hit:
+            for sub_pixel in list(itertools.product(range(s), range(s))):
+                shift = np.array(sub_pixel) - np.array((s//2, s//2))  # relative to center!
+                pixel_lb -= shift  # Shift summing zone according to the hit subpixel!
+                # Make sure, that the summing zone is in bounds (otherwise correct accordingly):
+                pixel_lb = np.where(pixel_lb >= 0, pixel_lb, [0, 0])
+                pixel_tr = np.where(pixel_lb < 3*s, pixel_lb+np.array((s, s)), [3*s, 3*s])
+                # Calculate weight by summing over the summing zone:
+                weight = d[pixel_lb[0]:pixel_tr[0], pixel_lb[1]:pixel_tr[1]].sum()
+                lookup[pixel[0], pixel[1], sub_pixel[0], sub_pixel[1]] = weight
+        return lookup
+
+    def get_info(self, verbose=False):
+        '''Get specific information about the projector as a string.
+
+        Parameters
+        ----------
+        verbose: boolean, optional
+            If this is true, the text looks prettier (maybe using latex). Default is False for the
+            use in file names and such.
+
+        Returns
+        -------
+        info : string
+            Information about the projector as a string, e.g. for the use in plot titles.
+
+        '''
+        if verbose:
+            return u'x-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt*180/pi)))
+        else:
+            return u'xtilt_phi={:d}°'.format(int(np.round(self.tilt*180/pi)))
+
+
 class XTiltProjector(Projector):
 
     '''Class representing a projection function with a tilt around the x-axis.
@@ -230,7 +409,7 @@ class XTiltProjector(Projector):
             direc_vec = np.array((np.cos(tilt), -np.sin(tilt)))  # vector pointing along projection
             distances = -np.cross(point_vecs, direc_vec)  # here (special case): divisor is one!
             # minus because sign is derived of -sin(angle(point_vec, direc_vec)) neg between 0-180°
-            return distances + size/2.  # Shift to center the projection
+            return distances + size/2.  # Shift to the center of the projection
 
         def get_impact(pos, r, size):
             return [x for x in np.arange(np.floor(pos-r), np.floor(pos+r)+1, dtype=int)
@@ -275,11 +454,13 @@ class XTiltProjector(Projector):
         # one slice:
         for i, voxel in enumerate(voxels):
             impacts = get_impact(positions[i], r, dim_v)  # impact along projected y-axis
+            voxel_index = voxel[0]*dim_rot*dim_perp + voxel[1]*dim_rot  # 0: z, 1: y
             for impact in impacts:
+                impact_index = impact*dim_u+int((dim_u-dim_rot)/2)
                 distance = np.abs(impact+0.5 - positions[i])
                 delta = distance / r
-                col.append(voxel[0]*dim_rot*dim_perp + voxel[1]*dim_rot)  # 0: z, 1: y
-                row.append(impact*dim_u+int((dim_u-dim_rot)/2))
+                col.append(voxel_index)
+                row.append(impact_index)
                 data.append(get_weight(delta, rho))
         # All other slices (along x):
         columns = col
@@ -343,7 +524,7 @@ class YTiltProjector(Projector):
             direc_vec = np.array((np.cos(tilt), -np.sin(tilt)))  # vector pointing along projection
             distances = -np.cross(point_vecs, direc_vec)  # here (special case): divisor is one!
             # minus because sign is derived of -sin(angle(point_vec, direc_vec)) neg between 0-180°
-            return distances + size/2.  # Shift to center the projection
+            return distances + size/2.  # Shift to the center of the projection
 
         def get_impact(pos, r, size):
             return [x for x in np.arange(np.floor(pos-r), np.floor(pos+r)+1, dtype=int)
@@ -388,11 +569,13 @@ class YTiltProjector(Projector):
         # one slice:
         for i, voxel in enumerate(voxels):
             impacts = get_impact(positions[i], r, dim_u)  # impact along projected x-axis
+            voxel_index = voxel[0]*dim_perp*dim_rot + voxel[1]  # 0: z, 1: x
             for impact in impacts:
+                impact_index = impact+int((dim_v-dim_rot)/2)*dim_u
                 distance = np.abs(impact+0.5 - positions[i])
                 delta = distance / r
-                col.append(voxel[0]*dim_perp*dim_rot + voxel[1])  # 0: z, 1: x
-                row.append(impact+int((dim_v-dim_rot)/2)*dim_u)
+                col.append(voxel_index)
+                row.append(impact_index)
                 data.append(get_weight(delta, rho))
         # All other slices (along y):
         columns = col
@@ -516,5 +699,3 @@ class SimpleProjector(Projector):
             return 'projected along {}-axis'.format(self.axis)
         else:
             return '{}axis'.format(self.axis)
-
-# TODO: Arbitrary Projections!

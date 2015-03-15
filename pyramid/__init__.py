@@ -57,6 +57,7 @@ from .phasemap import *  # analysis:ignore
 from .phasemapper import *  # analysis:ignore
 from .projector import *  # analysis:ignore
 from .regularisator import *  # analysis:ignore
+from .quaternion import *  # analysis:ignore
 from .config import *  # analysis:ignore
 from .version import version as __version__
 from .version import hg_revision as __hg_revision__
@@ -78,3 +79,4 @@ __all__.extend(phasemap.__all__)
 __all__.extend(phasemapper.__all__)
 __all__.extend(projector.__all__)
 __all__.extend(regularisator.__all__)
+__all__.extend(quaternion.__all__)

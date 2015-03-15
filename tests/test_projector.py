@@ -246,11 +246,12 @@ class TestCaseYTiltProjector(unittest.TestCase):
         assert_allclose(jac_T_90, jac_T_90_ref,
                         err_msg='Unexpected behaviour in the the transp. jacobi matrix! (90°)')
 
+# TODO: Test RotTiltProjector!!!
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseSimpleProjector)
     unittest.TextTestRunner(verbosity=2).run(suite)
-#    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseXTiltProjector)
-#    unittest.TextTestRunner(verbosity=2).run(suite)
-#    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseYTiltProjector)
-#    unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseXTiltProjector)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseYTiltProjector)
+    unittest.TextTestRunner(verbosity=2).run(suite)
