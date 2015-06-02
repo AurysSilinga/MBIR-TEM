@@ -103,7 +103,7 @@ class Regularisator(object):
         ----------
         x : :class:`~numpy.ndarray` (N=1)
             Vectorized magnetization distribution at which the Hessian is calculated. The Hessian
-            is constant in this case, thus `x` can be set to None (it is not used int the
+            is constant in this case, thus `x` can be set to None (it is not used in the
             computation). It is implemented for the case that in the future nonlinear problems
             have to be solved.
 
@@ -262,3 +262,79 @@ class FirstOrderRegularisator(Regularisator):
             norm = jnorm.WeightedTV(jnorm.LPPow(p, 1e-12), D, [D0.shape[0], D.shape[0]])
         super(FirstOrderRegularisator, self).__init__(norm, lam)
         self._log.debug('Created '+str(self))
+
+# TODO: ComboRegularisator ########################################################################
+#class ComboRegularisator(Regularisator):
+#
+#    '''Class for providing a regularisation term which implements derivation minimization.
+#
+#    The constraint this class represents is the minimization of the first order derivative of the
+#    3D magnetization distribution using a Lp norm. Important is the regularisation parameter `lam`
+#    (lambda) which determines the weighting between the two cost parts (measurements and
+#    regularisation).
+#
+#    Attributes
+#    ----------
+#    mask: :class:`~numpy.ndarray` (N=3)
+#        A boolean mask which defines the magnetized volume in 3D.
+#    lam: float
+#        Regularisation parameter determining the weighting between measurements and regularisation.
+#    p: int, optional
+#        Order of the norm (default: 2, which means a standard L2-norm).
+#
+#    '''
+#
+#    def __init__(self, norm, lam):
+#        self._log.debug('Calling __init__')
+#        self.norm = norm
+#        self.lam = lam
+#        self._log.debug('Created '+str(self))
+#
+#    def __call__(self, x):
+#        self._log.debug('Calling __call__')
+#        return self.lam * self.norm(x)
+#
+#    def __repr__(self):
+#        self._log.debug('Calling __repr__')
+#        return '%s(norm=%r, lam=%r)' % (self.__class__, self.norm, self.lam)
+#
+#    def __str__(self):
+#        self._log.debug('Calling __str__')
+#        return 'Regularisator(norm=%s, lam=%s)' % (self.norm, self.lam)
+#
+#    def jac(self, x):
+#        '''Calculate the derivative of the regularisation term for a given magnetic distribution.
+#
+#        Parameters
+#        ----------
+#        x: :class:`~numpy.ndarray` (N=1)
+#            Vectorized magnetization distribution, for which the Jacobi vector is calculated.
+#
+#        Returns
+#        -------
+#        result : :class:`~numpy.ndarray` (N=1)
+#            Jacobi vector which represents the cost derivative of all voxels of the magnetization.
+#
+#        '''
+#        return self.lam * self.norm.jac(x)
+#
+#    def hess_dot(self, x, vector):
+#        '''Calculate the product of a `vector` with the Hessian matrix of the regularisation term.
+#
+#        Parameters
+#        ----------
+#        x : :class:`~numpy.ndarray` (N=1)
+#            Vectorized magnetization distribution at which the Hessian is calculated. The Hessian
+#            is constant in this case, thus `x` can be set to None (it is not used int the
+#            computation). It is implemented for the case that in the future nonlinear problems
+#            have to be solved.
+#        vector : :class:`~numpy.ndarray` (N=1)
+#            Vectorized magnetization distribution which is multiplied by the Hessian.
+#
+#        Returns
+#        -------
+#        result : :class:`~numpy.ndarray` (N=1)
+#            Product of the input `vector` with the Hessian matrix.
+#
+#        '''
+#        return self.lam * self.norm.hess_dot(x, vector)

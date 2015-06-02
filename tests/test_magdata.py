@@ -48,7 +48,11 @@ class TestCaseMagData(unittest.TestCase):
 
     def test_pad(self):
         reference = self.mag_data.magnitude.copy()
-        self.mag_data.pad(1, 1, 1)
+        self.mag_data.pad((1, 1, 1))
+        reference = np.pad(reference, ((0, 0), (1, 1), (1, 1), (1, 1)), mode='constant')
+        assert_allclose(self.mag_data.magnitude, reference,
+                        err_msg='Unexpected behavior in scale_down()!')
+        self.mag_data.pad(((1, 1), (1, 1), (1, 1)))
         reference = np.pad(reference, ((0, 0), (1, 1), (1, 1), (1, 1)), mode='constant')
         assert_allclose(self.mag_data.magnitude, reference,
                         err_msg='Unexpected behavior in scale_down()!')
@@ -93,11 +97,11 @@ class TestCaseMagData(unittest.TestCase):
         mag_data_rotx = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_rotx.nc'))
         mag_data_roty = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_roty.nc'))
         mag_data_rotz = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_rotz.nc'))
-        assert_allclose(mag_data.rot('x').magnitude, mag_data_rotx.magnitude,
+        assert_allclose(mag_data.rot90('x').magnitude, mag_data_rotx.magnitude,
                         err_msg='Unexpected behavior in rot()! (x)')
-        assert_allclose(mag_data.rot('y').magnitude, mag_data_roty.magnitude,
+        assert_allclose(mag_data.rot90('y').magnitude, mag_data_roty.magnitude,
                         err_msg='Unexpected behavior in rot()! (y)')
-        assert_allclose(mag_data.rot('z').magnitude, mag_data_rotz.magnitude,
+        assert_allclose(mag_data.rot90('z').magnitude, mag_data_rotz.magnitude,
                         err_msg='Unexpected behavior in rot()! (z)')
 
     def test_load_from_llg(self):

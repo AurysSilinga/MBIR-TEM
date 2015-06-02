@@ -212,8 +212,9 @@ class PhaseMap(object):
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
             assert other.phase.shape == self.dim_uv, \
                 'Added magnitude has to have the same dimensions!'
-            mask_comb = np.logical_or(self.mask, other.mask)  # masks combine, confidence resets!
-            return PhaseMap(self.a, self.phase+other.phase, mask_comb, None, self.unit)
+            mask_comb = np.logical_or(self.mask, other.mask)  # masks combine
+            conf_comb = (self.confidence + other.confidence) / 2  # confidence averaged!
+            return PhaseMap(self.a, self.phase+other.phase, mask_comb, conf_comb, self.unit)
         else:  # other is a Number
             self._log.debug('Adding an offset')
             return PhaseMap(self.a, self.phase+other, self.mask, self.confidence, self.unit)
@@ -323,6 +324,7 @@ class PhaseMap(object):
         Notes
         -----
         Acts in place and changes dimensions and grid spacing accordingly.
+
         '''
         self._log.debug('Calling scale_up')
         assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
@@ -332,6 +334,75 @@ class PhaseMap(object):
         self.phase = zoom(self.phase, zoom=2**n, order=order)
         self.mask = zoom(self.mask, zoom=2**n, order=0)
         self.confidence = zoom(self.confidence, zoom=2**n, order=order)
+
+    def pad(self, pad_values, masked=True):
+        '''Pad the current phase map with zeros for each individual axis.
+
+        Parameters
+        ----------
+        pad_values : tuple of int
+            Number of zeros which should be padded. Provided as a tuple where each entry
+            corresponds to an axis. An entry can be one int (same padding for both sides) or again
+            a tuple which specifies the pad values for both sides of the corresponding axis.
+        masked: boolean
+            Determines if the padded areas should be masked or not. Defaults to `True` and thus
+            creates a 'buffer zone' for the magnetization distribution in the reconstruction.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions accordingly.
+        The confidence of the padded areas is set to zero!
+
+        '''
+        self._log.debug('Calling pad')
+        assert len(pad_values) == 2, 'Pad values for each dimension have to be provided!'
+        pv = np.zeros(4, dtype=np.int)
+        for i, values in enumerate(pad_values):
+            assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
+            pv[2*i:2*(i+1)] = values
+        self.phase = np.pad(self.phase, ((pv[0], pv[1]), (pv[2], pv[3])), mode='constant')
+        self.mask = np.pad(self.mask, ((pv[0], pv[1]), (pv[2], pv[3])), mode='constant',
+                           constant_values=masked)
+        self.confidence = np.pad(self.confidence, ((pv[0], pv[1]), (pv[2], pv[3])),
+                                 mode='constant')
+
+    def crop(self, crop_values):
+        '''Pad the current phase map with zeros for each individual axis.
+
+        Parameters
+        ----------
+        crop_values : tuple of int
+            Number of zeros which should be cropped. Provided as a tuple where each entry
+            corresponds to an axis. An entry can be one int (same cropping for both sides) or again
+            a tuple which specifies the crop values for both sides of the corresponding axis.
+        masked: boolean
+            Determines if the padded areas should be masked or not. Defaults to `True` and thus
+            creates a 'buffer zone' for the magnetization distribution in the reconstruction.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions accordingly.
+
+        '''
+        self._log.debug('Calling crop')
+        assert len(crop_values) == 2, 'Crop values for each dimension have to be provided!'
+        cv = np.zeros(4, dtype=np.int)
+        for i, values in enumerate(crop_values):
+            assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
+            cv[2*i:2*(i+1)] = values
+        cv *= np.resize([1, -1], len(cv))
+        cv = np.where(crop_values == 0, None, cv)
+        self.phase = self.phase[cv[0]:cv[1], cv[2]:cv[3]]
+        self.mask = self.mask[cv[0]:cv[1], cv[2]:cv[3]]
+        self.confidence = self.confidence[cv[0]:cv[1], cv[2]:cv[3]]
 
     def save_to_txt(self, filename='phasemap.txt'):
         '''Save :class:`~.PhaseMap` data in a file with txt-format.
@@ -506,7 +577,7 @@ class PhaseMap(object):
             limit = np.max(np.abs(phase))
         # If no axis is specified, a new figure is created:
         if axis is None:
-            fig = plt.figure(figsize=(8.5, 7))
+            fig = plt.figure(figsize=(7, 7))
             axis = fig.add_subplot(1, 1, 1)
         axis.set_aspect('equal')
         # Plot the phasemap:
@@ -533,7 +604,7 @@ class PhaseMap(object):
             cbar.ax.tick_params(labelsize=14)
             cbar.set_label(u'phase shift [{}]'.format(self.unit), fontsize=15)
         # Return plotting axis:
-        return axis, cbar
+        return axis
 
     def display_phase3d(self, title='Phase Map', cmap='RdBu'):
         '''Display the phasemap as a 3-D surface with contourplots.
@@ -602,7 +673,7 @@ class PhaseMap(object):
         self._log.debug('Calling display_holo')
         # Calculate gain if 'auto' is selected:
         if gain == 'auto':
-            gain = 4 * 2*pi/self.phase.max()
+            gain = 4 * 2*pi/(np.abs(self.phase).max()+1E-30)
         # Set title if not set:
         if title is None:
             title = 'Contour Map (gain: %.2g)' % gain
@@ -612,9 +683,9 @@ class PhaseMap(object):
         phase_grad_y, phase_grad_x = np.gradient(self.phase, self.a, self.a)
         phase_angle = (1 - np.arctan2(phase_grad_y, phase_grad_x)/pi) / 2
         phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)
-        if phase_magnitude.max() != 0:  # Take care of phase maps with only zeros
-            saturation = np.sin(phase_magnitude/phase_magnitude.max() * pi / 2)
-            phase_saturation = np.dstack((saturation,)*4)
+        # Calculate the color saturation:
+        saturation = np.sin(phase_magnitude/(phase_magnitude.max()+1E-30) * pi / 2)
+        phase_saturation = np.dstack((saturation,)*4)
         # Color code the angle and create the holography image:
         if grad_encode == 'dark':
             self._log.debug('gradient encoding: dark')
@@ -692,7 +763,7 @@ class PhaseMap(object):
         '''
         self._log.debug('Calling display_combined')
         # Create combined plot and set title:
-        fig = plt.figure(figsize=(16, 7))
+        fig = plt.figure(figsize=(15, 7))
         fig.suptitle(title, fontsize=20)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')

@@ -13,7 +13,7 @@ from pyramid import fft
 import logging
 
 
-__all__ = ['Kernel']
+__all__ = ['Kernel', 'PHI_0']
 
 PHI_0 = 2067.83  # magnetic flux in T*nm²
 
@@ -64,12 +64,15 @@ class Kernel(object):
     slice_mag : tuple (N=2) of :class:`slice`
         A tuple of :class:`slice` objects to extract the original FOV from the increased one with
         size `dim_pad` for the projected magnetization distribution.
+    pwr_vec: tuple of 2 int, optional
+        A two-component vector describing the displacement of the reference wave to include
+        perturbation of this reference by the object itself (via fringing fields).
 
     '''
 
     _log = logging.getLogger(__name__+'.Kernel')
 
-    def __init__(self, a, dim_uv, b_0=1., geometry='disc'):
+    def __init__(self, a, dim_uv, b_0=1., prw_vec=None, geometry='disc'):
         self._log.debug('Calling __init__')
         # Set basic properties:
         self.dim_uv = dim_uv  # Dimensions of the FOV
@@ -96,6 +99,12 @@ class Kernel(object):
         self.v = fft.empty(self.dim_kern, fft.FLOAT)
         self.u[...] = coeff * self._get_elementary_phase(geometry, uu, vv, a)
         self.v[...] = coeff * self._get_elementary_phase(geometry, vv, uu, a)
+        # Include perturbed reference wave:
+        if prw_vec is not None:
+            uu += prw_vec[1]
+            vv += prw_vec[0]
+            self.u[...] -= coeff * self._get_elementary_phase(geometry, uu, vv, a)
+            self.v[...] -= coeff * self._get_elementary_phase(geometry, vv, uu, a)
         # Calculate Fourier trafo of kernel components:
         self.u_fft = fft.rfftn(self.u, self.dim_pad)
         self.v_fft = fft.rfftn(self.v, self.dim_pad)

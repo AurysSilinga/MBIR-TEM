@@ -9,6 +9,7 @@ threedimensional magnetization distribution onto a two-dimensional phase map."""
 import numpy as np
 
 from pyramid.magdata import MagData
+
 import logging
 
 
@@ -55,6 +56,23 @@ class ForwardModel(object):
         self.hook_points = data_set.hook_points
         self.mag_data = MagData(data_set.a, np.zeros((3,)+data_set.dim))
         self._log.debug('Creating '+str(self))
+# TODO: Multiprocessing! ##########################################################################
+#        nprocs = 4
+#        self.nprocs = nprocs
+#        self.procs = []
+#        if nprocs > 1:
+#            # Set up processes:
+#            for i, projector in enumerate(data_set.projectors):
+#                proc_id = i % nprocs  # index of the process
+#                phase_id = i//nprocs  # index of the phasemap in the frame of the process
+#                print '---'
+#                print 'proc_id: ', proc_id
+#                print 'phase_id:', phase_id
+#                print '---'
+#
+#        for i in self.data_set.count:
+#            projector = self.data_set.projectors[i]
+###################################################################################################
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
@@ -65,7 +83,6 @@ class ForwardModel(object):
         return 'ForwardModel(data_set=%s)' % (self.data_set)
 
     def __call__(self, x):
-        self._log.debug('Calling __call__')
         self.mag_data.magnitude[...] = 0
         self.mag_data.set_vector(x, self.data_set.mask)
         result = np.zeros(self.m)
@@ -74,6 +91,20 @@ class ForwardModel(object):
             phase_map = self.phase_mappers[projector.dim_uv](projector(self.mag_data))
             result[hp[i]:hp[i+1]] = phase_map.phase_vec
         return np.reshape(result, -1)
+###################################################################################################
+#        nprocs = 4
+#        # Set up processes:
+#        for i, projector in enumerate(self.data_set.projectors):
+#            proc_id = i % nprocs  # index of the process
+#            phase_id = i//nprocs  # index of the phasemap in the frame of the process
+#            print 'proc_id: ', proc_id
+#            print 'phase_id:', phase_id
+#            p = Process(target=worker, args=())
+#            p.start()
+#
+#        for i in self.data_set.count:
+#            projector = self.data_set.projectors[i]
+###################################################################################################
 
     def jac_dot(self, x, vector):
         '''Calculate the product of the Jacobi matrix with a given `vector`.

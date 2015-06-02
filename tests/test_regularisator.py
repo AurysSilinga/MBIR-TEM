@@ -128,8 +128,9 @@ class TestCaseFirstOrderRegularisator(unittest.TestCase):
                         err_msg='Unexpected behaviour in hess_dot()!')
 
     def test_hess_diag(self):
-        hess_diag = self.reg.hess_diag(self.n)
+        hess_diag = self.reg.hess_diag(np.ones(self.n))
         hess_diag_ref = np.diag(np.load(os.path.join(self.path, 'first_order_jac_ref.npy')))
+        print hess_diag_ref
         assert_allclose(hess_diag, hess_diag_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in hess_diag()!')
 

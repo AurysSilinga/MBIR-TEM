@@ -1,0 +1,121 @@
+# -*- coding: utf-8 -*-
+"""Created on Mon Mar 17 14:28:10 2014 @author: Jan"""
+
+
+import os
+
+from numpy import pi
+import numpy as np
+
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
+
+import pyramid
+import pyramid.magcreator as mc
+from pyramid.magdata import MagData
+from pyramid.projector import YTiltProjector
+from pyramid.phasemapper import PhaseMapperRDFC, pm
+from pyramid.kernel import Kernel
+from pyramid.dataset import DataSet
+
+import logging
+import logging.config
+
+
+LOGGING_CONF = os.path.join(os.path.dirname(os.path.realpath(pyramid.__file__)), 'logging.ini')
+
+
+logging.config.fileConfig(LOGGING_CONF, disable_existing_loggers=False)
+
+###################################################################################################
+print('Jan')
+
+dim = (128, 128, 128)
+center = (int(dim[0]/2), int(dim[1]/2), int(dim[2]/2))
+radius = dim[0]/4.
+a = 1.
+
+magnitude = mc.create_mag_dist_homog(mc.Shapes.sphere(dim, center, radius), pi/4)
+
+mag_data = MagData(a, magnitude)
+
+phase_map = pm(mag_data)
+
+axis = phase_map.display_phase()
+axis.tick_params(axis='both', which='major', labelsize=18)
+axis.set_title('Phase map', fontsize=24)
+axis.set_xlabel('x [nm]', fontsize=18)
+axis.set_ylabel('y [nm]', fontsize=18)
+
+axis = phase_map.display_holo(gain=20, interpolation='bilinear')
+axis.tick_params(axis='both', which='major', labelsize=18)
+axis.set_title('Magnetic induction map', fontsize=24)
+axis.set_xlabel('x [nm]', fontsize=18)
+axis.set_ylabel('y [nm]', fontsize=18)
+
+mag_data.scale_down(2)
+
+mag_data.quiver_plot()
+axis = plt.gca()
+axis.tick_params(axis='both', which='major', labelsize=18)
+axis.set_title('Magnetization distribution', fontsize=24)
+axis.set_xlabel('x [nm]', fontsize=18)
+axis.set_ylabel('y [nm]', fontsize=18)
+
+phase_map.make_color_wheel()
+
+shape_vort = mc.Shapes.disc((64, 64, 64), (31.5, 31.5, 31.5), 24, 10)
+
+magnitude_vort = mc.create_mag_dist_vortex(shape_vort)
+
+mag_vort = MagData(a, magnitude_vort)
+
+mag_vort.scale_down(2)
+
+mag_vort.quiver_plot()
+
+
+###################################################################################################
+print('Patrick')
+
+a = 10.0  # nm
+b_0 = 3  # T
+
+dim = (128, 128, 128)
+center = (int(dim[0]/2), int(dim[1]/2), int(dim[2]/2))  # in px (z, y, x), index starts with 0!
+
+mag_data = MagData(a, mc.create_mag_dist_homog(mc.Shapes.ellipse(dim, center, (20., 60.), 5.), 0))
+
+tilts = np.array([0., 60.])/180.*pi
+
+data_set = DataSet(a, dim, b_0)
+data_set.projectors = [YTiltProjector(mag_data.dim, tilt) for tilt in tilts]
+phase_maps = data_set.create_phase_maps(mag_data)
+
+axis = phase_maps[0].display_holo(gain=1, interpolation='bilinear')
+axis.tick_params(axis='both', which='major', labelsize=18)
+axis.set_title('Magnetic induction map', fontsize=24)
+axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*a)))
+axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*a)))
+axis.set_xlabel('x [nm]', fontsize=18)
+axis.set_ylabel('y [nm]', fontsize=18)
+
+axis = phase_maps[0].display_phase(limit=17)
+axis.tick_params(axis='both', which='major', labelsize=18)
+axis.set_title('Phase map', fontsize=24)
+axis.set_xlabel('x [nm]', fontsize=18)
+axis.set_ylabel('y [nm]', fontsize=18)
+
+axis = phase_maps[1].display_holo(gain=1, interpolation='bilinear')
+axis.tick_params(axis='both', which='major', labelsize=18)
+axis.set_title('Magnetic induction map', fontsize=24)
+axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*a)))
+axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*a)))
+axis.set_xlabel('x [nm]', fontsize=18)
+axis.set_ylabel('y [nm]', fontsize=18)
+
+axis = phase_maps[1].display_phase(limit=17)
+axis.tick_params(axis='both', which='major', labelsize=18)
+axis.set_title('Phase map', fontsize=24)
+axis.set_xlabel('x [nm]', fontsize=18)
+axis.set_ylabel('y [nm]', fontsize=18)

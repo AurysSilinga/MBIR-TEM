@@ -87,7 +87,6 @@ class Projector(object):
         return 'Projector(dim=%s, dim_uv=%s, coeff=%s)' % (self.dim, self.dim_uv, self.coeff)
 
     def __call__(self, mag_data):
-        self._log.debug('Calling __call__')
         mag_proj = MagData(mag_data.a, fft.zeros((3, 1)+self.dim_uv, dtype=fft.FLOAT))
         magnitude_proj = self.jac_dot(mag_data.mag_vec).reshape((2, )+self.dim_uv)
         mag_proj.magnitude[0:2, 0, ...] = magnitude_proj
@@ -296,8 +295,7 @@ class RotTiltProjector(Projector):
                         data.append(weight)
         # Calculate weight matrix and coefficients for jacobi matrix:
         shape = (np.prod(dim_uv), np.prod(dim))
-        self.sparsity = 1. - len(data)/np.prod(shape)
-        print self.sparsity
+        self.sparsity = 1. - len(data)/np.prod(shape, dtype=np.float)
         weights = csr_matrix(coo_matrix((data, (rows, columns)), shape=shape))
         # Calculate coefficients by rotating unity matrix (unit vectors, (x,y,z)):
         coeff = quat.matrix[:2, :].dot(np.eye(3))
@@ -313,7 +311,8 @@ class RotTiltProjector(Projector):
         y -= cent_zoom[0]
         x -= cent_zoom[1]
         # Calculate projected thickness of an equivalence sphere (normed!):
-        d = np.where(np.hypot(x, y) <= Rz, np.sqrt(Rz**2-x**2-y**2), 0)
+        d = np.where(np.hypot(x, y) <= Rz, Rz**2-x**2-y**2, 0)
+        d = np.sqrt(d)
         d /= d.sum()
         # Create lookup table (4D):
         lookup = np.zeros((3, 3, s, s))
@@ -332,34 +331,6 @@ class RotTiltProjector(Projector):
                 lookup[pixel[0], pixel[1], sub_pixel[0], sub_pixel[1]] = weight
         return lookup
 
-    def _create_weight_lookupNEW(self, subcount, R):
-        s = subcount
-        Rz = R * s  # Radius in subgrid units
-        dim_zoom = (3*s, 3*s)  # Dimensions of the subgrid, (3, 3) because of neighbour count!
-        cent_zoom = (np.asarray(dim_zoom)/2.).astype(dtype=np.int)  # Center of the subgrid
-        y, x = np.indices(dim_zoom)
-        y -= cent_zoom[0]
-        x -= cent_zoom[1]
-        # Calculate projected thickness of an equivalence sphere (normed!):
-        d = np.where(np.hypot(x, y) <= Rz, np.sqrt(Rz**2-x**2-y**2), 0)
-        d /= d.sum()
-        # Create lookup table (4D):
-        lookup = np.zeros((3, 3, s, s))
-        # Go over all 9 pixels (center and neighbours):
-        for pixel in list(itertools.product(range(3), range(3))):
-            pixel_lb = np.array(pixel) * s  # Convert to subgrid, hit bottom left of the pixel!
-            # Go over all subpixels in the center that can be hit:
-            for sub_pixel in list(itertools.product(range(s), range(s))):
-                shift = np.array(sub_pixel) - np.array((s//2, s//2))  # relative to center!
-                pixel_lb -= shift  # Shift summing zone according to the hit subpixel!
-                # Make sure, that the summing zone is in bounds (otherwise correct accordingly):
-                pixel_lb = np.where(pixel_lb >= 0, pixel_lb, [0, 0])
-                pixel_tr = np.where(pixel_lb < 3*s, pixel_lb+np.array((s, s)), [3*s, 3*s])
-                # Calculate weight by summing over the summing zone:
-                weight = d[pixel_lb[0]:pixel_tr[0], pixel_lb[1]:pixel_tr[1]].sum()
-                lookup[pixel[0], pixel[1], sub_pixel[0], sub_pixel[1]] = weight
-        return lookup
-
     def get_info(self, verbose=False):
         '''Get specific information about the projector as a string.
 
@@ -375,10 +346,12 @@ class RotTiltProjector(Projector):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         '''
+        theta_ang = int(np.round(self.rotation*180/pi))
+        phi_ang = int(np.round(self.tilt*180/pi))
         if verbose:
-            return u'x-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt*180/pi)))
+            return u'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
         else:
-            return u'xtilt_phi={:d}°'.format(int(np.round(self.tilt*180/pi)))
+            return u'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
 
 
 class XTiltProjector(Projector):
@@ -438,8 +411,6 @@ class XTiltProjector(Projector):
             dim_uv = (max(dim_perp, dim_proj), dim_rot)  # x-y-plane
         dim_v, dim_u = dim_uv  # y, x
         assert dim_v >= dim_perp and dim_u >= dim_rot, 'Projected dimensions are too small!'
-        size_2d = np.prod(dim_uv)
-        size_3d = np.prod(dim)
         # Creating coordinate list of all voxels:
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-y-plane
         # Calculate positions along the projected pixel coordinate system:
@@ -469,8 +440,9 @@ class XTiltProjector(Projector):
             columns = np.hstack((np.array(columns), np.array(col)+s))
             rows = np.hstack((np.array(rows), np.array(row)+s))
         # Calculate weight matrix and coefficients for jacobi matrix:
-        weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)),
-                                       shape=(size_2d, size_3d)))
+        shape = (np.prod(dim_uv), np.prod(dim))
+        self.sparsity = 1. - len(data)/np.prod(shape, dtype=np.float)
+        weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=shape))
         coeff = [[1, 0, 0], [0, np.cos(tilt), np.sin(tilt)]]
         super(XTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created '+str(self))
@@ -553,8 +525,6 @@ class YTiltProjector(Projector):
             dim_uv = (dim_rot, max(dim_perp, dim_proj))  # x-y-plane
         dim_v, dim_u = dim_uv  # y, x
         assert dim_v >= dim_rot and dim_u >= dim_perp, 'Projected dimensions are too small!'
-        size_2d = np.prod(dim_uv)
-        size_3d = np.prod(dim)
         # Creating coordinate list of all voxels:
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-x-plane
         # Calculate positions along the projected pixel coordinate system:
@@ -584,8 +554,9 @@ class YTiltProjector(Projector):
             columns = np.hstack((np.array(columns), np.array(col)+s*dim_perp))
             rows = np.hstack((np.array(rows), np.array(row)+s*dim_u))
         # Calculate weight matrix and coefficients for jacobi matrix:
-        weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)),
-                                       shape=(size_2d, size_3d)))
+        shape = (np.prod(dim_uv), np.prod(dim))
+        self.sparsity = 1. - len(data)/np.prod(shape, dtype=np.float)
+        weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=shape))
         coeff = [[np.cos(tilt), 0, np.sin(tilt)], [0, 1, 0]]
         super(YTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created '+str(self))
@@ -676,7 +647,9 @@ class SimpleProjector(Projector):
             dim_uv = dim_v, dim_u
         assert dim_uv[0] >= dim_v and dim_uv[1] >= dim_u, 'Projected dimensions are too small!'
         # Create weight-matrix:
-        weight = csr_matrix((data, indices, indptr), shape=(size_2d, size_3d))
+        shape = (np.prod(dim_uv), np.prod(dim))
+        self.sparsity = 1. - len(data)/np.prod(shape, dtype=np.float)
+        weight = csr_matrix((data, indices, indptr), shape=shape)
         super(SimpleProjector, self).__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created '+str(self))
 

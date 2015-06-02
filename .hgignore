@@ -1,5 +1,6 @@
 syntax: glob
 *~
+
 .spyderworkspace
 .spyderproject
 .cproject
@@ -9,6 +10,7 @@ syntax: glob
 *.os
 *.c
 output*
+files*
 build*
 Pyramid.egg-info*
 logfile.log

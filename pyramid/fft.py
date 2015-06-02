@@ -16,6 +16,10 @@ import numpy as np
 import cPickle as pickle
 import os
 
+import logging
+
+from pyramid.config import NTHREADS
+
 # pyFFTW depends on this
 try:
     from collections import Counter  #analysis:ignore
@@ -32,37 +36,50 @@ except ImportError:
     BACKEND = 'numpy'
     print("pyFFTW module not found. Using numpy implementation.")
 
-try:
-    import psutil
-    NTHREADS = psutil.cpu_count()
-except ImportError:
-    try:
-        import multiprocessing
-        NTHREADS = multiprocessing.cpu_count()
-    except ImportError:
-        NTHREADS = 1
 
-
-__all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'NTHREADS', 'dump_wisdom', 'load_wisdom', #analysis:ignore
+__all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom', #analysis:ignore
            'zeros', 'empty', 'configure_backend',
            'fftn', 'ifftn', 'rfftn', 'irfftn', 'rfftn_adj', 'irfftn_adj']
+_log = logging.getLogger(__name__)
 
 
 class FFTWCache(object):
 
+    '''Class for adding FFTW Plans and on-demand lookups.
+
+    This class is instantiated in this module to store FFTW plans and for the lookup of the former.
+
+    Attributes
+    ----------
+    cache: dict
+        Cache for storing the FFTW plans.
+
+    Notes
+    -----
+    This class is used internally and is not normally not intended to be used directly by the user.
+
+    '''
+
+    _log = logging.getLogger(__name__+'.FFTWCache')
+
     def __init__(self):
+        self._log.debug('Calling __init__')
         self.cache = dict()
+        self._log.debug('Created '+str(self))
 
     def add_fftw(self, fft_type, fftw_obj, s, axes, nthreads):
+        self._log.debug('Calling add_fftw')
         in_arr = fftw_obj.get_input_array()
         key = (fft_type, in_arr.shape, in_arr.dtype, nthreads)
         self.cache[key] = fftw_obj
 
     def lookup_fftw(self, fft_type, in_arr, s, axes, nthreads):
+        self._log.debug('Calling lookup_fftw')
         key = (fft_type, in_arr.shape, in_arr.dtype, nthreads)
         return self.cache.get(key, None)
 
     def clear_cache(self):
+        self._log.debug('Calling clear_cache')
         self.cache = dict()
 
 
@@ -72,6 +89,7 @@ COMPLEX = np.complex64  # change from 32 to 64 bit
 
 
 # Numpy functions:
+
 def _fftn_numpy(a, s=None, axes=None):
     return np.fft.fftn(a, s, axes)
 
@@ -108,6 +126,7 @@ def _irfftn_adj_numpy(a):
 
 
 # FFTW functions:
+
 def _fftn_fftw(a, s=None, axes=None):
     if a.dtype not in (FLOAT, COMPLEX):
         raise TypeError('Wrong input type!')
@@ -149,7 +168,7 @@ def _irfftn_fftw(a, s=None, axes=None):
 
 
 def _rfftn_adj_fftw(a):
-    # TODO: Careful just works for even a (which is guaranteed by the kernel!)
+    # Careful just works for even a (which is guaranteed by the kernel!)
     n = 2 * (a.shape[-1] - 1)
     out_shape = a.shape[:-1] + (n,)
     out_arr = zeros(out_shape, dtype=a.dtype)
@@ -168,7 +187,8 @@ def _irfftn_adj_fftw(a):
     return _fftn_fftw(out_arr[:, :n], axes=axes) / np.prod(out_arr.shape[:-1])
 
 
-# These wisdom functions do nothing if pyFFTW is not available
+# These wisdom functions do nothing if pyFFTW is not available:
+
 def dump_wisdom(fname):
     '''Wrapper function for the pyfftw.export_wisdom(), which uses a pickle dump.
 
@@ -182,6 +202,7 @@ def dump_wisdom(fname):
     None
 
     '''
+    _log.debug('Calling dump_wisdom')
     if pyfftw is not None:
         with open(fname, 'wb') as fp:
             pickle.dump(pyfftw.export_wisdom(), fp, pickle.HIGHEST_PROTOCOL)
@@ -200,6 +221,7 @@ def load_wisdom(fname):
     None
 
     '''
+    _log.debug('Calling load_wisdom')
     if pyfftw is not None:
         if not os.path.exists(fname):
             print("Warning: Wisdom file does not exist. First time use?")
@@ -225,6 +247,7 @@ def empty(shape, dtype=FLOAT):
         The created array.
 
     '''
+    _log.debug('Calling empty')
     result = np.empty(shape, dtype)
     if pyfftw is not None:
         result = pyfftw.n_byte_align(result, pyfftw.simd_alignment)
@@ -247,6 +270,7 @@ def zeros(shape, dtype=FLOAT):
         The created array.
 
     '''
+    _log.debug('Calling zeros')
     result = np.zeros(shape, dtype)
     if pyfftw is not None:
         result = pyfftw.n_byte_align(result, pyfftw.simd_alignment)
@@ -269,6 +293,7 @@ def ones(shape, dtype=FLOAT):
         The created array.
 
     '''
+    _log.debug('Calling ones')
     result = np.ones(shape, dtype)
     if pyfftw is not None:
         result = pyfftw.n_byte_align(result, pyfftw.simd_alignment)
@@ -289,6 +314,7 @@ def configure_backend(backend):
     None
 
     '''
+    _log.debug('Calling configure_backend')
     global fftn
     global ifftn
     global rfftn

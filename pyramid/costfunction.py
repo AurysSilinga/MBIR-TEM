@@ -8,8 +8,6 @@ the so called `cost` of a threedimensional magnetization distribution."""
 
 import numpy as np
 
-from scipy.sparse import eye as sparse_eye
-
 from pyramid.forwardmodel import ForwardModel
 from pyramid.regularisator import NoneRegularisator
 
@@ -71,8 +69,8 @@ class Costfunction(object):
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
-        return '%s(data_set=%r, fwd_model=%r, regularisator=%r)' % \
-            (self.__class__, self.data_set, self.fwd_model, self.regularisator)
+        return '%s(data_set=%r, regularisator=%r)' % \
+            (self.__class__, self.data_set, self.regularisator)
 
     def __str__(self):
         self._log.debug('Calling __str__')
@@ -80,7 +78,6 @@ class Costfunction(object):
             (self.data_set, self.fwd_model, self.regularisator)
 
     def __call__(self, x):
-        self._log.debug('Calling __call__')
         delta_y = self.fwd_model(x) - self.y
         self.chisq_m = delta_y.dot(self.Se_inv.dot(delta_y))
         self.chisq_a = self.regularisator(x)
@@ -100,6 +97,7 @@ class Costfunction(object):
         None
 
         '''
+        self._log.debug('Calling init')
         self(x)
 
     def jac(self, x):

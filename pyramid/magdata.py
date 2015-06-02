@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cmx
 from matplotlib.ticker import MaxNLocator
 
-import pyramid.fft as fft
+from pyramid import fft
 
 from numbers import Number
 
@@ -240,17 +240,15 @@ class MagData(object):
                                    zoom(self.magnitude[1], zoom=2**n, order=order),
                                    zoom(self.magnitude[2], zoom=2**n, order=order)))
 
-    def pad(self, x_pad, y_pad, z_pad):
+    def pad(self, pad_values):
         '''Pad the current magnetic distribution with zeros for each individual axis.
 
         Parameters
         ----------
-        x_pad : int
-            Number of zeros which should be padded on both sides of the x-axis.
-        y_pad : int
-            Number of zeros which should be padded on both sides of the y-axis.
-        z_pad : int
-            Number of zeros which should be padded on both sides of the z-axis.
+        pad_values : tuple of int
+            Number of zeros which should be padded. Provided as a tuple where each entry
+            corresponds to an axis. An entry can be one int (same padding for both sides) or again
+            a tuple which specifies the pad values for both sides of the corresponding axis.
 
         Returns
         -------
@@ -260,12 +258,43 @@ class MagData(object):
         -----
         Acts in place and changes dimensions accordingly.
         '''
-        assert x_pad >= 0 and isinstance(x_pad, (int, long)), 'x_pad must be a positive integer!'
-        assert y_pad >= 0 and isinstance(y_pad, (int, long)), 'y_pad must be a positive integer!'
-        assert z_pad >= 0 and isinstance(z_pad, (int, long)), 'z_pad must be a positive integer!'
+        self._log.debug('Calling pad')
+        assert len(pad_values) == 3, 'Pad values for each dimension have to be provided!'
+        pv = np.zeros(6, dtype=np.int)
+        for i, values in enumerate(pad_values):
+            assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
+            pv[2*i:2*(i+1)] = values
         self.magnitude = np.pad(self.magnitude,
-                                ((0, 0), (z_pad, z_pad), (y_pad, y_pad), (x_pad, x_pad)),
+                                ((0, 0), (pv[0], pv[1]), (pv[2], pv[3]), (pv[4], pv[5])),
                                 mode='constant')
+
+    def crop(self, crop_values):
+        '''Crop the current magnetic distribution with zeros for each individual axis.
+
+        Parameters
+        ----------
+        crop_values : tuple of int
+            Number of zeros which should be cropped. Provided as a tuple where each entry
+            corresponds to an axis. An entry can be one int (same cropping for both sides) or again
+            a tuple which specifies the crop values for both sides of the corresponding axis.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions accordingly.
+        '''
+        self._log.debug('Calling crop')
+        assert len(crop_values) == 3, 'Crop values for each dimension have to be provided!'
+        cv = np.zeros(6, dtype=np.int)
+        for i, values in enumerate(crop_values):
+            assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
+            cv[2*i:2*(i+1)] = values
+        cv *= np.resize([1, -1], len(cv))
+        cv = np.where(crop_values == 0, None, cv)
+        self.magnitude = self.magnitude[:, cv[0]:cv[1], cv[2]:cv[3], cv[4]:cv[5]]
 
     def get_mask(self, threshold=0):
         '''Mask all pixels where the amplitude of the magnetization lies above `threshold`.
@@ -281,6 +310,7 @@ class MagData(object):
             Mask of the pixels where the amplitude of the magnetization lies above `threshold`.
 
         '''
+        self._log.debug('Calling get_mask')
         return self.mag_amp > threshold
 
     def get_vector(self, mask):
@@ -298,6 +328,7 @@ class MagData(object):
             Order is: first all `x`-, then all `y`-, then all `z`-components.
 
         '''
+        self._log.debug('Calling get_vector')
         if mask is not None:
             return np.reshape([self.magnitude[0][mask],
                                self.magnitude[1][mask],
@@ -321,6 +352,7 @@ class MagData(object):
         None
 
         '''
+        self._log.debug('Calling set_vector')
         vector = np.asarray(vector, dtype=fft.FLOAT)
         assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
         count = np.size(vector)/3
@@ -345,6 +377,7 @@ class MagData(object):
            A flipped copy of the :class:`~.MagData` object.
 
         '''
+        self._log.debug('Calling flip')
         if axis == 'x':
             mag_x, mag_y, mag_z = self.magnitude[:, :, :, ::-1]
             magnitude_flip = np.array((-mag_x, mag_y, mag_z))
@@ -372,6 +405,7 @@ class MagData(object):
            A rotated copy of the :class:`~.MagData` object.
 
         '''
+        self._log.debug('Calling rot90')
         if axis == 'x':
             magnitude_rot = np.zeros((3, self.dim[1], self.dim[0], self.dim[2]))
             for i in range(self.dim[2]):
@@ -466,7 +500,7 @@ class MagData(object):
         ----------
         filename : string, optional
             The name of the NetCDF4-file in which to store the magnetization data.
-            The default is '..\output\magdata_output.nc'.
+            Standard format is '\*.nc'.
 
         Returns
         -------
@@ -527,7 +561,11 @@ class MagData(object):
 
         Parameters
         ----------
-        None
+        filename : string, optional
+            The name of the NetCDF4-file in which to store the magnetization data.
+            Standard format is '\*.x3d'.
+        maximum: float, optional
+            Maximum value to which the arrow color is scaled. Default is 1.
 
         Returns
         -------
@@ -587,7 +625,7 @@ class MagData(object):
         tree.write(filename, pretty_print=True)
 
     def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
-                    ar_dens=1, ax_slice=None, log=False, scaled=True):
+                    color='b', ar_dens=1, ax_slice=None, log=False, scaled=True, scale=1.):
         '''Plot a slice of the magnetization as a quiver plot.
 
         Parameters
@@ -598,6 +636,8 @@ class MagData(object):
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         proj_axis : {'z', 'y', 'x'}, optional
             The axis, from which a slice is plotted. The default is 'z'.
+        color : string
+            Color of the arrows. Default is black ('b').
         ar_dens: int (optional)
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.
@@ -608,6 +648,9 @@ class MagData(object):
             Takes the Default is False.
         scaled : boolean, optional
             Normalizes the plotted arrows in respect to the highest one. Default is True.
+        scale: float, optional
+            Additional multiplicative factor scaling the arrow length. Default is 1
+            (no further scaling).
 
         Returns
         -------
@@ -671,7 +714,7 @@ class MagData(object):
         yy, xx = np.indices(dim_uv)
         axis.quiver(xx[::ad, ::ad], yy[::ad, ::ad], plot_u[::ad, ::ad], plot_v[::ad, ::ad],
                     pivot='middle', units='xy', angles=angles[::ad, ::ad], minlength=0.25,
-                    scale_units='xy', scale=1./ad, headwidth=6, headlength=7)
+                    scale_units='xy', scale=scale/ad, headwidth=6, headlength=7, color=color)
         axis.set_xlim(-1, dim_uv[1])
         axis.set_ylim(-1, dim_uv[0])
         axis.set_title(title, fontsize=18)
@@ -682,7 +725,7 @@ class MagData(object):
         axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
         return axis
 
-    def quiver_plot3d(self, title='Magnetization Distribution', limit=None, cmap='cool',
+    def quiver_plot3d(self, title='Magnetization Distribution', limit=None, cmap='jet',
                       ar_dens=1, mode='arrow', show_pipeline=False):
         '''Plot the magnetization as 3D-vectors in a quiverplot.
 
@@ -726,7 +769,7 @@ class MagData(object):
         y_mag = self.magnitude[1][::ad, ::ad, ::ad].flatten()
         z_mag = self.magnitude[2][::ad, ::ad, ::ad].flatten()
         # Plot them as vectors:
-        mlab.figure()
+        mlab.figure(size=(750, 700))
         plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode=mode, colormap=cmap)
         plot.glyph.glyph_source.glyph_position = 'center'
         plot.module_manager.vector_lut_manager.data_range = np.array([0, limit])

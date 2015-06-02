@@ -126,7 +126,8 @@ class DataSet(object):
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
-        return '%s(a=%r, dim=%r, b_0=%r)' % (self.__class__, self.a, self.dim, self.b_0)
+        return '%s(a=%r, dim=%r, b_0=%r, mask=%r, Se_inv=%r)' % (self.__class__, self.a, self.dim,
+                                                                 self.b_0, self.mask, self.Se_inv)
 
     def __str__(self):
         self._log.debug('Calling __str__')
@@ -170,8 +171,14 @@ class DataSet(object):
             A list of the phase maps resulting from the projections specified in the dataset.
 
         '''
-        return [self.phase_mappers[projector.dim_uv](projector(mag_data))
-                for projector in self.projectors]
+        self._log.debug('Calling create_phase_maps')
+        phase_maps = []
+        for projector in self.projectors:
+            mag_proj = projector(mag_data)
+            phase_map = self.phase_mappers[projector.dim_uv](mag_proj)
+            phase_map.mask = mag_proj.get_mask()[0, ...]
+            phase_maps.append(phase_map)
+        return phase_maps
 
     def set_Se_inv_block_diag(self, cov_list):
         '''Set the Se_inv matrix as a block diagonal matrix
@@ -186,6 +193,7 @@ class DataSet(object):
             None
 
         '''
+        self._log.debug('Calling set_Se_inv_block_diag')
         assert len(cov_list) == len(self.phase_maps), 'Needs one covariance matrix per phase map!'
         self.Se_inv = sparse.block_diag(cov_list).tocsr()
 
@@ -203,6 +211,7 @@ class DataSet(object):
             None
 
         '''
+        self._log.debug('Calling set_Se_inv_diag_with_conf')
         if conf_list is None:  # if no confidence matrizes are given, extract from the phase maps!
             conf_list = [phase_map.confidence for phase_map in self.phase_maps]
         cov_list = [sparse.diags(c.flatten().astype(np.float32), 0) for c in conf_list]
@@ -215,7 +224,7 @@ class DataSet(object):
         ----------
         mask_list: list of :class:`~numpy.ndarray` (optional)
             List of 2D masks, which represent the projections of the 3D mask. If not given this
-            uses the confidence matrizes of the phase maps. If just one phase map is present, the
+            uses the mask matrizes of the phase maps. If just one phase map is present, the
             according mask is simply expanded to 3D and used directly.
 
         Returns
@@ -223,13 +232,48 @@ class DataSet(object):
             None
 
         '''
+        self._log.debug('Calling set_3d_mask')
         if mask_list is None:  # if no masks are given, extract from phase maps:
             mask_list = [phase_map.mask for phase_map in self.phase_maps]
         if len(mask_list) == 1:  # just one phase_map --> 3D mask equals 2D mask
             self.mask = np.expand_dims(mask_list[0], axis=0)
         else:  # 3D mask has to be constructed from 2D masks:
-            # TODO: method for constructing 3D mask from 2D masks? if no list use phase_map masks!
-            raise NotImplementedError()
+            mask_3d_inv = np.zeros(self.dim)
+            for i, projector in enumerate(self.projectors):
+                mask_2d_inv = np.logical_not(self.phase_maps[i].mask.reshape(-1))  # inv. 2D mask
+                # Add extrusion of inv. 2D mask:
+                mask_3d_inv += projector.weight.T.dot(mask_2d_inv).reshape(self.dim)
+            self.mask = np.where(mask_3d_inv == 0, True, False)
+
+    def display_mask(self, ar_dens=1):
+        '''If it exists, display the 3D mask of the magnetization distribution.
+
+        Parameters
+        ----------
+        ar_dens: int (optional)
+            Number defining the cell density which is plotted. A higher ar_dens number skips more
+            arrows (a number of 2 plots every second arrow). Default is 1.
+
+        Returns
+        -------
+            None
+
+        '''
+        self._log.debug('Calling display_mask')
+        if self.mask is not None:
+            from mayavi import mlab
+            zz, yy, xx = np.indices(self.dim)
+            ad = ar_dens
+            zz = zz[::ad, ::ad, ::ad].flatten()
+            yy = yy[::ad, ::ad, ::ad].flatten()
+            xx = xx[::ad, ::ad, ::ad].flatten()
+            mask_vec = self.mask[::ad, ::ad, ::ad].flatten().astype(dtype=np.int)
+            mlab.figure(size=(750, 700))
+            plot = plot = mlab.points3d(xx, yy, zz, mask_vec, opacity=0.5, mode='cube',
+                                        scale_factor=ar_dens)
+            mlab.outline(plot)
+            mlab.axes(plot)
+            return plot
 
     def display_phase(self, mag_data=None, title='Phase Map',
                       cmap='RdBu', limit=None, norm=None):
@@ -258,7 +302,7 @@ class DataSet(object):
         None
 
         '''
-        self._log.debug('Calling display')
+        self._log.debug('Calling display_phase')
         if mag_data is not None:
             phase_maps = self.create_phase_maps(mag_data)
         else:

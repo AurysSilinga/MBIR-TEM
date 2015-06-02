@@ -114,7 +114,6 @@ class PhaseMapperRDFC(PhaseMapper):
         return 'PhaseMapperRDFC(kernel=%s)' % (self.kernel)
 
     def __call__(self, mag_data):
-        self._log.debug('Calling __call__')
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert mag_data.a == self.kernel.a, 'Grid spacing has to match!'
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
@@ -542,5 +541,8 @@ def pm(mag_data, axis='z', dim_uv=None, b_0=1):
     '''
     _log.debug('Calling pm')
     projector = SimpleProjector(mag_data.dim, axis=axis, dim_uv=dim_uv)
+    mag_proj = projector(mag_data)
     phasemapper = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv))
-    return phasemapper(projector(mag_data))
+    phase_map = phasemapper(mag_proj)
+    phase_map.mask = mag_proj.get_mask()[0, ...]
+    return phase_map

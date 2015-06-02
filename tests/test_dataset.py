@@ -69,7 +69,26 @@ class TestCaseDataSet(unittest.TestCase):
             'Unexpected behaviour in set_Se_inv_diag_with_masks()!'
 
     def test_set_3d_mask(self):
-        self.assertRaises(NotImplementedError, self.data.create_3d_mask, None)
+        projector_z = SimpleProjector(self.dim, axis='z')
+        projector_y = SimpleProjector(self.dim, axis='y')
+        projector_x = SimpleProjector(self.dim, axis='x')
+        mask_z = np.zeros(projector_z.dim_uv, dtype=bool)
+        mask_y = np.zeros(projector_y.dim_uv, dtype=bool)
+        mask_x = np.zeros(projector_x.dim_uv, dtype=bool)
+        mask_z[1:-1, 1:-1] = True
+        mask_y[1:-1, 1:-1] = True
+        mask_x[1:-1, 1:-1] = True
+        phase_map_z = PhaseMap(self.a, np.zeros(projector_z.dim_uv), mask_z)
+        phase_map_y = PhaseMap(self.a, np.zeros(projector_y.dim_uv), mask_y)
+        phase_map_x = PhaseMap(self.a, np.zeros(projector_x.dim_uv), mask_x)
+        self.data.append(phase_map_z, projector_z)
+        self.data.append(phase_map_y, projector_y)
+        self.data.append(phase_map_x, projector_x)
+        self.data.set_3d_mask()
+        mask_ref = np.zeros(self.dim, dtype=bool)
+        mask_ref[1:-1, 1:-1, 1:-1] = True
+        np.testing.assert_equal(self.data.mask, mask_ref,
+                                err_msg='Unexpected behaviour in set_3d_mask')
 
 
 if __name__ == '__main__':

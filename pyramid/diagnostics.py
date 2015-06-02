@@ -15,6 +15,8 @@ from pyramid import fft
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
 
+import logging
+
 
 __all__ = ['Diagnostics']
 
@@ -70,6 +72,8 @@ class Diagnostics(object):
         measure_contribution is independant
 
     '''
+
+    _log = logging.getLogger(__name__+'.Diagnostics')
 
     @property
     def cov_row(self):
@@ -129,6 +133,7 @@ class Diagnostics(object):
             self._updated_measure_contribution = False
 
     def __init__(self, x_rec, cost, max_iter=1000):
+        self._log.debug('Calling __init__')
         self.x_rec = x_rec
         self.cost = cost
         self.max_iter = max_iter
@@ -144,6 +149,7 @@ class Diagnostics(object):
         self._updated_measure_contribution = False
         self._A = jutil.operator.CostFunctionOperator(self.cost, self.x_rec)
         self._P = jutil.preconditioner.CostFunctionPreconditioner(self.cost, self.x_rec)
+        self._log.debug('Creating '+str(self))
 
     def get_avg_kern_row(self, pos=None):
         '''Get the averaging kernel matrix row represented as a 3D magnetization distribution.
@@ -159,6 +165,7 @@ class Diagnostics(object):
             Averaging kernel matrix row represented as a 3D magnetization distribution
 
         '''
+        self._log.debug('Calling get_avg_kern_row')
         if pos is not None:
             self.pos = pos
         mag_data_avg_kern = MagData(self.cost.data_set.a, fft.zeros((3,)+self.dim))
@@ -166,7 +173,7 @@ class Diagnostics(object):
         return mag_data_avg_kern
 
     def calculate_averaging(self, pos=None):
-        '''Get the gain matrix row represented as a list of 2D phase maps.
+        '''Calculate and plot the averaging pixel number at a specified position for x, y or z.
 
         Parameters
         ----------
@@ -175,10 +182,18 @@ class Diagnostics(object):
 
         Returns
         -------
-        gain_map_list: list of :class:`~pyramid.phasemap.PhaseMap`
-            Gain matrix row represented as a list of 2D phase maps.
+        px_avrg: float
+            The number of pixels over which is approximately averaged. The inverse is the FWHM.
+        (x, y, z): tuple of floats
+            The magnitude of the averaging kernel summed along two axes (the remaining are x, y, z,
+            respectively).
 
-        '''# TODO: Docstring!
+        Notes
+        -----
+        Uses the :func:`~.get_avg_kern_row' function
+
+        '''
+        self._log.debug('Calling calculate_averaging')
         mag_data_avg_kern = self.get_avg_kern_row(pos)
         mag_x, mag_y, mag_z = mag_data_avg_kern.magnitude
         x = mag_x.sum(axis=(0, 1))
@@ -212,7 +227,7 @@ class Diagnostics(object):
         plt.vlines(x=[l, r], ymin=0, ymax=data[i_m]/2, linestyles=':', color=col)
         # Add legend:
         plt.legend()
-        return px_avrg, fwhm, (x, y, z)
+        return px_avrg, (x, y, z)
 
     def get_gain_row_maps(self, pos=None):
         '''Get the gain matrix row represented as a list of 2D (inverse) phase maps.
@@ -234,6 +249,7 @@ class Diagnostics(object):
         maps (1/rad instead of rad).
 
         '''
+        self._log.debug('Calling get_gain_row_maps')
         if pos is not None:
             self.pos = pos
         hp = self.cost.data_set.hook_points

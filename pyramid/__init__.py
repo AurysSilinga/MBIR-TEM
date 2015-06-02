@@ -32,6 +32,8 @@ regularisator
     Class to instantiate different regularisation strategies.
 diagnostics
     Class to calculate diagnostics
+quaternion
+    Class which is used for easy rotations in the Projector classes.
 fft
     Class for custom FFT functions using numpy or FFTW.
 
@@ -67,8 +69,7 @@ _log = logging.getLogger(__name__)
 _log.info("Starting PYRAMID V{} HG{}".format(__version__, __hg_revision__))
 del logging
 
-
-__all__ = ['__version__', '__hg_revision__', 'analytic', 'magcreator', 'reconstruction', 'fft']
+__all__ = ['analytic', 'magcreator', 'reconstruction', 'fft']
 __all__.extend(costfunction.__all__)
 __all__.extend(dataset.__all__)
 __all__.extend(diagnostics.__all__)
