@@ -5,12 +5,15 @@
 """This module provides the :class:`~.MagData` class for storing of magnetization data."""
 
 
+from __future__ import division
+
 import os
 
 import numpy as np
 from numpy.linalg import norm
 from scipy.ndimage.interpolation import zoom
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cmx
 from matplotlib.ticker import MaxNLocator
@@ -163,6 +166,45 @@ class MagData(object):
     def __imul__(self, other):  # self *= other
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
+
+    @classmethod
+    def _create_directional_colormap(cls, levels=15, N=256):
+        cls._log.debug('Calling __create_directional_colormap')
+        r, g, b = [], [], []  # RGB lists
+        # Create saturation lists to encode up and down directions via black and white colors.
+        # example for 5 levels from black (down) to color (in-plane) to white:
+        # pos_sat: [ 0.   0.5  1.   1.   1. ]
+        # neg_sat: [ 0.   0.   0.   0.5  1. ]
+        center = levels//2
+        pos_sat = np.ones(levels)
+        pos_sat[0:center] = [i/center for i in range(center)]
+        neg_sat = np.zeros(levels)
+        neg_sat[center+1:] = [(i+1)/center for i in range(center)]
+
+        # Iterate over all levels (the center level represents in-plane moments!):
+        for i in range(levels):
+            inter_points = np.linspace(i/levels, (i+1)/levels, 5)  # interval points, current level
+            # Red:
+            r.append((inter_points[0], 0, neg_sat[i]))
+            r.append((inter_points[1], pos_sat[i], pos_sat[i]))
+            r.append((inter_points[2], pos_sat[i], pos_sat[i]))
+            r.append((inter_points[3], neg_sat[i], neg_sat[i]))
+            r.append((inter_points[4], neg_sat[i], 0))
+            # Green:
+            g.append((inter_points[0], 0, neg_sat[i]))
+            g.append((inter_points[1], neg_sat[i], neg_sat[i]))
+            g.append((inter_points[2], pos_sat[i], pos_sat[i]))
+            g.append((inter_points[3], pos_sat[i], pos_sat[i]))
+            g.append((inter_points[4], neg_sat[i], 0))
+            # Blue
+            b.append((inter_points[0], 0, pos_sat[i]))
+            b.append((inter_points[1], neg_sat[i], neg_sat[i]))
+            b.append((inter_points[2], neg_sat[i], neg_sat[i]))
+            b.append((inter_points[3], neg_sat[i], neg_sat[i]))
+            b.append((inter_points[4], pos_sat[i], 0))
+        # Combine to color dictionary and return:
+        cdict = {'red': r, 'green': g, 'blue': b}
+        return mpl.colors.LinearSegmentedColormap('directional_colormap', cdict, N)
 
     def copy(self):
         '''Returns a copy of the :class:`~.MagData` object
@@ -625,7 +667,7 @@ class MagData(object):
         tree.write(filename, pretty_print=True)
 
     def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
-                    color='b', ar_dens=1, ax_slice=None, log=False, scaled=True, scale=1.):
+                    coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True, scale=1.):
         '''Plot a slice of the magnetization as a quiver plot.
 
         Parameters
@@ -636,8 +678,8 @@ class MagData(object):
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         proj_axis : {'z', 'y', 'x'}, optional
             The axis, from which a slice is plotted. The default is 'z'.
-        color : string
-            Color of the arrows. Default is black ('b').
+        coloring : string
+            Color coding mode of the arrows. Use 'angle' (default), 'amplitude' or 'uniform'.
         ar_dens: int (optional)
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.
@@ -688,33 +730,53 @@ class MagData(object):
             plot_v = np.swapaxes(np.copy(self.magnitude[1][..., ax_slice]), 0, 1)  # y-component
             u_label = 'z [px]'
             v_label = 'y [px]'
+        # Prepare quiver (select only used arrows if ar_dens is specified):
+        dim_uv = plot_u.shape
+        yy, xx = np.indices(dim_uv)
+        xx = xx[::ar_dens, ::ar_dens]
+        yy = yy[::ar_dens, ::ar_dens]
+        plot_u = plot_u[::ar_dens, ::ar_dens]
+        plot_v = plot_v[::ar_dens, ::ar_dens]
+        amplitudes = np.hypot(plot_u, plot_v)
+        angles = np.angle(plot_u+1j*plot_v, deg=True)
+        # Calculate the arrow colors:
+        if coloring == 'angle':
+            self._log.debug('Encoding angles')
+            colors = (1 - np.arctan2(plot_v, plot_u)/np.pi) / 2  # in-plane angle (rescaled: 0 - 1)
+            cmap = self._create_directional_colormap(levels=1, N=256)
+        elif coloring == 'amplitude':
+            self._log.debug('Encoding amplitude')
+            colors = amplitudes / amplitudes.max()
+            cmap = 'jet'
+        elif coloring == 'uniform':
+            self._log.debug('No color encoding')
+            colors = np.zeros_like(plot_u)  # use black arrows!
+            cmap = 'gray'
+        else:
+            raise AttributeError("Invalid coloring mode! Use 'angles', 'amplitude' or 'uniform'!")
         # If no axis is specified, a new figure is created:
         if axis is None:
             self._log.debug('axis is None')
             fig = plt.figure(figsize=(8.5, 7))
             axis = fig.add_subplot(1, 1, 1)
         axis.set_aspect('equal')
-        angles = np.angle(plot_u+1j*plot_v, deg=True)
         # Take the logarithm of the arrows to clearly show directions (if specified):
         if log:
             cutoff = 10
-            amp = np.round(np.hypot(plot_u, plot_v), decimals=cutoff)
+            amp = np.round(amplitudes, decimals=cutoff)
             min_value = amp[np.nonzero(amp)].min()
             plot_u = np.round(plot_u, decimals=cutoff) / min_value
             plot_u = np.log10(np.abs(plot_u)+1) * np.sign(plot_u)
             plot_v = np.round(plot_v, decimals=cutoff) / min_value
             plot_v = np.log10(np.abs(plot_v)+1) * np.sign(plot_v)
+            amplitudes = np.hypot(plot_u, plot_v)  # Recalculate!
         # Scale the magnitude of the arrows to the highest one (if specified):
         if scaled:
-            plot_u /= np.hypot(plot_u, plot_v).max()
-            plot_v /= np.hypot(plot_u, plot_v).max()
-        # Setup quiver:
-        dim_uv = plot_u.shape
-        ad = ar_dens
-        yy, xx = np.indices(dim_uv)
-        axis.quiver(xx[::ad, ::ad], yy[::ad, ::ad], plot_u[::ad, ::ad], plot_v[::ad, ::ad],
-                    pivot='middle', units='xy', angles=angles[::ad, ::ad], minlength=0.25,
-                    scale_units='xy', scale=scale/ad, headwidth=6, headlength=7, color=color)
+            plot_u /= amplitudes.max()
+            plot_v /= amplitudes.max()
+        axis.quiver(xx, yy, plot_u, plot_v, colors, cmap=cmap, angles=angles,
+                    pivot='middle', units='xy', scale_units='xy', scale=scale/ar_dens,
+                    minlength=0.25, headwidth=6, headlength=7)
         axis.set_xlim(-1, dim_uv[1])
         axis.set_ylim(-1, dim_uv[0])
         axis.set_title(title, fontsize=18)
@@ -726,7 +788,7 @@ class MagData(object):
         return axis
 
     def quiver_plot3d(self, title='Magnetization Distribution', limit=None, cmap='jet',
-                      ar_dens=1, mode='arrow', show_pipeline=False):
+                      ar_dens=1, mode='arrow', coloring='angle', show_pipeline=False):
         '''Plot the magnetization as 3D-vectors in a quiverplot.
 
         Parameters
@@ -743,6 +805,8 @@ class MagData(object):
         mode: string, optional
             Mode, determining the glyphs used in the 3D plot. Default is 'arrow', which corresponds
             to 3D arrows. For large amounts of arrows, '2darrow' should be used.
+        coloring : string
+            Color coding mode of the arrows. Use 'angle' (default) or 'amplitude'.
         show_pipeline : boolean, optional
             If True, the mayavi pipeline, a GUI used for image manipulation is shown. The default
             is False.
@@ -771,13 +835,36 @@ class MagData(object):
         # Plot them as vectors:
         mlab.figure(size=(750, 700))
         plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode=mode, colormap=cmap)
+        if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation
+            self._log.debug('Encoding full 3D angles')
+            from tvtk.api import tvtk
+            phis = (1 - np.arctan2(y_mag, x_mag)/np.pi) / 2  # in-plane angle (rescaled: 0 to 1)
+            thetas = np.arctan2(np.hypot(y_mag, x_mag), z_mag)/np.pi  # vert. angle (also rescaled)
+            levels = 15  # number of shades for up/down arrows (white is up, black is down)
+            N = 256  # Overall number of colors for the colormap (only N/levels per level!)
+            cmap = self._create_directional_colormap(levels, N)
+            colors = []
+            for i in range(len(x_mag)):
+                level = np.floor((1-thetas[i]) * levels)
+                lookup_value = (level + phis[i]) / levels
+                rgba = tuple((np.asarray(cmap(lookup_value)) * (N-1)).astype(np.int))
+                colors.append(rgba)
+            sc = tvtk.UnsignedCharArray()  # Used to hold the colors
+            sc.from_array(colors)
+            plot.mlab_source.dataset.point_data.scalars = sc
+            plot.mlab_source.dataset.modified()
+            plot.glyph.color_mode = 'color_by_scalar'
+        elif coloring == 'amplitude':  # Encodes the amplitude of the arrows with the jet colormap
+            self._log.debug('Encoding amplitude')
+            mlab.colorbar(label_fmt='%.2f')
+            mlab.colorbar(orientation='vertical')
+        else:
+            raise AttributeError('Coloring mode not supported!')
         plot.glyph.glyph_source.glyph_position = 'center'
         plot.module_manager.vector_lut_manager.data_range = np.array([0, limit])
         mlab.outline(plot)
         mlab.axes(plot)
         mlab.title(title, height=0.95, size=0.35)
-        mlab.colorbar(label_fmt='%.2f')
-        mlab.colorbar(orientation='vertical')
         mlab.orientation_axes()
         if show_pipeline:
             mlab.show_pipeline()

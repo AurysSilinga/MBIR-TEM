@@ -1,6 +1,6 @@
 #! python
 # -*- coding: utf-8 -*-
-"""Create pyramid logo."""
+"""Create homogeneous slab."""
 
 
 import numpy as np

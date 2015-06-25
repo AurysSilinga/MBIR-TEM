@@ -65,7 +65,7 @@ class TestCaseCompliance(unittest.TestCase):
         sys.stdout = stdout_buffer
         error_message = 'Found {} PEP8 violations!'.format(result.total_errors)
         if todo_count > 0:
-            error_message += 'Found {} TODOs!'.format(todo_count)
+            error_message += ' Found {} TODOs!'.format(todo_count)
         self.assertEqual(result.total_errors, 0, error_message)
 
 

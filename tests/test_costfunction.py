@@ -9,6 +9,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from pyramid.costfunction import Costfunction
+from pyramid.forwardmodel import ForwardModel
 from pyramid.dataset import DataSet
 from pyramid.projector import SimpleProjector
 from pyramid.phasemap import PhaseMap
@@ -29,7 +30,7 @@ class TestCaseCostfunction(unittest.TestCase):
         self.data.append(self.phase_map, self.projector)
         self.data.append(self.phase_map, self.projector)
         self.reg = FirstOrderRegularisator(self.mask, lam=1E-4)
-        self.cost = Costfunction(self.data, self.reg)
+        self.cost = Costfunction(ForwardModel(self.data), self.reg)
 
     def tearDown(self):
         self.path = None

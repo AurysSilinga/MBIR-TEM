@@ -136,6 +136,10 @@ class ForwardModel(object):
             result[hp[i]:hp[i+1]] = res
         return result
 
+    def _jac_dot_element(self, mag_vec, projector, phasemapper):
+            return phasemapper.jac_dot(projector.jac_dot(mag_vec))
+
+
     def jac_T_dot(self, x, vector):
         ''''Calculate the product of the transposed Jacobi matrix with a given `vector`.
 

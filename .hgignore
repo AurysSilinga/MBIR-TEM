@@ -4,6 +4,7 @@ syntax: glob
 .spyderworkspace
 .spyderproject
 .cproject
+.pyramid.egg-info
 *.pyc
 *.pyd
 *.so

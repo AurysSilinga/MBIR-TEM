@@ -129,8 +129,9 @@ class TestCaseFirstOrderRegularisator(unittest.TestCase):
 
     def test_hess_diag(self):
         hess_diag = self.reg.hess_diag(np.ones(self.n))
-        hess_diag_ref = np.diag(np.load(os.path.join(self.path, 'first_order_jac_ref.npy')))
-        print hess_diag_ref
+        hess_diag_ref = np.zeros(3*self.n)  # derivatives in all directions!
+        first_order_jac_ref = np.load(os.path.join(self.path, 'first_order_jac_ref.npy'))
+        hess_diag_ref[0:self.n] = np.diag(first_order_jac_ref)
         assert_allclose(hess_diag, hess_diag_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in hess_diag()!')
 

@@ -8,7 +8,6 @@ the so called `cost` of a threedimensional magnetization distribution."""
 
 import numpy as np
 
-from pyramid.forwardmodel import ForwardModel
 from pyramid.regularisator import NoneRegularisator
 
 import logging
@@ -30,8 +29,6 @@ class Costfunction(object):
 
     Attributes
     ----------
-    data_set: :class:`~dataset.DataSet`
-        :class:`~dataset.DataSet` object, which stores all information for the cost calculation.
     regularisator : :class:`~.Regularisator`
         Regularisator class that's responsible for the regularisation term.
     y : :class:`~numpy.ndarray` (N=1)
@@ -51,14 +48,14 @@ class Costfunction(object):
 
     _log = logging.getLogger(__name__+'.Costfunction')
 
-    def __init__(self, data_set, regularisator):
+    def __init__(self, fwd_model, regularisator):
         self._log.debug('Calling __init__')
-        self.data_set = data_set
-        self.fwd_model = ForwardModel(data_set)
+        self.fwd_model = fwd_model
         self.regularisator = regularisator
         if self.regularisator is None:
             self.regularisator = NoneRegularisator()
         # Extract important information:
+        data_set = fwd_model.data_set
         self.y = data_set.phase_vec
         self.n = data_set.n
         self.m = data_set.m
@@ -69,13 +66,13 @@ class Costfunction(object):
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
-        return '%s(data_set=%r, regularisator=%r)' % \
-            (self.__class__, self.data_set, self.regularisator)
+        return '%s(fwd_model=%r, regularisator=%r)' % \
+            (self.__class__, self.fwd_model, self.regularisator)
 
     def __str__(self):
         self._log.debug('Calling __str__')
-        return 'Costfunction(data_set=%s, fwd_model=%s, regularisator=%s)' % \
-            (self.data_set, self.fwd_model, self.regularisator)
+        return 'Costfunction(fwd_model=%s, fwd_model=%s, regularisator=%s)' % \
+            (self.fwd_model, self.fwd_model, self.regularisator)
 
     def __call__(self, x):
         delta_y = self.fwd_model(x) - self.y
