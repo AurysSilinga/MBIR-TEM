@@ -170,5 +170,5 @@ Z = np.cos(X) * np.sin(Y) * 10
 
 fig = plt.figure(figsize=(7, 7))
 axis = fig.add_subplot(1, 1, 1)
-im = axis.imshow(Z, cmap=create_custom_colormap(levels=3, N=3))
+im = axis.imshow(Z, cmap=create_custom_colormap(levels=3, N=156))
 fig.colorbar(im)

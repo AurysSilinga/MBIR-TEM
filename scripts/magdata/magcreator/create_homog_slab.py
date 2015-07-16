@@ -13,8 +13,8 @@ logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 # Parameters:
 dim = (32, 32, 32)
 a = 1.0  # in nm
-phi = np.pi/4  # in rad
-theta = 0*np.pi/2  # in rad
+phi = np.pi/2  # in rad
+theta = np.pi/2  # in rad
 magnitude = 1
 filename = 'magdata_mc_homog_slab.nc'
 

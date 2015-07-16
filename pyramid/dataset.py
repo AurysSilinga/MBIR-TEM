@@ -95,6 +95,10 @@ class DataSet(object):
         return 3 * np.sum(self.mask)
 
     @property
+    def count(self):
+        return len(self.projectors)
+
+    @property
     def phase_vec(self):
         return np.concatenate([p.phase_vec for p in self.phase_maps])
 

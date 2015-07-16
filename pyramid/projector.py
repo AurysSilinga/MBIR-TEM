@@ -634,16 +634,16 @@ class SimpleProjector(Projector):
                                 for row in range(size_2d)]).reshape(-1)
         if dim_uv is not None:
             indptr = indptr.tolist()  # convert to use insert() and append()
-            d_v, d_u = (dim_uv[0]-dim_v)//2, (dim_uv[1]-dim_u)//2  # padding in u and v
-            indptr[-1:-1] = [indptr[-1]] * d_v*dim_uv[1]  # append empty rows at the end
+            d_v = np.floor((dim_uv[0]-dim_v)/2), np.ceil((dim_uv[0]-dim_v)/2)  # padding in v
+            d_u = np.floor((dim_uv[1]-dim_u)/2), np.ceil((dim_uv[1]-dim_u)/2)  # padding in u
+            indptr.extend([indptr[-1]]*d_v[1]*dim_uv[1])  # add empty lines at the end
             for i in np.arange(dim_v, 0, -1):  # all slices in between
-                u, l = i*dim_u, (i-1)*dim_u+1  # upper / lower slice end
-                indptr[u:u] = [indptr[u]] * d_u  # end of the slice
-                indptr[l:l] = [indptr[l]] * d_u  # start of the slice
-            indptr[0:0] = [0] * d_v*dim_uv[1]  # insert empty rows at the beginning
+                up, lo = i*dim_u, (i-1)*dim_u  # upper / lower slice end
+                indptr[up:up] = [indptr[up]] * d_u[1]  # end of the slice
+                indptr[lo:lo] = [indptr[lo]] * d_u[0]  # start of the slice
+            indptr = [0]*d_v[0]*dim_uv[1] + indptr  # insert empty rows at the beginning
             size_2d = np.prod(dim_uv)  # increase size_2d
-        # Make sure dim_uv is defined (used for the assertion)
-        if dim_uv is None:
+        else:  # Make sure dim_uv is defined (used for the assertion)
             dim_uv = dim_v, dim_u
         assert dim_uv[0] >= dim_v and dim_uv[1] >= dim_u, 'Projected dimensions are too small!'
         # Create weight-matrix:

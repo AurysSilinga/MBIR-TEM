@@ -12,13 +12,12 @@ import logging.config
 logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-path_mag = 'zi_an_magnetite_2_particles_magnetic.dm3'
-path_ele = 'zi_an_magnetite_2_particles_electric.dm3'
-filename = 'phasemap_dm3_zi_an_magnetite_2_particles.nc'
+path_mag = 'zi_an_elongated_nanorod.dm3'
+path_ele = 'zi_an_elongated_nanorod_mip.dm3'
+filename = 'phasemap_dm3_zi_an_elongated_nanorod.nc'
 a = 1.
 dim_uv = None
-threshold = 2
-offset = 0.23280109
+threshold = 4.5
 ###################################################################################################
 
 # Load images:
@@ -28,7 +27,7 @@ if dim_uv is not None:
     im_mag = im_mag.resize(dim_uv)
     im_ele = im_ele.resize(dim_uv)
 # Calculate phase and mask:
-phase = np.asarray(im_mag) - offset
+phase = np.asarray(im_mag)
 mask = np.where(np.asarray(im_ele) >= threshold, True, False)
 
 # Create and save PhaseMap object:

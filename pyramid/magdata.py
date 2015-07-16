@@ -19,6 +19,7 @@ import matplotlib.cm as cmx
 from matplotlib.ticker import MaxNLocator
 
 from pyramid import fft
+from pyramid.colormap import DirectionalColormap
 
 from numbers import Number
 
@@ -167,44 +168,44 @@ class MagData(object):
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
 
-    @classmethod
-    def _create_directional_colormap(cls, levels=15, N=256):
-        cls._log.debug('Calling __create_directional_colormap')
-        r, g, b = [], [], []  # RGB lists
-        # Create saturation lists to encode up and down directions via black and white colors.
-        # example for 5 levels from black (down) to color (in-plane) to white:
-        # pos_sat: [ 0.   0.5  1.   1.   1. ]
-        # neg_sat: [ 0.   0.   0.   0.5  1. ]
-        center = levels//2
-        pos_sat = np.ones(levels)
-        pos_sat[0:center] = [i/center for i in range(center)]
-        neg_sat = np.zeros(levels)
-        neg_sat[center+1:] = [(i+1)/center for i in range(center)]
-
-        # Iterate over all levels (the center level represents in-plane moments!):
-        for i in range(levels):
-            inter_points = np.linspace(i/levels, (i+1)/levels, 5)  # interval points, current level
-            # Red:
-            r.append((inter_points[0], 0, neg_sat[i]))
-            r.append((inter_points[1], pos_sat[i], pos_sat[i]))
-            r.append((inter_points[2], pos_sat[i], pos_sat[i]))
-            r.append((inter_points[3], neg_sat[i], neg_sat[i]))
-            r.append((inter_points[4], neg_sat[i], 0))
-            # Green:
-            g.append((inter_points[0], 0, neg_sat[i]))
-            g.append((inter_points[1], neg_sat[i], neg_sat[i]))
-            g.append((inter_points[2], pos_sat[i], pos_sat[i]))
-            g.append((inter_points[3], pos_sat[i], pos_sat[i]))
-            g.append((inter_points[4], neg_sat[i], 0))
-            # Blue
-            b.append((inter_points[0], 0, pos_sat[i]))
-            b.append((inter_points[1], neg_sat[i], neg_sat[i]))
-            b.append((inter_points[2], neg_sat[i], neg_sat[i]))
-            b.append((inter_points[3], neg_sat[i], neg_sat[i]))
-            b.append((inter_points[4], pos_sat[i], 0))
-        # Combine to color dictionary and return:
-        cdict = {'red': r, 'green': g, 'blue': b}
-        return mpl.colors.LinearSegmentedColormap('directional_colormap', cdict, N)
+#    @classmethod
+#    def _create_directional_colormap(cls, levels=15, N=256):
+#        cls._log.debug('Calling __create_directional_colormap')
+#        r, g, b = [], [], []  # RGB lists
+#        # Create saturation lists to encode up and down directions via black and white colors.
+#        # example for 5 levels from black (down) to color (in-plane) to white:
+#        # pos_sat: [ 0.   0.5  1.   1.   1. ]
+#        # neg_sat: [ 0.   0.   0.   0.5  1. ]
+#        center = levels//2
+#        pos_sat = np.ones(levels)
+#        pos_sat[0:center] = [i/center for i in range(center)]
+#        neg_sat = np.zeros(levels)
+#        neg_sat[center+1:] = [(i+1)/center for i in range(center)]
+#
+#        # Iterate over all levels (the center level represents in-plane moments!):
+#        for i in range(levels):
+#            inter_points = np.linspace(i/levels, (i+1)/levels, 5)  # interval points, current level
+#            # Red:
+#            r.append((inter_points[0], 0, neg_sat[i]))
+#            r.append((inter_points[1], pos_sat[i], pos_sat[i]))
+#            r.append((inter_points[2], pos_sat[i], pos_sat[i]))
+#            r.append((inter_points[3], neg_sat[i], neg_sat[i]))
+#            r.append((inter_points[4], neg_sat[i], 0))
+#            # Green:
+#            g.append((inter_points[0], 0, neg_sat[i]))
+#            g.append((inter_points[1], neg_sat[i], neg_sat[i]))
+#            g.append((inter_points[2], pos_sat[i], pos_sat[i]))
+#            g.append((inter_points[3], pos_sat[i], pos_sat[i]))
+#            g.append((inter_points[4], neg_sat[i], 0))
+#            # Blue
+#            b.append((inter_points[0], 0, pos_sat[i]))
+#            b.append((inter_points[1], neg_sat[i], neg_sat[i]))
+#            b.append((inter_points[2], neg_sat[i], neg_sat[i]))
+#            b.append((inter_points[3], neg_sat[i], neg_sat[i]))
+#            b.append((inter_points[4], pos_sat[i], 0))
+#        # Combine to color dictionary and return:
+#        cdict = {'red': r, 'green': g, 'blue': b}
+#        return mpl.colors.LinearSegmentedColormap('directional_colormap', cdict, N)
 
     def copy(self):
         '''Returns a copy of the :class:`~.MagData` object
@@ -335,7 +336,7 @@ class MagData(object):
             assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
             cv[2*i:2*(i+1)] = values
         cv *= np.resize([1, -1], len(cv))
-        cv = np.where(crop_values == 0, None, cv)
+        cv = np.where(cv == 0, None, cv)
         self.magnitude = self.magnitude[:, cv[0]:cv[1], cv[2]:cv[3], cv[4]:cv[5]]
 
     def get_mask(self, threshold=0):
@@ -667,7 +668,8 @@ class MagData(object):
         tree.write(filename, pretty_print=True)
 
     def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
-                    coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True, scale=1.):
+                    coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
+                    scale=1., show_mask=True):
         '''Plot a slice of the magnetization as a quiver plot.
 
         Parameters
@@ -700,6 +702,7 @@ class MagData(object):
             The axis on which the graph is plotted.
 
         '''
+        # TODO: include mask if available!
         self._log.debug('Calling quiver_plot')
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             'Axis has to be x, y or z (as string).'
@@ -707,50 +710,53 @@ class MagData(object):
             self._log.debug('proj_axis == z')
             if ax_slice is None:
                 self._log.debug('ax_slice is None')
-                ax_slice = int(self.dim[0]/2.)
+                ax_slice = self.dim[0] // 2
             plot_u = np.copy(self.magnitude[0][ax_slice, ...])  # x-component
             plot_v = np.copy(self.magnitude[1][ax_slice, ...])  # y-component
             u_label = 'x [px]'
             v_label = 'y [px]'
+            submask = self.get_mask()[ax_slice, ...]
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
             self._log.debug('proj_axis == y')
             if ax_slice is None:
                 self._log.debug('ax_slice is None')
-                ax_slice = int(self.dim[1]/2.)
+                ax_slice = self.dim[1] // 2
             plot_u = np.copy(self.magnitude[0][:, ax_slice, :])  # x-component
             plot_v = np.copy(self.magnitude[2][:, ax_slice, :])  # z-component
             u_label = 'x [px]'
             v_label = 'z [px]'
+            submask = self.get_mask()[:, ax_slice, :]
         elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
             self._log.debug('proj_axis == x')
             if ax_slice is None:
                 self._log.debug('ax_slice is None')
-                ax_slice = int(self.dim[2]/2.)
+                ax_slice = self.dim[2] // 2
             plot_u = np.swapaxes(np.copy(self.magnitude[2][..., ax_slice]), 0, 1)  # z-component
             plot_v = np.swapaxes(np.copy(self.magnitude[1][..., ax_slice]), 0, 1)  # y-component
             u_label = 'z [px]'
             v_label = 'y [px]'
+            submask = self.get_mask()[..., ax_slice]
         # Prepare quiver (select only used arrows if ar_dens is specified):
         dim_uv = plot_u.shape
-        yy, xx = np.indices(dim_uv)
-        xx = xx[::ar_dens, ::ar_dens]
-        yy = yy[::ar_dens, ::ar_dens]
+        vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
+        uu = uu[::ar_dens, ::ar_dens]
+        vv = vv[::ar_dens, ::ar_dens]
         plot_u = plot_u[::ar_dens, ::ar_dens]
         plot_v = plot_v[::ar_dens, ::ar_dens]
         amplitudes = np.hypot(plot_u, plot_v)
-        angles = np.angle(plot_u+1j*plot_v, deg=True)
+        angles = np.angle(plot_u+1j*plot_v, deg=True).tolist()
         # Calculate the arrow colors:
         if coloring == 'angle':
             self._log.debug('Encoding angles')
-            colors = (1 - np.arctan2(plot_v, plot_u)/np.pi) / 2  # in-plane angle (rescaled: 0 - 1)
-            cmap = self._create_directional_colormap(levels=1, N=256)
+            colorinds = (1 + np.arctan2(plot_v, plot_u)/np.pi) / 2  # in-plane color index (0 - 1)
+            cmap = DirectionalColormap()
         elif coloring == 'amplitude':
             self._log.debug('Encoding amplitude')
-            colors = amplitudes / amplitudes.max()
+            colorinds = amplitudes / amplitudes.max()
             cmap = 'jet'
         elif coloring == 'uniform':
             self._log.debug('No color encoding')
-            colors = np.zeros_like(plot_u)  # use black arrows!
+            colorinds = np.zeros_like(plot_u)  # use black arrows!
             cmap = 'gray'
         else:
             raise AttributeError("Invalid coloring mode! Use 'angles', 'amplitude' or 'uniform'!")
@@ -772,19 +778,27 @@ class MagData(object):
             amplitudes = np.hypot(plot_u, plot_v)  # Recalculate!
         # Scale the magnitude of the arrows to the highest one (if specified):
         if scaled:
-            plot_u /= amplitudes.max()
-            plot_v /= amplitudes.max()
-        axis.quiver(xx, yy, plot_u, plot_v, colors, cmap=cmap, angles=angles,
+            plot_u /= amplitudes.max() + 1E-30
+            plot_v /= amplitudes.max() + 1E-30
+        axis.quiver(uu, vv, plot_u, plot_v, colorinds, cmap=cmap, clim=(0, 1), angles=angles,
                     pivot='middle', units='xy', scale_units='xy', scale=scale/ar_dens,
                     minlength=0.25, headwidth=6, headlength=7)
-        axis.set_xlim(-1, dim_uv[1])
-        axis.set_ylim(-1, dim_uv[0])
+        if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
+            vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
+            axis.contour(uu, vv, submask, levels=[0.5], colors='k', linestyles='dotted')
+        axis.set_xlim(0, dim_uv[1])
+        axis.set_ylim(0, dim_uv[0])
         axis.set_title(title, fontsize=18)
         axis.set_xlabel(u_label, fontsize=15)
         axis.set_ylabel(v_label, fontsize=15)
         axis.tick_params(axis='both', which='major', labelsize=14)
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=9, integer=True))
+        if dim_uv[0] >= dim_uv[1]:
+            u_bin, v_bin = np.max((2, np.floor(9*dim_uv[1]/dim_uv[0]))), 9
+        else:
+            u_bin, v_bin = 9, np.max((2, np.floor(9*dim_uv[0]/dim_uv[1])))
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+        # Return plotting axis:
         return axis
 
     def quiver_plot3d(self, title='Magnetization Distribution', limit=None, cmap='jet',
@@ -819,6 +833,7 @@ class MagData(object):
         '''
         self._log.debug('Calling quiver_plot3D')
         from mayavi import mlab
+        import warnings
         a = self.a
         dim = self.dim
         if limit is None:
@@ -834,21 +849,28 @@ class MagData(object):
         z_mag = self.magnitude[2][::ad, ::ad, ::ad].flatten()
         # Plot them as vectors:
         mlab.figure(size=(750, 700))
-        plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode=mode, colormap=cmap)
+        with warnings.catch_warnings(record=True) as w:  # Catch annoying warning
+            plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode=mode, colormap=cmap)
+            if len(w) != 0:  # If a warning occurs make sure it is (only) the expected one!
+                assert len(w) == 1
+                assert issubclass(w[0].category, FutureWarning)
+                assert 'comparison' in str(w[0].message)
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation
             self._log.debug('Encoding full 3D angles')
             from tvtk.api import tvtk
-            phis = (1 - np.arctan2(y_mag, x_mag)/np.pi) / 2  # in-plane angle (rescaled: 0 to 1)
-            thetas = np.arctan2(np.hypot(y_mag, x_mag), z_mag)/np.pi  # vert. angle (also rescaled)
-            levels = 15  # number of shades for up/down arrows (white is up, black is down)
-            N = 256  # Overall number of colors for the colormap (only N/levels per level!)
-            cmap = self._create_directional_colormap(levels, N)
-            colors = []
-            for i in range(len(x_mag)):
-                level = np.floor((1-thetas[i]) * levels)
-                lookup_value = (level + phis[i]) / levels
-                rgba = tuple((np.asarray(cmap(lookup_value)) * (N-1)).astype(np.int))
-                colors.append(rgba)
+            colorinds = DirectionalColormap.rgb_from_direction(x_mag, y_mag, z_mag)
+            colors = map(tuple, colorinds)  # convert to list of tuples!
+#            phis = (1 - np.arctan2(y_mag, x_mag)/np.pi) / 2  # in-plane angle (rescaled: 0 to 1)
+#            thetas = np.arctan2(np.hypot(y_mag, x_mag), z_mag)/np.pi  # vert. angle (also rescaled)
+#            levels = 31  # number of shades for up/down arrows (white is up, black is down)
+#            N = 2048  # Overall number of colors for the colormap (only N/levels per level!)
+#            cmap = DirectionalColormap(levels, N)#self._create_directional_colormap(levels, N)
+#            colors = []
+#            for i in range(len(x_mag)):
+#                level = np.floor((1-thetas[i]) * levels)
+#                lookup_value = (level + phis[i]) / levels
+#                rgba = tuple((np.asarray(cmap(lookup_value)) * 255.99999).astype(np.int))
+#                colors.append(rgba)
             sc = tvtk.UnsignedCharArray()  # Used to hold the colors
             sc.from_array(colors)
             plot.mlab_source.dataset.point_data.scalars = sc

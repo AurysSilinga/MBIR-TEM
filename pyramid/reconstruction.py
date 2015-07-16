@@ -48,11 +48,22 @@ def optimize_linear(costfunction, max_iter=None):
     _log.info('Cost before optimization: {}'.format(costfunction(np.zeros(costfunction.n))))
     x_opt = jcg.conj_grad_minimize(costfunction, max_iter=max_iter).x
     _log.info('Cost after optimization: {}'.format(costfunction(x_opt)))
-    # Create and return fitting MagData object:
+    # Extract additional info if necessary:
+    add_info = []
     data_set = costfunction.fwd_model.data_set
+    count = data_set.count
+    if costfunction.fwd_model.fit_ramps:
+        x_opt, offsets, u_ramps, v_ramps = np.split(x_opt, [-3*count, -2*count, -count])
+        ramps = zip(u_ramps, v_ramps)
+        add_info.append(offsets)
+        add_info.append(ramps)
+    elif costfunction.fwd_model.fit_offsets:
+        x_opt, offsets = np.split(x_opt, [-count])
+        add_info.append(offsets)
+    # Create and return fitting MagData object:
     mag_opt = MagData(data_set.a, np.zeros((3,) + data_set.dim))
     mag_opt.set_vector(x_opt, data_set.mask)
-    return mag_opt
+    return mag_opt, add_info  # TODO: Docstring
 
 
 def optimize_nonlin(costfunction, first_guess=None):

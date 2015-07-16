@@ -57,8 +57,8 @@ class Costfunction(object):
         # Extract important information:
         data_set = fwd_model.data_set
         self.y = data_set.phase_vec
-        self.n = data_set.n
-        self.m = data_set.m
+        self.n = fwd_model.n
+        self.m = fwd_model.m
         if data_set.Se_inv is None:
             data_set.set_Se_inv_diag_with_conf()
         self.Se_inv = data_set.Se_inv

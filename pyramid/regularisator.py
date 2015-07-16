@@ -13,7 +13,6 @@ from scipy import sparse
 
 import jutil.norms as jnorm
 import jutil.diff as jdiff
-import jutil.operator as joperator
 
 import logging
 
@@ -37,24 +36,32 @@ class Regularisator(object):
     lam: float
         Regularisation parameter determining the weighting between measurements and regularisation.
 
-    '''
+    '''  # TODO: ALL dostrings with add_params of input!
 
     __metaclass__ = abc.ABCMeta
     _log = logging.getLogger(__name__+'.Regularisator')
 
     @abc.abstractmethod
-    def __init__(self, norm, lam):
+    def __init__(self, norm, lam, add_params=None):
+        # TODO: Cut off additional parameters at the end (offset and stuff)!!!
+        # OR fix x in init and cut off the rest so you don't have to care what else is needed for F
         self._log.debug('Calling __init__')
         self.norm = norm
         self.lam = lam
+        if add_params is not None:
+            self.add_params = -add_params  # Workaround! For indexing -None does NOT exist!
+            #TODO: define slice!
+        else:
+            self.add_params = None
         self._log.debug('Created '+str(self))
 
     def __call__(self, x):
         self._log.debug('Calling __call__')
-        return self.lam * self.norm(x)
+        # TODO: assert len(x) - self.add_params korrekt
+        return self.lam * self.norm(x[:self.add_params])
 
     def __repr__(self):
-        self._log.debug('Calling __repr__')
+        self._log.debug('Calling __repr__')  # TODO: add_params
         return '%s(norm=%r, lam=%r)' % (self.__class__, self.norm, self.lam)
 
     def __str__(self):
@@ -75,7 +82,9 @@ class Regularisator(object):
             Jacobi vector which represents the cost derivative of all voxels of the magnetization.
 
         '''
-        return self.lam * self.norm.jac(x)
+        result = np.zeros_like(x)
+        result[:self.add_params] = self.lam * self.norm.jac(x[:self.add_params])
+        return result
 
     def hess_dot(self, x, vector):
         '''Calculate the product of a `vector` with the Hessian matrix of the regularisation term.
@@ -96,7 +105,9 @@ class Regularisator(object):
             Product of the input `vector` with the Hessian matrix.
 
         '''
-        return self.lam * self.norm.hess_dot(x, vector)
+        result = np.zeros_like(x)
+        result[:self.add_params] = self.lam * self.norm.hess_dot(x, vector[:self.add_params])
+        return result
 
     def hess_diag(self, x):
         ''' Return the diagonal of the Hessian.
@@ -116,7 +127,9 @@ class Regularisator(object):
 
         '''
         self._log.debug('Calling hess_diag')
-        return self.lam * self.norm.hess_diag(x)
+        result = np.zeros_like(x)
+        result[:self.add_params] = self.lam * self.norm.hess_diag(x[:self.add_params])
+        return result
 
 
 class ComboRegularisator(Regularisator):
@@ -313,14 +326,14 @@ class ZeroOrderRegularisator(Regularisator):
 
     _log = logging.getLogger(__name__+'.ZeroOrderRegularisator')
 
-    def __init__(self, _=None, lam=1E-4, p=2):
+    def __init__(self, _=None, lam=1E-4, p=2, add_params=None):
         self._log.debug('Calling __init__')
         self.p = p
         if p == 2:
             norm = jnorm.L2Square()
         else:
             norm = jnorm.LPPow(p, 1e-12)
-        super(ZeroOrderRegularisator, self).__init__(norm, lam)
+        super(ZeroOrderRegularisator, self).__init__(norm, lam, add_params)
         self._log.debug('Created '+str(self))
 
 
@@ -343,7 +356,7 @@ class FirstOrderRegularisator(Regularisator):
 
     '''
 
-    def __init__(self, mask, lam=1E-4, p=2):
+    def __init__(self, mask, lam=1E-4, p=2, add_params=None):
         self.p = p
         D0 = jdiff.get_diff_operator(mask, 0, 3)
         D1 = jdiff.get_diff_operator(mask, 1, 3)
@@ -353,5 +366,5 @@ class FirstOrderRegularisator(Regularisator):
             norm = jnorm.WeightedL2Square(D)
         else:
             norm = jnorm.WeightedTV(jnorm.LPPow(p, 1e-12), D, [D0.shape[0], D.shape[0]])
-        super(FirstOrderRegularisator, self).__init__(norm, lam)
+        super(FirstOrderRegularisator, self).__init__(norm, lam, add_params)
         self._log.debug('Created '+str(self))

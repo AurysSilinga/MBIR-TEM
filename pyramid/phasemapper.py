@@ -52,15 +52,15 @@ class PhaseMapper(object):
     _log = logging.getLogger(__name__+'.PhaseMapper')
 
     @abc.abstractmethod
-    def __call__(self, mag_data):
+    def __call__(self, mag_data, offset=None):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def jac_dot(self, vector):
+    def jac_dot(self, vector, offset=None):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def jac_T_dot(self, vector):
+    def jac_T_dot(self, vector, offseth=None):
         raise NotImplementedError()
 
 
@@ -113,7 +113,7 @@ class PhaseMapperRDFC(PhaseMapper):
         self._log.debug('Calling __str__')
         return 'PhaseMapperRDFC(kernel=%s)' % (self.kernel)
 
-    def __call__(self, mag_data):
+    def __call__(self, mag_data, offset=None, ramp=None):
         assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
         assert mag_data.a == self.kernel.a, 'Grid spacing has to match!'
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
@@ -121,7 +121,19 @@ class PhaseMapperRDFC(PhaseMapper):
         # Process input parameters:
         self.u_mag[self.kernel.slice_mag] = mag_data.magnitude[0, 0, ...]  # u-component
         self.v_mag[self.kernel.slice_mag] = mag_data.magnitude[1, 0, ...]  # v-component
-        return PhaseMap(mag_data.a, self._convolve())
+        # Handle offset:
+        if offset is not None:
+            off_phase = offset * np.ones(self.kernel.dim_uv)
+        else:
+            off_phase = 0
+        # Handle ramp:
+        if ramp is not None:
+            u_ramp, v_ramp = ramp  # in rad / nm
+            vv, uu = np.indices(self.kernel.dim_uv) * self.kernel.a
+            ramp_phase = u_ramp * uu + v_ramp * vv
+        else:
+            ramp_phase = 0
+        return PhaseMap(mag_data.a, self._convolve() + off_phase + ramp_phase)
 
     def _convolve(self):
         # Fourier transform the projected magnetisation:
@@ -132,7 +144,7 @@ class PhaseMapperRDFC(PhaseMapper):
         # Return the result:
         return fft.irfftn(self.phase_fft)[self.kernel.slice_phase]
 
-    def jac_dot(self, vector):
+    def jac_dot(self, vector, offset=None, ramp=None):
         '''Calculate the product of the Jacobi matrix with a given `vector`.
 
         Parameters
@@ -152,10 +164,21 @@ class PhaseMapperRDFC(PhaseMapper):
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
         self.u_mag[self.kernel.slice_mag], self.v_mag[self.kernel.slice_mag] = \
             np.reshape(vector, (2,)+self.kernel.dim_uv)
-        result = self._convolve().flatten()
-        return result
+        # Handle offset:
+        if offset is not None:
+            off_phase = offset * np.ones(self.kernel.dim_uv)
+        else:
+            off_phase = 0
+        # Handle ramp:
+        if ramp is not None:
+            u_ramp, v_ramp = ramp  # in rad / nm
+            vv, uu = np.indices(self.kernel.dim_uv) * self.kernel.a
+            ramp_phase = u_ramp * uu + v_ramp * vv
+        else:
+            ramp_phase = 0
+        return np.ravel(self._convolve() + off_phase + ramp_phase)
 
-    def jac_T_dot(self, vector):
+    def jac_T_dot(self, vector, return_ramp=False, return_offset=False):
         '''Calculate the product of the transposed Jacobi matrix with a given `vector`.
 
         Parameters
@@ -179,8 +202,23 @@ class PhaseMapperRDFC(PhaseMapper):
         v_phase_adj_fft = mag_adj_fft * -self.kernel.v_fft
         u_phase_adj = fft.rfftn_adj(u_phase_adj_fft)[self.kernel.slice_phase]
         v_phase_adj = fft.rfftn_adj(v_phase_adj_fft)[self.kernel.slice_phase]
-        return -np.concatenate((u_phase_adj.flatten(), v_phase_adj.flatten()))  # TODO: why minus?
+        # TODO: offset subtract?
+        if return_ramp:
+            offset = [vector.sum()]
+            vv, uu = np.indices(self.kernel.dim_uv) * self.kernel.a
+            u_ramp = [np.sum(vector * uu.flatten())]
+            v_ramp = [np.sum(vector * vv.flatten())]
+            result = np.concatenate((-u_phase_adj.flatten(), -v_phase_adj.flatten(),
+                                     offset, u_ramp, v_ramp))
+        elif return_offset:
+            offset = [vector.sum()]
+            result = np.concatenate((-u_phase_adj.flatten(), -v_phase_adj.flatten(), offset))
+        else:
+            result = np.concatenate((-u_phase_adj.flatten(), -v_phase_adj.flatten()))
+        # TODO: Why minus?
+        return result
 
+# TODO: ALL Docstrings with offset!!!
 
 class PhaseMapperRDRC(PhaseMapper):
 

@@ -16,6 +16,9 @@ center.
 
 """
 
+
+from __future__ import division
+
 import numpy as np
 from numpy import pi
 
@@ -65,12 +68,17 @@ class Shapes(object):
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a tuple of length 3!'
-        mag_shape = np.array([[[abs(x - center[2]) <= width[2] / 2
-                             and abs(y - center[1]) <= width[1] / 2
-                             and abs(z - center[0]) <= width[0] / 2
-                             for x in range(dim[2])]
-                             for y in range(dim[1])]
-                             for z in range(dim[0])])
+        zz, yy, xx = np.indices(dim) + 0.5
+        xx_shape = np.where(abs(xx-center[2]) <= width[2]/2, True, False)
+        yy_shape = np.where(abs(yy-center[1]) <= width[1]/2, True, False)
+        zz_shape = np.where(abs(zz-center[0]) <= width[0]/2, True, False)
+        mag_shape = np.logical_and.reduce((xx_shape, yy_shape, zz_shape))
+#        mag_shape = np.array([[[abs(x - center[2]) <= width[2] / 2
+#                             and abs(y - center[1]) <= width[1] / 2
+#                             and abs(z - center[0]) <= width[0] / 2
+#                             for x in range(dim[2])]
+#                             for y in range(dim[1])]
+#                             for z in range(dim[0])])
         return mag_shape
 
     @classmethod

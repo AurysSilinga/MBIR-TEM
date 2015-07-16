@@ -12,14 +12,14 @@ import logging.config
 logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-path_mag = 'kiyou_skyrmion.tif'
-path_ele = 'kiyou_skyrmion_mask.tif'
-filename = 'phasemap_tif_kiyou_skyrmion.nc'
-a = 1.
+path_mag = 'Arnaud_M.tif'
+path_ele = 'Arnaud_MIP_mask.tif'
+filename = 'phasemap_tif_martial_skyrmion.nc'
+a = 2
 dim_uv = None
 max_phase = 1
 threshold = 0.5
-offset = 0.182
+offset = 0
 ###################################################################################################
 
 # Load images:
