@@ -6,10 +6,9 @@
 which adds additional constraints to a costfunction to minimize."""
 
 
-import abc
-
 import numpy as np
 from scipy import sparse
+import abc
 
 import jutil.norms as jnorm
 import jutil.diff as jdiff
@@ -27,46 +26,50 @@ class Regularisator(object):
     Represents a certain constraint for the 3D magnetization distribution whose cost is to minimize
     in addition to the derivation from the 2D phase maps. Important is the used `norm` and the
     regularisation parameter `lam` (lambda) which determines the weighting between the two cost
-    parts (measurements and regularisation).
+    parts (measurements and regularisation). Additional parameters at the end of the input
+    vector, which are not relevant for the regularisation can be discarded by specifying the
+    number in `add_params`.
 
     Attributes
     ----------
-    norm: :class:`~jutil.norm.WeightedNorm`
+    norm : :class:`~jutil.norm.WeightedNorm`
         Norm, which is used to determine the cost of the regularisation term.
-    lam: float
+    lam : float
         Regularisation parameter determining the weighting between measurements and regularisation.
+    add_params : int
+        Number of additional parameters which are not used in the regularisation. Used to cut
+        the input vector into the appropriate size.
 
-    '''  # TODO: ALL dostrings with add_params of input!
+    '''
 
     __metaclass__ = abc.ABCMeta
     _log = logging.getLogger(__name__+'.Regularisator')
 
     @abc.abstractmethod
-    def __init__(self, norm, lam, add_params=None):
-        # TODO: Cut off additional parameters at the end (offset and stuff)!!!
-        # OR fix x in init and cut off the rest so you don't have to care what else is needed for F
+    def __init__(self, norm, lam, add_params=0):
         self._log.debug('Calling __init__')
         self.norm = norm
         self.lam = lam
-        if add_params is not None:
-            self.add_params = -add_params  # Workaround! For indexing -None does NOT exist!
-            #TODO: define slice!
+        self.add_params = add_params
+        if self.add_params > 0:
+            self.slice = slice(-add_params)
         else:
-            self.add_params = None
+            self.slice = slice(None)
         self._log.debug('Created '+str(self))
 
     def __call__(self, x):
         self._log.debug('Calling __call__')
-        # TODO: assert len(x) - self.add_params korrekt
-        return self.lam * self.norm(x[:self.add_params])
+        return self.lam * self.norm(x[self.slice])
 
     def __repr__(self):
-        self._log.debug('Calling __repr__')  # TODO: add_params
-        return '%s(norm=%r, lam=%r)' % (self.__class__, self.norm, self.lam)
+        self._log.debug('Calling __repr__')
+        return '%s(norm=%r, lam=%r, add_params=%r)' % (self.__class__, self.norm, self.lam,
+                                                       self.add_params)
 
     def __str__(self):
         self._log.debug('Calling __str__')
-        return 'Regularisator(norm=%s, lam=%s)' % (self.norm, self.lam)
+        return 'Regularisator(norm=%s, lam=%s, add_params=%s)' % (self.norm, self.lam,
+                                                                  self.add_params)
 
     def jac(self, x):
         '''Calculate the derivative of the regularisation term for a given magnetic distribution.
@@ -83,7 +86,7 @@ class Regularisator(object):
 
         '''
         result = np.zeros_like(x)
-        result[:self.add_params] = self.lam * self.norm.jac(x[:self.add_params])
+        result[self.slice] = self.lam * self.norm.jac(x[self.slice])
         return result
 
     def hess_dot(self, x, vector):
@@ -105,8 +108,8 @@ class Regularisator(object):
             Product of the input `vector` with the Hessian matrix.
 
         '''
-        result = np.zeros_like(x)
-        result[:self.add_params] = self.lam * self.norm.hess_dot(x, vector[:self.add_params])
+        result = np.zeros_like(vector)
+        result[self.slice] = self.lam * self.norm.hess_dot(x, vector[self.slice])
         return result
 
     def hess_diag(self, x):
@@ -128,7 +131,7 @@ class Regularisator(object):
         '''
         self._log.debug('Calling hess_diag')
         result = np.zeros_like(x)
-        result[:self.add_params] = self.lam * self.norm.hess_diag(x[:self.add_params])
+        result[self.slice] = self.lam * self.norm.hess_diag(x[self.slice])
         return result
 
 

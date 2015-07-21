@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import jutil
-
 from pyramid import fft
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
@@ -199,6 +198,7 @@ class Diagnostics(object):
         x = mag_x.sum(axis=(0, 1))
         y = mag_y.sum(axis=(0, 2))
         z = mag_z.sum(axis=(1, 2))
+        # Plot helpful stuff:
         plt.figure()
         plt.axhline(y=0, ls='-', color='k')
         plt.axhline(y=1, ls='-', color='k')

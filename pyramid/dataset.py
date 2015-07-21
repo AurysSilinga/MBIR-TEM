@@ -8,9 +8,7 @@ and additional data like corresponding projectors."""
 
 import numpy as np
 from numbers import Number
-
 from scipy import sparse
-
 import matplotlib.pyplot as plt
 
 from pyramid.phasemap import PhaseMap
@@ -265,7 +263,7 @@ class DataSet(object):
         '''
         self._log.debug('Calling display_mask')
         if self.mask is not None:
-            from mayavi import mlab
+            from mayavi import mlab  # TODO: Supress annoying warning from traits!
             zz, yy, xx = np.indices(self.dim)
             ad = ar_dens
             zz = zz[::ad, ::ad, ::ad].flatten()
@@ -358,7 +356,31 @@ class DataSet(object):
             phase_maps = self.create_phase_maps(mag_data)
         else:
             phase_maps = self.phase_maps
-        [phase_map.display_combined('{} ({})'.format(title, self.projectors[i].get_info()),
-                                    cmap, limit, norm, gain, interpolation, grad_encode)
-            for (i, phase_map) in enumerate(phase_maps)]
+        for (i, phase_map) in enumerate(phase_maps):
+            phase_map.display_combined('{} ({})'.format(title, self.projectors[i].get_info()),
+                                       cmap, limit, norm, gain, interpolation, grad_encode)
         plt.show()
+
+
+# TODO: Multiprocessing! ##########################################################################
+# TODO: Use proxy objects? (https://docs.python.org/2/library/multiprocessing.html#proxy-objects)
+# class DistributedDataSet(DataSet):
+#
+#    @property
+#    def count(self):
+#        return np.sum([len(data_set.projectors) for data_set in self.data_sets])
+#
+#    def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None):
+#        # TODO: get number of processes!
+#        self.nprocs = 4
+#        self.data_sets = []
+#        for proc_ind in range(self.nprocs):
+#            # TODO: Create processes and let DataSet live there!
+#            self.data_sets.append(DataSet(a, dim, b_0, mask, Se_inv))
+#
+#    def __get_item__(self, key):
+#        return self.data_sets[key]
+#
+#    def append(self, phase_map, projector):
+#        self.data_sets[self.count % self.nprocs].append(phase_map, projector)
+###################################################################################################

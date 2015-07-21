@@ -68,8 +68,8 @@ def phase_mag_slab(dim, a, phi, center, width, b_0=1):
                                               + F_0(y-y0+Ly/2, x-x0+Lx/2)))
     # Process input parameters:
     z_dim, y_dim, x_dim = dim
-    y0 = a * (center[1] + 0.5)  # y0, x0 define the center of a pixel,
-    x0 = a * (center[2] + 0.5)  # hence: (cellindex + 0.5) * grid spacing
+    y0 = a * center[1]  # y0, x0 define the center of a pixel,
+    x0 = a * center[2]  # hence: (cellindex + 0.5) * grid spacing
     Lz, Ly, Lx = a * width[0], a * width[1], a * width[2]
     coeff = - b_0 / (4*PHI_0)  # Minus because of negative z-direction
     # Create grid:
@@ -111,16 +111,15 @@ def phase_mag_disc(dim, a, phi, center, radius, height, b_0=1):
 
     # Function for the phase:
     def phi_mag(x, y):
-        r = np.hypot(x - x0, y - y0)
-        r[center[1], center[2]] = 1E-30
-        result = coeff * Lz * ((y - y0) * np.cos(phi) - (x - x0) * np.sin(phi))
-        result *= np.where(r <= R, 1, (R / r) ** 2)
+        r = np.hypot(x-x0, y-y0)
+        result = coeff * Lz * ((y-y0) * np.cos(phi) - (x-x0) * np.sin(phi))
+        result *= np.where(r <= R, 1, (R / (r+1E-30)) ** 2)
         return result
 
     # Process input parameters:
     z_dim, y_dim, x_dim = dim
-    y0 = a * (center[1] + 0.5)  # y0, x0 have to be in the center of a pixel,
-    x0 = a * (center[2] + 0.5)  # hence: cellindex + 0.5
+    y0 = a * center[1]
+    x0 = a * center[2]
     Lz = a * height
     R = a * radius
     coeff = pi * b_0 / (2*PHI_0)  # Minus is gone because of negative z-direction
@@ -161,16 +160,15 @@ def phase_mag_sphere(dim, a, phi, center, radius, b_0=1):
 
     # Function for the phase:
     def phi_mag(x, y):
-        r = np.hypot(x - x0, y - y0)
-        r[center[1], center[2]] = 1E-30
-        result = coeff * R ** 3 / r ** 2 * ((y - y0) * np.cos(phi) - (x - x0) * np.sin(phi))
+        r = np.hypot(x-x0, y-y0)
+        result = coeff * R ** 3 / (r+1E-30) ** 2 * ((y-y0) * np.cos(phi) - (x-x0) * np.sin(phi))
         result *= np.where(r > R, 1, (1 - (1 - (r / R) ** 2) ** (3. / 2.)))
         return result
 
     # Process input parameters:
     z_dim, y_dim, x_dim = dim
-    y0 = a * (center[1] + 0.5)  # y0, x0 have to be in the center of a pixel,
-    x0 = a * (center[2] + 0.5)  # hence: cellindex + 0.5
+    y0 = a * center[1]
+    x0 = a * center[2]
     R = a * radius
     coeff = 2./3. * pi * b_0 / PHI_0  # Minus is gone because of negative z-direction
     # Create grid:
@@ -216,8 +214,8 @@ def phase_mag_vortex(dim, a, center, radius, height, b_0=1):
 
     # Process input parameters:
     z_dim, y_dim, x_dim = dim
-    y0 = a * (center[1] + 0.5)  # y0, x0 have to be in the center of a pixel,
-    x0 = a * (center[2] + 0.5)  # hence: cellindex + 0.5
+    y0 = a * center[1]
+    x0 = a * center[2]
     Lz = a * height
     R = a * radius
     coeff = - pi * b_0 * Lz / PHI_0  # Minus because of negative z-direction

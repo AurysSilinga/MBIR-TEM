@@ -16,9 +16,10 @@ import numpy as np
 import cPickle as pickle
 import os
 
+from pyramid.config import NTHREADS
+
 import logging
 
-from pyramid.config import NTHREADS
 
 # pyFFTW depends on this
 try:

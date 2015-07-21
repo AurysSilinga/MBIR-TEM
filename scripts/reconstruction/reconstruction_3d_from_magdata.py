@@ -22,8 +22,8 @@ max_iter = 100
 use_internal_mask = True
 offset_max = 2
 ramp_max = 0.01
-fit_ramps = True
-fit_offsets = True
+order = 1
+show_input = True
 ###################################################################################################
 
 # Load magnetization distribution:
@@ -59,8 +59,9 @@ if noise != 0:
         data.phase_maps[i] = phase_map
 
 # Plot input:
-for i, phase_map in enumerate(data.phase_maps):
-    phase_map.display_phase()
+if show_input:
+    for i, phase_map in enumerate(data.phase_maps):
+        phase_map.display_phase()
 
 # Construct mask:
 if use_internal_mask:
@@ -69,30 +70,19 @@ else:
     data.set_3d_mask()  # Construct mask from 2D phase masks!
 
 # Construct regularisator, forward model and costfunction:
-if fit_ramps:
-    add_param_count = 3 * data.count
-elif fit_offsets:
-    add_param_count = data.count
-else:
-    add_param_count = None
-reg = pr.FirstOrderRegularisator(data.mask, lam, add_params=add_param_count)
-fwd_model = pr.ForwardModel(data, fit_offsets=fit_offsets, fit_ramps=fit_ramps)
+fwd_model = pr.ForwardModel(data, ramp_order=order)
+reg = pr.FirstOrderRegularisator(data.mask, lam, add_params=fwd_model.ramp.n)
 cost = pr.Costfunction(fwd_model, reg)
 
 # Reconstruct and save:
 with TakeTime('reconstruction time'):
-    mag_data_rec, add_info = pr.reconstruction.optimize_linear(cost, max_iter=max_iter)
-if fit_ramps:
-    offset, ramp = add_info[0], add_info[1]
-    print 'offsets:', offset
-    print 'ramps:', ramp
-elif fit_offsets:
-    offset = add_info[0]
-    print 'offset:', offset
+    mag_data_rec = pr.reconstruction.optimize_linear(cost, max_iter=max_iter)
+    param_cache = cost.fwd_model.ramp.param_cache
 mag_name_rec = mag_name.replace('magdata', 'magdata_rec')
 mag_data_rec.save_to_netcdf4(mag_name_rec+'.nc')
 
 # Plot stuff:
+
 data.display_mask(ar_dens=np.ceil(np.max(dim)/64.))
 mag_data.quiver_plot3d('Original Distribution', ar_dens=np.ceil(np.max(dim)/64.))
 mag_data_rec.quiver_plot3d('Reconstructed Distribution', ar_dens=np.ceil(np.max(dim)/64.))

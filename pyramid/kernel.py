@@ -123,7 +123,7 @@ class Kernel(object):
     def _get_elementary_phase(self, geometry, n, m, a):
         self._log.debug('Calling _get_elementary_phase')
         if geometry == 'disc':
-            in_or_out = np.logical_not(np.logical_and(n == 0, m == 0))
+            in_or_out = ~ np.logical_and(n == 0, m == 0)
             return m / (n**2 + m**2 + 1E-30) * in_or_out
         elif geometry == 'slab':
             def F_a(n, m):

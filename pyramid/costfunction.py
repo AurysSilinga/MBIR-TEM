@@ -17,6 +17,7 @@ __all__ = ['Costfunction']
 
 
 class Costfunction(object):
+
     '''Class for calculating the cost of a 3D magnetic distributions in relation to 2D phase maps.
 
     Represents a strategy for the calculation of the `cost` of a 3D magnetic distribution in
@@ -55,13 +56,12 @@ class Costfunction(object):
         if self.regularisator is None:
             self.regularisator = NoneRegularisator()
         # Extract important information:
-        data_set = fwd_model.data_set
-        self.y = data_set.phase_vec
-        self.n = fwd_model.n
-        self.m = fwd_model.m
-        if data_set.Se_inv is None:
-            data_set.set_Se_inv_diag_with_conf()
-        self.Se_inv = data_set.Se_inv
+        self.y = self.fwd_model.data_set.phase_vec
+        self.n = self.fwd_model.n
+        self.m = self.fwd_model.m
+        if self.fwd_model.data_set.Se_inv is None:
+            self.fwd_model.data_set.set_Se_inv_diag_with_conf()
+        self.Se_inv = self.fwd_model.data_set.Se_inv
         self._log.debug('Created '+str(self))
 
     def __repr__(self):

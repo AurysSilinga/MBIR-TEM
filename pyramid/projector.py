@@ -10,12 +10,9 @@ from __future__ import division
 
 import numpy as np
 from numpy import pi
-
-import abc
-
 import itertools
-
 from scipy.sparse import coo_matrix, csr_matrix
+import abc
 
 from pyramid.magdata import MagData
 from pyramid.quaternion import Quaternion

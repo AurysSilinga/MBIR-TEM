@@ -6,21 +6,17 @@
 
 
 import os
-
 import numpy as np
 from scipy.ndimage.interpolation import zoom
-
-from pyramid.colormap import DirectionalColormap
-
+from numbers import Number
+import netCDF4
+from PIL import Image
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import MaxNLocator, FuncFormatter
-from PIL import Image
 
-from numbers import Number
-
-import netCDF4
+from pyramid.colormap import DirectionalColormap
 
 import logging
 
@@ -219,7 +215,6 @@ class PhaseMap(object):
         else:  # other is a Number
             self._log.debug('Adding an offset')
             return PhaseMap(self.a, self.phase+other, self.mask, self.confidence, self.unit)
-        # TODO: Add fitting numpy array! (useful for ramps)!
 
     def __sub__(self, other):  # self - other
         self._log.debug('Calling __sub__')
@@ -255,12 +250,6 @@ class PhaseMap(object):
     def __imul__(self, other):  # self *= other
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
-
-    def add_ramp(self, offset=0, ramp=(0, 0)):
-        # TODO: Docstring!
-        self._log.debug('Calling add_ramp')
-        vv, uu = self.a * np.indices(self.dim_uv)
-        self.phase += offset + ramp[0]*uu + ramp[1]*vv
 
     def copy(self):
         '''Returns a copy of the :class:`~.PhaseMap` object
@@ -691,45 +680,13 @@ class PhaseMap(object):
         if title is None:
             title = 'Contour Map (gain: %.2g)' % gain
         # Calculate the holography image intensity:
-#        img_holo = (1 + np.cos(gain * self.phase)) / 2
         holo = (1 + np.cos(gain * self.phase)) / 2
         # Calculate the phase gradients, expressed by magnitude and angle:
         phase_grad_x, phase_grad_y = np.gradient(self.phase, self.a, self.a)
-#        plt.figure()
-#        plt.imshow(phase_grad_x)
-#        plt.figure()
-#        plt.imshow(phase_grad_y)
         angles = (1 - np.arctan2(phase_grad_y, phase_grad_x)/np.pi) / 2
         phase_grad_amp = np.hypot(phase_grad_y, phase_grad_x)
-#        phase_angle = (1 + np.arctan2(phase_grad_y, phase_grad_x)/np.pi) / 2
-#        phase_magnitude = np.hypot(phase_grad_x, phase_grad_y)
-        # Calculate the color saturation:
-#        saturation = np.sin(phase_magnitude/(phase_magnitude.max()+1E-30) * np.pi / 2)
-#        phase_saturation = np.dstack((saturation,)*4)
         saturations = np.sin(phase_grad_amp/(phase_grad_amp.max()+1E-30)*np.pi/2)  # betw. 0 and 1
-#        # Color code the angle and create the holography image:
-#        if grad_encode == 'dark':
-#            self._log.debug('gradient encoding: dark')
-#            rgba = self.HOLO_CMAP(phase_angle)
-#            rgb = (255.999 * img_holo.T * saturation.T * rgba[:, :, :3].T).T.astype(np.uint8)
-#        elif grad_encode == 'bright_old':
-#            self._log.debug('gradient encoding: bright')
-#            rgba = self.HOLO_CMAP(phase_angle)+(1-phase_saturation)*self.HOLO_CMAP_INV(phase_angle)
-#            rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
-#        elif grad_encode == 'bright':
-#            self._log.debug('gradient encoding: bright')
-#            rgba = self.HOLO_CMAP(phase_angle)+(1-phase_saturation)*self.HOLO_CMAP_INV(phase_angle)
-#            rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
-#        elif grad_encode == 'color':
-#            self._log.debug('gradient encoding: color')
-#            rgba = self.HOLO_CMAP(phase_angle)
-#            rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
-#        elif grad_encode == 'none':
-#            self._log.debug('gradient encoding: none')
-#            rgba = self.HOLO_CMAP(phase_angle)+self.HOLO_CMAP_INV(phase_angle)
-#            rgb = (255.999 * img_holo.T * rgba[:, :, :3].T).T.astype(np.uint8)
-#        else:
-#            raise AssertionError('Gradient encoding not recognized!')
+        # Calculate color encoding:
         if grad_encode == 'dark':
             pass
         elif grad_encode == 'bright':
@@ -740,6 +697,7 @@ class PhaseMap(object):
             saturations = 2*np.ones_like(saturations)
         else:
             raise AssertionError('Gradient encoding not recognized!')
+        # Calculate colored holo image:
         rgb = DirectionalColormap.rgb_from_colorind_and_saturation(angles, saturations)
         rgb = (holo.T * rgb.T).T.astype(np.uint8)
         holo_image = Image.fromarray(rgb)
@@ -815,34 +773,3 @@ class PhaseMap(object):
         self.display_phase(cmap='RdBu', limit=limit, norm=norm, axis=phase_axis)
         # Return the plotting axes:
         return phase_axis, holo_axis
-
-#    @classmethod
-#    def make_color_wheel(cls):
-#        '''Display a color wheel to illustrate the color coding of the gradient direction.
-#
-#        Parameters
-#        ----------
-#        None
-#
-#        Returns
-#        -------
-#        None
-#
-#        '''
-#        cls._log.debug('Calling make_color_wheel')
-#        yy, xx = np.indices((512, 512)) - 256
-#        r = np.sqrt(xx**2 + yy**2)
-#        # Create the wheel:
-#        color_wheel_magnitude = (1 - np.cos(r * pi/360)) / 2
-#        color_wheel_magnitude *= 0 * (r > 256) + 1 * (r <= 256)
-#        color_wheel_angle = (1 - np.arctan2(xx, -yy)/pi) / 2
-#        # Color code the angle and create the holography image:
-#        rgba = cls.HOLO_CMAP(color_wheel_angle)
-#        rgb = (255.999 * color_wheel_magnitude.T * rgba[:, :, :3].T).T.astype(np.uint8)
-#        color_wheel = Image.fromarray(rgb)
-#        # Plot the color wheel:
-#        fig = plt.figure(figsize=(4, 4))
-#        axis = fig.add_subplot(1, 1, 1, aspect='equal')
-#        axis.imshow(color_wheel, origin='lower')
-#        axis.xaxis.set_major_locator(NullLocator())
-#        axis.yaxis.set_major_locator(NullLocator())

@@ -30,10 +30,14 @@ reconstruction
     Reconstruct magnetic distributions from given phasemaps.
 regularisator
     Class to instantiate different regularisation strategies.
+ramp
+    Class which is used to add polynomial ramps to phasemaps.
 diagnostics
     Class to calculate diagnostics
 quaternion
     Class which is used for easy rotations in the Projector classes.
+colormap
+    Class which implements a custom direction encoding colormap.
 fft
     Class for custom FFT functions using numpy or FFTW.
 
@@ -46,11 +50,8 @@ numcore
 
 
 from . import analytic
-from . import analytic as an
 from . import magcreator
-from . import magcreator as mc
 from . import reconstruction
-from . import reconstruction as rc
 from . import fft
 from .costfunction import *  # analysis:ignore
 from .dataset import *  # analysis:ignore
@@ -62,6 +63,7 @@ from .phasemap import *  # analysis:ignore
 from .phasemapper import *  # analysis:ignore
 from .projector import *  # analysis:ignore
 from .regularisator import *  # analysis:ignore
+from .ramp import *  # analysis:ignore
 from .quaternion import *  # analysis:ignore
 from .colormap import *  # analysis:ignore
 from .config import *  # analysis:ignore
@@ -73,7 +75,7 @@ _log = logging.getLogger(__name__)
 _log.info("Starting PYRAMID V{} HG{}".format(__version__, __hg_revision__))
 del logging
 
-__all__ = ['analytic', 'magcreator', 'reconstruction', 'fft', 'an', 'mc', 'rc']
+__all__ = ['analytic', 'magcreator', 'reconstruction', 'fft']
 __all__.extend(costfunction.__all__)
 __all__.extend(dataset.__all__)
 __all__.extend(diagnostics.__all__)
@@ -84,5 +86,6 @@ __all__.extend(phasemap.__all__)
 __all__.extend(phasemapper.__all__)
 __all__.extend(projector.__all__)
 __all__.extend(regularisator.__all__)
+__all__.extend(ramp.__all__)
 __all__.extend(quaternion.__all__)
 __all__.extend(colormap.__all__)
