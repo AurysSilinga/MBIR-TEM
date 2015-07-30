@@ -11,13 +11,14 @@ import logging.config
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-phase_name = 'phasemap_bmp_trevor_magnetite_m20'
+phase_name = 'phasemap_tif_martial_magnetite'
 b_0 = 0.6  # in T
 lam = 1E-3
 max_iter = 100
 buffer_pixel = 0
-order = 1
+order = 0
 ###################################################################################################
+
 
 # Load phase map:
 phase_map = pr.PhaseMap.load_from_netcdf4(phase_name+'.nc')
@@ -47,7 +48,7 @@ mag_name = '{}_lam={}'.format(phase_name.replace('phasemap', 'magdata_rec'), lam
 mag_data_rec.save_to_netcdf4(mag_name+'.nc')
 
 # Plot stuff:
-mag_data_rec.quiver_plot('Reconstructed Distribution', ar_dens=np.ceil(np.max(dim)/128.))
+mag_data_rec.quiver_plot('Reconstructed Distribution', ar_dens=int(np.ceil(np.max(dim)/128.)))
 phase_map.crop((buffer_pixel, buffer_pixel))
 phase_map.display_combined('Input Phase')
 phase_map -= fwd_model.ramp(index=0)

@@ -354,7 +354,7 @@ class MagData(object):
         self._log.debug('Calling set_vector')
         vector = np.asarray(vector, dtype=fft.FLOAT)
         assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
-        count = np.size(vector)/3
+        count = np.size(vector)//3
         if mask is not None:
             self.magnitude[0][mask] = vector[:count]  # x-component
             self.magnitude[1][mask] = vector[count:2*count]  # y-component

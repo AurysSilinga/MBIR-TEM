@@ -12,15 +12,15 @@ import logging.config
 logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-path_mag = 'trevor_magnetite_m20.bmp'
-path_mask = 'trevor_magnetite_mask20.bmp'
-filename = 'phasemap_bmp_trevor_magnetite_m20.nc'
+path_mag = 'Arnaud_M.tif'
+path_mask = 'Arnaud_MIP_mask.tif'
+filename = 'phasemap_tif_martial_magnetite.nc'
 a = 0.4  # nm
 dim_uv = None
 max_phase = 1
 threshold = 0.5
 offset = 0
-flip_up_down = True
+flip_up_down = False
 ###################################################################################################
 
 # Load images:

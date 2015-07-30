@@ -247,6 +247,7 @@ class NoneRegularisator(Regularisator):
         self._log.debug('Calling __init__')
         self.norm = None
         self.lam = 0
+        self.add_params = None
         self._log.debug('Created '+str(self))
 
     def __call__(self, x):

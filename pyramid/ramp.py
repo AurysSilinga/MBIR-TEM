@@ -80,7 +80,8 @@ class Ramp(object):
             # Iterate over all degrees of freedom:
             for dof in dof_list:
                 # Add the contribution of the current degree of freedom:
-                phase_ramp += self.param_cache[dof][index] * self.create_poly_mesh(dof, dim_uv)
+                phase_ramp += self.param_cache[dof][index] * \
+                              self.create_poly_mesh(self.data_set.a, dof, dim_uv)
             return PhaseMap(self.data_set.a, phase_ramp, mask=np.zeros(dim_uv, dtype=np.bool))
 
     def jac_dot(self, index):
@@ -108,7 +109,8 @@ class Ramp(object):
             # Iterate over all degrees of freedom:
             for dof in range(self.deg_of_freedom):
                 # Add the contribution of the current degree of freedom:
-                phase_ramp += self.param_cache[dof][index] * self.create_poly_mesh(dof, dim_uv)
+                phase_ramp += self.param_cache[dof][index] * \
+                              self.create_poly_mesh(self.data_set.a, dof, dim_uv)
             return np.ravel(phase_ramp)
 
     def jac_T_dot(self, vector):
@@ -132,35 +134,10 @@ class Ramp(object):
             # Iterate over all projectors:
             for i, projector in enumerate(self.data_set.projectors):
                 sub_vec = vector[hp[i]:hp[i+1]]
-                poly_mesh = self.create_poly_mesh(dof, projector.dim_uv)
+                poly_mesh = self.create_poly_mesh(self.data_set.a, dof, projector.dim_uv)
                 # Transposed ramp parameters: summed product of the vector with the poly-mesh:
                 result.append(np.sum(sub_vec * np.ravel(poly_mesh)))
         return result
-
-    def create_poly_mesh(self, deg_of_freedom, dim_uv):
-        '''Create a polynomial mesh for the ramp calculation for a specific degree of freedom.
-
-        Parameters
-        ----------
-        deg_of_freedom : int
-            Current degree of freedom for which the mesh should be created. 0 corresponds to a
-            simple offset, 1 corresponds to a linear ramp in u-direction, 2 to a linear ramp in
-            v-direction and so on.
-        dim_uv : tuple (N=2)
-            Dimensions of the 2D mesh that should be created.
-
-        Returns
-        -------
-        result_mesh : :class:`~numpy.ndarray` (N=2)
-            Polynomial mesh that was created and can be used for further calculations.
-
-        '''
-        # Determine if u-direction (u_or_v == 1) or v-direction (u_or_v == 0)!
-        u_or_v = (deg_of_freedom - 1) % 2
-        # Determine polynomial order:
-        order = (deg_of_freedom + 1) // 2
-        # Return polynomial mesh:
-        return (np.indices(dim_uv)[u_or_v] * self.data_set.a) ** order
 
     def extract_ramp_params(self, x):
         '''Extract the ramp parameters of an input vector and return the rest.
@@ -188,3 +165,38 @@ class Ramp(object):
             x, ramp_params = np.split(x, [-self.n])
             self.param_cache = ramp_params.reshape((self.deg_of_freedom, self.data_set.count))
         return x
+
+    @classmethod
+    def create_poly_mesh(cls, a, deg_of_freedom, dim_uv):
+        '''Create a polynomial mesh for the ramp calculation for a specific degree of freedom.
+
+        Parameters
+        ----------
+        deg_of_freedom : int
+            Current degree of freedom for which the mesh should be created. 0 corresponds to a
+            simple offset, 1 corresponds to a linear ramp in u-direction, 2 to a linear ramp in
+            v-direction and so on.
+        dim_uv : tuple (N=2)
+            Dimensions of the 2D mesh that should be created.
+
+        Returns
+        -------
+        result_mesh : :class:`~numpy.ndarray` (N=2)
+            Polynomial mesh that was created and can be used for further calculations.
+
+        '''# TODO: Docstring a!
+        # Determine if u-direction (u_or_v == 1) or v-direction (u_or_v == 0)!
+        u_or_v = (deg_of_freedom - 1) % 2
+        # Determine polynomial order:
+        order = (deg_of_freedom + 1) // 2
+        # Return polynomial mesh:
+        return (np.indices(dim_uv)[u_or_v] * a) ** order
+
+    @classmethod
+    def create_ramp(cls, a, dim_uv, params):
+        #TODO: Docstring!
+        phase_ramp = np.zeros(dim_uv)
+        dof_list = range(len(params))
+        for dof in dof_list:
+            phase_ramp += params[dof] * cls.create_poly_mesh(a, dof, dim_uv)
+        return PhaseMap(a, phase_ramp, mask=np.zeros(dim_uv, dtype=np.bool))

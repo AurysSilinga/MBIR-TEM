@@ -4,7 +4,8 @@
 
 import os
 import numpy as np
-from pyDM3reader import DM3lib as dm3
+import hyperspy.hspy as hp
+from PIL import Image
 import pyramid as py
 import logging.config
 
@@ -12,17 +13,21 @@ import logging.config
 logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-path_mag = 'zi_an_elongated_nanorod.dm3'
-path_ele = 'zi_an_elongated_nanorod_mip.dm3'
-filename = 'phasemap_dm3_zi_an_elongated_nanorod.nc'
+path_mag = 'zi_an_magnetite_4_particles_magnetic.dm3'
+path_ele = 'zi_an_magnetite_4_particles_electric_smooth.dm3'
+filename = 'phasemap_dm3_zi_an_magnetite_4_particles.nc'
 a = 1.
-dim_uv = None
-threshold = 4.5
+dim_uv = (512, 512)
+threshold = 0.5
+flip_up_down = True
 ###################################################################################################
 
 # Load images:
-im_mag = dm3.DM3(os.path.join(py.DIR_FILES, 'dm3', path_mag)).image
-im_ele = dm3.DM3(os.path.join(py.DIR_FILES, 'dm3', path_ele)).image
+im_mag = Image.fromarray(hp.load(os.path.join(py.DIR_FILES, 'dm3', path_mag)).data)
+im_ele = Image.fromarray(hp.load(os.path.join(py.DIR_FILES, 'dm3', path_ele)).data)
+if flip_up_down:
+    im_mag = im_mag.transpose(Image.FLIP_TOP_BOTTOM)
+    im_ele = im_ele.transpose(Image.FLIP_TOP_BOTTOM)
 if dim_uv is not None:
     im_mag = im_mag.resize(dim_uv)
     im_ele = im_ele.resize(dim_uv)

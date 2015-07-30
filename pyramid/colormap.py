@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from PIL import Image
+from numbers import Number
 
 import logging
 
@@ -157,7 +158,10 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
 
         '''
         cls._log.debug('Calling rgb_from_colorind_and_saturation')
-        c, s = np.ravel(colorind), np.ravel(saturation)
+        # Make sure colorind and saturation are arrays (if not make it so):
+        c = np.array([colorind]) if isinstance(colorind, Number) else colorind
+        s = np.array([saturation]) if isinstance(saturation, Number) else saturation
+        # Calculate rgb and the inverse and combine them:
         rgb_norm = (np.minimum(s, np.ones_like(s)).T * cls.HOLO_CMAP(c)[..., :3].T).T
         rgb_invs = (np.maximum(s-1, np.zeros_like(s)).T * cls.HOLO_CMAP_INV(c)[..., :3].T).T
         return (255.999 * (rgb_norm + rgb_invs)).astype(np.uint8)

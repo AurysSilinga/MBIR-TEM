@@ -238,7 +238,7 @@ class DataSet(object):
         if mask_list is None:  # if no masks are given, extract from phase maps:
             mask_list = [phase_map.mask for phase_map in self.phase_maps]
         if len(mask_list) == 1:  # just one phase_map --> 3D mask equals 2D mask
-            self.mask = np.expand_dims(mask_list[0], axis=0)
+            self.mask = np.expand_dims(mask_list[0], axis=0)  # z-dim is set to 1!
         else:  # 3D mask has to be constructed from 2D masks:
             mask_3d_inv = np.zeros(self.dim)
             for i, projector in enumerate(self.projectors):
@@ -360,27 +360,3 @@ class DataSet(object):
             phase_map.display_combined('{} ({})'.format(title, self.projectors[i].get_info()),
                                        cmap, limit, norm, gain, interpolation, grad_encode)
         plt.show()
-
-
-# TODO: Multiprocessing! ##########################################################################
-# TODO: Use proxy objects? (https://docs.python.org/2/library/multiprocessing.html#proxy-objects)
-# class DistributedDataSet(DataSet):
-#
-#    @property
-#    def count(self):
-#        return np.sum([len(data_set.projectors) for data_set in self.data_sets])
-#
-#    def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None):
-#        # TODO: get number of processes!
-#        self.nprocs = 4
-#        self.data_sets = []
-#        for proc_ind in range(self.nprocs):
-#            # TODO: Create processes and let DataSet live there!
-#            self.data_sets.append(DataSet(a, dim, b_0, mask, Se_inv))
-#
-#    def __get_item__(self, key):
-#        return self.data_sets[key]
-#
-#    def append(self, phase_map, projector):
-#        self.data_sets[self.count % self.nprocs].append(phase_map, projector)
-###################################################################################################
