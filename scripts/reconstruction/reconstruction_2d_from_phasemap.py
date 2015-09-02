@@ -11,12 +11,12 @@ import logging.config
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-phase_name = 'phasemap_tif_martial_magnetite'
-b_0 = 0.6  # in T
+phase_name = 'phasemap_tif_Arnaud_M'
+b_0 = 1  # in T
 lam = 1E-3
 max_iter = 100
 buffer_pixel = 0
-order = 0
+order = 1
 ###################################################################################################
 
 
@@ -37,11 +37,11 @@ cost = pr.Costfunction(fwd_model, reg)
 # Reconstruct and save:
 with TakeTime('reconstruction time'):
     mag_data_rec = pr.reconstruction.optimize_linear(cost, max_iter=max_iter)
-    add_info = cost.fwd_model.ramp.param_cache
+    param_cache = cost.fwd_model.ramp.param_cache
 if order >= 1:
-    offset, ramp = add_info[0][0], (add_info[1][0], add_info[2][0])
+    offset, ramp = param_cache[0][0], (param_cache[1][0], param_cache[2][0])
 elif order == 0:
-    offset = add_info[0][0]
+    offset = param_cache[0][0]
 mag_data_buffer = mag_data_rec.copy()
 mag_data_rec.crop((0, buffer_pixel, buffer_pixel))
 mag_name = '{}_lam={}'.format(phase_name.replace('phasemap', 'magdata_rec'), lam)

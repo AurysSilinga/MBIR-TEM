@@ -401,7 +401,7 @@ class PhaseMap(object):
         self.mask = self.mask[cv[0]:cv[1], cv[2]:cv[3]]
         self.confidence = self.confidence[cv[0]:cv[1], cv[2]:cv[3]]
 
-    def save_to_txt(self, filename='phasemap.txt'):
+    def save_to_txt(self, filename='phasemap.txt', skip_header=False):
         '''Save :class:`~.PhaseMap` data in a file with txt-format.
 
         Parameters
@@ -409,6 +409,9 @@ class PhaseMap(object):
         filename : string
             The name of the file in which to store the phase map data.
             The default is '..\output\phasemap_output.txt'.
+        skip_header : boolean, optional
+            Determines if the header, should be skipped (useful for some other programs).
+            Default is False.
 
         Returns
         -------
@@ -425,8 +428,9 @@ class PhaseMap(object):
             filename = os.path.join(directory, filename)
         # Save data to file:
         with open(filename, 'w') as phase_file:
-            phase_file.write('{}\n'.format(filename.replace('.txt', '')))
-            phase_file.write('grid spacing = {} nm\n'.format(self.a))
+            if not skip_header:
+                phase_file.write('{}\n'.format(filename.replace('.txt', '')))
+                phase_file.write('grid spacing = {} nm\n'.format(self.a))
             np.savetxt(phase_file, self.phase, fmt='%7.6e', delimiter='\t')
 
     @classmethod
@@ -538,6 +542,34 @@ class PhaseMap(object):
         confidence = phase_file.variables['confidence'][:]
         phase_file.close()
         return PhaseMap(a, phase, mask, confidence)
+
+    def to_hyperspy(self):
+        '''Return a :class:`~.hyperspy.signals.Image` class instance. Useful for file exports.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        hyperspy_image : :class:`~.hyperspy.signals.Image`
+            Hyperspy Image class which can be further used with the hyperspy package.
+
+        Notes
+        -----
+        Does not save the unit and mask of the original phase map.
+
+        '''
+        self._log.debug('Calling to_hyperspy')
+        import hyperspy.hspy as hp
+        phase_map_hp = hp.signals.Image(self.phase)
+        phase_map_hp.axes_manager[0].name = 'X'
+        phase_map_hp.axes_manager[0].units = 'nm'
+        phase_map_hp.axes_manager[0].scale = self.a
+        phase_map_hp.axes_manager[1].name = 'Y'
+        phase_map_hp.axes_manager[1].units = 'nm'
+        phase_map_hp.axes_manager[1].scale = self.a
+        return phase_map_hp
 
     def display_phase(self, title='Phase Map', cmap='RdBu', limit=None,
                       norm=None, axis=None, cbar=True, show_mask=True):

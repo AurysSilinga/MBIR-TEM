@@ -90,7 +90,6 @@ if __name__ == '__main__':
     mag_data_rec.save_to_netcdf4(mag_name_rec+'.nc')
 
     # Plot stuff:
-
     data.display_mask(ar_dens=np.ceil(np.max(dim)/64.))
     mag_data.quiver_plot3d('Original Distribution', ar_dens=np.ceil(np.max(dim)/64.))
     mag_data_rec.quiver_plot3d('Reconstructed Distribution', ar_dens=np.ceil(np.max(dim)/64.))

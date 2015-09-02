@@ -427,6 +427,69 @@ class MagData(object):
             raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
         return MagData(self.a, magnitude_rot)
 
+    def save_to_netcdf4(self, filename='magdata.nc'):
+        '''Save magnetization data in a file with NetCDF4-format.
+
+        Parameters
+        ----------
+        filename : string, optional
+            The name of the NetCDF4-file in which to store the magnetization data.
+            Standard format is '\*.nc'.
+
+        Returns
+        -------
+        None
+
+        '''
+        self._log.debug('Calling save_to_netcdf4')
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'magdata')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
+        # Save data to file:
+        mag_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
+        mag_file.a = self.a
+        mag_file.createDimension('comp', 3)  # Number of components
+        mag_file.createDimension('z_dim', self.dim[0])
+        mag_file.createDimension('y_dim', self.dim[1])
+        mag_file.createDimension('x_dim', self.dim[2])
+        magnitude = mag_file.createVariable('magnitude', 'f', ('comp', 'z_dim', 'y_dim', 'x_dim'))
+        magnitude[...] = self.magnitude
+        mag_file.close()
+
+    @classmethod
+    def load_from_netcdf4(cls, filename):
+        '''Construct :class:`~.DataMag` object from NetCDF4-file.
+
+        Parameters
+        ----------
+        filename : string
+            The name of the NetCDF4-file from which to load the data. Standard format is '\*.nc'.
+
+        Returns
+        -------
+        mag_data: :class:`~.MagData`
+            A :class:`~.MagData` object containing the loaded data.
+
+        '''
+        cls._log.debug('Calling load_from_netcdf4')
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'magdata')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
+        # Load data from file:
+        mag_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
+        a = mag_file.a
+        magnitude = mag_file.variables['magnitude'][...]
+        mag_file.close()
+        return MagData(a, magnitude)
+
     def save_to_llg(self, filename='magdata.txt'):
         '''Save magnetization data in a file with LLG-format.
 
@@ -490,69 +553,6 @@ class MagData(object):
         dim = tuple(np.genfromtxt(filename, dtype=int, skip_header=1, skip_footer=len(data[:, 0])))
         a = (data[1, 0] - data[0, 0]) / SCALE
         magnitude = data[:, 3:6].T.reshape((3,)+dim)
-        return MagData(a, magnitude)
-
-    def save_to_netcdf4(self, filename='magdata.nc'):
-        '''Save magnetization data in a file with NetCDF4-format.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the NetCDF4-file in which to store the magnetization data.
-            Standard format is '\*.nc'.
-
-        Returns
-        -------
-        None
-
-        '''
-        self._log.debug('Calling save_to_netcdf4')
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'magdata')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
-        # Save data to file:
-        mag_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
-        mag_file.a = self.a
-        mag_file.createDimension('comp', 3)  # Number of components
-        mag_file.createDimension('z_dim', self.dim[0])
-        mag_file.createDimension('y_dim', self.dim[1])
-        mag_file.createDimension('x_dim', self.dim[2])
-        magnitude = mag_file.createVariable('magnitude', 'f', ('comp', 'z_dim', 'y_dim', 'x_dim'))
-        magnitude[...] = self.magnitude
-        mag_file.close()
-
-    @classmethod
-    def load_from_netcdf4(cls, filename):
-        '''Construct :class:`~.DataMag` object from NetCDF4-file.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the NetCDF4-file from which to load the data. Standard format is '\*.nc'.
-
-        Returns
-        -------
-        mag_data: :class:`~.MagData`
-            A :class:`~.MagData` object containing the loaded data.
-
-        '''
-        cls._log.debug('Calling load_from_netcdf4')
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'magdata')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
-        # Load data from file:
-        mag_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
-        a = mag_file.a
-        magnitude = mag_file.variables['magnitude'][...]
-        mag_file.close()
         return MagData(a, magnitude)
 
     def save_to_x3d(self, filename='magdata.x3d', maximum=1):
@@ -622,6 +622,35 @@ class MagData(object):
             filename = os.path.join(directory, filename)
         # Write the tree into the file in pretty print format:
         tree.write(filename, pretty_print=True)
+
+    def to_hyperspy(self):
+        '''Return a :class:`~.hyperspy.signals.Spectrum` class instance. Useful for file exports.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        hyperspy_spectrum : :class:`~.hyperspy.signals.Spectrum`
+            Hyperspy Spectrum class which can be further used with the hyperspy package.
+
+        '''
+        self._log.debug('Calling to_hyperspy')
+        import hyperspy.hspy as hp
+        # Last axis is used as signal per default, which is wrong (c, z, y, x)  ->  (y, z, c | x)
+        # Signal (and Spectrum) use the last axis, Image the TWO last axes!
+        mag_data_hp = hp.signals.Signal(self.magnitude).as_spectrum(spectral_axis=2)  # components!
+        mag_data_hp.axes_manager[0].name = 'X'
+        mag_data_hp.axes_manager[0].units = 'nm'
+        mag_data_hp.axes_manager[0].scale = self.a
+        mag_data_hp.axes_manager[1].name = 'Y'
+        mag_data_hp.axes_manager[1].units = 'nm'
+        mag_data_hp.axes_manager[1].scale = self.a
+        mag_data_hp.axes_manager[2].name = 'Z'
+        mag_data_hp.axes_manager[2].units = 'nm'
+        mag_data_hp.axes_manager[2].scale = self.a
+        return mag_data_hp
 
     def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,

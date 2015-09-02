@@ -23,7 +23,7 @@ import logging
 
 # pyFFTW depends on this
 try:
-    from collections import Counter  #analysis:ignore
+    from collections import Counter  # analysis:ignore
 except ImportError:
     import collections_python27
     import collections
@@ -38,7 +38,7 @@ except ImportError:
     print("pyFFTW module not found. Using numpy implementation.")
 
 
-__all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom', #analysis:ignore
+__all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom',  # analysis:ignore
            'zeros', 'empty', 'configure_backend',
            'fftn', 'ifftn', 'rfftn', 'irfftn', 'rfftn_adj', 'irfftn_adj']
 _log = logging.getLogger(__name__)
@@ -117,7 +117,7 @@ def _rfftn_adj_numpy(a):
 
 def _irfftn_adj_numpy(a):
     n = a.shape[-1] // 2 + 1
-    out_arr = _fftn_numpy(a, axis=-1) / a.shape[-1]
+    out_arr = _fftn_numpy(a, axes=(-1,)) / a.shape[-1]
     if a.shape[-1] % 2 == 0:  # even
         out_arr[:, 1:n - 1] += np.conj(out_arr[:, :n-1:-1])
     else:  # odd

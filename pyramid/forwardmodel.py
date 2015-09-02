@@ -64,23 +64,6 @@ class ForwardModel(object):
         self.hook_points = data_set.hook_points
         self.mag_data = MagData(self.data_set.a, np.zeros((3,)+self.data_set.dim))
         self._log.debug('Creating '+str(self))
-# TODO: Multiprocessing! ##########################################################################
-#        nprocs = 4
-#        self.nprocs = nprocs
-#        self.procs = []
-#        if nprocs > 1:
-#            # Set up processes:
-#            for i, projector in enumerate(data_set.projectors):
-#                proc_id = i % nprocs  # index of the process
-#                phase_id = i//nprocs  # index of the phasemap in the frame of the process
-#                print '---'
-#                print 'proc_id: ', proc_id
-#                print 'phase_id:', phase_id
-#                print '---'
-#
-#        for i in self.data_set.count:
-#            projector = self.data_set.projectors[i]
-###################################################################################################
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
@@ -105,20 +88,6 @@ class ForwardModel(object):
             phase_map += self.ramp(i)  # add ramp!
             result[hp[i]:hp[i+1]] = phase_map.phase_vec
         return np.reshape(result, -1)
-# TODO: Multiprocessing! ##########################################################################
-#        nprocs = 4
-#        # Set up processes:
-#        for i, projector in enumerate(self.data_set.projectors):
-#            proc_id = i % nprocs  # index of the process
-#            phase_id = i//nprocs  # index of the phasemap in the frame of the process
-#            print 'proc_id: ', proc_id
-#            print 'phase_id:', phase_id
-#            p = Process(target=worker, args=())
-#            p.start()
-#
-#        for i in self.data_set.count:
-#            projector = self.data_set.projectors[i]
-###################################################################################################
 
     def jac_dot(self, x, vector):
         '''Calculate the product of the Jacobi matrix with a given `vector`.
@@ -188,205 +157,202 @@ class ForwardModel(object):
         return np.concatenate((result, ramp_params))
 
     def finalize(self):
+        ''''Finalize the processes and let them join the master process (NOT USED HERE!).
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        '''
         pass
 
 
-# TODO: Multiprocessing! ##########################################################################
 class DistributedForwardModel(ForwardModel):
 
+    '''Multiprocessing class for mapping 3D magnetic distributions to 2D phase maps.
+
+    Subclass of the :class:`~.ForwardModel` class which implements multiprocessing strategies
+    to speed up the calculations. The interface is the same, internally, the processes and one
+    ForwardModel operating on a subset of the DataSet per process are created during construction.
+    Ramps are calculated in the main thread. The :method:`~.finalize` method can be used to force
+    the processes to join if the class is no longer used.
+
+    Attributes
+    ----------
+    data_set: :class:`~dataset.DataSet`
+        :class:`~dataset.DataSet` object, which stores all required information calculation.
+    ramp_order : int or None (default)
+        Polynomial order of the additional phase ramp which will be added to the phase maps.
+        All ramp parameters have to be at the end of the input vector and are split automatically.
+        Default is None (no ramps are added).
+    m: int
+        Size of the image space. Number of pixels of the 2-dimensional projected grid.
+    n: int
+        Size of the input space. Number of voxels of the 3-dimensional grid.
+    nprocs: int
+        Number of processes which should be created. Default is 1 (not recommended).
+
+    '''
+
     def __init__(self, data_set, ramp_order=None, nprocs=1):
+        # Evoke super constructor to set up the normal ForwardModel:
         super(DistributedForwardModel, self).__init__(data_set, ramp_order)
+        # Initialize multirocessing specific stuff:
         self.nprocs = nprocs
         img_per_proc = np.ceil(self.data_set.count / self.nprocs).astype(np.int)
         hp = self.data_set.hook_points
         self.proc_hook_points = [0]
-#        self.sub_fwd_models = []
         self.pipes = []
         self.processes = []
         for proc_id in range(self.nprocs):
-            # 'PARENT Create SubDataSets:'
+            # Create SubDataSets:
             sub_data = DataSet(self.data_set.a, self.data_set.dim, self.data_set.b_0,
                                self.data_set.mask, self.data_set.Se_inv)
-            # 'PARENT Distribute data to SubDataSets:'
+            # Distribute data to SubDataSets:
             start = proc_id*img_per_proc
             stop = np.min(((proc_id+1)*img_per_proc, self.data_set.count))
             self.proc_hook_points.append(hp[stop])
             sub_data.phase_maps = self.data_set.phase_maps[start:stop]
             sub_data.projectors = self.data_set.projectors[start:stop]
-            # '... PARENT Create SubForwardModel {}'.format(proc_id)
+            # Create SubForwardModel:
             sub_fwd_model = ForwardModel(sub_data, ramp_order=None)  # ramps handled in master!
-            # '... PARENT Create communication pipe {}'.format(proc_id)
+            # Create communication pipe:
             self.pipes.append(mp.Pipe())
-            # '... PARENT Create process {}'.format(proc_id)
+            # Create process:
             p = mp.Process(name='Worker {}'.format(proc_id), target=_worker,
                            args=(sub_fwd_model, self.pipes[proc_id][1]))
             self.processes.append(p)
-            # '... PARENT Start process {}'.format(p.name)
+            # Start process:
             p.start()
-        # 'PARENT Finish __init__\n'
         self._log.debug('Creating '+str(self))
-
-#        print 'PARENT Distribute data to SubDataSets:'
-#        for count_id in range(self.data_set.count):
-#            proc_id = count_id % nprocs
-#            print '... PARENT send image {} to subDataSet {}'.format(count_id, proc_id)
-#            self.sub_data_sets[proc_id].append(self.data_set.phase_maps[count_id],
-#                                               self.data_set.projectors[count_id])
-#        print 'PARENT Start up processes:'
-#        self.sub_fwd_models = []
-#        self.pipes = []
-#        self.processes = []
-#        for proc_id in range(self.nprocs):
-#            print '... PARENT Create SubForwardModel {}'.format(proc_id)
-#            self.sub_fwd_models.append(ForwardModel(self.sub_data_sets[proc_id], ramp_order))
-#            print '... PARENT Create communication pipe {}'.format(proc_id)
-#            self.pipes.append(mp.Pipe())
-#            print '... PARENT Create process {}'.format(proc_id)
-#            p = mp.Process(name='Worker {}'.format(proc_id), target=_worker,
-#                           args=(self.sub_fwd_models[proc_id], self.pipes[proc_id][1]))
-#            self.processes.append(p)
-#            print '... PARENT Start process {}'.format(p.name)
-#            p.start()
-#        print 'PARENT Finish __init__\n'
-#        self._log.debug('Creating '+str(self))
 
     def __call__(self, x):
         # Extract ramp parameters if necessary (x will be shortened!):
-        # TODO: how to handle here? all in main thread? distribute to sub_x and give to process?
-        # TODO: later method of distributed dataset?
-        # TODO: After reconstruction is this saved in this ramp? solve with property?
         x = self.ramp.extract_ramp_params(x)
-        # Simulate all phase maps and create result vector:
-        # 'PARENT Distribute input to processes and start working:'
+        # Distribute input to processes and start working:
         for proc_id in range(self.nprocs):
-            # TODO: better with Pool()? Can Pool be more persistent by subclassing custom Pool?
-            # '... PARENT Send input to process {}'.format(proc_id)
             self.pipes[proc_id][0].send(('__call__', (x,)))
-        # TODO: Calculate ramps here? There should be waiting time... Init result with ramps!
+        # Initialize result vector and shorten hook point names:
         result = np.zeros(self.m)
         hp = self.hook_points
         php = self.proc_hook_points
-        # '... PARENT Calculate ramps:'
+        # Calculate ramps (if necessary):
         if self.ramp_order is not None:
             for i in range(self.data_set.count):
                 result[hp[i]:hp[i+1]] += self.ramp(i).phase.ravel()
-        # 'PARENT Get process results from the pipes:'
-#        sub_results = []
+        # Get process results from the pipes:
         for proc_id in range(self.nprocs):
-            # '... PARENT Retrieve results from process {}'.format(proc_id)
             result[php[proc_id]:php[proc_id+1]] += self.pipes[proc_id][0].recv()
+        # Return result:
         return result
 
-
     def jac_dot(self, x, vector):
+        '''Calculate the product of the Jacobi matrix with a given `vector`.
+
+        Parameters
+        ----------
+        x : :class:`~numpy.ndarray` (N=1)
+            Evaluation point of the jacobi-matrix. The Jacobi matrix is constant for a linear
+            problem, thus `x` can be set to None (it is not used int the computation). It is
+            implemented for the case that in the future nonlinear problems have to be solved.
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vectorized form of the 3D magnetization distribution. First the `x`, then the `y` and
+            lastly the `z` components are listed. Ramp parameters are also added at the end if
+            necessary.
+
+        Returns
+        -------
+        result_vector : :class:`~numpy.ndarray` (N=1)
+            Product of the Jacobi matrix (which is not explicitely calculated) with the input
+            `vector`.
+
+        '''
         # Extract ramp parameters if necessary (x will be shortened!):
-        # TODO: how to handle here? all in main thread? distribute to sub_x and give to process?
-        # TODO: later method of distributed dataset?
-        # TODO: After reconstruction is this saved in this ramp? solve with property?
         vector = self.ramp.extract_ramp_params(vector)
-        # Simulate all phase maps and create result vector:
-        # 'PARENT Distribute input to processes and start working:'
+        # Distribute input to processes and start working:
         for proc_id in range(self.nprocs):
-            # TODO: better with Pool()? Can Pool be more persistent by subclassing custom Pool?
-            # '... PARENT Send input to process {}'.format(proc_id)
             self.pipes[proc_id][0].send(('jac_dot', (None, vector)))
-        # TODO: Calculate ramps here? There should be waiting time...
+        # Initialize result vector and shorten hook point names:
         result = np.zeros(self.m)
         hp = self.hook_points
         php = self.proc_hook_points
-        # '... PARENT Calculate ramps:'
+        # Calculate ramps (if necessary):
         if self.ramp_order is not None:
             for i in range(self.data_set.count):
                 result[hp[i]:hp[i+1]] += self.ramp.jac_dot(i)
-        # 'PARENT Get process results from the pipes:'
+        # Get process results from the pipes:
         for proc_id in range(self.nprocs):
-            # '... PARENT Retrieve results from process {}'.format(proc_id)
             result[php[proc_id]:php[proc_id+1]] += self.pipes[proc_id][0].recv()
+        # Return result:
         return result
-#        for proc_id in range(self.nprocs):
-#            # '... PARENT Retrieve results from process {}'.format(proc_id)
-#            sub_results.append(self.pipes[proc_id][0].recv())
-#
-#        # TODO: SORTING!!!! maybe return also the hookpoints?
-#        for i in range(self.data_set.count):  # Go over all projections!
-#            proc_id = i % self.nprocs
-#            j = i // self.nprocs  # index for subresult!
-#            result[hp[i]:hp[i+1]] = sub_results[proc_id][hp[j]:hp[j+1]]
-
 
     def jac_T_dot(self, x, vector):
-        hp = self.hook_points
+        ''''Calculate the product of the transposed Jacobi matrix with a given `vector`.
+
+        Parameters
+        ----------
+        x : :class:`~numpy.ndarray` (N=1)
+            Evaluation point of the jacobi-matrix. The jacobi matrix is constant for a linear
+            problem, thus `x` can be set to None (it is not used int the computation). Is used
+            for the case that in the future nonlinear problems have to be solved.
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vectorized form of all 2D phase maps one after another in one vector.
+
+        Returns
+        -------
+        result_vector : :class:`~numpy.ndarray` (N=1)
+            Product of the transposed Jacobi matrix (which is not explicitely calculated) with
+            the input `vector`. If necessary, transposed ramp parameters are concatenated.
+
+        '''
         php = self.proc_hook_points
+        # Distribute input to processes and start working:
         for proc_id in range(self.nprocs):
             sub_vec = vector[php[proc_id]:php[proc_id+1]]
             self.pipes[proc_id][0].send(('jac_T_dot', (None, sub_vec)))
-
+        # Calculate ramps:
         ramp_params = self.ramp.jac_T_dot(vector)  # calculate ramp_params separately!
+        # Initialize result vector:
         result = np.zeros(3*self.data_set.mask.sum())
-
+        # Get process results from the pipes:
         for proc_id in range(self.nprocs):
             sub_vec = vector[php[proc_id]:php[proc_id+1]]
             result += self.pipes[proc_id][0].recv()
-
-        return np.concatenate((result, ramp_params))
-
-
-        print 'PARENT Distribute input to processes and start working:'
-        for proc_id in range(self.nprocs):
-            # TODO: better with Pool()? Can Pool be more persistent by subclassing custom Pool?
-            print '... PARENT Send input to process {}'.format(proc_id)
-            self.pipes[proc_id][0].send(('jac_T_dot', (None, vector)))
-        print 'PARENT Get process results from the pipes:'
-        sub_results = []
-        for proc_id in range(self.nprocs):
-            print '... PARENT Retrieve results from process {}'.format(proc_id)
-            sub_results.append(self.pipes[proc_id][0].recv())
-        result = np.zeros(self.m)
-        hp = self.hook_points
-        # TODO: Calculate ramps here? There should be waiting time...
-        # TODO: SORTING!!!! maybe return also the hookpoints?
-        for i in range(self.data_set.count):  # Go over all projections!
-            proc_id = i % self.nprocs
-            j = i // self.nprocs  # index for subresult!
-            result[hp[i]:hp[i+1]] = sub_results[proc_id][hp[j]:hp[j+1]]
-        return result
-
-
-
-        proj_T_result = np.zeros(3*np.prod(self.data_set.dim))
-        hp = self.hook_points
-        for i, projector in enumerate(self.data_set.projectors):
-            sub_vec = vector[hp[i]:hp[i+1]]
-            mapper = self.phase_mappers[projector.dim_uv]
-            proj_T_result += projector.jac_T_dot(mapper.jac_T_dot(sub_vec))
-        self.mag_data.mag_vec = proj_T_result
-        result = self.mag_data.get_vector(self.data_set.mask)
-        ramp_params = self.ramp.jac_T_dot(vector)  # calculate ramp_params separately!
+        # Return result:
         return np.concatenate((result, ramp_params))
 
     def finalize(self):
-        # 'PARENT Finalize processes:'
+        ''''Finalize the processes and let them join the master process.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        '''
+        # Finalize processes:
         for proc_id in range(self.nprocs):
             self.pipes[proc_id][0].send('STOP')
-        # 'PARENT Exit the completed processes:'
+        # Exit the completed processes:
         for p in self.processes:
             p.join()
-        # 'PARENT All processes joint!'
 
 
 def _worker(fwd_model, pipe):
     # Has to be directly accessible in the module as a function, NOT a method of a class instance!
-    # '... {} starting!'.format(mp.current_process().name)
+    print '... {} starting!'.format(mp.current_process().name)
     sys.stdout.flush()
     for method, arguments in iter(pipe.recv, 'STOP'):
         # '... {} processes method {}'.format(mp.current_process().name, method)
         sys.stdout.flush()
         result = getattr(fwd_model, method)(*arguments)
         pipe.send(result)
-    # '... ', mp.current_process().name, 'exiting!'
+    print '... ', mp.current_process().name, 'exiting!'
     sys.stdout.flush()
-
-
-
-
-###################################################################################################

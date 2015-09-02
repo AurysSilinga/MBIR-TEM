@@ -80,8 +80,8 @@ class Ramp(object):
             # Iterate over all degrees of freedom:
             for dof in dof_list:
                 # Add the contribution of the current degree of freedom:
-                phase_ramp += self.param_cache[dof][index] * \
-                              self.create_poly_mesh(self.data_set.a, dof, dim_uv)
+                phase_ramp += (self.param_cache[dof][index] *
+                               self.create_poly_mesh(self.data_set.a, dof, dim_uv))
             return PhaseMap(self.data_set.a, phase_ramp, mask=np.zeros(dim_uv, dtype=np.bool))
 
     def jac_dot(self, index):
@@ -109,8 +109,8 @@ class Ramp(object):
             # Iterate over all degrees of freedom:
             for dof in range(self.deg_of_freedom):
                 # Add the contribution of the current degree of freedom:
-                phase_ramp += self.param_cache[dof][index] * \
-                              self.create_poly_mesh(self.data_set.a, dof, dim_uv)
+                phase_ramp += (self.param_cache[dof][index] *
+                               self.create_poly_mesh(self.data_set.a, dof, dim_uv))
             return np.ravel(phase_ramp)
 
     def jac_T_dot(self, vector):
@@ -172,6 +172,8 @@ class Ramp(object):
 
         Parameters
         ----------
+        a : float
+            Grid spacing which should be used for the ramp.
         deg_of_freedom : int
             Current degree of freedom for which the mesh should be created. 0 corresponds to a
             simple offset, 1 corresponds to a linear ramp in u-direction, 2 to a linear ramp in
@@ -184,7 +186,7 @@ class Ramp(object):
         result_mesh : :class:`~numpy.ndarray` (N=2)
             Polynomial mesh that was created and can be used for further calculations.
 
-        '''# TODO: Docstring a!
+        '''
         # Determine if u-direction (u_or_v == 1) or v-direction (u_or_v == 0)!
         u_or_v = (deg_of_freedom - 1) % 2
         # Determine polynomial order:
@@ -194,9 +196,27 @@ class Ramp(object):
 
     @classmethod
     def create_ramp(cls, a, dim_uv, params):
-        #TODO: Docstring!
+        '''Class method to create an arbitrary polynomial ramp.
+
+        Parameters
+        ----------
+        a : float
+            Grid spacing which should be used for the ramp.
+        dim_uv : tuple (N=2)
+            Dimensions of the 2D mesh that should be created.
+        params : list
+            List of ramp parameters. The first entry corresponds to a simple offset, the second
+            and third correspond to a linear ramp in u- and v-direction, respectively and so on.
+
+        Returns
+        -------
+        phase_ramp : :class:`~pyramid.phasemap.PhaseMap`
+            The phase ramp as a :class:`~pyramid.phasemap.PhaseMap` object.
+
+        '''
         phase_ramp = np.zeros(dim_uv)
         dof_list = range(len(params))
         for dof in dof_list:
             phase_ramp += params[dof] * cls.create_poly_mesh(a, dof, dim_uv)
+        # Return the phase ramp as a PhaseMap with empty (!) mask:
         return PhaseMap(a, phase_ramp, mask=np.zeros(dim_uv, dtype=np.bool))
