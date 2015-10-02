@@ -178,7 +178,7 @@ class DistributedForwardModel(ForwardModel):
     Subclass of the :class:`~.ForwardModel` class which implements multiprocessing strategies
     to speed up the calculations. The interface is the same, internally, the processes and one
     ForwardModel operating on a subset of the DataSet per process are created during construction.
-    Ramps are calculated in the main thread. The :method:`~.finalize` method can be used to force
+    Ramps are calculated in the main thread. The :func:`~.finalize` method can be used to force
     the processes to join if the class is no longer used.
 
     Attributes

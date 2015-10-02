@@ -10,14 +10,14 @@ import logging.config
 logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
 # Parameters:
-dim = (32, 32, 32)
+dim = (64, 64, 64)
 a = 10.0  # in nm
-axis = 'z'
+axis = 'x'
 magnitude = 1
-filename = 'magdata_mc_vortex_disc.nc'
+filename = 'magdata_mc_vortex_disc_x.nc'
 
 # Magnetic shape:
-center = (dim[0]//2-0.5, dim[1]//2-0.5, dim[2]//2-0.5)
+center = (dim[0]//2, dim[1]//2, dim[2]//2)
 radius = dim[2]//4
 height = dim[0]//2
 mag_shape = py.magcreator.Shapes.disc(dim, center, radius, height, axis)

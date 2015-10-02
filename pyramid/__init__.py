@@ -40,8 +40,6 @@ colormap
     Class which implements a custom direction encoding colormap.
 fft
     Class for custom FFT functions using numpy or FFTW.
-semper
-    Class for compatibility with a readable / writable Semper format.
 
 Subpackages
 -----------
@@ -67,7 +65,6 @@ from .projector import *  # analysis:ignore
 from .regularisator import *  # analysis:ignore
 from .ramp import *  # analysis:ignore
 from .quaternion import *  # analysis:ignore
-from .semper import *  # analysis:ignore
 from .colormap import *  # analysis:ignore
 from .config import *  # analysis:ignore
 from .version import version as __version__
@@ -75,7 +72,7 @@ from .version import hg_revision as __hg_revision__
 
 import logging
 _log = logging.getLogger(__name__)
-_log.info("Starting PYRAMID V{} HG{}".format(__version__, __hg_revision__))
+_log.info("Starting Pyramid V{} HG{}".format(__version__, __hg_revision__))
 del logging
 
 __all__ = ['analytic', 'magcreator', 'reconstruction', 'fft']
@@ -91,5 +88,4 @@ __all__.extend(projector.__all__)
 __all__.extend(regularisator.__all__)
 __all__.extend(ramp.__all__)
 __all__.extend(quaternion.__all__)
-__all__.extend(semper.__all__)
 __all__.extend(colormap.__all__)

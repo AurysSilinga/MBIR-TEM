@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
-from pyramid.colormap import DirectionalColormap
+from pyramid.colormap import DirectionalColormap, TransparentColormap
 
 import logging
 
@@ -408,7 +408,7 @@ class PhaseMap(object):
         ----------
         filename : string
             The name of the file in which to store the phase map data.
-            The default is '..\output\phasemap_output.txt'.
+            The default is '..\output\phasemap.txt'.
         skip_header : boolean, optional
             Determines if the header, should be skipped (useful for some other programs).
             Default is False.
@@ -475,7 +475,7 @@ class PhaseMap(object):
         ----------
         filename : string, optional
             The name of the NetCDF4-file in which to store the phase data.
-            The default is '..\output\phasemap_output.nc'.
+            The default is '..\output\phasemap.nc'.
 
         Returns
         -------
@@ -543,36 +543,92 @@ class PhaseMap(object):
         phase_file.close()
         return PhaseMap(a, phase, mask, confidence)
 
-    def to_hyperspy(self):
-        '''Return a :class:`~.hyperspy.signals.Image` class instance. Useful for file exports.
+    def to_emd(self, user={}, microscope={}, sample={}, comments={}):
+        '''Convert :class:`~.PhaseMap` data into ERCpys EMD-format.
 
         Parameters
         ----------
-        None
+        user: dict, optional
+            Dictionary defining user metadata.
+        microscope: dict, optional
+            Dictionary defining microscope metadata.
+        sample: dict, optional
+            Dictionary defining sample metadata.
+        comments: dict, optional
+            Dictionary defining comment metadata.
 
         Returns
         -------
-        hyperspy_image : :class:`~.hyperspy.signals.Image`
-            Hyperspy Image class which can be further used with the hyperspy package.
+        emd: :class:`~ercpy.EMD`
+            Representation of the :class:`~.PhaseMap` object as an :class:`~ercpy.EMD` object.
 
         Notes
         -----
-        Does not save the unit and mask of the original phase map.
+        This method recquires the ercpy package!
 
         '''
-        self._log.debug('Calling to_hyperspy')
-        import hyperspy.hspy as hp
-        phase_map_hp = hp.signals.Image(self.phase)
-        phase_map_hp.axes_manager[0].name = 'X'
-        phase_map_hp.axes_manager[0].units = 'nm'
-        phase_map_hp.axes_manager[0].scale = self.a
-        phase_map_hp.axes_manager[1].name = 'Y'
-        phase_map_hp.axes_manager[1].units = 'nm'
-        phase_map_hp.axes_manager[1].scale = self.a
-        return phase_map_hp
+        self._log.debug('Calling to_emd')
+        # Try importing ERCpy:
+        try:
+            import ercpy
+            import hyperspy.api as hp
+        except ImportError:
+            self._log.error('Could not load ercpy package!')
+            return
+        # Create signals:
+        phase = hp.signals.Image(self.phase)
+        mask = hp.signals.Image(self.mask)
+        conf = hp.signals.Image(self.confidence)
+        # Set axes:
+        for signal in (phase, mask, conf):
+            signal.axes_manager[0].name = 'x-axis'
+            signal.axes_manager[0].units = 'nm'
+            signal.axes_manager[0].scale = self.a
+            signal.axes_manager[1].name = 'y-axis'
+            signal.axes_manager[1].units = 'nm'
+            signal.axes_manager[1].scale = self.a
+        # Set metadata:
+        phase.metadata.Signal.add_dictionary({'name': 'phase', 'units': self.unit})
+        mask.metadata.Signal.add_dictionary({'name': 'mask'})
+        conf.metadata.Signal.add_dictionary({'name': 'confidence'})
+        # Create and return EMD:
+        signals = {'phase': phase, 'mask': mask, 'confidence': conf}
+        return ercpy.EMD(signals, user, microscope, sample, comments)
+
+    @classmethod
+    def from_emd(cls, emd):
+        '''Convert a :class:`~ercpy.EMD` object to a :class:`~.PhaseMap` object.
+
+        Parameters
+        ----------
+        emd: :class:`~ercpy.EMD`
+            The :class:`~ercpy.EMD` object which should be converted to :class:`~.PhaseMap`.
+
+        Returns
+        -------
+        phase_map: :class:`~.PhaseMap`
+            A :class:`~.PhaseMap` object containing the loaded data.
+
+        Notes
+        -----
+        This method recquires the ercpy package!
+
+        '''
+        cls._log.debug('Calling to_emd')
+        # Extract signals:
+        try:
+            phase = emd['pahse']
+            mask = emd['mask']
+            confidence = emd['confidence']
+        except KeyError as e:
+            cls._log.error(str(e))
+        # Extract properties:
+        a = emd.signals['phase'].axes_manager[0].scale
+        unit = emd.signals['phase'].metadata.Signal.as_dictionary().get('units', 'rad')
+        return PhaseMap(a, phase, mask, confidence, unit)
 
     def display_phase(self, title='Phase Map', cmap='RdBu', limit=None,
-                      norm=None, axis=None, cbar=True, show_mask=True):
+                      norm=None, axis=None, cbar=True, show_mask=True, show_conf=True):
         '''Display the phasemap as a colormesh.
 
         Parameters
@@ -592,7 +648,10 @@ class PhaseMap(object):
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         cbar : bool, optional
             A switch determining if the colorbar should be plotted or not. Default is True.
-
+        show_mask : bool, optional
+            A switch determining if the mask should be plotted or not. Default is True.
+        show_conf : float, optional
+            A switch determining if the confidence should be plotted or not. Default is True.
         Returns
         -------
         axis, cbar: :class:`~matplotlib.axes.AxesSubplot`
@@ -611,12 +670,14 @@ class PhaseMap(object):
         axis.set_aspect('equal')
         # Plot the phasemap:
         im = axis.pcolormesh(phase, cmap=cmap, vmin=-limit, vmax=limit, norm=norm)
-        if show_mask and not np.all(self.mask):  # Plot mask if desired and not trivial!
+        if show_mask or show_conf:
             vv, uu = np.indices(self.dim_uv) + 0.5
+        if show_mask and not np.all(self.mask):  # Plot mask if desired and not trivial!
             axis.contour(uu, vv, self.mask, levels=[0.5], colors='k', linestyles='dotted')
+        if show_conf and not np.all(self.confidence == 1.0):
+            vv, uu = np.indices(self.dim_uv) + 0.5
+            axis.pcolormesh(self.confidence, cmap=TransparentColormap(0.2, 0.3, 0.2, [0.2, 0.]))
         # Set the axes ticks and labels:
-        axis.set_xlim(0, self.dim_uv[1])
-        axis.set_ylim(0, self.dim_uv[0])
         if self.dim_uv[0] >= self.dim_uv[1]:
             u_bin, v_bin = np.max((2, np.floor(9*self.dim_uv[1]/self.dim_uv[0]))), 9
         else:
@@ -627,6 +688,8 @@ class PhaseMap(object):
         axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:g}'.format(x*self.a)))
         axis.tick_params(axis='both', which='major', labelsize=14)
         axis.set_title(title, fontsize=18)
+        axis.set_xlim(0, self.dim_uv[1])
+        axis.set_ylim(0, self.dim_uv[0])
         axis.set_xlabel('u-axis [nm]', fontsize=15)
         axis.set_ylabel('v-axis [nm]', fontsize=15)
         # Add colorbar:
@@ -757,7 +820,8 @@ class PhaseMap(object):
         return axis
 
     def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
-                         gain='auto', interpolation='none', grad_encode='bright'):
+                         gain='auto', interpolation='none', grad_encode='bright',
+                         cbar=True, show_mask=True, show_conf=True):
         '''Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -784,6 +848,12 @@ class PhaseMap(object):
             encodes the direction (without gradient strength), 'dark' modulates the gradient
             strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
             the gradient strength with color saturation.
+        cbar : bool, optional
+            A switch determining if the colorbar should be plotted or not. Default is True.
+        show_mask : bool, optional
+            A switch determining if the mask should be plotted or not. Default is True.
+        show_conf : float, optional
+            A switch determining if the confidence should be plotted or not. Default is True.
 
         Returns
         -------
@@ -802,6 +872,7 @@ class PhaseMap(object):
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         fig.subplots_adjust(right=0.85)
-        self.display_phase(cmap='RdBu', limit=limit, norm=norm, axis=phase_axis)
+        self.display_phase(cmap='RdBu', limit=limit, norm=norm, axis=phase_axis,
+                           cbar=cbar, show_mask=show_mask, show_conf=show_conf)
         # Return the plotting axes:
         return phase_axis, holo_axis

@@ -3,13 +3,76 @@
 Created on Wed Aug 19 22:19:09 2015
 
 @author: Jan
+
+
+Picture labels consist of a sequence of bytes
+---------------------------------------------
+v61:256B | v7:at least 256B, rounded up to multiple of block size 64,
+              with max set by LNLAB in params.f
+The versions have the same contents for the first 256B, as set out below,
+and referred to as the label 'base'; beyond this, in the label 'extension',
+the structure is deliberately undefined, allowing you to make your own use
+of the additional storage.
+
+From Aug14:
+  B1-6    S e m p e r (ic chars)
+   7,8    ncol msb,lsb (BIG-ended)
+   9,10   nrow msb,lsb
+  11,12   nlay msb,lsb
+  13,14   ccol msb,lsb
+  15,16   crow msb,lsb
+  17,18   clay msb,lsb
+    19    class: 1-20
+            for image,macro,fou,spec,correln,undef,walsh,histog,plist,lut
+    20    form: 0,1,2,3,4 = byte,i*2,fp,com,i*4 from Aug08
+    21    wp: non-zero if prot
+  22-27   creation year(-1900?),month,day,hour,min,sec
+    28    v61|v7 # chars in range record | 255
+  29-55   v61: min,max values present (ic chars for decimal repn)
+           v7: min,max vals as two Fp values in B29-36 (LE ordered)
+               followed by 19 unused bytes B37-55
+    56    plist type: 1,2,3 = list,opencurve,closedcurve
+            acc to EXAMPD - code appears to use explicit numbers
+ 57,58,59 ncol,nrow,nlay hsb
+ 60,61,62 ccol,crow,clay hsb
+    63    RealCoords flag (non-zero -> DX,DY,DZ,X0,Y0,Z0,units held as below)
+    64    v61:0 | v7: # blocks in (this) picture label (incl extn)
+  65-67   0 (free at present)
+  68-71   DATA cmd V7   4-byte Fp values, order LITTLE-ended
+  72-75   DATA cmd V6
+  76-79   RealCoord DZ / V5  RealCoord pars as 4-byte Fp values, LITTLE-ended
+  80-83   ...       Z0 / V4
+  84-87   ...       DY / V3
+  88-91   ...       Y0 / V2
+  92-95   ...       DX / V1
+  96-99   ...       X0 / V0
+   100    # chars in title
+ 101-244  title (ic chars)
+ 245-248  RealCoord X unit (4 ic chars)
+ 249-252  RealCoord Y unit (4 ic chars)
+ 253-256  RealCoord Z unit (4 ic chars)
+
+Aug08-Aug14 labels held no RealCoord information, so:
+   B63    'free' and zero - flagging absence of RealCoord information
+ 101-256  title (12 chars longer than now)
+
+Before Aug08 labels held no hsb for pic sizes, so:
+  57-99   all free/zero except for use by DATA cmd
+ 101-256  title (ic chars)
+
+
+
 """
+
 
 import numpy as np
 import struct
+import os
+from pyramid import DIR_FILES
 
 
-filename = 'ramp1.unf'
+os.chdir(os.path.join(DIR_FILES, 'semper'))
+filename = 'zz72.unf'
 
 
 ICLASS = {1: 'image', 2: 'macro', 3: 'fourier', 4: 'spectrum',
@@ -72,8 +135,13 @@ with open(filename, 'rb') as f:
         print 'Date: {}-{}-{} {}:{}:{}'.format(label[21]+1900, *label[22:27])
         ncrang = label[27]
         print 'NCRANG:', ncrang
-        print ''.join([chr(l) for l in label[28:28+ncrang]])
-        print 'unused:', label[ncrang+28:55]
+        if ncrang == 255:  # Saved as two 4 byte floats!
+            print struct.unpack('<f', ''.join([chr(x) for x in label[28:32]]))[0]
+            print struct.unpack('<f', ''.join([chr(x) for x in label[32:36]]))[0]
+            print 'unused:', label[36:55]
+        else:  # Saved as string!
+            print ''.join([chr(l) for l in label[28:28+ncrang]])
+            print 'unused:', label[ncrang+28:55]
         print 'IPLTYP:', label[55]
         print 'reserved:', label[56:99]
         print 'NCOL again:', label[56]

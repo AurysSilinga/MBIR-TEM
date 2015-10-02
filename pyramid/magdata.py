@@ -362,6 +362,49 @@ class MagData(object):
         else:
             self.mag_vec = vector
 
+    def get_magslice(self, ax_slice=0, proj_axis='z', mode='complex'):
+        '''Extract a slice from the :class:`~.MagData` object.
+
+        Parameters
+        ----------
+        proj_axis : {'z', 'y', 'x'}, optional
+            The axis, from which the slice is taken. The default is 'z'.
+        ax_slice : int, optional
+            The slice-index of the axis specified in `proj_axis`. Defaults to zero (first slice).
+        mode : {'complex', 'amplitude'}, optional
+            Determines if the 2D magnetization is returned as complex values or if the amplitude
+            of the two components is calculated.
+
+        Returns
+        -------
+        mag_slice : :class:`~numpy.ndarray` (N=2)
+            The extracted magnetization slice.
+
+        '''
+        self._log.debug('Calling get_mag_slice')
+        # Find slice:
+        assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
+            'Axis has to be x, y or z (as string).'
+        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
+            self._log.debug('proj_axis == z')
+            u_mag = np.copy(self.magnitude[0][ax_slice, ...])  # x-component
+            v_mag = np.copy(self.magnitude[1][ax_slice, ...])  # y-component
+        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
+            self._log.debug('proj_axis == y')
+            u_mag = np.copy(self.magnitude[0][:, ax_slice, :])  # x-component
+            v_mag = np.copy(self.magnitude[2][:, ax_slice, :])  # z-component
+        elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
+            self._log.debug('proj_axis == x')
+            u_mag = np.swapaxes(np.copy(self.magnitude[2][..., ax_slice]), 0, 1)  # z-component
+            v_mag = np.swapaxes(np.copy(self.magnitude[1][..., ax_slice]), 0, 1)  # y-component
+        # Create data field:
+        if mode == 'complex':
+            return u_mag + 1j*v_mag
+        elif mode == 'amplitude':
+            return np.hypot(u_mag, v_mag)
+        else:
+            raise ValueError('Given mode not understood!')
+
     def flip(self, axis='x'):
         '''Flip/mirror the magnetization around the specified axis.
 
@@ -623,34 +666,86 @@ class MagData(object):
         # Write the tree into the file in pretty print format:
         tree.write(filename, pretty_print=True)
 
-    def to_hyperspy(self):
-        '''Return a :class:`~.hyperspy.signals.Spectrum` class instance. Useful for file exports.
+    def to_emd(self, user={}, microscope={}, sample={}, comments={}):
+        '''Convert :class:`~.MagData` data into ERCpys EMD-format.
 
         Parameters
         ----------
-        None
+        user: dict, optional
+            Dictionary defining user metadata.
+        microscope: dict, optional
+            Dictionary defining microscope metadata.
+        sample: dict, optional
+            Dictionary defining sample metadata.
+        comments: dict, optional
+            Dictionary defining comment metadata.
 
         Returns
         -------
-        hyperspy_spectrum : :class:`~.hyperspy.signals.Spectrum`
-            Hyperspy Spectrum class which can be further used with the hyperspy package.
+        emd: :class:`~ercpy.EMD`
+            Representation of the :class:`~.MagData` object as an :class:`~ercpy.EMD` object.
+
+        Notes
+        -----
+        This method recquires the ercpy package!
 
         '''
-        self._log.debug('Calling to_hyperspy')
-        import hyperspy.hspy as hp
-        # Last axis is used as signal per default, which is wrong (c, z, y, x)  ->  (y, z, c | x)
-        # Signal (and Spectrum) use the last axis, Image the TWO last axes!
-        mag_data_hp = hp.signals.Signal(self.magnitude).as_spectrum(spectral_axis=2)  # components!
-        mag_data_hp.axes_manager[0].name = 'X'
-        mag_data_hp.axes_manager[0].units = 'nm'
-        mag_data_hp.axes_manager[0].scale = self.a
-        mag_data_hp.axes_manager[1].name = 'Y'
-        mag_data_hp.axes_manager[1].units = 'nm'
-        mag_data_hp.axes_manager[1].scale = self.a
-        mag_data_hp.axes_manager[2].name = 'Z'
-        mag_data_hp.axes_manager[2].units = 'nm'
-        mag_data_hp.axes_manager[2].scale = self.a
-        return mag_data_hp
+        self._log.debug('Calling to_emd')
+        # Try importing ERCpy:
+        try:
+            import ercpy
+            import hyperspy.api as hp
+        except ImportError:
+            self._log.error('Could not load ercpy package!')
+            return
+        # Create signals:
+        magnitude = hp.signals.Signal(np.rollaxis(self.magnitude, 0, 4))
+        # Set axes:
+        magnitude.axes_manager[0].name = 'x-axis'
+        magnitude.axes_manager[0].units = 'nm'
+        magnitude.axes_manager[0].scale = self.a
+        magnitude.axes_manager[1].name = 'y-axis'
+        magnitude.axes_manager[1].units = 'nm'
+        magnitude.axes_manager[1].scale = self.a
+        magnitude.axes_manager[2].name = 'z-axis'
+        magnitude.axes_manager[2].units = 'nm'
+        magnitude.axes_manager[2].scale = self.a
+        magnitude.axes_manager[3].name = 'components (x,y,z)'
+        magnitude.axes_manager[3].units = ''
+        # Set metadata:
+        magnitude.metadata.Signal.add_dictionary({'name': 'magnitude'})
+        # Create and return EMD:
+        signals = {'magnitude': magnitude}
+        return ercpy.EMD(signals, user, microscope, sample, comments)
+
+    @classmethod
+    def from_emd(cls, emd):
+        '''Convert a :class:`~ercpy.EMD` object to a :class:`~.MagData` object.
+
+        Parameters
+        ----------
+        emd: :class:`~ercpy.EMD`
+            The :class:`~ercpy.EMD` object which should be converted to :class:`~.MagData`.
+
+        Returns
+        -------
+        mag_data: :class:`~.MagData`
+            A :class:`~.MagData` object containing the loaded data.
+
+        Notes
+        -----
+        This method recquires the ercpy package!
+
+        '''
+        cls._log.debug('Calling to_emd')
+        # Extract signals:
+        try:
+            magnitude = np.rollaxis(emd['magnitude'], 3, 0)
+        except KeyError as e:
+            cls._log.error(str(e))
+        # Extract properties:
+        a = emd.signals['magnitude'].axes_manager[0].scale
+        return MagData(a, magnitude)
 
     def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
@@ -818,7 +913,7 @@ class MagData(object):
 
         '''
         self._log.debug('Calling quiver_plot3D')
-        from mayavi import mlab  # TODO: Supress annoying warning from traits!
+        from mayavi import mlab
         a = self.a
         dim = self.dim
         if limit is None:
@@ -834,13 +929,7 @@ class MagData(object):
         z_mag = self.magnitude[2][::ad, ::ad, ::ad].flatten()
         # Plot them as vectors:
         mlab.figure(size=(750, 700))
-        import warnings
-        with warnings.catch_warnings(record=True) as w:  # Catch annoying warning
-            plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode=mode, colormap=cmap)
-            if len(w) != 0:  # If a warning occurs make sure it is (only) the expected one!
-                assert len(w) == 1
-                assert issubclass(w[0].category, FutureWarning)
-                assert 'comparison' in str(w[0].message)
+        plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode=mode, colormap=cmap)
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation
             self._log.debug('Encoding full 3D angles')
             from tvtk.api import tvtk

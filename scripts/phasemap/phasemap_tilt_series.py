@@ -24,12 +24,6 @@ phase_map.save_to_netcdf4('phasemap_{}_axis={}'.format(filename.replace('magdata
 phase_map.display_combined()
 
 
-
-
-
-
-
-
 dim = mag_data.dim
 dim_uv = (500, 200)
 angles = np.arange(-60, 61, 5)#[0, 20, 40, 60]

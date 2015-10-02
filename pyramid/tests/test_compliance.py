@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Testcase for the magcreator module."""
+"""Testcase for the compliance with PEP8."""
 
 
 import os
@@ -14,7 +14,8 @@ import pep8
 class TestCaseCompliance(unittest.TestCase):
     """TestCase for checking the pep8 compliance of the pyramid package."""
 
-    path = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]  # Pyramid dir
+    # Pyramid directory:
+    path = os.path.abspath(os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', '..'))
 
     def get_files_to_check(self, rootdir):
         filepaths = []
@@ -29,13 +30,13 @@ class TestCaseCompliance(unittest.TestCase):
         '''Test for pep8 compliance.'''
         files = self.get_files_to_check(os.path.join(self.path, 'pyramid')) \
             + self.get_files_to_check(os.path.join(self.path, 'scripts')) \
-            + self.get_files_to_check(os.path.join(self.path, 'tests'))
+            + self.get_files_to_check(os.path.join(self.path, 'pyramid', 'tests'))
         ignores = ('E125', 'E226', 'E228')
         pep8.MAX_LINE_LENGTH = 99
         pep8style = pep8.StyleGuide(quiet=False)
         pep8style.options.ignore = ignores
         stdout_buffer = sys.stdout
-        with open(os.path.join(self.path, 'output', 'pep8_log.txt'), 'w') as sys.stdout:
+        with open(os.path.join(self.path, 'pyramid', 'tests', 'pep8_log.txt'), 'w+') as sys.stdout:
             print '<<< PEP8 LOGFILE >>>'
             print 'RUN:', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print 'IGNORED RULES:', ', '.join(ignores)

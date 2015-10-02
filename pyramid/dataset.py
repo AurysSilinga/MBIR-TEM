@@ -263,7 +263,7 @@ class DataSet(object):
         '''
         self._log.debug('Calling display_mask')
         if self.mask is not None:
-            from mayavi import mlab  # TODO: Supress annoying warning from traits!
+            from mayavi import mlab
             zz, yy, xx = np.indices(self.dim)
             ad = ar_dens
             zz = zz[::ad, ::ad, ::ad].flatten()

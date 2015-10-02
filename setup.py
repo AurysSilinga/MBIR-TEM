@@ -15,13 +15,13 @@ from Cython.Distutils import build_ext
 
 DISTNAME = 'pyramid'
 DESCRIPTION = 'PYthon based Reconstruction Algorithm for MagnetIc Distributions'
-LONG_DESCRIPTION = 'long description (TODO!)'  # TODO: Long description!
 MAINTAINER = 'Jan Caron'
 MAINTAINER_EMAIL = 'j.caron@fz-juelich.de'
 URL = ''
 VERSION = '0.1.0-dev'
 PYTHON_VERSION = (2, 7)
 DEPENDENCIES = {'numpy': (1, 6), 'cython': (0, 20)}
+LONG_DESCRIPTION = 'long description (TODO!)'  # TODO: Long description!
 
 
 def get_package_version(package):
@@ -42,7 +42,6 @@ def check_requirements():
     if sys.version_info < PYTHON_VERSION:
         raise SystemExit('You need Python version %d.%d or later.'
                          % PYTHON_VERSION)
-
     for package_name, min_version in DEPENDENCIES.items():
         dep_error = False
         try:
@@ -53,7 +52,6 @@ def check_requirements():
             package_version = get_package_version(package)
             if min_version > package_version:
                 dep_error = True
-
         if dep_error:
             raise ImportError('You need `%s` version %d.%d or later.'
                               % ((package_name, ) + min_version))
@@ -102,7 +100,7 @@ setup(name=DISTNAME,
       include_dirs=[numpy.get_include()],
       requires=['numpy', 'matplotlib', 'mayavi'],
       scripts=get_files('scripts'),
-      test_suite='tests',
+      test_suite='nose.collector',
       cmdclass={'build_ext': build_ext, 'build': build},
       ext_package='pyramid/numcore',
       ext_modules=[

@@ -15,12 +15,12 @@ from numbers import Number
 import logging
 
 
-__all__ = ['DirectionalColormap']
+__all__ = ['DirectionalColormap', 'TransparentColormap']
 
 
 class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
 
-    '''Colormap subclass for encoding 3D-directions with colors..
+    '''Colormap subclass for encoding 3D-directions with colors.
 
     This class is a subclass of the :class:`~matplotlib.pyplot.colors.LinearSegmentedColormap`
     class with a few classmethods which can be used for convenience. The
@@ -220,3 +220,37 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
         r = np.sqrt(x**2 + y**2 + z**2)
         theta = np.arccos(z / (r+1E-30))
         return cls.rgb_from_angles(phi, theta)
+
+
+class TransparentColormap(mpl.colors.LinearSegmentedColormap):
+
+    '''Colormap subclass for including transparency.
+
+    This class is a subclass of the :class:`~matplotlib.pyplot.colors.LinearSegmentedColormap`
+    class with integrated support for transparency. The colormap is unicolor and varies only in
+    transparency.
+
+    Attributes
+    ----------
+    r: float, optional
+        Intensity of red in the colormap. Has to be between 0. and 1.
+    g: float, optional
+        Intensity of green in the colormap. Has to be between 0. and 1.
+    b: float, optional
+        Intensity of blue in the colormap. Has to be between 0. and 1.
+    alpha_range : list (N=2) of float, optional
+        Start and end alpha value. Has to be between 0. and 1.
+
+    '''
+
+    _log = logging.getLogger(__name__+'.TransparentColormap')
+
+    def __init__(self, r=1., g=0., b=0., alpha_range=[0., 1.]):
+        self._log.debug('Calling __create_directional_colormap')
+        red = [(0., 0., r), (1., r, 1.)]
+        green = [(0., 0., g), (1., g, 1.)]
+        blue = [(0., 0., b), (1., b, 1.)]
+        alpha = [(0., 0., alpha_range[0]), (1., alpha_range[1], 1.)]
+        cdict = {'red': red, 'green': green, 'blue': blue, 'alpha': alpha}
+        super(TransparentColormap, self).__init__('transparent_colormap', cdict, N=256)
+        self._log.debug('Created '+str(self))

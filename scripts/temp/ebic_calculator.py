@@ -34,20 +34,25 @@ def ebic_curr_from_tif(filename):
     xml = im.tag[700]  # This tag holds the XML-Tree! ('print im.tag' for the whole dictionary)
     root = etree.fromstring(xml)  # Get the root of the XML-Tree!
     ebic_node = root[0][4]  # Go to ebic! print ebic_node[i] for more info about i-th child!
+    for i, child_node in enumerate(ebic_node.getchildren()):
+        print i, '-->', child_node.tag.split('}')[1]
     # Identify metadata nodes:
     ooffset_node = ebic_node[21]
     contr_node = ebic_node[4]
     invioffset_node = ebic_node[18]
+    ioffset_node = ebic_node[19]
     preampgain_node = ebic_node[24]
     # Extract metadata:
     ooffset = float(ooffset_node[0].text)
     contr = float(contr_node[0].text)
     invioffset = float(invioffset_node.text)
+    ioffset = float(ioffset_node[0].text)
     preampgain = float(preampgain_node[0].text)
     # Print metadata:
     print 'Ooffset: {} {}'.format(ooffset, ooffset_node[1].text)
     print 'Contr: {} {}'.format(contr, contr_node[1].text)
     print 'InvIOffset: {}'.format(invioffset)  # Caution! Text is DIRECTLY in node (no subnode)!
+    print 'IOffset: {} {}'.format(ioffset, ioffset_node[1].text)
     print 'PreampGain: {} {}'.format(preampgain, preampgain_node[1].text)
     # Calculate EBIC currents:
     diss = data/2**16  # Normalized to 2^16 = 65536 grey values!

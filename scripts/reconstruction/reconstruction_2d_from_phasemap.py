@@ -11,7 +11,7 @@ import logging.config
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-phase_name = 'phasemap_tif_Arnaud_M'
+phase_name = 'phasemap_unf_jay_h2set4'
 b_0 = 1  # in T
 lam = 1E-3
 max_iter = 100
