@@ -4,21 +4,26 @@
 #
 """This module provides the :class:`~.PhaseMap` class for storing phase map data."""
 
-
+import logging
 import os
-import numpy as np
-from scipy.ndimage.interpolation import zoom
 from numbers import Number
-from PIL import Image
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+from PIL import Image
 from matplotlib.ticker import MaxNLocator, FuncFormatter
+from mpl_toolkits.mplot3d import Axes3D
+from scipy.ndimage.interpolation import zoom
 
 from pyramid.colormap import DirectionalColormap, TransparentColormap
 
-import logging
-
+_log = logging.getLogger(__name__)
+try:  # Try importing HyperSpy:
+    import hyperspy.api as hs
+except ImportError:
+    hs = None
+    _log.error('Could not load hyperspy package!')
 
 __all__ = ['PhaseMap']
 
@@ -287,7 +292,7 @@ class PhaseMap(object):
         '''
         self._log.debug('Calling scale_down')
         assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
-        self.a = self.a * 2**n
+        self.a *= 2 ** n
         for t in range(n):
             # Pad if necessary:
             pv, pu = self.dim_uv[0] % 2, self.dim_uv[1] % 2
@@ -326,7 +331,7 @@ class PhaseMap(object):
         assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
         assert 5 > order >= 0 and isinstance(order, (int, long)), \
             'order must be a positive integer between 0 and 5!'
-        self.a = self.a / 2**n
+        self.a /= 2 ** n
         self.phase = zoom(self.phase, zoom=2**n, order=order)
         self.mask = zoom(self.mask, zoom=2**n, order=0)
         self.confidence = zoom(self.confidence, zoom=2**n, order=order)
@@ -418,11 +423,8 @@ class PhaseMap(object):
 
         '''
         self._log.debug('Calling to_signal')
-        # Try importing HyperSpy:
-        try:
-            import hyperspy.api as hs
-        except ImportError:
-            self._log.error('Could not load hyperspy package!')
+        if hs is None:
+            self._log.error('This method recquires the hyperspy package!')
             return
         # Create signal:
         signal = hs.signals.Image(self.phase)
@@ -476,7 +478,7 @@ class PhaseMap(object):
         return cls(a, phase, mask, confidence, unit)
 
     def save_to_hdf5(self, filename='phasemap.hdf5'):
-        '''Save magnetization data in a file with HyperSpys HDF5-format.
+        """Save magnetization data in a file with HyperSpys HDF5-format.
 
         Parameters
         ----------
@@ -488,7 +490,7 @@ class PhaseMap(object):
         -------
         None
 
-        '''
+        """
         self._log.debug('Calling save_to_hdf5')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
@@ -516,18 +518,16 @@ class PhaseMap(object):
 
         '''
         cls._log.debug('Calling load_from_hdf5')
+        if hs is None:
+            cls._log.error('This method recquires the hyperspy package!')
+            return
         # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
             from pyramid import DIR_FILES
             directory = os.path.join(DIR_FILES, 'phasemap')
             filename = os.path.join(directory, filename)
         # Load data from file:
-        try:
-            import hyperspy.api as hs
-            return PhaseMap.from_signal(hs.load(filename))
-        except ImportError:
-            cls._log.error('Could not load hyperspy package!')
-            return
+        return PhaseMap.from_signal(hs.load(filename))
 
     def save_to_txt(self, filename='phasemap.txt', skip_header=False):
         '''Save :class:`~.PhaseMap` data in a file with txt-format.

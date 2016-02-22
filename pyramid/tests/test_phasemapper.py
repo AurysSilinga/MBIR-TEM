@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 """Testcase for the phasemapper module."""
 
-
 import os
 import unittest
 
 import numpy as np
 from numpy.testing import assert_allclose
 
+from pyramid.kernel import Kernel
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
-from pyramid.kernel import Kernel
-from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperRDRC, PhaseMapperFDFC
 from pyramid.phasemapper import PhaseMapperElectric, pm
+from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperRDRC, PhaseMapperFDFC
 
 
 class TestCasePhaseMapperRDFC(unittest.TestCase):

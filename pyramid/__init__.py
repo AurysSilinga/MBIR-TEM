@@ -47,30 +47,17 @@ numcore
     Provides fast numerical functions for core routines.
 
 """
+import logging
 
-from . import analytic
-from . import magcreator
-from . import reconstruction
-from . import fft
-from .costfunction import *  # analysis:ignore
-from .dataset import *  # analysis:ignore
-from .diagnostics import *  # analysis:ignore
-from .forwardmodel import *  # analysis:ignore
-from .kernel import *  # analysis:ignore
-from .magdata import *  # analysis:ignore
-from .phasemap import *  # analysis:ignore
-from .phasemapper import *  # analysis:ignore
-from .projector import *  # analysis:ignore
-from .regularisator import *  # analysis:ignore
-from .ramp import *  # analysis:ignore
-from .quaternion import *  # analysis:ignore
-from .colormap import *  # analysis:ignore
-from .config import *  # analysis:ignore
+_log = logging.getLogger(__name__)
+try:  # Try importing HyperSpy (here because otherwise API Errors might occur):
+    import hyperspy.api
+except ImportError:
+    _log.error('Could not load hyperspy package!')
+
 from .version import version as __version__
 from .version import hg_revision as __hg_revision__
 
-import logging
-_log = logging.getLogger(__name__)
 _log.info("Starting Pyramid V{} HG{}".format(__version__, __hg_revision__))
 del logging
 

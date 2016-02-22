@@ -5,15 +5,13 @@
 """This module provides a custom :class:`~.DirectionalColormap` colormap class which has a few
 additional functions and can encode three-dimensional directions."""
 
-
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-from PIL import Image
+import logging
 from numbers import Number
 
-import logging
-
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
 
 __all__ = ['DirectionalColormap', 'TransparentColormap']
 
@@ -245,7 +243,9 @@ class TransparentColormap(mpl.colors.LinearSegmentedColormap):
 
     _log = logging.getLogger(__name__+'.TransparentColormap')
 
-    def __init__(self, r=1., g=0., b=0., alpha_range=[0., 1.]):
+    def __init__(self, r=1., g=0., b=0., alpha_range=None):
+        if alpha_range is None:
+            alpha_range = [0., 1.]
         self._log.debug('Calling __create_directional_colormap')
         red = [(0., 0., r), (1., r, 1.)]
         green = [(0., 0., g), (1., g, 1.)]

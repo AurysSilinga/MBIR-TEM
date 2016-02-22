@@ -18,12 +18,18 @@ from scipy.ndimage.interpolation import zoom
 from pyramid import fft
 from pyramid.colormap import DirectionalColormap
 
+_log = logging.getLogger(__name__)
+try:  # Try importing HyperSpy:
+    import hyperspy.api as hs
+except ImportError:
+    hs = None
+    _log.error('Could not load hyperspy package!')
+
 __all__ = ['MagData']
 
 
 class MagData(object):
-
-    '''Class for storing magnetization data.
+    """Class for storing magnetization data.
 
     Represents 3-dimensional magnetic distributions with 3 components which are stored as a
     2-dimensional numpy array in `magnitude`, but which can also be accessed as a vector via
@@ -47,7 +53,7 @@ class MagData(object):
     mag_vec: :class:`~numpy.ndarray` (N=1)
         Vector containing the magnetic distribution.
 
-    '''
+    """
 
     _log = logging.getLogger(__name__+'.MagData')
 
@@ -194,7 +200,7 @@ class MagData(object):
         '''
         self._log.debug('Calling scale_down')
         assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
-        self.a = self.a * 2**n
+        self.a *= 2 ** n
         for t in range(n):
             # Pad if necessary:
             pz, py, px = self.dim[0] % 2, self.dim[1] % 2, self.dim[2] % 2
@@ -229,7 +235,7 @@ class MagData(object):
         assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
         assert 5 > order >= 0 and isinstance(order, (int, long)), \
             'order must be a positive integer between 0 and 5!'
-        self.a = self.a / 2**n
+        self.a /= 2 ** n
         self.magnitude = np.array((zoom(self.magnitude[0], zoom=2**n, order=order),
                                    zoom(self.magnitude[1], zoom=2**n, order=order),
                                    zoom(self.magnitude[2], zoom=2**n, order=order)))
@@ -484,10 +490,8 @@ class MagData(object):
         '''
         self._log.debug('Calling to_signal')
         # Try importing HyperSpy:
-        try:
-            import hyperspy.api as hs
-        except ImportError:
-            self._log.error('Could not load hyperspy package!')
+        if hs is None:
+            self._log.error('This method recquires the hyperspy package!')
             return
         # Create signal:
         signal = hs.signals.Signal(np.rollaxis(self.magnitude, 0, 4))
@@ -575,18 +579,16 @@ class MagData(object):
 
         '''
         cls._log.debug('Calling load_from_hdf5')
+        if hs is None:
+            self._log.error('This method recquires the hyperspy package!')
+            return
         # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
             from pyramid import DIR_FILES
             directory = os.path.join(DIR_FILES, 'magdata')
             filename = os.path.join(directory, filename)
         # Load data from file:
-        try:
-            import hyperspy.api as hs
-            return MagData.from_signal(hs.load(filename))
-        except ImportError:
-            cls._log.error('Could not load hyperspy package!')
-            return
+        return MagData.from_signal(hs.load(filename))
 
     def save_to_llg(self, filename='magdata.txt'):
         '''Save magnetization data in a file with LLG-format.

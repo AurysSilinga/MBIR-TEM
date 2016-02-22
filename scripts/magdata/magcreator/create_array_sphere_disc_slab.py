@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 """Create multiple magnetic distributions."""
 
-
-import numpy as np
-import pyramid as py
 import logging.config
 
+import numpy as np
+
+import pyramid as py
 
 logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
@@ -33,4 +33,4 @@ mag_shape_sphere = py.magcreator.Shapes.sphere(dim, center, radius)
 mag_data = py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape_slab, np.pi/4))
 mag_data += py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape_disc, np.pi/2))
 mag_data += py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape_sphere, np.pi))
-mag_data.save_to_netcdf4(filename)
+mag_data.save_to_hdf5(filename)
