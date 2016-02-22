@@ -202,7 +202,8 @@ class UI_PhaseMapCreatorMain(QtGui.QWidget):
     def update_mask(self):
         if self.mask_loaded:
             threshold = self.doubleSpinBox_thres.value()
-            mask = np.asarray(Image.fromarray(self.emd['mask']).resize(self.emd['phase'].shape))
+            mask_img = Image.fromarray(self.emd['mask'])
+            mask = np.asarray(mask_img.resize(reversed(self.emd['phase'].shape)))
             self.phase_map.mask = np.where(mask >= threshold, True, False)
             self.update_phasemap()
 

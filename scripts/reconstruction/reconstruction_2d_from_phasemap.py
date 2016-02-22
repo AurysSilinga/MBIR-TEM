@@ -11,9 +11,9 @@ import logging.config
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-phase_name = 'phasemap_unf_jay_h2set4'
+phase_name = 'phasemap_gui_Pha1'
 b_0 = 1  # in T
-lam = 1E-3
+lam = 1E-1
 max_iter = 100
 buffer_pixel = 0
 order = 1

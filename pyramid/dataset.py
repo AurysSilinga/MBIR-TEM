@@ -11,10 +11,10 @@ from numbers import Number
 from scipy import sparse
 import matplotlib.pyplot as plt
 
-from pyramid.phasemap import PhaseMap
-from pyramid.phasemapper import PhaseMapperRDFC
-from pyramid.projector import Projector
-from pyramid.kernel import Kernel
+from .phasemap import PhaseMap
+from .phasemapper import PhaseMapperRDFC
+from .projector import Projector
+from .kernel import Kernel
 
 import logging
 

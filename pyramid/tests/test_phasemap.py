@@ -63,8 +63,8 @@ class TestCasePhaseMap(unittest.TestCase):
         assert_allclose(phase_map.a, self.phase_map.a,
                         err_msg='Unexpected behavior in load_from_txt()!')
 
-    def test_load_from_netcdf4(self):
-        phase_map = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'ref_phase_map.nc'))
+    def test_load_from_hdf5(self):
+        phase_map = PhaseMap.load_from_hdf5(os.path.join(self.path, 'ref_phase_map.hdf5'))
         assert_allclose(self.phase_map.phase, phase_map.phase,
                         err_msg='Unexpected behavior in load_from_netcdf4()!')
         assert_allclose(self.phase_map.mask, phase_map.mask,

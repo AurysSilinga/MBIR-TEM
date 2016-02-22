@@ -17,7 +17,7 @@ import logging.config
 logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-filename = 'gyroid_homx.vtk'
+filename = 'gyroid_p110c333_end_angle_90_45.0.vtk'
 b_0 = 1.
 ###################################################################################################
 
@@ -77,6 +77,7 @@ x = np.arange(x_cent-x_diff, x_cent+x_diff, a)
 y = np.arange(y_cent-y_diff, y_cent+y_diff, a)
 z = np.arange(z_min, z_max, a)
 xx, yy = np.meshgrid(x, y)
+
 
 def excluding_mesh(x, y, nx=30, ny=30):
     """

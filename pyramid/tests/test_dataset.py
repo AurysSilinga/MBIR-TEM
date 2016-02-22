@@ -45,7 +45,9 @@ class TestCaseDataSet(unittest.TestCase):
         mag_data = MagData(self.a, np.ones((3,)+self.dim))
         self.data.phase_maps = self.data.create_phase_maps(mag_data)
         phase_vec_ref = np.load(os.path.join(self.path, 'phase_vec_ref.npy'))
-        assert_allclose(self.data.phase_vec, phase_vec_ref,
+        print (self.data.phase_vec - phase_vec_ref).max()
+        print (self.data.phase_vec - phase_vec_ref).min()
+        assert_allclose(self.data.phase_vec, phase_vec_ref, atol=1E-6,
                         err_msg='Unexpected behaviour in create_phase_maps()!')
 
     def test_set_Se_inv_block_diag(self):

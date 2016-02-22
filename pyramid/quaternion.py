@@ -125,7 +125,7 @@ class Quaternion(object):
         x *= np.sin(theta)
         y *= np.sin(theta)
         z *= np.sin(theta)
-        return Quaternion((w, x, y, z))
+        return cls((w, x, y, z))
 
     def to_axisangle(self):
         '''Convert the quaternion to axis-angle-representation.

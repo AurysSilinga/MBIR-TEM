@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright 2014 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
-#
+
 """Package for the creation and reconstruction of magnetic distributions and resulting phase maps.
 
 Modules
@@ -47,7 +47,6 @@ numcore
     Provides fast numerical functions for core routines.
 
 """
-
 
 from . import analytic
 from . import magcreator

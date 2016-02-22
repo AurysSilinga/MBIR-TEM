@@ -4,24 +4,19 @@
 #
 """This module provides the :class:`~.MagData` class for storing of magnetization data."""
 
-
 from __future__ import division
 
+import logging
 import os
-import numpy as np
-from numpy.linalg import norm
-from scipy.ndimage.interpolation import zoom
 from numbers import Number
-import netCDF4
+
 import matplotlib.pyplot as plt
-import matplotlib.cm as cmx
+import numpy as np
 from matplotlib.ticker import MaxNLocator
+from scipy.ndimage.interpolation import zoom
 
 from pyramid import fft
 from pyramid.colormap import DirectionalColormap
-
-import logging
-
 
 __all__ = ['MagData']
 
@@ -35,7 +30,7 @@ class MagData(object):
     `mag_vec`. :class:`~.MagData` objects support negation, arithmetic operators
     (``+``, ``-``, ``*``) and their augmented counterparts (``+=``, ``-=``, ``*=``), with numbers
     and other :class:`~.MagData` objects, if their dimensions and grid spacings match. It is
-    possible to load data from NetCDF4 or LLG (.txt) files or to save the data in these formats.
+    possible to load data from HDF5 or LLG (.txt) files or to save the data in these formats.
     Plotting methods are also provided.
 
     Attributes
@@ -470,21 +465,90 @@ class MagData(object):
             raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
         return MagData(self.a, magnitude_rot)
 
-    def save_to_netcdf4(self, filename='magdata.nc'):
-        '''Save magnetization data in a file with NetCDF4-format.
+    def to_signal(self):
+        '''Convert :class:`~.MagData` data into a HyperSpy signal.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        signal: :class:`~hyperspy.signals.Signal`
+            Representation of the :class:`~.MagData` object as a HyperSpy Signal.
+
+        Notes
+        -----
+        This method recquires the hyperspy package!
+
+        '''
+        self._log.debug('Calling to_signal')
+        # Try importing HyperSpy:
+        try:
+            import hyperspy.api as hs
+        except ImportError:
+            self._log.error('Could not load hyperspy package!')
+            return
+        # Create signal:
+        signal = hs.signals.Signal(np.rollaxis(self.magnitude, 0, 4))
+        # Set axes:
+        signal.axes_manager[0].name = 'x-axis'
+        signal.axes_manager[0].units = 'nm'
+        signal.axes_manager[0].scale = self.a
+        signal.axes_manager[1].name = 'y-axis'
+        signal.axes_manager[1].units = 'nm'
+        signal.axes_manager[1].scale = self.a
+        signal.axes_manager[2].name = 'z-axis'
+        signal.axes_manager[2].units = 'nm'
+        signal.axes_manager[2].scale = self.a
+        signal.axes_manager[3].name = 'components (x,y,z)'
+        signal.axes_manager[3].units = ''
+        # Set metadata:
+        signal.metadata.Signal.title = 'MagData'
+        # Return signal:
+        return signal
+
+    @classmethod
+    def from_signal(cls, signal):
+        '''Convert a :class:`~hyperspy.signals.Signal` object to a :class:`~.MagData` object.
+
+        Parameters
+        ----------
+        signal: :class:`~hyperspy.signals.Signal`
+            The :class:`~hyperspy.signals.Signal` object which should be converted to MagData.
+
+        Returns
+        -------
+        mag_data: :class:`~.MagData`
+            A :class:`~.MagData` object containing the loaded data.
+
+        Notes
+        -----
+        This method recquires the hyperspy package!
+
+        '''
+        cls._log.debug('Calling from_signal')
+        # Extract magnitude:
+        magnitude = np.rollaxis(signal.data, 3, 0)
+        # Extract properties:
+        a = signal.axes_manager[0].scale
+        return cls(a, magnitude)
+
+    def save_to_hdf5(self, filename='magdata.hdf5'):
+        '''Save magnetization data in a file with HyperSpys HDF5-format.
 
         Parameters
         ----------
         filename : string, optional
-            The name of the NetCDF4-file in which to store the magnetization data.
-            Standard format is '\*.nc'.
+            The name of the HDF5-file in which to store the magnetization data.
+            The default is 'magdata.hdf5'.
 
         Returns
         -------
         None
 
         '''
-        self._log.debug('Calling save_to_netcdf4')
+        self._log.debug('Calling save_to_hdf5')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
             from pyramid import DIR_FILES
@@ -493,24 +557,16 @@ class MagData(object):
                 os.makedirs(directory)
             filename = os.path.join(directory, filename)
         # Save data to file:
-        mag_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
-        mag_file.a = self.a
-        mag_file.createDimension('comp', 3)  # Number of components
-        mag_file.createDimension('z_dim', self.dim[0])
-        mag_file.createDimension('y_dim', self.dim[1])
-        mag_file.createDimension('x_dim', self.dim[2])
-        magnitude = mag_file.createVariable('magnitude', 'f', ('comp', 'z_dim', 'y_dim', 'x_dim'))
-        magnitude[...] = self.magnitude
-        mag_file.close()
+        self.to_signal.save(filename)
 
     @classmethod
-    def load_from_netcdf4(cls, filename):
-        '''Construct :class:`~.DataMag` object from NetCDF4-file.
+    def load_from_hdf5(cls, filename):
+        '''Construct :class:`~.MagData` object from HyperSpys HDF5-file.
 
         Parameters
         ----------
         filename : string
-            The name of the NetCDF4-file from which to load the data. Standard format is '\*.nc'.
+            The name of the HDF5-file from which to load the data. Standard format is '\*.hdf5'.
 
         Returns
         -------
@@ -518,20 +574,19 @@ class MagData(object):
             A :class:`~.MagData` object containing the loaded data.
 
         '''
-        cls._log.debug('Calling load_from_netcdf4')
-        # Construct path if filename isn't already absolute:
+        cls._log.debug('Calling load_from_hdf5')
+        # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
             from pyramid import DIR_FILES
             directory = os.path.join(DIR_FILES, 'magdata')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
             filename = os.path.join(directory, filename)
         # Load data from file:
-        mag_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
-        a = mag_file.a
-        magnitude = mag_file.variables['magnitude'][...]
-        mag_file.close()
-        return MagData(a, magnitude)
+        try:
+            import hyperspy.api as hs
+            return MagData.from_signal(hs.load(filename))
+        except ImportError:
+            cls._log.error('Could not load hyperspy package!')
+            return
 
     def save_to_llg(self, filename='magdata.txt'):
         '''Save magnetization data in a file with LLG-format.
@@ -584,168 +639,17 @@ class MagData(object):
         '''
         cls._log.debug('Calling load_from_llg')
         SCALE = 1.0E-9 / 1.0E-2  # From cm to nm
-        # Construct path if filename isn't already absolute:
+        # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
             from pyramid import DIR_FILES
             directory = os.path.join(DIR_FILES, 'magdata')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
             filename = os.path.join(directory, filename)
         # Load data from file:
         data = np.genfromtxt(filename, skip_header=2)
         dim = tuple(np.genfromtxt(filename, dtype=int, skip_header=1, skip_footer=len(data[:, 0])))
         a = (data[1, 0] - data[0, 0]) / SCALE
         magnitude = data[:, 3:6].T.reshape((3,)+dim)
-        return MagData(a, magnitude)
-
-    def save_to_x3d(self, filename='magdata.x3d', maximum=1):
-        '''Output the magnetization in the .x3d format for the Fraunhofer InstantReality Player.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the NetCDF4-file in which to store the magnetization data.
-            Standard format is '\*.x3d'.
-        maximum: float, optional
-            Maximum value to which the arrow color is scaled. Default is 1.
-
-        Returns
-        -------
-        None
-
-        '''
-        self._log.debug('Calling save_to_x3d')
-        from lxml import etree
-        dim = self.dim
-        # Create points and vector components as lists:
-        zz, yy, xx = (np.indices(dim)-0.5).reshape(3, -1)
-        x_mag = np.reshape(self.magnitude[0], (-1))
-        y_mag = np.reshape(self.magnitude[1], (-1))
-        z_mag = np.reshape(self.magnitude[2], (-1))
-        # Load template, load tree and write viewpoint information:
-        template = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'template.x3d')
-        parser = etree.XMLParser(remove_blank_text=True)
-        tree = etree.parse(template, parser)
-        scene = tree.find('Scene')
-        etree.SubElement(scene, 'Viewpoint', position='0 0 {}'.format(1.5*dim[0]),
-                         fieldOfView='1')
-        # Write each "spin"-tag separately:
-        for i in range(np.prod(dim)):
-            mag = np.sqrt(x_mag[i]**2+y_mag[i]**2+z_mag[i]**2)
-            if mag != 0:
-                spin_position = (xx[i]-dim[2]/2., yy[i]-dim[1]/2., zz[i]-dim[0]/2.)
-                sx_ref = 0
-                sy_ref = 1
-                sz_ref = 0
-                rot_x = sy_ref*z_mag[i] - sz_ref*y_mag[i]
-                rot_y = sz_ref*x_mag[i] - sx_ref*z_mag[i]
-                rot_z = sx_ref*y_mag[i] - sy_ref*x_mag[i]
-                angle = np.arccos(y_mag[i]/mag)
-                if norm((rot_x, rot_y, rot_z)) < 1E-10:
-                    rot_x, rot_y, rot_z = 1, 0, 0
-                spin_rotation = (rot_x, rot_y, rot_z, angle)
-                spin_color = cmx.RdYlGn(mag/maximum)[:3]
-                spin_scale = (1., 1., 1.)
-                spin = etree.SubElement(scene, 'ProtoInstance',
-                                        DEF='Spin {}'.format(i), name='Spin_Proto')
-                etree.SubElement(spin, 'fieldValue', name='spin_position',
-                                 value='{} {} {}'.format(*spin_position))
-                etree.SubElement(spin, 'fieldValue', name='spin_rotation',
-                                 value='{} {} {} {}'.format(*spin_rotation))
-                etree.SubElement(spin, 'fieldValue', name='spin_color',
-                                 value='{} {} {}'.format(*spin_color))
-                etree.SubElement(spin, 'fieldValue', name='spin_scale',
-                                 value='{} {} {}'.format(*spin_scale))
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'x3d')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
-        # Write the tree into the file in pretty print format:
-        tree.write(filename, pretty_print=True)
-
-    def to_emd(self, user={}, microscope={}, sample={}, comments={}):
-        '''Convert :class:`~.MagData` data into ERCpys EMD-format.
-
-        Parameters
-        ----------
-        user: dict, optional
-            Dictionary defining user metadata.
-        microscope: dict, optional
-            Dictionary defining microscope metadata.
-        sample: dict, optional
-            Dictionary defining sample metadata.
-        comments: dict, optional
-            Dictionary defining comment metadata.
-
-        Returns
-        -------
-        emd: :class:`~ercpy.EMD`
-            Representation of the :class:`~.MagData` object as an :class:`~ercpy.EMD` object.
-
-        Notes
-        -----
-        This method recquires the ercpy package!
-
-        '''
-        self._log.debug('Calling to_emd')
-        # Try importing ERCpy:
-        try:
-            import ercpy
-            import hyperspy.api as hp
-        except ImportError:
-            self._log.error('Could not load ercpy package!')
-            return
-        # Create signals:
-        magnitude = hp.signals.Signal(np.rollaxis(self.magnitude, 0, 4))
-        # Set axes:
-        magnitude.axes_manager[0].name = 'x-axis'
-        magnitude.axes_manager[0].units = 'nm'
-        magnitude.axes_manager[0].scale = self.a
-        magnitude.axes_manager[1].name = 'y-axis'
-        magnitude.axes_manager[1].units = 'nm'
-        magnitude.axes_manager[1].scale = self.a
-        magnitude.axes_manager[2].name = 'z-axis'
-        magnitude.axes_manager[2].units = 'nm'
-        magnitude.axes_manager[2].scale = self.a
-        magnitude.axes_manager[3].name = 'components (x,y,z)'
-        magnitude.axes_manager[3].units = ''
-        # Set metadata:
-        magnitude.metadata.Signal.add_dictionary({'name': 'magnitude'})
-        # Create and return EMD:
-        signals = {'magnitude': magnitude}
-        return ercpy.EMD(signals, user, microscope, sample, comments)
-
-    @classmethod
-    def from_emd(cls, emd):
-        '''Convert a :class:`~ercpy.EMD` object to a :class:`~.MagData` object.
-
-        Parameters
-        ----------
-        emd: :class:`~ercpy.EMD`
-            The :class:`~ercpy.EMD` object which should be converted to :class:`~.MagData`.
-
-        Returns
-        -------
-        mag_data: :class:`~.MagData`
-            A :class:`~.MagData` object containing the loaded data.
-
-        Notes
-        -----
-        This method recquires the ercpy package!
-
-        '''
-        cls._log.debug('Calling to_emd')
-        # Extract signals:
-        try:
-            magnitude = np.rollaxis(emd['magnitude'], 3, 0)
-        except KeyError as e:
-            cls._log.error(str(e))
-        # Extract properties:
-        a = emd.signals['magnitude'].axes_manager[0].scale
-        return MagData(a, magnitude)
+        return cls(a, magnitude)
 
     def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
@@ -893,7 +797,7 @@ class MagData(object):
         limit : float, optional
             Plotlimit for the magnetization arrow length used to scale the colormap.
         cmap : string, optional
-            String describing the colormap which is used (default is 'cool').
+            String describing the colormap which is used (default is 'jet').
         ar_dens: int (optional)
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.

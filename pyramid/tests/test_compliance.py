@@ -31,7 +31,7 @@ class TestCaseCompliance(unittest.TestCase):
         files = self.get_files_to_check(os.path.join(self.path, 'pyramid')) \
             + self.get_files_to_check(os.path.join(self.path, 'scripts')) \
             + self.get_files_to_check(os.path.join(self.path, 'pyramid', 'tests'))
-        ignores = ('E125', 'E226', 'E228')
+        ignores = ('E125', 'E226', 'E228', 'W503')
         pep8.MAX_LINE_LENGTH = 99
         pep8style = pep8.StyleGuide(quiet=False)
         pep8style.options.ignore = ignores

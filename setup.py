@@ -11,6 +11,9 @@ from distutils.command.build import build
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from Cython.Distutils import build_ext
+import hyperspy.api as hs  # analysis:ignore
+# Import Hyperspy before actually doing stuff, to set the PyQT API at the very beginning (to 2).
+# If this is not done, something sets it to 1 befor HyperSpy is imported, which leads to errors.
 
 
 DISTNAME = 'pyramid'
@@ -20,7 +23,7 @@ MAINTAINER_EMAIL = 'j.caron@fz-juelich.de'
 URL = ''
 VERSION = '0.1.0-dev'
 PYTHON_VERSION = (2, 7)
-DEPENDENCIES = {'numpy': (1, 6), 'cython': (0, 20)}
+DEPENDENCIES = {'numpy': (1, 10), 'cython': (0, 23)}
 LONG_DESCRIPTION = 'long description (TODO!)'  # TODO: Long description!
 
 
@@ -98,7 +101,7 @@ setup(name=DISTNAME,
       version=VERSION,
       packages=find_packages(exclude=['tests']),
       include_dirs=[numpy.get_include()],
-      requires=['numpy', 'matplotlib', 'mayavi'],
+      requires=['numpy', 'matplotlib', 'mayavi', 'hyperspy'],
       scripts=get_files('scripts'),
       test_suite='nose.collector',
       cmdclass={'build_ext': build_ext, 'build': build},

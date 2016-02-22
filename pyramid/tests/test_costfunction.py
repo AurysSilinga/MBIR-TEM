@@ -26,7 +26,7 @@ class TestCaseCostfunction(unittest.TestCase):
         self.mask[1:-1, 1:-1, 1:-1] = True
         self.data = DataSet(self.a, self.dim, mask=self.mask)
         self.projector = SimpleProjector(self.dim)
-        self.phase_map = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'phase_map_ref.nc'))
+        self.phase_map = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map_ref.hdf5'))
         self.data.append(self.phase_map, self.projector)
         self.data.append(self.phase_map, self.projector)
         self.reg = FirstOrderRegularisator(self.mask, lam=1E-4)
@@ -44,14 +44,14 @@ class TestCaseCostfunction(unittest.TestCase):
         self.cost = None
 
     def test_call(self):
-        assert_allclose(self.cost(np.ones(self.cost.n)), 0.,
+        assert_allclose(self.cost(np.ones(self.cost.n)), 0., atol=1E-7,
                         err_msg='Unexpected behaviour in __call__()!')
         zero_vec_cost = np.load(os.path.join(self.path, 'zero_vec_cost.npy'))
         assert_allclose(self.cost(np.zeros(self.cost.n)), zero_vec_cost,
                         err_msg='Unexpected behaviour in __call__()!')
 
     def test_jac(self):
-        assert_allclose(self.cost.jac(np.ones(self.cost.n)), np.zeros(self.cost.n),
+        assert_allclose(self.cost.jac(np.ones(self.cost.n)), np.zeros(self.cost.n), atol=1E-7,
                         err_msg='Unexpected behaviour in jac()!')
         jac_vec_ref = np.load(os.path.join(self.path, 'jac_vec_ref.npy'))
         assert_allclose(self.cost.jac(np.zeros(self.cost.n)), jac_vec_ref, atol=1E-7,
@@ -63,7 +63,7 @@ class TestCaseCostfunction(unittest.TestCase):
 
     def test_hess_dot(self):
         assert_allclose(self.cost.hess_dot(None, np.zeros(self.cost.n)), np.zeros(self.cost.n),
-                        err_msg='Unexpected behaviour in jac()!')
+                        atol=1E-7, err_msg='Unexpected behaviour in jac()!')
         hess_vec_ref = -np.load(os.path.join(self.path, 'jac_vec_ref.npy'))
         assert_allclose(self.cost.hess_dot(None, np.ones(self.cost.n)), hess_vec_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in jac()!')

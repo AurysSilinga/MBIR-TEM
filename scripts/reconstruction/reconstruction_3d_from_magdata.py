@@ -71,10 +71,10 @@ if __name__ == '__main__':
             phase_map.display_phase()
 
     # Construct mask:
-    if use_internal_mask:
-        data.mask = mag_data.get_mask()  # Use perfect mask from mag_data!
-    else:
-        data.set_3d_mask()  # Construct mask from 2D phase masks!
+#    if use_internal_mask:
+#        data.mask = mag_data.get_mask()  # Use perfect mask from mag_data!
+#    else:
+#        data.set_3d_mask()  # Construct mask from 2D phase masks!
 
     # Construct regularisator, forward model and costfunction:
     fwd_model = pr.DistributedForwardModel(data, ramp_order=order, nprocs=4)

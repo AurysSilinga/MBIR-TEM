@@ -57,7 +57,7 @@ class PhaseMapper(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def jac_T_dot(self, vector, offseth=None):
+    def jac_T_dot(self, vector, offset=None):
         raise NotImplementedError()
 
 
@@ -74,15 +74,6 @@ class PhaseMapperRDFC(PhaseMapper):
     ----------
     a : float
         The grid spacing in nm.
-    projector : :class:`~.Projector`
-        Projector which should be used for the projection of the 3-dimensional magnetization
-        distribution.
-    b_0 : float, optional
-        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
-        The default is 1.
-    geometry : {'disc', 'slab'}, optional
-        Elementary geometry which is used for the phase contribution of one pixel.
-        Default is 'disc'.
     m: int
         Size of the image space.
     n: int

@@ -81,10 +81,10 @@ class TestCaseMagData(unittest.TestCase):
                         err_msg='Unexpected behavior in set_vector()!')
 
     def test_flip(self):
-        mag_data = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_orig.nc'))
-        mag_data_flipx = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_flipx.nc'))
-        mag_data_flipy = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_flipy.nc'))
-        mag_data_flipz = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_flipz.nc'))
+        mag_data = MagData.load_from_hdf5(os.path.join(self.path, 'mag_data_orig.hdf5'))
+        mag_data_flipx = MagData.load_from_hdf5(os.path.join(self.path, 'mag_data_flipx.hdf5'))
+        mag_data_flipy = MagData.load_from_hdf5(os.path.join(self.path, 'mag_data_flipy.hdf5'))
+        mag_data_flipz = MagData.load_from_hdf5(os.path.join(self.path, 'mag_data_flipz.hdf5'))
         assert_allclose(mag_data.flip('x').magnitude, mag_data_flipx.magnitude,
                         err_msg='Unexpected behavior in flip()! (x)')
         assert_allclose(mag_data.flip('y').magnitude, mag_data_flipy.magnitude,
@@ -93,10 +93,10 @@ class TestCaseMagData(unittest.TestCase):
                         err_msg='Unexpected behavior in flip()! (z)')
 
     def test_rot(self):
-        mag_data = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_orig.nc'))
-        mag_data_rotx = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_rotx.nc'))
-        mag_data_roty = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_roty.nc'))
-        mag_data_rotz = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_rotz.nc'))
+        mag_data = MagData.load_from_hdf5(os.path.join(self.path, 'mag_data_orig.hdf5'))
+        mag_data_rotx = MagData.load_from_hdf5(os.path.join(self.path, 'mag_data_rotx.hdf5'))
+        mag_data_roty = MagData.load_from_hdf5(os.path.join(self.path, 'mag_data_roty.hdf5'))
+        mag_data_rotz = MagData.load_from_hdf5(os.path.join(self.path, 'mag_data_rotz.hdf5'))
         assert_allclose(mag_data.rot90('x').magnitude, mag_data_rotx.magnitude,
                         err_msg='Unexpected behavior in rot()! (x)')
         assert_allclose(mag_data.rot90('y').magnitude, mag_data_roty.magnitude,
@@ -111,8 +111,8 @@ class TestCaseMagData(unittest.TestCase):
         assert_allclose(mag_data.a, self.mag_data.a,
                         err_msg='Unexpected behavior in load_from_llg()!')
 
-    def test_load_from_netcdf4(self):
-        mag_data = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_data_ref_load.nc'))
+    def test_load_from_hdf5(self):
+        mag_data = MagData.load_from_hdf5(os.path.join(self.path, 'mag_data_ref_load.hdf5'))
         assert_allclose(mag_data.magnitude, self.mag_data.magnitude,
                         err_msg='Unexpected behavior in load_from_netcdf4()!')
         assert_allclose(mag_data.a, self.mag_data.a,

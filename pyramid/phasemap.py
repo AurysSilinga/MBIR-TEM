@@ -9,7 +9,6 @@ import os
 import numpy as np
 from scipy.ndimage.interpolation import zoom
 from numbers import Number
-import netCDF4
 from PIL import Image
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -32,7 +31,7 @@ class PhaseMap(object):
     matrix in `phase`, but can also be accessed as a vector via `phase_vec`. :class:`~.PhaseMap`
     objects support negation, arithmetic operators (``+``, ``-``, ``*``) and their augmented
     counterparts (``+=``, ``-=``, ``*=``), with numbers and other :class:`~.PhaseMap`
-    objects, if their dimensions and grid spacings match. It is possible to load data from NetCDF4
+    objects, if their dimensions and grid spacings match. It is possible to load data from HDF5
     or textfiles or to save the data in these formats. Methods for plotting the phase or a
     corresponding holographic contour map are provided. Holographic contour maps are created by
     taking the cosine of the (optionally amplified) phase and encoding the direction of the
@@ -175,7 +174,7 @@ class PhaseMap(object):
 
     @unit.setter
     def unit(self, unit):
-        assert unit in self.UNITDICT, 'Unit not supported!'
+        assert unit in self.UNITDICT, 'Unit {} not supported!'.format(unit)
         self._unit = unit
 
     def __init__(self, a, phase, mask=None, confidence=None, unit='rad'):
@@ -222,8 +221,8 @@ class PhaseMap(object):
 
     def __mul__(self, other):  # self * other
         self._log.debug('Calling __mul__')
-        assert (isinstance(other, Number)
-                or (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
+        assert (isinstance(other, Number) or
+                (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
         return PhaseMap(self.a, other*self.phase, self.mask, self.confidence, self.unit)
 
@@ -401,6 +400,135 @@ class PhaseMap(object):
         self.mask = self.mask[cv[0]:cv[1], cv[2]:cv[3]]
         self.confidence = self.confidence[cv[0]:cv[1], cv[2]:cv[3]]
 
+    def to_signal(self):
+        '''Convert :class:`~.PhaseMap` data into a HyperSpy Image.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        signal: :class:`~hyperspy.signals.Image`
+            Representation of the :class:`~.PhaseMap` object as a HyperSpy Image.
+
+        Notes
+        -----
+        This method recquires the hyperspy package!
+
+        '''
+        self._log.debug('Calling to_signal')
+        # Try importing HyperSpy:
+        try:
+            import hyperspy.api as hs
+        except ImportError:
+            self._log.error('Could not load hyperspy package!')
+            return
+        # Create signal:
+        signal = hs.signals.Image(self.phase)
+        # Set axes:
+        signal.axes_manager[0].name = 'x-axis'
+        signal.axes_manager[0].units = 'nm'
+        signal.axes_manager[0].scale = self.a
+        signal.axes_manager[1].name = 'y-axis'
+        signal.axes_manager[1].units = 'nm'
+        signal.axes_manager[1].scale = self.a
+        # Set metadata:
+        signal.metadata.Signal.title = 'PhaseMap'
+        signal.metadata.Signal.unit = self.unit
+        signal.metadata.Signal.mask = self.mask
+        signal.metadata.Signal.confidence = self.confidence
+        # Create and return EMD:
+        return signal
+
+    @classmethod
+    def from_signal(cls, signal):
+        '''Convert a :class:`~hyperspy.signals.Image` object to a :class:`~.PhaseMap` object.
+
+        Parameters
+        ----------
+        signal: :class:`~hyperspy.signals.Image`
+            The :class:`~hyperspy.signals.Image` object which should be converted to a PhaseMap.
+
+        Returns
+        -------
+        phase_map: :class:`~.PhaseMap`
+            A :class:`~.PhaseMap` object containing the loaded data.
+
+        Notes
+        -----
+        This method recquires the hyperspy package!
+
+        '''
+        cls._log.debug('Calling from_signal')
+        # Extract phase:
+        phase = signal.data
+        # Extract properties:
+        a = signal.axes_manager[0].scale
+        try:
+            unit = signal.metadata.Signal.unit
+            mask = signal.metadata.Signal.mask
+            confidence = signal.metadata.Signal.confidence
+        except AttributeError:
+            unit = 'rad'
+            mask = None
+            confidence = None
+        return cls(a, phase, mask, confidence, unit)
+
+    def save_to_hdf5(self, filename='phasemap.hdf5'):
+        '''Save magnetization data in a file with HyperSpys HDF5-format.
+
+        Parameters
+        ----------
+        filename : string, optional
+            The name of the HyperSpy-file in which to store the phase map.
+            The default is 'phasemap.hdf5' in the phasemap folder.
+
+        Returns
+        -------
+        None
+
+        '''
+        self._log.debug('Calling save_to_hdf5')
+        # Construct path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'phasemap')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, filename)
+        # Save data to file:
+        self.to_signal().save(filename)
+
+    @classmethod
+    def load_from_hdf5(cls, filename):
+        '''Construct :class:`~.DataMag` object from HyperSpys HDF5-file.
+
+        Parameters
+        ----------
+        filename : string
+            The name of the HDF5-file from which to load the data. Standard format is '\*.hdf5'.
+
+        Returns
+        -------
+        mag_data: :class:`~.MagData`
+            A :class:`~.MagData` object containing the loaded data.
+
+        '''
+        cls._log.debug('Calling load_from_hdf5')
+        # Use relative path if filename isn't already absolute:
+        if not os.path.isabs(filename):
+            from pyramid import DIR_FILES
+            directory = os.path.join(DIR_FILES, 'phasemap')
+            filename = os.path.join(directory, filename)
+        # Load data from file:
+        try:
+            import hyperspy.api as hs
+            return PhaseMap.from_signal(hs.load(filename))
+        except ImportError:
+            cls._log.error('Could not load hyperspy package!')
+            return
+
     def save_to_txt(self, filename='phasemap.txt', skip_header=False):
         '''Save :class:`~.PhaseMap` data in a file with txt-format.
 
@@ -454,178 +582,17 @@ class PhaseMap(object):
 
         '''
         cls._log.debug('Calling load_from_txt')
-        # Construct path if filename isn't already absolute:
+        # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
             from pyramid import DIR_FILES
             directory = os.path.join(DIR_FILES, 'phasemap')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
             filename = os.path.join(directory, filename)
         # Load data from file:
         with open(filename, 'r') as phase_file:
             phase_file.readline()  # Headerline is not used
             a = float(phase_file.readline()[15:-4])
             phase = np.loadtxt(filename, delimiter='\t', skiprows=2)
-        return PhaseMap(a, phase)
-
-    def save_to_netcdf4(self, filename='phasemap.nc'):
-        '''Save :class:`~.PhaseMap` data in a file with NetCDF4-format.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the NetCDF4-file in which to store the phase data.
-            The default is '..\output\phasemap.nc'.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Does not save the unit of the original phase map.
-
-        '''
-        self._log.debug('Calling save_to_netcdf4')
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'phasemap')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
-        # Save data to file:
-        phase_file = netCDF4.Dataset(filename, 'w', format='NETCDF4')
-        phase_file.a = self.a
-        phase_file.createDimension('v_dim', self.dim_uv[0])
-        phase_file.createDimension('u_dim', self.dim_uv[1])
-        phase = phase_file.createVariable('phase', 'f', ('v_dim', 'u_dim'))
-        mask = phase_file.createVariable('mask', 'b', ('v_dim', 'u_dim'))
-        confidence = phase_file.createVariable('confidence', 'f', ('v_dim', 'u_dim'))
-        phase[:] = self.phase
-        mask[:] = self.mask
-        confidence[:] = self.confidence
-        phase_file.close()
-
-    @classmethod
-    def load_from_netcdf4(cls, filename):
-        '''Construct :class:`~.PhaseMap` object from NetCDF4-file.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the NetCDF4-file from which to load the data. Standard format is '\*.nc'.
-
-        Returns
-        -------
-        phase_map: :class:`~.PhaseMap`
-            A :class:`~.PhaseMap` object containing the loaded data.
-
-        Notes
-        -----
-        Does not recover the unit of the original phase map, defaults to `'rad'`.
-
-        '''
-        cls._log.debug('Calling load_from_netcdf4')
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'phasemap')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
-        # Load data from file:
-        phase_file = netCDF4.Dataset(filename, 'r', format='NETCDF4')
-        a = phase_file.a
-        phase = phase_file.variables['phase'][:]
-        mask = phase_file.variables['mask'][:]
-        confidence = phase_file.variables['confidence'][:]
-        phase_file.close()
-        return PhaseMap(a, phase, mask, confidence)
-
-    def to_emd(self, user={}, microscope={}, sample={}, comments={}):
-        '''Convert :class:`~.PhaseMap` data into ERCpys EMD-format.
-
-        Parameters
-        ----------
-        user: dict, optional
-            Dictionary defining user metadata.
-        microscope: dict, optional
-            Dictionary defining microscope metadata.
-        sample: dict, optional
-            Dictionary defining sample metadata.
-        comments: dict, optional
-            Dictionary defining comment metadata.
-
-        Returns
-        -------
-        emd: :class:`~ercpy.EMD`
-            Representation of the :class:`~.PhaseMap` object as an :class:`~ercpy.EMD` object.
-
-        Notes
-        -----
-        This method recquires the ercpy package!
-
-        '''
-        self._log.debug('Calling to_emd')
-        # Try importing ERCpy:
-        try:
-            import ercpy
-            import hyperspy.api as hp
-        except ImportError:
-            self._log.error('Could not load ercpy package!')
-            return
-        # Create signals:
-        phase = hp.signals.Image(self.phase)
-        mask = hp.signals.Image(self.mask)
-        conf = hp.signals.Image(self.confidence)
-        # Set axes:
-        for signal in (phase, mask, conf):
-            signal.axes_manager[0].name = 'x-axis'
-            signal.axes_manager[0].units = 'nm'
-            signal.axes_manager[0].scale = self.a
-            signal.axes_manager[1].name = 'y-axis'
-            signal.axes_manager[1].units = 'nm'
-            signal.axes_manager[1].scale = self.a
-        # Set metadata:
-        phase.metadata.Signal.add_dictionary({'name': 'phase', 'units': self.unit})
-        mask.metadata.Signal.add_dictionary({'name': 'mask'})
-        conf.metadata.Signal.add_dictionary({'name': 'confidence'})
-        # Create and return EMD:
-        signals = {'phase': phase, 'mask': mask, 'confidence': conf}
-        return ercpy.EMD(signals, user, microscope, sample, comments)
-
-    @classmethod
-    def from_emd(cls, emd):
-        '''Convert a :class:`~ercpy.EMD` object to a :class:`~.PhaseMap` object.
-
-        Parameters
-        ----------
-        emd: :class:`~ercpy.EMD`
-            The :class:`~ercpy.EMD` object which should be converted to :class:`~.PhaseMap`.
-
-        Returns
-        -------
-        phase_map: :class:`~.PhaseMap`
-            A :class:`~.PhaseMap` object containing the loaded data.
-
-        Notes
-        -----
-        This method recquires the ercpy package!
-
-        '''
-        cls._log.debug('Calling to_emd')
-        # Extract signals:
-        try:
-            phase = emd['pahse']
-            mask = emd['mask']
-            confidence = emd['confidence']
-        except KeyError as e:
-            cls._log.error(str(e))
-        # Extract properties:
-        a = emd.signals['phase'].axes_manager[0].scale
-        unit = emd.signals['phase'].metadata.Signal.as_dictionary().get('units', 'rad')
-        return PhaseMap(a, phase, mask, confidence, unit)
+        return cls(a, phase)
 
     def display_phase(self, title='Phase Map', cmap='RdBu', limit=None,
                       norm=None, axis=None, cbar=True, show_mask=True, show_conf=True):

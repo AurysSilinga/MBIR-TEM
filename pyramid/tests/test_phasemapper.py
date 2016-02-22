@@ -19,7 +19,7 @@ class TestCasePhaseMapperRDFC(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperRDFC(Kernel(self.mag_proj.a, self.mag_proj.dim[1:]))
 
     def tearDown(self):
@@ -28,7 +28,7 @@ class TestCasePhaseMapperRDFC(unittest.TestCase):
         self.mapper = None
 
     def test_PhaseMapperRDFC_call(self):
-        phase_ref = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'phase_map.nc'))
+        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map.hdf5'))
         phase_map = self.mapper(self.mag_proj)
         assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
@@ -58,7 +58,7 @@ class TestCasePhaseMapperRDRC(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperRDRC(Kernel(self.mag_proj.a, self.mag_proj.dim[1:]))
 
     def tearDown(self):
@@ -67,7 +67,7 @@ class TestCasePhaseMapperRDRC(unittest.TestCase):
         self.mapper = None
 
     def test_PhaseMapperRDRC_call(self):
-        phase_ref = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'phase_map.nc'))
+        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map.hdf5'))
         phase_map = self.mapper(self.mag_proj)
         assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
@@ -97,7 +97,7 @@ class TestCasePhaseMapperFDFC(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperFDFC(self.mag_proj.a, self.mag_proj.dim[1:], padding=0)
 
     def tearDown(self):
@@ -106,7 +106,7 @@ class TestCasePhaseMapperFDFC(unittest.TestCase):
         self.mapper = None
 
     def test_PhaseMapperFDFC_call(self):
-        phase_ref = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'phase_map_fc.nc'))
+        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map_fc.hdf5'))
         phase_map = self.mapper(self.mag_proj)
         assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
@@ -132,7 +132,7 @@ class TestCasePhaseMapperElectric(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperElectric(self.mag_proj.a, self.mag_proj.dim[1:])
 
     def tearDown(self):
@@ -154,7 +154,7 @@ class TestCasePM(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_netcdf4(os.path.join(self.path, 'mag_proj.nc'))
+        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
 
     def tearDown(self):
         self.path = None
@@ -162,9 +162,10 @@ class TestCasePM(unittest.TestCase):
         self.mapper = None
 
     def test_pm(self):
-        phase_ref = PhaseMap.load_from_netcdf4(os.path.join(self.path, 'phase_map.nc'))
+        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map.hdf5'))
         phase_map = pm(self.mag_proj)
-        assert_allclose(phase_map.phase, phase_ref.phase, err_msg='Unexpected behavior in pm()!')
+        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+                        err_msg='Unexpected behavior in pm()!')
         assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in pm()!')
 
 

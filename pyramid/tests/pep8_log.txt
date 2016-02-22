@@ -1,32 +1,32 @@
 <<< PEP8 LOGFILE >>>
-RUN: 2015-09-23 16:27:33
-IGNORED RULES: E125, E226, E228
+RUN: 2016-02-21 15:25:44
+IGNORED RULES: E125, E226, E228, W503
 MAX LINE LENGTH: 99
 
 ERRORS AND WARNINGS:
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:14:45: E261 at least two spaces before inline comment
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:14:45: E262 inline comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:18:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:19:1: E302 expected 2 blank lines, found 1
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:68:1: W391 blank line at end of file
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:81:1: E302 expected 2 blank lines, found 1
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:103:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:104:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:19:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:33:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:39:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:63:1: E266 too many leading '#' for block comment
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_dat.py:65:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:29:1: E731 do not assign a lambda expression, use a def
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:104:1: E266 too many leading '#' for block comment
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:105:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:107:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:108:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:106:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:108:1: E266 too many leading '#' for block comment
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:109:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:111:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:110:1: E265 block comment should start with '# '
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:112:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:120:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:132:5: E303 too many blank lines (2)
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:140:1: E112 expected an indented block
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:141:1: E112 expected an indented block
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:142:1: E112 expected an indented block
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:143:1: E112 expected an indented block
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:144:1: E112 expected an indented block
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:155:35: W292 no newline at end of file
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\phasemap\phasemap_from_dm3.py:30:1: E112 expected an indented block
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:113:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:121:1: E265 block comment should start with '# '
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:133:5: E303 too many blank lines (2)
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:141:1: E115 expected an indented block (comment)
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:142:1: E115 expected an indented block (comment)
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:143:1: E115 expected an indented block (comment)
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:144:1: E115 expected an indented block (comment)
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:145:1: E115 expected an indented block (comment)
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\magdata\magdata_from_vtk.py:156:35: W292 no newline at end of file
+C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\phasemap\phasemap_from_dm3.py:30:1: E115 expected an indented block (comment)
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\phasemap\phasemap_from_dm3.py:32:41: E261 at least two spaces before inline comment
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\phasemap\phasemap_from_dm3.py:32:41: E262 inline comment should start with '# '
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\phasemap\phasemap_tilt_series.py:29:31: E261 at least two spaces before inline comment
@@ -37,107 +37,13 @@ C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\phasemap\phasemap_tilt_serie
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\phasemap\phasemap_tilt_series.py:35:1: E265 block comment should start with '# '
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\phasemap\phasemap_tilt_series.py:36:1: E265 block comment should start with '# '
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\phasemap\phasemap_tilt_series.py:59:30: W292 no newline at end of file
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:37:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:38:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:39:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:40:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:41:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:42:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:43:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:44:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:45:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:46:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:47:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:48:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:49:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:50:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:51:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:52:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:53:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:54:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:55:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:56:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:57:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:58:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:59:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:60:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:61:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:62:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:63:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:64:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:65:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:66:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:67:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:68:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:69:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:70:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:71:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:72:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:73:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:74:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:75:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:76:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:77:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\bielefeld.py:87:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\custom_colormap.py:120:14: E128 continuation line under-indented for visual indent
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\custom_colormap.py:126:14: E128 continuation line under-indented for visual indent
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\impact_2D_test.py:40:100: E501 line too long (103 > 99 characters)
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:15:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:24:1: E302 expected 2 blank lines, found 1
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:49:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:83:3: E225 missing whitespace around operator
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:86:44: E225 missing whitespace around operator
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:91:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:93:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:94:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:95:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:96:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:97:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:101:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:102:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:108:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:108:1: E303 too many blank lines (3)
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:109:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:110:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:111:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:114:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:115:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:117:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:118:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:119:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:121:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:122:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:123:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:126:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:127:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\quiver_plot_enhanced.py:127:36: W292 no newline at end of file
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\test_multiprocessing_main.py:42:68: E261 at least two spaces before inline comment
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\test_multiprocessing_main.py:42:68: E262 inline comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\test_multiprocessing_main.py:42:100: E501 line too long (104 > 99 characters)
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\test_multiprocessing_main.py:51:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\test_multiprocessing_main.py:53:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\test_multiprocessing_main.py:58:68: E261 at least two spaces before inline comment
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\test_multiprocessing_main.py:58:68: E262 inline comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\test_multiprocessing_main.py:66:68: E261 at least two spaces before inline comment
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\test_multiprocessing_main.py:66:68: E262 inline comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\warning_control.py:16:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\visualization\paper 2\paper2_part2_simulation.py:120:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\visualization\paper 2\paper2_part3_experiment.py:100:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\visualization\pico 2015\poster_pico2015_2d.py:162:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\visualization\pico 2015\poster_pico2015_3d.py:56:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\visualization\pico 2015\poster_pico2015_3d.py:57:1: E265 block comment should start with '# '
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\visualization\pico 2015\poster_pico2015_3d.py:69:1: E265 block comment should start with '# '
----->   123 PEP8 violations detected!
+---->   33 PEP8 violations detected!
 
 TODOS:
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\pyramid\dataset.py: Supress annoying warning from traits!
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\pyramid\magdata.py: Supress annoying warning from traits!
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\pyramid\phasemapper.py: Why minus?
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\pyramid\phasemapper.py: Implement right!
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\pyramid\phasemapper.py: check if projector manages scalar multiplication (problem with MagData) and fix!
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\pyramid\semper.py: ???
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\pyramid\tests\test_projector.py: Test RotTiltProjector!!!
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\reconstruction\reconstruction_3d_from_magdata.py: toggle multiprocessing if nprocs > 1
-C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\scripts\temp\custom_colormap.py: Docstring!
 C:\Users\Jan\Home\PhD Thesis\Spyder\Pyramid\pyramid\tests\test_projector.py: Test RotTiltProjector!!!
----->   10 TODOs found!
+---->   6 TODOs found!
