@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """Reconstruct a magnetization distributions from phase maps created from it."""
 
+import logging.config
+import multiprocessing as mp
 
 import numpy as np
-import multiprocessing as mp
+
 import pyramid as pr
 from jutil.taketime import TakeTime
-import logging.config
-
 
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     mp.freeze_support()
 
     # Load magnetization distribution:
-    mag_data = pr.MagData.load_from_netcdf4(mag_name+'.nc')
+    mag_data = pr.MagData.load_from_hdf5(mag_name + '.hdf5')
     dim = mag_data.dim
 
     # Construct data set and regularisator:

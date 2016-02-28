@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Testcase for the magdata module."""
 
-
 import os
 import unittest
 
@@ -12,7 +11,6 @@ from pyramid.magdata import MagData
 
 
 class TestCaseMagData(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_magdata')
         magnitude = np.zeros((3, 4, 4, 4))
@@ -31,7 +29,7 @@ class TestCaseMagData(unittest.TestCase):
 
     def test_scale_down(self):
         self.mag_data.scale_down()
-        reference = 1/8. * np.ones((3, 2, 2, 2))
+        reference = 1 / 8. * np.ones((3, 2, 2, 2))
         assert_allclose(self.mag_data.magnitude, reference,
                         err_msg='Unexpected behavior in scale_down()!')
         assert_allclose(self.mag_data.a, 20,
@@ -67,13 +65,13 @@ class TestCaseMagData(unittest.TestCase):
     def test_get_vector(self):
         mask = self.mag_data.get_mask()
         vector = self.mag_data.get_vector(mask)
-        reference = np.ones(np.sum(mask)*3)
+        reference = np.ones(np.sum(mask) * 3)
         assert_allclose(vector, reference,
                         err_msg='Unexpected behavior in get_vector()!')
 
     def test_set_vector(self):
         mask = self.mag_data.get_mask()
-        vector = 2 * np.ones(np.sum(mask)*3)
+        vector = 2 * np.ones(np.sum(mask) * 3)
         self.mag_data.set_vector(vector, mask)
         reference = np.zeros((3, 4, 4, 4))
         reference[:, 1:-1, 1:-1, 1:-1] = 2

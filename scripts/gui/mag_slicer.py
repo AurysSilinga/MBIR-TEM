@@ -12,15 +12,13 @@ import os
 import sys
 
 from PyQt4 import QtCore, QtGui
-
 from matplotlibwidget import MatplotlibWidget
 
 import pyramid
-from pyramid.magdata import MagData
-from pyramid.projector import SimpleProjector
-from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.kernel import Kernel
-
+from pyramid.magdata import MagData
+from pyramid.phasemapper import PhaseMapperRDFC
+from pyramid.projector import SimpleProjector
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8

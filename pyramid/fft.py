@@ -11,32 +11,34 @@ FFT operations.
 
 """
 
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+import logging
+import os
 
 import numpy as np
-import cPickle as pickle
-import os
 
 from pyramid.config import NTHREADS
 
-import logging
-
-
 # pyFFTW depends on this
-try:
-    from collections import Counter  # analysis:ignore
-except ImportError:
-    import collections_python27
-    import collections
-    collections.Counter = collections_python27.Counter
+# try:
+#     from collections import Counter
+# except ImportError:
+#     from collections_python27 import Counter
+#     import collections
+#
+#     collections.Counter = Counter
 
 try:
     import pyfftw
+
     BACKEND = 'fftw'
 except ImportError:
     pyfftw = None
     BACKEND = 'numpy'
     print("pyFFTW module not found. Using numpy implementation.")
-
 
 __all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom',  # analysis:ignore
            'zeros', 'empty', 'configure_backend',
@@ -45,8 +47,7 @@ _log = logging.getLogger(__name__)
 
 
 class FFTWCache(object):
-
-    '''Class for adding FFTW Plans and on-demand lookups.
+    """Class for adding FFTW Plans and on-demand lookups.
 
     This class is instantiated in this module to store FFTW plans and for the lookup of the former.
 
@@ -59,33 +60,71 @@ class FFTWCache(object):
     -----
     This class is used internally and is not normally not intended to be used directly by the user.
 
-    '''
+    """
 
-    _log = logging.getLogger(__name__+'.FFTWCache')
+    _log = logging.getLogger(__name__ + '.FFTWCache')
 
     def __init__(self):
         self._log.debug('Calling __init__')
         self.cache = dict()
-        self._log.debug('Created '+str(self))
+        self._log.debug('Created ' + str(self))
 
     def add_fftw(self, fft_type, fftw_obj, s, axes, nthreads):
+        """Add an FFTW object to the cache.
+
+        Parameters
+        ----------
+        fft_type: basestring
+            Identifier sting for the FFT type ('fftn', 'ifftn', 'rfftn', 'irfftn').
+        fftw_obj: :class:`~pyfftw.FFTW` object
+            The FFTW object which should be added to the cache.
+        s: tuple of ints
+            Shape of the output array.
+        axes: tuple of ints
+            The axes along which the FFTW should be executed.
+        nthreads: int
+            Number of threads which should be used.
+
+        """
         self._log.debug('Calling add_fftw')
         in_arr = fftw_obj.get_input_array()
-        key = (fft_type, in_arr.shape, in_arr.dtype, nthreads)
+        key = (fft_type, in_arr.shape, in_arr.dtype, s, axes, nthreads)
         self.cache[key] = fftw_obj
 
     def lookup_fftw(self, fft_type, in_arr, s, axes, nthreads):
+        """
+
+        Parameters
+        ----------
+        fft_type: basestring
+            Identifier sting for the FFT type ('fftn', 'ifftn', 'rfftn', 'irfftn').
+        in_arr:
+            Input array, internally, just the `dtype` and the `shape` are used to identify the FFT.
+        s: tuple of ints
+            Shape of the output array.
+        axes: tuple of ints
+            The axes along which the FFTW should be executed.
+        nthreads: int
+            Number of threads which should be used.
+
+        Returns
+        -------
+        fftw_obj: :class:`~pyfftw.FFTW` object
+            The requested FFTW object.
+
+        """
         self._log.debug('Calling lookup_fftw')
-        key = (fft_type, in_arr.shape, in_arr.dtype, nthreads)
+        key = (fft_type, in_arr.shape, in_arr.dtype, s, axes, nthreads)
         return self.cache.get(key, None)
 
     def clear_cache(self):
+        """Clear the cache."""
         self._log.debug('Calling clear_cache')
         self.cache = dict()
 
 
 PLANS = FFTWCache()
-FLOAT = np.float32      # One convenient place to
+FLOAT = np.float32  # One convenient place to
 COMPLEX = np.complex64  # change from 32 to 64 bit
 
 
@@ -119,9 +158,9 @@ def _irfftn_adj_numpy(a):
     n = a.shape[-1] // 2 + 1
     out_arr = _fftn_numpy(a, axes=(-1,)) / a.shape[-1]
     if a.shape[-1] % 2 == 0:  # even
-        out_arr[:, 1:n - 1] += np.conj(out_arr[:, :n-1:-1])
+        out_arr[:, 1:n - 1] += np.conj(out_arr[:, :n - 1:-1])
     else:  # odd
-        out_arr[:, 1:n] += np.conj(out_arr[:, :n-1:-1])
+        out_arr[:, 1:n] += np.conj(out_arr[:, :n - 1:-1])
     axes = tuple(range(len(out_arr.shape[:-1])))
     return _fftn_numpy(out_arr[:, :n], axes=axes) / np.prod(out_arr.shape[:-1])
 
@@ -169,7 +208,7 @@ def _irfftn_fftw(a, s=None, axes=None):
 
 
 def _rfftn_adj_fftw(a):
-    # Careful just works for even a (which is guaranteed by the kernel!)
+    # Careful: just works for even a (which is guaranteed by the kernel!)
     n = 2 * (a.shape[-1] - 1)
     out_shape = a.shape[:-1] + (n,)
     out_arr = zeros(out_shape, dtype=a.dtype)
@@ -181,9 +220,9 @@ def _irfftn_adj_fftw(a):
     out_arr = _fftn_fftw(a, axes=(-1,)) / a.shape[-1]  # FFT of last axis
     n = a.shape[-1] // 2 + 1
     if a.shape[-1] % 2 == 0:  # even
-        out_arr[:, 1:n-1] += np.conj(out_arr[:, :n-1:-1])
+        out_arr[:, 1:n - 1] += np.conj(out_arr[:, :n - 1:-1])
     else:  # odd
-        out_arr[:, 1:n] += np.conj(out_arr[:, :n-1:-1])
+        out_arr[:, 1:n] += np.conj(out_arr[:, :n - 1:-1])
     axes = tuple(range(len(out_arr.shape[:-1])))
     return _fftn_fftw(out_arr[:, :n], axes=axes) / np.prod(out_arr.shape[:-1])
 
@@ -191,7 +230,7 @@ def _irfftn_adj_fftw(a):
 # These wisdom functions do nothing if pyFFTW is not available:
 
 def dump_wisdom(fname):
-    '''Wrapper function for the pyfftw.export_wisdom(), which uses a pickle dump.
+    """Wrapper function for the pyfftw.export_wisdom(), which uses a pickle dump.
 
     Parameters
     ----------
@@ -202,7 +241,7 @@ def dump_wisdom(fname):
     -------
     None
 
-    '''
+    """
     _log.debug('Calling dump_wisdom')
     if pyfftw is not None:
         with open(fname, 'wb') as fp:
@@ -210,7 +249,7 @@ def dump_wisdom(fname):
 
 
 def load_wisdom(fname):
-    '''Wrapper function for the pyfftw.import_wisdom(), which uses a pickle to load a file.
+    """Wrapper function for the pyfftw.import_wisdom(), which uses a pickle to load a file.
 
     Parameters
     ----------
@@ -221,7 +260,7 @@ def load_wisdom(fname):
     -------
     None
 
-    '''
+    """
     _log.debug('Calling load_wisdom')
     if pyfftw is not None:
         if not os.path.exists(fname):
@@ -233,7 +272,7 @@ def load_wisdom(fname):
 
 # Array setups:
 def empty(shape, dtype=FLOAT):
-    '''Return a new array of given shape and type without initializing entries.
+    """Return a new array of given shape and type without initializing entries.
 
     Parameters
     ----------
@@ -247,7 +286,7 @@ def empty(shape, dtype=FLOAT):
     out: :class:`~numpy.ndarray`
         The created array.
 
-    '''
+    """
     _log.debug('Calling empty')
     result = np.empty(shape, dtype)
     if pyfftw is not None:
@@ -256,7 +295,7 @@ def empty(shape, dtype=FLOAT):
 
 
 def zeros(shape, dtype=FLOAT):
-    '''Return a new array of given shape and type, filled with zeros.
+    """Return a new array of given shape and type, filled with zeros.
 
     Parameters
     ----------
@@ -270,7 +309,7 @@ def zeros(shape, dtype=FLOAT):
     out: :class:`~numpy.ndarray`
         The created array.
 
-    '''
+    """
     _log.debug('Calling zeros')
     result = np.zeros(shape, dtype)
     if pyfftw is not None:
@@ -279,7 +318,7 @@ def zeros(shape, dtype=FLOAT):
 
 
 def ones(shape, dtype=FLOAT):
-    '''Return a new array of given shape and type, filled with ones.
+    """Return a new array of given shape and type, filled with ones.
 
     Parameters
     ----------
@@ -293,7 +332,7 @@ def ones(shape, dtype=FLOAT):
     out: :class:`~numpy.ndarray`
         The created array.
 
-    '''
+    """
     _log.debug('Calling ones')
     result = np.ones(shape, dtype)
     if pyfftw is not None:
@@ -303,7 +342,7 @@ def ones(shape, dtype=FLOAT):
 
 # Configure backend:
 def configure_backend(backend):
-    '''Change FFT backend.
+    """Change FFT backend.
 
     Parameters
     ----------
@@ -314,7 +353,7 @@ def configure_backend(backend):
     -------
     None
 
-    '''
+    """
     _log.debug('Calling configure_backend')
     global fftn
     global ifftn
@@ -323,7 +362,7 @@ def configure_backend(backend):
     global rfftn_adj
     global irfftn_adj
     global BACKEND
-    if backend == "numpy":
+    if backend == 'numpy':
         fftn = _fftn_numpy
         ifftn = _ifftn_numpy
         rfftn = _rfftn_numpy
@@ -331,7 +370,7 @@ def configure_backend(backend):
         rfftn_adj = _rfftn_adj_numpy
         irfftn_adj = _irfftn_adj_numpy
         BACKEND = 'numpy'
-    elif backend == "fftw":
+    elif backend == 'fftw':
         if pyfftw is not None:
             fftn = _fftn_fftw
             ifftn = _ifftn_fftw
@@ -341,11 +380,11 @@ def configure_backend(backend):
             irfftn_adj = _irfftn_adj_fftw
             BACKEND = 'pyfftw'
         else:
-            print("Error: FFTW requested but not available")
+            print('Error: FFTW requested but not available')
 
 
 # On import:
 if pyfftw is not None:
-    configure_backend("fftw")
+    configure_backend('fftw')
 else:
-    configure_backend("numpy")
+    configure_backend('numpy')

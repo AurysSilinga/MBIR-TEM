@@ -9,6 +9,14 @@ pyramid Package
     :show-inheritance:
 	:special-members:
 
+:mod:`colormap` Module
+--------------------------
+
+.. automodule:: pyramid.colormap
+:members:
+        :show-inheritance:
+            	:special-members:
+
 :mod:`costfunction` Module
 --------------------------
 
@@ -24,6 +32,22 @@ pyramid Package
     :members:
     :show-inheritance:
 	:special-members:
+
+:mod:`diagnostics` Module
+--------------------------
+
+.. automodule:: pyramid.diagnostics
+:members:
+        :show-inheritance:
+            	:special-members:
+
+:mod:`fft` Module
+--------------------------
+
+.. automodule:: pyramid.fft
+:members:
+        :show-inheritance:
+            	:special-members:
 
 :mod:`forwardmodel` Module
 --------------------------
@@ -57,14 +81,6 @@ pyramid Package
     :show-inheritance:
 	:special-members:
 
-:mod:`reconstruction` Module
-----------------------------
-
-.. automodule:: pyramid.reconstruction
-    :members:
-    :show-inheritance:
-	:special-members:
-
 :mod:`phasemap` Module
 ----------------------
 
@@ -85,6 +101,38 @@ pyramid Package
 -----------------------
 
 .. automodule:: pyramid.projector
+:members:
+        :show-inheritance:
+            	:special-members:
+
+:mod:`quaternion` Module
+----------------------------
+
+.. automodule:: pyramid.quaternion
+:members:
+        :show-inheritance:
+            	:special-members:
+
+:mod:`ramp` Module
+----------------------------
+
+.. automodule:: pyramid.ramp
+:members:
+        :show-inheritance:
+            	:special-members:
+
+:mod:`reconstruction` Module
+----------------------------
+
+.. automodule:: pyramid.reconstruction
+:members:
+        :show-inheritance:
+            	:special-members:
+
+:mod:`regularisator` Module
+----------------------------
+
+.. automodule:: pyramid.regularisator
     :members:
     :show-inheritance:
 	:special-members:

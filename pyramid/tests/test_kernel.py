@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Testcase for the magdata module."""
 
-
 import os
 import unittest
 
@@ -12,7 +11,6 @@ from pyramid.kernel import Kernel
 
 
 class TestCaseKernel(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_kernel')
         self.kernel = Kernel(1., dim_uv=(4, 4), b_0=1., geometry='disc')

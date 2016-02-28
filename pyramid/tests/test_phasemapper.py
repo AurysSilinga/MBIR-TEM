@@ -10,12 +10,11 @@ from numpy.testing import assert_allclose
 from pyramid.kernel import Kernel
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
-from pyramid.phasemapper import PhaseMapperElectric, pm
+from pyramid.phasemapper import PhaseMapperMIP, pm
 from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperRDRC, PhaseMapperFDFC
 
 
 class TestCasePhaseMapperRDFC(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
         self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
@@ -54,7 +53,6 @@ class TestCasePhaseMapperRDFC(unittest.TestCase):
 
 
 class TestCasePhaseMapperRDRC(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
         self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
@@ -93,7 +91,6 @@ class TestCasePhaseMapperRDRC(unittest.TestCase):
 
 
 class TestCasePhaseMapperFDFC(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
         self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
@@ -128,11 +125,10 @@ class TestCasePhaseMapperFDFC(unittest.TestCase):
 
 
 class TestCasePhaseMapperElectric(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
         self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
-        self.mapper = PhaseMapperElectric(self.mag_proj.a, self.mag_proj.dim[1:])
+        self.mapper = PhaseMapperMIP(self.mag_proj.a, self.mag_proj.dim[1:])
 
     def tearDown(self):
         self.path = None
@@ -150,7 +146,6 @@ class TestCasePhaseMapperElectric(unittest.TestCase):
 
 
 class TestCasePM(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
         self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))

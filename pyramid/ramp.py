@@ -4,18 +4,15 @@
 #
 """This module provides the :class:`~.Ramp` class which implements polynomial phase ramps."""
 
-
 import numpy as np
 
 from pyramid.phasemap import PhaseMap
-
 
 __all__ = ['Ramp']
 
 
 class Ramp(object):
-
-    '''Class representing a polynomial phase ramp.
+    """Class representing a polynomial phase ramp.
 
     Sometimes additional phase ramps occur in phase maps which do not stem from a magnetization
     distribution inside the FOV. This class allows the construction (and via the derivative
@@ -48,7 +45,10 @@ class Ramp(object):
     After a reconstruction the relevant polynomial ramp information is stored in the
     `param_cache`. If a phasemap with index `i` in the DataSet should be corrected use:
 
-    >>> phase_map -= ramp(i, dof_list)
+    .. code-block:: python
+
+        phase_map -= ramp(i=0, dof_list=[0, 1, 2])
+
 
     The optional parameter `dof_list` can be used to specify a list of degrees of freedom which
     should be used for the ramp (e.g. `[0]` will just apply the offset, `[0, 1, 2]` will apply
@@ -58,7 +58,7 @@ class Ramp(object):
     features which stem from the magnetization could be covered by the polynom, decreasing the
     phase contribution of the magnetization distribution, leading to a false retrieval.
 
-    '''
+    """
 
     def __init__(self, data_set, order=None):
         self.data_set = data_set
@@ -85,14 +85,12 @@ class Ramp(object):
             return PhaseMap(self.data_set.a, phase_ramp, mask=np.zeros(dim_uv, dtype=np.bool))
 
     def jac_dot(self, index):
-        '''Calculate the product of the Jacobi matrix with a given `vector`.
+        """Calculate the product of the Jacobi matrix .
 
         Parameters
         ----------
-        vector : :class:`~numpy.ndarray` (N=1)
-            Vectorized form of the 3D magnetization distribution. First the `x`, then the `y` and
-            lastly the `z` components are listed. Ramp parameters are also added at the end if
-            necessary.
+        index : int
+            Index of the phasemap from the `dataset` for which the phase ramp is calculated.
 
         Returns
         -------
@@ -100,7 +98,7 @@ class Ramp(object):
             Product of the Jacobi matrix (which is not explicitely calculated) with the input
             `vector`. Just the ramp contribution is calculated!
 
-        '''
+        """
         if self.order is None:  # Do nothing if order is None!
             return 0
         else:
@@ -114,7 +112,7 @@ class Ramp(object):
             return np.ravel(phase_ramp)
 
     def jac_T_dot(self, vector):
-        ''''Calculate the transposed ramp parameters from a given `vector`.
+        """'Calculate the transposed ramp parameters from a given `vector`.
 
         Parameters
         ----------
@@ -126,21 +124,21 @@ class Ramp(object):
         result_vector : :class:`~numpy.ndarray` (N=1)
             Transposed ramp parameters.
 
-        '''
+        """
         result = []
         hp = self.data_set.hook_points
         # Iterate over all degrees of freedom:
         for dof in range(self.deg_of_freedom):
             # Iterate over all projectors:
             for i, projector in enumerate(self.data_set.projectors):
-                sub_vec = vector[hp[i]:hp[i+1]]
+                sub_vec = vector[hp[i]:hp[i + 1]]
                 poly_mesh = self.create_poly_mesh(self.data_set.a, dof, projector.dim_uv)
                 # Transposed ramp parameters: summed product of the vector with the poly-mesh:
                 result.append(np.sum(sub_vec * np.ravel(poly_mesh)))
         return result
 
     def extract_ramp_params(self, x):
-        '''Extract the ramp parameters of an input vector and return the rest.
+        """Extract the ramp parameters of an input vector and return the rest.
 
         Parameters
         ----------
@@ -159,7 +157,7 @@ class Ramp(object):
             ramp parameters are present so that other functions do not have to bother with them
             and the :class:`.~ramp` already knows all important parameters for its own functions.
 
-        '''
+        """
         if self.order is not None:  # Do nothing if order is None!
             # Split off ramp parameters and fill cache:
             x, ramp_params = np.split(x, [-self.n])
@@ -168,7 +166,7 @@ class Ramp(object):
 
     @classmethod
     def create_poly_mesh(cls, a, deg_of_freedom, dim_uv):
-        '''Create a polynomial mesh for the ramp calculation for a specific degree of freedom.
+        """Create a polynomial mesh for the ramp calculation for a specific degree of freedom.
 
         Parameters
         ----------
@@ -186,7 +184,7 @@ class Ramp(object):
         result_mesh : :class:`~numpy.ndarray` (N=2)
             Polynomial mesh that was created and can be used for further calculations.
 
-        '''
+        """
         # Determine if u-direction (u_or_v == 1) or v-direction (u_or_v == 0)!
         u_or_v = (deg_of_freedom - 1) % 2
         # Determine polynomial order:
@@ -196,7 +194,7 @@ class Ramp(object):
 
     @classmethod
     def create_ramp(cls, a, dim_uv, params):
-        '''Class method to create an arbitrary polynomial ramp.
+        """Class method to create an arbitrary polynomial ramp.
 
         Parameters
         ----------
@@ -213,7 +211,7 @@ class Ramp(object):
         phase_ramp : :class:`~pyramid.phasemap.PhaseMap`
             The phase ramp as a :class:`~pyramid.phasemap.PhaseMap` object.
 
-        '''
+        """
         phase_ramp = np.zeros(dim_uv)
         dof_list = range(len(params))
         for dof in dof_list:

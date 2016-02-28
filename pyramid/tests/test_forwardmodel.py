@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 """Testcase for the forwardmodel module"""
 
-
 import os
 import unittest
 
 import numpy as np
 from numpy.testing import assert_allclose
 
-from pyramid.forwardmodel import ForwardModel
 from pyramid.dataset import DataSet
-from pyramid.projector import SimpleProjector
+from pyramid.forwardmodel import ForwardModel
 from pyramid.phasemap import PhaseMap
+from pyramid.projector import SimpleProjector
 
 
 class TestCaseForwardModel(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_forwardmodel')
         self.a = 10.

@@ -5,20 +5,17 @@
 """This module provides the :class:`~.Costfunction` class which represents a strategy to calculate
 the so called `cost` of a threedimensional magnetization distribution."""
 
+import logging
 
 import numpy as np
 
 from pyramid.regularisator import NoneRegularisator
 
-import logging
-
-
 __all__ = ['Costfunction']
 
 
 class Costfunction(object):
-
-    '''Class for calculating the cost of a 3D magnetic distributions in relation to 2D phase maps.
+    """Class for calculating the cost of a 3D magnetic distributions in relation to 2D phase maps.
 
     Represents a strategy for the calculation of the `cost` of a 3D magnetic distribution in
     relation to two-dimensional phase maps. The `cost` is a measure for the difference of the
@@ -45,9 +42,9 @@ class Costfunction(object):
     n: int
         Size of the input space.
 
-    '''
+    """
 
-    _log = logging.getLogger(__name__+'.Costfunction')
+    _log = logging.getLogger(__name__ + '.Costfunction')
 
     def __init__(self, fwd_model, regularisator):
         self._log.debug('Calling __init__')
@@ -62,17 +59,17 @@ class Costfunction(object):
         if self.fwd_model.data_set.Se_inv is None:
             self.fwd_model.data_set.set_Se_inv_diag_with_conf()
         self.Se_inv = self.fwd_model.data_set.Se_inv
-        self._log.debug('Created '+str(self))
+        self._log.debug('Created ' + str(self))
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
         return '%s(fwd_model=%r, regularisator=%r)' % \
-            (self.__class__, self.fwd_model, self.regularisator)
+               (self.__class__, self.fwd_model, self.regularisator)
 
     def __str__(self):
         self._log.debug('Calling __str__')
         return 'Costfunction(fwd_model=%s, fwd_model=%s, regularisator=%s)' % \
-            (self.fwd_model, self.fwd_model, self.regularisator)
+               (self.fwd_model, self.fwd_model, self.regularisator)
 
     def __call__(self, x):
         delta_y = self.fwd_model(x) - self.y
@@ -82,7 +79,7 @@ class Costfunction(object):
         return self.chisq
 
     def init(self, x):
-        '''Initialise the costfunction by calculating the different cost terms.
+        """Initialise the costfunction by calculating the different cost terms.
 
         Parameters
         ----------
@@ -93,12 +90,12 @@ class Costfunction(object):
         -------
         None
 
-        '''
+        """
         self._log.debug('Calling init')
         self(x)
 
     def jac(self, x):
-        '''Calculate the derivative of the costfunction for a given magnetization distribution.
+        """Calculate the derivative of the costfunction for a given magnetization distribution.
 
         Parameters
         ----------
@@ -110,13 +107,13 @@ class Costfunction(object):
         result : :class:`~numpy.ndarray` (N=1)
             Jacobi vector which represents the cost derivative of all voxels of the magnetization.
 
-        '''
+        """
         assert len(x) == self.n
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model(x) - self.y))
                 + self.regularisator.jac(x))
 
     def hess_dot(self, x, vector):
-        '''Calculate the product of a `vector` with the Hessian matrix of the costfunction.
+        """Calculate the product of a `vector` with the Hessian matrix of the costfunction.
 
         Parameters
         ----------
@@ -133,17 +130,17 @@ class Costfunction(object):
         result : :class:`~numpy.ndarray` (N=1)
             Product of the input `vector` with the Hessian matrix of the costfunction.
 
-        '''
+        """
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model.jac_dot(x, vector)))
                 + self.regularisator.hess_dot(x, vector))
 
     def hess_diag(self, _):
-        ''' Return the diagonal of the Hessian.
+        """ Return the diagonal of the Hessian.
 
         Parameters
         ----------
         _ : undefined
             Unused input
 
-        '''
+        """
         return np.ones(self.n)

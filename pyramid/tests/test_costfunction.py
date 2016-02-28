@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Testcase for the costfunction module"""
 
-
 import os
 import unittest
 
@@ -9,15 +8,14 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from pyramid.costfunction import Costfunction
-from pyramid.forwardmodel import ForwardModel
 from pyramid.dataset import DataSet
-from pyramid.projector import SimpleProjector
+from pyramid.forwardmodel import ForwardModel
 from pyramid.phasemap import PhaseMap
+from pyramid.projector import SimpleProjector
 from pyramid.regularisator import FirstOrderRegularisator
 
 
 class TestCaseCostfunction(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_costfunction')
         self.a = 10.
@@ -68,7 +66,7 @@ class TestCaseCostfunction(unittest.TestCase):
         assert_allclose(self.cost.hess_dot(None, np.ones(self.cost.n)), hess_vec_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in jac()!')
         hess = np.array([self.cost.hess_dot(None, np.eye(self.cost.n)[:, i])
-                        for i in range(self.cost.n)]).T
+                         for i in range(self.cost.n)]).T
         hess_ref = np.load(os.path.join(self.path, 'hess_ref.npy'))
         assert_allclose(hess, hess_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in hess_dot()!')

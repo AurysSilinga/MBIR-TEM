@@ -47,14 +47,45 @@ numcore
     Provides fast numerical functions for core routines.
 
 """
-import logging
 
+import logging
 _log = logging.getLogger(__name__)
 try:  # Try importing HyperSpy (here because otherwise API Errors might occur):
     import hyperspy.api
 except ImportError:
     _log.error('Could not load hyperspy package!')
 
+from . import analytic
+from . import magcreator
+from . import reconstruction
+from . import fft
+from . import costfunction
+from .costfunction import *
+from . import dataset
+from .dataset import *
+from . import diagnostics
+from .diagnostics import *
+from . import forwardmodel
+from .forwardmodel import *
+from . import kernel
+from .kernel import *
+from . import magdata
+from .magdata import *
+from . import phasemap
+from .phasemap import *
+from . import phasemapper
+from .phasemapper import *
+from . import projector
+from .projector import *
+from . import regularisator
+from .regularisator import *
+from . import ramp
+from .ramp import *
+from . import quaternion
+from .quaternion import *
+from . import colormap
+from .colormap import *
+from .config import *
 from .version import version as __version__
 from .version import hg_revision as __hg_revision__
 

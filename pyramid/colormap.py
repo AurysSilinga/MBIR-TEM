@@ -8,21 +8,20 @@ additional functions and can encode three-dimensional directions."""
 import logging
 from numbers import Number
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+from matplotlib import colors
 
 __all__ = ['DirectionalColormap', 'TransparentColormap']
 
 
-class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
-
-    '''Colormap subclass for encoding 3D-directions with colors.
+class DirectionalColormap(colors.LinearSegmentedColormap):
+    """Colormap subclass for encoding 3D-directions with colors.
 
     This class is a subclass of the :class:`~matplotlib.pyplot.colors.LinearSegmentedColormap`
     class with a few classmethods which can be used for convenience. The
-    :method:`.display_colorwheel` method can be used to display a colorhweel which is used for
+    :func:`.display_colorwheel` method can be used to display a colorhweel which is used for
     the directional encoding and three `rgb_from_...` methods are used to calculate rgb tuples
     from 3D-directions, angles or directly from a colorindex and a saturation value. This is
     useful for quiverplots where the arrow colors can be set individually by providing said rgb-
@@ -38,9 +37,9 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
         Flag which is used to invert the internal colormap (default is False).
         Just influences the classical use as a normal colormap, not the classmethods!
 
-    '''
+    """
 
-    _log = logging.getLogger(__name__+'.DirectionalColormap')
+    _log = logging.getLogger(__name__ + '.DirectionalColormap')
 
     CDICT = {'red': [(0.00, 0.0, 0.0),
                      (0.25, 1.0, 1.0),
@@ -78,18 +77,18 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
                           (0.75, 0.0, 0.0),
                           (1.00, 1.0, 1.0)]}
 
-    HOLO_CMAP = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT, 256)
-    HOLO_CMAP_INV = mpl.colors.LinearSegmentedColormap('my_colormap', CDICT_INV, 256)
+    HOLO_CMAP = colors.LinearSegmentedColormap('my_colormap', CDICT, 256)
+    HOLO_CMAP_INV = colors.LinearSegmentedColormap('my_colormap', CDICT_INV, 256)
 
     def __init__(self, inverted=False):
         self._log.debug('Calling __create_directional_colormap')
         cdict = self.CDICT_INV if inverted else self.CDICT
         super(DirectionalColormap, self).__init__('directional_colormap', cdict, N=256)
-        self._log.debug('Created '+str(self))
+        self._log.debug('Created ' + str(self))
 
     @classmethod
     def display_colorwheel(cls, mode='white_to_color'):
-        '''Display a color wheel to illustrate the color coding of the gradient direction.
+        """Display a color wheel to illustrate the color coding of the gradient direction.
 
         Parameters
         ----------
@@ -101,12 +100,12 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
         -------
         None
 
-        '''
+        """
         cls._log.debug('Calling display_color_wheel')
         yy, xx = np.indices((512, 512)) - 256
         r = np.hypot(xx, yy)
         # Create the wheel:
-        colorind = (1 + np.arctan2(yy, xx)/np.pi) / 2
+        colorind = (1 + np.arctan2(yy, xx) / np.pi) / 2
         saturation = r / 256  # 0 in center, 1 at borders of circle!
         if mode == 'black_to_color':
             pass  # no further modification necessary!
@@ -115,7 +114,7 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
         elif mode == 'white_to_color':
             saturation = 2 - saturation
         elif mode == 'white_to_color_to_black':
-            saturation = 2 - 2*saturation
+            saturation = 2 - 2 * saturation
         else:
             raise Exception('Invalid color wheel mode!')
         saturation *= np.where(r <= 256, 1, 0)  # Cut out the wheel!
@@ -130,7 +129,7 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
 
     @classmethod
     def rgb_from_colorind_and_saturation(cls, colorind, saturation):
-        '''Construct a rgb tuple from a colorindex and a saturation value.
+        """Construct a rgb tuple from a colorindex and a saturation value.
 
         Parameters
         ----------
@@ -154,19 +153,19 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
         -----
             Also works with numpy arrays as input! Always returns array of shape (..., 3)!
 
-        '''
+        """
         cls._log.debug('Calling rgb_from_colorind_and_saturation')
         # Make sure colorind and saturation are arrays (if not make it so):
         c = np.array([colorind]) if isinstance(colorind, Number) else colorind
         s = np.array([saturation]) if isinstance(saturation, Number) else saturation
         # Calculate rgb and the inverse and combine them:
         rgb_norm = (np.minimum(s, np.ones_like(s)).T * cls.HOLO_CMAP(c)[..., :3].T).T
-        rgb_invs = (np.maximum(s-1, np.zeros_like(s)).T * cls.HOLO_CMAP_INV(c)[..., :3].T).T
-        return (255.999 * (rgb_norm + rgb_invs)).astype(np.uint8)
+        rgb_invs = (np.maximum(s - 1, np.zeros_like(s)).T * cls.HOLO_CMAP_INV(c)[..., :3].T).T
+        return np.asarray(255.999 * (rgb_norm + rgb_invs), dtype=np.uint8)
 
     @classmethod
-    def rgb_from_angles(cls, phi, theta=np.pi/2):
-        '''Construct a rgb tuple from two angles representing a 3D direction.
+    def rgb_from_angles(cls, phi, theta=np.pi / 2):
+        """Construct a rgb tuple from two angles representing a 3D direction.
 
         Parameters
         ----------
@@ -184,15 +183,15 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
         -----
             Also works with numpy arrays as input!
 
-        '''
+        """
         cls._log.debug('Calling rgb_from_angles')
-        colorind = (1 + phi/np.pi) / 2
-        saturation = 2 * (1 - theta/np.pi)  # goes from 0 to 2!
+        colorind = (1 + phi / np.pi) / 2
+        saturation = 2 * (1 - theta / np.pi)  # goes from 0 to 2!
         return cls.rgb_from_colorind_and_saturation(colorind, saturation)
 
     @classmethod
     def rgb_from_direction(cls, x, y, z):
-        '''Construct a rgb tuple from three coordinates representing a 3D direction.
+        """Construct a rgb tuple from three coordinates representing a 3D direction.
 
         Parameters
         ----------
@@ -212,17 +211,16 @@ class DirectionalColormap(mpl.colors.LinearSegmentedColormap):
         -----
             Also works with numpy arrays as input!
 
-        '''
+        """
         cls._log.debug('Calling rgb_from_direction')
         phi = np.arctan2(y, x)
-        r = np.sqrt(x**2 + y**2 + z**2)
-        theta = np.arccos(z / (r+1E-30))
+        r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+        theta = np.arccos(z / (r + 1E-30))
         return cls.rgb_from_angles(phi, theta)
 
 
-class TransparentColormap(mpl.colors.LinearSegmentedColormap):
-
-    '''Colormap subclass for including transparency.
+class TransparentColormap(colors.LinearSegmentedColormap):
+    """Colormap subclass for including transparency.
 
     This class is a subclass of the :class:`~matplotlib.pyplot.colors.LinearSegmentedColormap`
     class with integrated support for transparency. The colormap is unicolor and varies only in
@@ -239,9 +237,9 @@ class TransparentColormap(mpl.colors.LinearSegmentedColormap):
     alpha_range : list (N=2) of float, optional
         Start and end alpha value. Has to be between 0. and 1.
 
-    '''
+    """
 
-    _log = logging.getLogger(__name__+'.TransparentColormap')
+    _log = logging.getLogger(__name__ + '.TransparentColormap')
 
     def __init__(self, r=1., g=0., b=0., alpha_range=None):
         if alpha_range is None:
@@ -253,4 +251,4 @@ class TransparentColormap(mpl.colors.LinearSegmentedColormap):
         alpha = [(0., 0., alpha_range[0]), (1., alpha_range[1], 1.)]
         cdict = {'red': red, 'green': green, 'blue': blue, 'alpha': alpha}
         super(TransparentColormap, self).__init__('transparent_colormap', cdict, N=256)
-        self._log.debug('Created '+str(self))
+        self._log.debug('Created ' + str(self))

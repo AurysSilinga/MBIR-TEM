@@ -12,20 +12,18 @@ the distribution.
 
 """
 
+import logging
 
 import numpy as np
 
 from pyramid.magdata import MagData
-
-import logging
-
 
 __all__ = ['optimize_linear', 'optimize_nonlin', 'optimize_splitbregman']
 _log = logging.getLogger(__name__)
 
 
 def optimize_linear(costfunction, max_iter=None):
-    '''Reconstruct a three-dimensional magnetic distribution from given phase maps via the
+    """Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
     Blazingly fast for l2-based cost functions.
 
@@ -42,7 +40,7 @@ def optimize_linear(costfunction, max_iter=None):
     mag_data : :class:`~pyramid.magdata.MagData`
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
-    '''
+    """
     import jutil.cg as jcg
     _log.debug('Calling optimize_linear')
     _log.info('Cost before optimization: {}'.format(costfunction(np.zeros(costfunction.n))))
@@ -58,7 +56,7 @@ def optimize_linear(costfunction, max_iter=None):
 
 
 def optimize_nonlin(costfunction, first_guess=None):
-    '''Reconstruct a three-dimensional magnetic distribution from given phase maps via
+    """Reconstruct a three-dimensional magnetic distribution from given phase maps via
     steepest descent method. This is slow, but works best for non l2-regularisators.
 
 
@@ -75,7 +73,7 @@ def optimize_nonlin(costfunction, first_guess=None):
     mag_data : :class:`~pyramid.magdata.MagData`
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
-    '''
+    """
     import jutil.minimizer as jmin
     import jutil.norms as jnorms
     _log.debug('Calling optimize_nonlin')
@@ -90,7 +88,7 @@ def optimize_nonlin(costfunction, first_guess=None):
     q = 1. / (1. - (1. / p))
     lq = jnorms.LPPow(q, 1e-20)
 
-    def preconditioner(_, direc):
+    def _preconditioner(_, direc):
         direc_p = direc / abs(direc).max()
         direc_p = 10 * (1. / q) * lq.jac(direc_p)
         return direc_p
@@ -100,7 +98,7 @@ def optimize_nonlin(costfunction, first_guess=None):
     result = jmin.minimize(
         costfunction, x_0,
         method="SteepestDescent",
-        options={"preconditioner": preconditioner},
+        options={"preconditioner": _preconditioner},
         tol={"max_iteration": 10000})
     x_opt = result.x
     _log.info('Cost after optimization: {}'.format(costfunction(x_opt)))
@@ -110,7 +108,7 @@ def optimize_nonlin(costfunction, first_guess=None):
 
 
 def optimize_splitbregman(costfunction, weight, lam, mu):
-    '''
+    """
     Reconstructs magnet distribution from phase image measurements using a split bregman
     algorithm with a dedicated TV-l1 norm. Very dedicated, frickle, brittle, and difficult
     to get to work, but fastest option available if it works.
@@ -134,7 +132,7 @@ def optimize_splitbregman(costfunction, weight, lam, mu):
     mag_data : :class:`~pyramid.magdata.MagData`
         The reconstructed magnetic distribution as a :class:`~.MagData` object.
 
-    '''
+    """
     import jutil.splitbregman as jsb
     import jutil.operator as joperator
     import jutil.diff as jdiff

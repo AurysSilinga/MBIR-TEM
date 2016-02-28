@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Testcase for the magcreator module."""
 
-
 import os
 import unittest
 
@@ -13,7 +12,6 @@ import pyramid.magcreator as mc
 
 
 class TestCaseMagCreator(unittest.TestCase):
-
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_magcreator')
 
     def test_shape_slab(self):
@@ -71,7 +69,7 @@ class TestCaseMagCreator(unittest.TestCase):
 
     def test_create_mag_dist_homog(self):
         mag_shape = mc.Shapes.disc((1, 10, 10), (0, 5, 5), 3, 1)
-        magnitude = mc.create_mag_dist_homog(mag_shape, pi/4)
+        magnitude = mc.create_mag_dist_homog(mag_shape, pi / 4)
         assert_allclose(magnitude, np.load(os.path.join(self.path, 'ref_mag_disc.npy')),
                         err_msg='Created homog. magnetic distribution does not match expectation')
 

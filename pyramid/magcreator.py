@@ -16,37 +16,34 @@ center.
 
 """
 
-
 from __future__ import division
+
+import abc
+import logging
 
 import numpy as np
 from numpy import pi
-import abc
-
-import logging
-
 
 __all__ = ['Shapes', 'create_mag_dist_homog', 'create_mag_dist_vortex']
 _log = logging.getLogger(__name__)
 
 
 class Shapes(object):
-
-    '''Abstract class containing functions for generating magnetic shapes.
+    """Abstract class containing functions for generating magnetic shapes.
 
     The :class:`~.Shapes` class is a collection of some methods that return a 3-dimensional
     matrix that represents the magnetized volume and consists of values between 0 and 1.
     This matrix is used in the functions of the :mod:`~.magcreator` module to create
     :class:`~pyramid.magdata.MagData` objects which store the magnetic informations.
 
-    '''
+    """
 
     __metaclass__ = abc.ABCMeta
-    _log = logging.getLogger(__name__+'.Shapes')
+    _log = logging.getLogger(__name__ + '.Shapes')
 
     @classmethod
     def slab(cls, dim, center, width):
-        '''Create the shape of a slab.
+        """Create the shape of a slab.
 
         Parameters
         ----------
@@ -62,20 +59,20 @@ class Shapes(object):
         mag_shape : :class:`~numpy.ndarray` (N=3)
             The magnetic shape as a 3D-array with values between 1 and 0.
 
-        '''
+        """
         cls._log.debug('Calling slab')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a tuple of length 3!'
         zz, yy, xx = np.indices(dim) + 0.5
-        xx_shape = np.where(abs(xx-center[2]) <= width[2]/2, True, False)
-        yy_shape = np.where(abs(yy-center[1]) <= width[1]/2, True, False)
-        zz_shape = np.where(abs(zz-center[0]) <= width[0]/2, True, False)
-        return np.logical_and.reduce((xx_shape, yy_shape, zz_shape))
+        xx_shape = np.where(abs(xx - center[2]) <= width[2] / 2, True, False)
+        yy_shape = np.where(abs(yy - center[1]) <= width[1] / 2, True, False)
+        zz_shape = np.where(abs(zz - center[0]) <= width[0] / 2, True, False)
+        return np.logical_and(np.logical_and(xx_shape, yy_shape), zz_shape)
 
     @classmethod
     def disc(cls, dim, center, radius, height, axis='z'):
-        '''Create the shape of a cylindrical disc in x-, y-, or z-direction.
+        """Create the shape of a cylindrical disc in x-, y-, or z-direction.
 
         Parameters
         ----------
@@ -95,7 +92,7 @@ class Shapes(object):
         mag_shape : :class:`~numpy.ndarray` (N=3)
             The magnetic shape as a 3D-array with values between 1 and 0.
 
-        '''
+        """
         cls._log.debug('Calling disc')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
@@ -112,12 +109,14 @@ class Shapes(object):
             uu, vv, ww = zz, xx, yy
         elif axis == 'x':
             uu, vv, ww = yy, zz, xx
+        else:
+            raise ValueError('{} is not a valid argument (use x, y or z)'.format(axis))
         return np.logical_and(np.where(np.hypot(uu, vv) <= radius, True, False),
-                              np.where(abs(ww) <= height/2, True, False))
+                              np.where(abs(ww) <= height / 2, True, False))
 
     @classmethod
     def ellipse(cls, dim, center, width, height, axis='z'):
-        '''Create the shape of an elliptical cylinder in x-, y-, or z-direction.
+        """Create the shape of an elliptical cylinder in x-, y-, or z-direction.
 
         Parameters
         ----------
@@ -137,7 +136,7 @@ class Shapes(object):
         mag_shape : :class:`~numpy.ndarray` (N=3)
             The magnetic shape as a 3D-array with values between 1 and 0.
 
-        '''
+        """
         cls._log.debug('Calling ellipse')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
@@ -154,13 +153,15 @@ class Shapes(object):
             uu, vv, ww = xx, zz, yy
         elif axis == 'x':
             uu, vv, ww = yy, zz, xx
-        distance = np.hypot(uu/(width[1]/2), vv/(width[0]/2))
+        else:
+            raise ValueError('{} is not a valid argument (use x, y or z)'.format(axis))
+        distance = np.hypot(uu / (width[1] / 2), vv / (width[0] / 2))
         return np.logical_and(np.where(distance <= 1, True, False),
-                              np.where(abs(ww) <= height/2, True, False))
+                              np.where(abs(ww) <= height / 2, True, False))
 
     @classmethod
     def sphere(cls, dim, center, radius):
-        '''Create the shape of a sphere.
+        """Create the shape of a sphere.
 
         Parameters
         ----------
@@ -176,18 +177,18 @@ class Shapes(object):
         mag_shape : :class:`~numpy.ndarray` (N=3)
             The magnetic shape as a 3D-array with values between 1 and 0.
 
-        '''
+        """
         cls._log.debug('Calling sphere')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'
         zz, yy, xx = np.indices(dim) + 0.5
-        distance = np.sqrt((xx-center[2])**2 + (yy-center[1])**2 + (zz-center[0])**2)
+        distance = np.sqrt((xx - center[2]) ** 2 + (yy - center[1]) ** 2 + (zz - center[0]) ** 2)
         return np.where(distance <= radius, True, False)
 
     @classmethod
     def ellipsoid(cls, dim, center, width):
-        '''Create the shape of an ellipsoid.
+        """Create the shape of an ellipsoid.
 
         Parameters
         ----------
@@ -203,20 +204,20 @@ class Shapes(object):
         mag_shape : :class:`~numpy.ndarray` (N=3)
             The magnetic shape as a 3D-array with values between 1 and 0.
 
-        '''
+        """
         cls._log.debug('Calling ellipsoid')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a a tuple of length 3!'
         zz, yy, xx = np.indices(dim) + 0.5
-        distance = np.sqrt(((xx-center[2]) / (width[2]/2))**2
-                           + ((yy-center[1]) / (width[1]/2))**2
-                           + ((zz-center[0]) / (width[0]/2))**2)
+        distance = np.sqrt(((xx - center[2]) / (width[2] / 2)) ** 2
+                           + ((yy - center[1]) / (width[1] / 2)) ** 2
+                           + ((zz - center[0]) / (width[0] / 2)) ** 2)
         return np.where(distance <= 1, True, False)
 
     @classmethod
     def filament(cls, dim, pos, axis='y'):
-        '''Create the shape of a filament.
+        """Create the shape of a filament.
 
         Parameters
         ----------
@@ -234,7 +235,7 @@ class Shapes(object):
         mag_shape : :class:`~numpy.ndarray` (N=3)
             The magnetic shape as a 3D-array with values between 1 and 0.
 
-        '''
+        """
         cls._log.debug('Calling filament')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(pos) == (2,), 'Parameter pos has to be a tuple of length 2!'
@@ -250,7 +251,7 @@ class Shapes(object):
 
     @classmethod
     def pixel(cls, dim, pixel):
-        '''Create the shape of a single pixel.
+        """Create the shape of a single pixel.
 
         Parameters
         ----------
@@ -264,7 +265,7 @@ class Shapes(object):
         mag_shape : :class:`~numpy.ndarray` (N=3)
             The magnetic shape as a 3D-array with values between 1 and 0.
 
-        '''
+        """
         cls._log.debug('Calling pixel')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(pixel) == (3,), 'Parameter pixel has to be a tuple of length 3!'
@@ -273,8 +274,8 @@ class Shapes(object):
         return mag_shape
 
 
-def create_mag_dist_homog(mag_shape, phi, theta=pi/2, magnitude=1):
-    '''Create a 3-dimensional magnetic distribution of a homogeneously magnetized object.
+def create_mag_dist_homog(mag_shape, phi, theta=pi / 2, magnitude=1):
+    """Create a 3-dimensional magnetic distribution of a homogeneously magnetized object.
 
     Parameters
     ----------
@@ -294,7 +295,7 @@ def create_mag_dist_homog(mag_shape, phi, theta=pi/2, magnitude=1):
         The magnetic distribution as a tuple of the 3 components in
         `x`-, `y`- and `z`-direction on the 3-dimensional grid.
 
-    '''
+    """
     _log.debug('Calling create_mag_dist_homog')
     dim = np.shape(mag_shape)
     assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
@@ -305,7 +306,7 @@ def create_mag_dist_homog(mag_shape, phi, theta=pi/2, magnitude=1):
 
 
 def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
-    '''Create a 3-dimensional magnetic distribution of a homogeneous magnetized object.
+    """Create a 3-dimensional magnetic distribution of a homogeneous magnetized object.
 
     Parameters
     ----------
@@ -333,22 +334,22 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
         reside at coordinates with _.5 at the end), i.e. integer values should be used as center
         coordinates (e.g. coordinate 1 lies between the first and the second pixel).
 
-    '''
+    """
     _log.debug('Calling create_mag_dist_vortex')
-    dim = np.shape(mag_shape)
+    dim = mag_shape.shape
     assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
     assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'
     assert center is None or len(center) in {2, 3}, \
         'Vortex center has to be defined in 3D or 2D or not at all!'
     if center is None:
-        center = (dim[1]/2, dim[2]/2)
+        center = (dim[1] / 2, dim[2] / 2)
     if axis == 'z':
         if len(center) == 3:  # if a 3D-center is given, just take the x and y components
             center = (center[1], center[2])
-        u = np.linspace(-center[1], dim[2]-1-center[1], dim[2]) + 0.5  # pixel center!
-        v = np.linspace(-center[0], dim[1]-1-center[0], dim[1]) + 0.5  # pixel center!
+        u = np.linspace(-center[1], dim[2] - 1 - center[1], dim[2]) + 0.5  # pixel center!
+        v = np.linspace(-center[0], dim[1] - 1 - center[0], dim[1]) + 0.5  # pixel center!
         uu, vv = np.meshgrid(u, v)
-        phi = np.expand_dims(np.arctan2(vv, uu)-pi/2, axis=0)
+        phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=0)
         phi = np.tile(phi, (dim[0], 1, 1))
         z_mag = np.zeros(dim)
         y_mag = -np.ones(dim) * np.sin(phi) * mag_shape * magnitude
@@ -356,10 +357,10 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
     elif axis == 'y':
         if len(center) == 3:  # if a 3D-center is given, just take the x and z components
             center = (center[0], center[2])
-        u = np.linspace(-center[1], dim[2]-1-center[1], dim[2]) + 0.5  # pixel center!
-        v = np.linspace(-center[0], dim[0]-1-center[0], dim[0]) + 0.5  # pixel center!
+        u = np.linspace(-center[1], dim[2] - 1 - center[1], dim[2]) + 0.5  # pixel center!
+        v = np.linspace(-center[0], dim[0] - 1 - center[0], dim[0]) + 0.5  # pixel center!
         uu, vv = np.meshgrid(u, v)
-        phi = np.expand_dims(np.arctan2(vv, uu)-pi/2, axis=1)
+        phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=1)
         phi = np.tile(phi, (1, dim[1], 1))
         z_mag = np.ones(dim) * np.sin(phi) * mag_shape * magnitude
         y_mag = np.zeros(dim)
@@ -367,12 +368,14 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
     elif axis == 'x':
         if len(center) == 3:  # if a 3D-center is given, just take the z and y components
             center = (center[0], center[1])
-        u = np.linspace(-center[1], dim[1]-1-center[1], dim[1]) + 0.5  # pixel center!
-        v = np.linspace(-center[0], dim[0]-1-center[0], dim[0]) + 0.5  # pixel center!
+        u = np.linspace(-center[1], dim[1] - 1 - center[1], dim[1]) + 0.5  # pixel center!
+        v = np.linspace(-center[0], dim[0] - 1 - center[0], dim[0]) + 0.5  # pixel center!
         uu, vv = np.meshgrid(u, v)
-        phi = np.expand_dims(np.arctan2(vv, uu)-pi/2, axis=2)
+        phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=2)
         phi = np.tile(phi, (1, 1, dim[2]))
         z_mag = -np.ones(dim) * np.sin(phi) * mag_shape * magnitude
         y_mag = -np.ones(dim) * np.cos(phi) * mag_shape * magnitude
         x_mag = np.zeros(dim)
+    else:
+        raise ValueError('{} is not a valid argument (use x, y or z)'.format(axis))
     return np.array([x_mag, y_mag, z_mag])

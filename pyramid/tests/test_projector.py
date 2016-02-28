@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Testcase for the projector module."""
 
-
 import os
 import unittest
 
@@ -9,12 +8,11 @@ import numpy as np
 from numpy import pi
 from numpy.testing import assert_allclose
 
-from pyramid.projector import XTiltProjector, YTiltProjector, SimpleProjector
 from pyramid.magdata import MagData
+from pyramid.projector import XTiltProjector, YTiltProjector, SimpleProjector
 
 
 class TestCaseSimpleProjector(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
         self.mag_data = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
@@ -45,9 +43,9 @@ class TestCaseSimpleProjector(unittest.TestCase):
 
     def test_SimpleProjector_jac_dot(self):
         mag_vec = self.mag_data.mag_vec
-        mag_proj_z = self.proj_z.jac_dot(mag_vec).reshape((2,)+self.proj_z.dim_uv)
-        mag_proj_y = self.proj_y.jac_dot(mag_vec).reshape((2,)+self.proj_y.dim_uv)
-        mag_proj_x = self.proj_x.jac_dot(mag_vec).reshape((2,)+self.proj_x.dim_uv)
+        mag_proj_z = self.proj_z.jac_dot(mag_vec).reshape((2,) + self.proj_z.dim_uv)
+        mag_proj_y = self.proj_y.jac_dot(mag_vec).reshape((2,) + self.proj_y.dim_uv)
+        mag_proj_x = self.proj_x.jac_dot(mag_vec).reshape((2,) + self.proj_x.dim_uv)
         mag_proj_z_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_z.hdf5'))
         mag_proj_y_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y.hdf5'))
         mag_proj_x_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x.hdf5'))
@@ -92,13 +90,12 @@ class TestCaseSimpleProjector(unittest.TestCase):
 
 
 class TestCaseXTiltProjector(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
         self.mag_data = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
         self.proj_00 = XTiltProjector(self.mag_data.dim, tilt=0)
-        self.proj_45 = XTiltProjector(self.mag_data.dim, tilt=pi/4)
-        self.proj_90 = XTiltProjector(self.mag_data.dim, tilt=pi/2)
+        self.proj_45 = XTiltProjector(self.mag_data.dim, tilt=pi / 4)
+        self.proj_90 = XTiltProjector(self.mag_data.dim, tilt=pi / 2)
 
     def tearDown(self):
         self.path = None
@@ -123,9 +120,9 @@ class TestCaseXTiltProjector(unittest.TestCase):
 
     def test_XTiltProjector_jac_dot(self):
         mag_vec = self.mag_data.mag_vec
-        mag_proj_00 = self.proj_00.jac_dot(mag_vec).reshape((2,)+self.proj_00.dim_uv)
-        mag_proj_45 = self.proj_45.jac_dot(mag_vec).reshape((2,)+self.proj_45.dim_uv)
-        mag_proj_90 = self.proj_90.jac_dot(mag_vec).reshape((2,)+self.proj_90.dim_uv)
+        mag_proj_00 = self.proj_00.jac_dot(mag_vec).reshape((2,) + self.proj_00.dim_uv)
+        mag_proj_45 = self.proj_45.jac_dot(mag_vec).reshape((2,) + self.proj_45.dim_uv)
+        mag_proj_90 = self.proj_90.jac_dot(mag_vec).reshape((2,) + self.proj_90.dim_uv)
         mag_proj_00_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x00.hdf5'))
         mag_proj_45_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x45.hdf5'))
         mag_proj_90_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x90.hdf5'))
@@ -170,13 +167,12 @@ class TestCaseXTiltProjector(unittest.TestCase):
 
 
 class TestCaseYTiltProjector(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
         self.mag_data = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
         self.proj_00 = YTiltProjector(self.mag_data.dim, tilt=0)
-        self.proj_45 = YTiltProjector(self.mag_data.dim, tilt=pi/4)
-        self.proj_90 = YTiltProjector(self.mag_data.dim, tilt=pi/2)
+        self.proj_45 = YTiltProjector(self.mag_data.dim, tilt=pi / 4)
+        self.proj_90 = YTiltProjector(self.mag_data.dim, tilt=pi / 2)
 
     def tearDown(self):
         self.path = None
@@ -201,9 +197,9 @@ class TestCaseYTiltProjector(unittest.TestCase):
 
     def test_XTiltProjector_jac_dot(self):
         mag_vec = self.mag_data.mag_vec
-        mag_proj_00 = self.proj_00.jac_dot(mag_vec).reshape((2,)+self.proj_00.dim_uv)
-        mag_proj_45 = self.proj_45.jac_dot(mag_vec).reshape((2,)+self.proj_45.dim_uv)
-        mag_proj_90 = self.proj_90.jac_dot(mag_vec).reshape((2,)+self.proj_90.dim_uv)
+        mag_proj_00 = self.proj_00.jac_dot(mag_vec).reshape((2,) + self.proj_00.dim_uv)
+        mag_proj_45 = self.proj_45.jac_dot(mag_vec).reshape((2,) + self.proj_45.dim_uv)
+        mag_proj_90 = self.proj_90.jac_dot(mag_vec).reshape((2,) + self.proj_90.dim_uv)
         mag_proj_00_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y00.hdf5'))
         mag_proj_45_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y45.hdf5'))
         mag_proj_90_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y90.hdf5'))
@@ -245,6 +241,7 @@ class TestCaseYTiltProjector(unittest.TestCase):
                         err_msg='Unexpected behaviour in the the transp. jacobi matrix! (45°)')
         assert_allclose(jac_T_90, jac_T_90_ref,
                         err_msg='Unexpected behaviour in the the transp. jacobi matrix! (90°)')
+
 
 # TODO: Test RotTiltProjector!!!
 

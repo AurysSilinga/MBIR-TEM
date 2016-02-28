@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Testcase for the phasemap module."""
 
-
 import os
 import unittest
 
@@ -12,7 +11,6 @@ from pyramid.phasemap import PhaseMap
 
 
 class TestCasePhaseMap(unittest.TestCase):
-
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemap')
         phase = np.zeros((4, 4))
@@ -33,7 +31,7 @@ class TestCasePhaseMap(unittest.TestCase):
 
     def test_scale_down(self):
         self.phase_map.scale_down()
-        reference = 1/4. * np.ones((2, 2))
+        reference = 1 / 4. * np.ones((2, 2))
         assert_allclose(self.phase_map.phase, reference,
                         err_msg='Unexpected behavior in scale_down()!')
         assert_allclose(self.phase_map.mask, np.zeros((2, 2), dtype=np.bool),

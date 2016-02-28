@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="__init__" pattern="file[Pyramid]:pyramid/__init__.py" />
+</component>

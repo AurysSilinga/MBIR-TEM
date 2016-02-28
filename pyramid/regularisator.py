@@ -5,23 +5,21 @@
 """This module provides the :class:`~.Regularisator` class which represents a regularisation term
 which adds additional constraints to a costfunction to minimize."""
 
+import abc
+import logging
 
 import numpy as np
 from scipy import sparse
-import abc
 
-import jutil.norms as jnorm
 import jutil.diff as jdiff
-
-import logging
-
+import jutil.norms as jnorm
 
 __all__ = ['NoneRegularisator', 'ZeroOrderRegularisator', 'FirstOrderRegularisator',
            'ComboRegularisator']
 
 
 class Regularisator(object):
-    '''Class for providing a regularisation term which implements additional constraints.
+    """Class for providing a regularisation term which implements additional constraints.
 
     Represents a certain constraint for the 3D magnetization distribution whose cost is to minimize
     in addition to the derivation from the 2D phase maps. Important is the used `norm` and the
@@ -40,10 +38,10 @@ class Regularisator(object):
         Number of additional parameters which are not used in the regularisation. Used to cut
         the input vector into the appropriate size.
 
-    '''
+    """
 
     __metaclass__ = abc.ABCMeta
-    _log = logging.getLogger(__name__+'.Regularisator')
+    _log = logging.getLogger(__name__ + '.Regularisator')
 
     @abc.abstractmethod
     def __init__(self, norm, lam, add_params=0):
@@ -55,7 +53,7 @@ class Regularisator(object):
             self.slice = slice(-add_params)
         else:
             self.slice = slice(None)
-        self._log.debug('Created '+str(self))
+        self._log.debug('Created ' + str(self))
 
     def __call__(self, x):
         self._log.debug('Calling __call__')
@@ -72,7 +70,7 @@ class Regularisator(object):
                                                                   self.add_params)
 
     def jac(self, x):
-        '''Calculate the derivative of the regularisation term for a given magnetic distribution.
+        """Calculate the derivative of the regularisation term for a given magnetic distribution.
 
         Parameters
         ----------
@@ -84,13 +82,13 @@ class Regularisator(object):
         result : :class:`~numpy.ndarray` (N=1)
             Jacobi vector which represents the cost derivative of all voxels of the magnetization.
 
-        '''
+        """
         result = np.zeros_like(x)
         result[self.slice] = self.lam * self.norm.jac(x[self.slice])
         return result
 
     def hess_dot(self, x, vector):
-        '''Calculate the product of a `vector` with the Hessian matrix of the regularisation term.
+        """Calculate the product of a `vector` with the Hessian matrix of the regularisation term.
 
         Parameters
         ----------
@@ -107,13 +105,13 @@ class Regularisator(object):
         result : :class:`~numpy.ndarray` (N=1)
             Product of the input `vector` with the Hessian matrix.
 
-        '''
+        """
         result = np.zeros_like(vector)
         result[self.slice] = self.lam * self.norm.hess_dot(x, vector[self.slice])
         return result
 
     def hess_diag(self, x):
-        ''' Return the diagonal of the Hessian.
+        """ Return the diagonal of the Hessian.
 
         Parameters
         ----------
@@ -128,7 +126,7 @@ class Regularisator(object):
         result : :class:`~numpy.ndarray` (N=1)
             Diagonal of the Hessian matrix.
 
-        '''
+        """
         self._log.debug('Calling hess_diag')
         result = np.zeros_like(x)
         result[self.slice] = self.lam * self.norm.hess_diag(x[self.slice])
@@ -136,8 +134,7 @@ class Regularisator(object):
 
 
 class ComboRegularisator(Regularisator):
-
-    '''Class for providing a regularisation term which combines several regularisators.
+    """Class for providing a regularisation term which combines several regularisators.
 
     If more than one regularisation should be utilized, this class can be use. It is given a list
     of :class:`~.Regularisator` objects. The input will be forwarded to each of them and the
@@ -148,12 +145,13 @@ class ComboRegularisator(Regularisator):
     reg_list: :class:`~.Regularisator`
         A list of regularisator objects to whom the input is passed on.
 
-    '''
+    """
 
     def __init__(self, reg_list):
         self._log.debug('Calling __init__')
         self.reg_list = reg_list
-        self._log.debug('Created '+str(self))
+        super(ComboRegularisator, self).__init__(norm=None, lam=None)
+        self._log.debug('Created ' + str(self))
 
     def __call__(self, x):
         self._log.debug('Calling __call__')
@@ -165,10 +163,10 @@ class ComboRegularisator(Regularisator):
 
     def __str__(self):
         self._log.debug('Calling __str__')
-        return 'ComboRegularisator(reg_list=%s)' % (self.reg_list)
+        return 'ComboRegularisator(reg_list=%s)' % self.reg_list
 
     def jac(self, x):
-        '''Calculate the derivative of the regularisation term for a given magnetic distribution.
+        """Calculate the derivative of the regularisation term for a given magnetic distribution.
 
         Parameters
         ----------
@@ -180,11 +178,11 @@ class ComboRegularisator(Regularisator):
         result : :class:`~numpy.ndarray` (N=1)
             Jacobi vector which represents the cost derivative of all voxels of the magnetization.
 
-        '''
+        """
         return np.sum([self.reg_list[i].jac(x) for i in range(len(self.reg_list))], axis=0)
 
     def hess_dot(self, x, vector):
-        '''Calculate the product of a `vector` with the Hessian matrix of the regularisation term.
+        """Calculate the product of a `vector` with the Hessian matrix of the regularisation term.
 
         Parameters
         ----------
@@ -201,12 +199,12 @@ class ComboRegularisator(Regularisator):
         result : :class:`~numpy.ndarray` (N=1)
             Product of the input `vector` with the Hessian matrix.
 
-        '''
+        """
         return np.sum([self.reg_list[i].hess_dot(x, vector) for i in range(len(self.reg_list))],
                       axis=0)
 
     def hess_diag(self, x):
-        ''' Return the diagonal of the Hessian.
+        """ Return the diagonal of the Hessian.
 
         Parameters
         ----------
@@ -221,13 +219,13 @@ class ComboRegularisator(Regularisator):
         result : :class:`~numpy.ndarray` (N=1)
             Diagonal of the Hessian matrix.
 
-        '''
+        """
         self._log.debug('Calling hess_diag')
         return np.sum([self.reg_list[i].hess_diag(x) for i in range(len(self.reg_list))], axis=0)
 
 
 class NoneRegularisator(Regularisator):
-    '''Placeholder class if no regularization is used.
+    """Placeholder class if no regularization is used.
 
     This class is instantiated in the :class:`~pyramid.costfunction.Costfunction`, which means
     no regularisation is used. All associated functions return appropriate zero-values.
@@ -239,23 +237,24 @@ class NoneRegularisator(Regularisator):
     lam: 0
         Not used.
 
-    '''
+    """
 
-    _log = logging.getLogger(__name__+'.NoneRegularisator')
+    _log = logging.getLogger(__name__ + '.NoneRegularisator')
 
     def __init__(self):
         self._log.debug('Calling __init__')
         self.norm = None
         self.lam = 0
         self.add_params = None
-        self._log.debug('Created '+str(self))
+        super(NoneRegularisator, self).__init__(norm=None, lam=None)
+        self._log.debug('Created ' + str(self))
 
     def __call__(self, x):
         self._log.debug('Calling __call__')
         return 0
 
     def jac(self, x):
-        '''Calculate the derivative of the regularisation term for a given magnetic distribution.
+        """Calculate the derivative of the regularisation term for a given magnetic distribution.
 
         Parameters
         ----------
@@ -267,11 +266,11 @@ class NoneRegularisator(Regularisator):
         result : :class:`~numpy.ndarray` (N=1)
             Jacobi vector which represents the cost derivative of all voxels of the magnetization.
 
-        '''
+        """
         return np.zeros_like(x)
 
     def hess_dot(self, x, vector):
-        '''Calculate the product of a `vector` with the Hessian matrix of the regularisation term.
+        """Calculate the product of a `vector` with the Hessian matrix of the regularisation term.
 
         Parameters
         ----------
@@ -280,7 +279,7 @@ class NoneRegularisator(Regularisator):
             is constant in this case, thus `x` can be set to None (it is not used in the
             computation). It is implemented for the case that in the future nonlinear problems
             have to be solved.
-         vector : :class:`~numpy.ndarray` (N=1)
+        vector : a :class:`~numpy.ndarray` (N=1)
             Vectorized magnetization distribution which is multiplied by the Hessian.
 
         Returns
@@ -288,11 +287,11 @@ class NoneRegularisator(Regularisator):
         result : :class:`~numpy.ndarray` (N=1)
             Product of the input `vector` with the Hessian matrix of the costfunction.
 
-        '''
+        """
         return np.zeros_like(vector)
 
     def hess_diag(self, x):
-        ''' Return the diagonal of the Hessian.
+        """ Return the diagonal of the Hessian.
 
         Parameters
         ----------
@@ -307,13 +306,13 @@ class NoneRegularisator(Regularisator):
         result : :class:`~numpy.ndarray` (N=1)
             Diagonal of the Hessian matrix.
 
-        '''
+        """
         self._log.debug('Calling hess_diag')
         return np.zeros_like(x)
 
 
 class ZeroOrderRegularisator(Regularisator):
-    '''Class for providing a regularisation term which implements Lp norm minimization.
+    """Class for providing a regularisation term which implements Lp norm minimization.
 
     The constraint this class represents is the minimization of the Lp norm for the 3D
     magnetization distribution. Important is the regularisation parameter `lam` (lambda) which
@@ -326,9 +325,9 @@ class ZeroOrderRegularisator(Regularisator):
     p: int, optional
         Order of the norm (default: 2, which means a standard L2-norm).
 
-    '''
+    """
 
-    _log = logging.getLogger(__name__+'.ZeroOrderRegularisator')
+    _log = logging.getLogger(__name__ + '.ZeroOrderRegularisator')
 
     def __init__(self, _=None, lam=1E-4, p=2, add_params=None):
         self._log.debug('Calling __init__')
@@ -338,11 +337,11 @@ class ZeroOrderRegularisator(Regularisator):
         else:
             norm = jnorm.LPPow(p, 1e-12)
         super(ZeroOrderRegularisator, self).__init__(norm, lam, add_params)
-        self._log.debug('Created '+str(self))
+        self._log.debug('Created ' + str(self))
 
 
 class FirstOrderRegularisator(Regularisator):
-    '''Class for providing a regularisation term which implements derivation minimization.
+    """Class for providing a regularisation term which implements derivation minimization.
 
     The constraint this class represents is the minimization of the first order derivative of the
     3D magnetization distribution using a Lp norm. Important is the regularisation parameter `lam`
@@ -358,7 +357,7 @@ class FirstOrderRegularisator(Regularisator):
     p: int, optional
         Order of the norm (default: 2, which means a standard L2-norm).
 
-    '''
+    """
 
     def __init__(self, mask, lam=1E-4, p=2, add_params=None):
         self.p = p
@@ -371,4 +370,4 @@ class FirstOrderRegularisator(Regularisator):
         else:
             norm = jnorm.WeightedTV(jnorm.LPPow(p, 1e-12), D, [D0.shape[0], D.shape[0]])
         super(FirstOrderRegularisator, self).__init__(norm, lam, add_params)
-        self._log.debug('Created '+str(self))
+        self._log.debug('Created ' + str(self))

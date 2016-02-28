@@ -5,26 +5,23 @@
 """This module provides the :class:`~.ForwardModel` class which represents a strategy to map a
 threedimensional magnetization distribution onto a two-dimensional phase map."""
 
-
-from __future__ import division
-
-import sys
-import numpy as np
-import multiprocessing as mp
-
-from pyramid.magdata import MagData
-from pyramid.ramp import Ramp
-from pyramid.dataset import DataSet
+from __future__ import division, print_function
 
 import logging
+import multiprocessing as mp
+import sys
 
+import numpy as np
+
+from pyramid.dataset import DataSet
+from pyramid.magdata import MagData
+from pyramid.ramp import Ramp
 
 __all__ = ['ForwardModel', 'DistributedForwardModel']
 
 
 class ForwardModel(object):
-
-    '''Class for mapping 3D magnetic distributions to 2D phase maps.
+    """Class for mapping 3D magnetic distributions to 2D phase maps.
 
     Represents a strategy for the mapping of a 3D magnetic distribution to two-dimensional
     phase maps. A :class:`~.DataSet` object is given which is used as input for the model
@@ -46,9 +43,9 @@ class ForwardModel(object):
     n: int
         Size of the input space. Number of voxels of the 3-dimensional grid.
 
-    '''
+    """
 
-    _log = logging.getLogger(__name__+'.ForwardModel')
+    _log = logging.getLogger(__name__ + '.ForwardModel')
 
     def __init__(self, data_set, ramp_order=None):
         self._log.debug('Calling __init__')
@@ -62,8 +59,8 @@ class ForwardModel(object):
             self.n += self.ramp.n
         self.shape = (self.m, self.n)
         self.hook_points = data_set.hook_points
-        self.mag_data = MagData(self.data_set.a, np.zeros((3,)+self.data_set.dim))
-        self._log.debug('Creating '+str(self))
+        self.mag_data = MagData(self.data_set.a, np.zeros((3,) + self.data_set.dim))
+        self._log.debug('Creating ' + str(self))
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
@@ -71,7 +68,7 @@ class ForwardModel(object):
 
     def __str__(self):
         self._log.debug('Calling __str__')
-        return 'ForwardModel(data_set=%s)' % (self.data_set)
+        return 'ForwardModel(data_set=%s)' % self.data_set
 
     def __call__(self, x):
         # Extract ramp parameters if necessary (x will be shortened!):
@@ -86,11 +83,11 @@ class ForwardModel(object):
             mapper = self.phase_mappers[projector.dim_uv]
             phase_map = mapper(projector(self.mag_data))
             phase_map += self.ramp(i)  # add ramp!
-            result[hp[i]:hp[i+1]] = phase_map.phase_vec
+            result[hp[i]:hp[i + 1]] = phase_map.phase_vec
         return np.reshape(result, -1)
 
     def jac_dot(self, x, vector):
-        '''Calculate the product of the Jacobi matrix with a given `vector`.
+        """Calculate the product of the Jacobi matrix with a given `vector`.
 
         Parameters
         ----------
@@ -109,7 +106,7 @@ class ForwardModel(object):
             Product of the Jacobi matrix (which is not explicitely calculated) with the input
             `vector`.
 
-        '''
+        """
         # Extract ramp parameters if necessary (vector will be shortened!):
         vector = self.ramp.extract_ramp_params(vector)
         # Reset mag_data and fill with vector:
@@ -123,11 +120,11 @@ class ForwardModel(object):
             mapper = self.phase_mappers[projector.dim_uv]
             res = mapper.jac_dot(projector.jac_dot(mag_vec))
             res += self.ramp.jac_dot(i)  # add ramp!
-            result[hp[i]:hp[i+1]] = res
+            result[hp[i]:hp[i + 1]] = res
         return result
 
     def jac_T_dot(self, x, vector):
-        ''''Calculate the product of the transposed Jacobi matrix with a given `vector`.
+        """'Calculate the product of the transposed Jacobi matrix with a given `vector`.
 
         Parameters
         ----------
@@ -144,11 +141,11 @@ class ForwardModel(object):
             Product of the transposed Jacobi matrix (which is not explicitely calculated) with
             the input `vector`. If necessary, transposed ramp parameters are concatenated.
 
-        '''
-        proj_T_result = np.zeros(3*np.prod(self.data_set.dim))
+        """
+        proj_T_result = np.zeros(3 * np.prod(self.data_set.dim))
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
-            sub_vec = vector[hp[i]:hp[i+1]]
+            sub_vec = vector[hp[i]:hp[i + 1]]
             mapper = self.phase_mappers[projector.dim_uv]
             proj_T_result += projector.jac_T_dot(mapper.jac_T_dot(sub_vec))
         self.mag_data.mag_vec = proj_T_result
@@ -157,23 +154,18 @@ class ForwardModel(object):
         return np.concatenate((result, ramp_params))
 
     def finalize(self):
-        ''''Finalize the processes and let them join the master process (NOT USED HERE!).
-
-        Parameters
-        ----------
-        None
+        """'Finalize the processes and let them join the master process (NOT USED HERE!).
 
         Returns
         -------
         None
 
-        '''
+        """
         pass
 
 
 class DistributedForwardModel(ForwardModel):
-
-    '''Multiprocessing class for mapping 3D magnetic distributions to 2D phase maps.
+    """Multiprocessing class for mapping 3D magnetic distributions to 2D phase maps.
 
     Subclass of the :class:`~.ForwardModel` class which implements multiprocessing strategies
     to speed up the calculations. The interface is the same, internally, the processes and one
@@ -189,14 +181,10 @@ class DistributedForwardModel(ForwardModel):
         Polynomial order of the additional phase ramp which will be added to the phase maps.
         All ramp parameters have to be at the end of the input vector and are split automatically.
         Default is None (no ramps are added).
-    m: int
-        Size of the image space. Number of pixels of the 2-dimensional projected grid.
-    n: int
-        Size of the input space. Number of voxels of the 3-dimensional grid.
     nprocs: int
         Number of processes which should be created. Default is 1 (not recommended).
 
-    '''
+    """
 
     def __init__(self, data_set, ramp_order=None, nprocs=1):
         # Evoke super constructor to set up the normal ForwardModel:
@@ -213,8 +201,8 @@ class DistributedForwardModel(ForwardModel):
             sub_data = DataSet(self.data_set.a, self.data_set.dim, self.data_set.b_0,
                                self.data_set.mask, self.data_set.Se_inv)
             # Distribute data to SubDataSets:
-            start = proc_id*img_per_proc
-            stop = np.min(((proc_id+1)*img_per_proc, self.data_set.count))
+            start = proc_id * img_per_proc
+            stop = np.min(((proc_id + 1) * img_per_proc, self.data_set.count))
             self.proc_hook_points.append(hp[stop])
             sub_data.phase_maps = self.data_set.phase_maps[start:stop]
             sub_data.projectors = self.data_set.projectors[start:stop]
@@ -228,7 +216,7 @@ class DistributedForwardModel(ForwardModel):
             self.processes.append(p)
             # Start process:
             p.start()
-        self._log.debug('Creating '+str(self))
+        self._log.debug('Creating ' + str(self))
 
     def __call__(self, x):
         # Extract ramp parameters if necessary (x will be shortened!):
@@ -243,15 +231,15 @@ class DistributedForwardModel(ForwardModel):
         # Calculate ramps (if necessary):
         if self.ramp_order is not None:
             for i in range(self.data_set.count):
-                result[hp[i]:hp[i+1]] += self.ramp(i).phase.ravel()
+                result[hp[i]:hp[i + 1]] += self.ramp(i).phase.ravel()
         # Get process results from the pipes:
         for proc_id in range(self.nprocs):
-            result[php[proc_id]:php[proc_id+1]] += self.pipes[proc_id][0].recv()
+            result[php[proc_id]:php[proc_id + 1]] += self.pipes[proc_id][0].recv()
         # Return result:
         return result
 
     def jac_dot(self, x, vector):
-        '''Calculate the product of the Jacobi matrix with a given `vector`.
+        """Calculate the product of the Jacobi matrix with a given `vector`.
 
         Parameters
         ----------
@@ -270,7 +258,7 @@ class DistributedForwardModel(ForwardModel):
             Product of the Jacobi matrix (which is not explicitely calculated) with the input
             `vector`.
 
-        '''
+        """
         # Extract ramp parameters if necessary (x will be shortened!):
         vector = self.ramp.extract_ramp_params(vector)
         # Distribute input to processes and start working:
@@ -283,15 +271,15 @@ class DistributedForwardModel(ForwardModel):
         # Calculate ramps (if necessary):
         if self.ramp_order is not None:
             for i in range(self.data_set.count):
-                result[hp[i]:hp[i+1]] += self.ramp.jac_dot(i)
+                result[hp[i]:hp[i + 1]] += self.ramp.jac_dot(i)
         # Get process results from the pipes:
         for proc_id in range(self.nprocs):
-            result[php[proc_id]:php[proc_id+1]] += self.pipes[proc_id][0].recv()
+            result[php[proc_id]:php[proc_id + 1]] += self.pipes[proc_id][0].recv()
         # Return result:
         return result
 
     def jac_T_dot(self, x, vector):
-        ''''Calculate the product of the transposed Jacobi matrix with a given `vector`.
+        """'Calculate the product of the transposed Jacobi matrix with a given `vector`.
 
         Parameters
         ----------
@@ -308,35 +296,30 @@ class DistributedForwardModel(ForwardModel):
             Product of the transposed Jacobi matrix (which is not explicitely calculated) with
             the input `vector`. If necessary, transposed ramp parameters are concatenated.
 
-        '''
+        """
         php = self.proc_hook_points
         # Distribute input to processes and start working:
         for proc_id in range(self.nprocs):
-            sub_vec = vector[php[proc_id]:php[proc_id+1]]
+            sub_vec = vector[php[proc_id]:php[proc_id + 1]]
             self.pipes[proc_id][0].send(('jac_T_dot', (None, sub_vec)))
         # Calculate ramps:
         ramp_params = self.ramp.jac_T_dot(vector)  # calculate ramp_params separately!
         # Initialize result vector:
-        result = np.zeros(3*self.data_set.mask.sum())
+        result = np.zeros(3 * self.data_set.mask.sum())
         # Get process results from the pipes:
         for proc_id in range(self.nprocs):
-            sub_vec = vector[php[proc_id]:php[proc_id+1]]
             result += self.pipes[proc_id][0].recv()
         # Return result:
         return np.concatenate((result, ramp_params))
 
     def finalize(self):
-        ''''Finalize the processes and let them join the master process.
-
-        Parameters
-        ----------
-        None
+        """'Finalize the processes and let them join the master process.
 
         Returns
         -------
         None
 
-        '''
+        """
         # Finalize processes:
         for proc_id in range(self.nprocs):
             self.pipes[proc_id][0].send('STOP')
@@ -347,12 +330,12 @@ class DistributedForwardModel(ForwardModel):
 
 def _worker(fwd_model, pipe):
     # Has to be directly accessible in the module as a function, NOT a method of a class instance!
-    print '... {} starting!'.format(mp.current_process().name)
+    print('... {} starting!'.format(mp.current_process().name))
     sys.stdout.flush()
     for method, arguments in iter(pipe.recv, 'STOP'):
         # '... {} processes method {}'.format(mp.current_process().name, method)
         sys.stdout.flush()
         result = getattr(fwd_model, method)(*arguments)
         pipe.send(result)
-    print '... ', mp.current_process().name, 'exiting!'
+    print('... ', mp.current_process().name, 'exiting!')
     sys.stdout.flush()

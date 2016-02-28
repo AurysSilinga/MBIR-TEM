@@ -43,22 +43,17 @@ class MagData(object):
     ----------
     a: float
         The grid spacing in nm.
-    dim: tuple (N=3)
-        Dimensions (z, y, x) of the grid.
     magnitude: :class:`~numpy.ndarray` (N=4)
         The `x`-, `y`- and `z`-component of the magnetization vector for every 3D-gridpoint
         as a 4-dimensional numpy array (first dimension has to be 3, because of the 3 components).
-    mag_amp: :class:`~numpy.ndarray` (N=3)
-        The length (amplitude) of the magnetization vectors as a 3D-array.
-    mag_vec: :class:`~numpy.ndarray` (N=1)
-        Vector containing the magnetic distribution.
 
     """
 
-    _log = logging.getLogger(__name__+'.MagData')
+    _log = logging.getLogger(__name__ + '.MagData')
 
     @property
     def a(self):
+        """The grid spacing in nm."""
         return self._a
 
     @a.setter
@@ -69,10 +64,12 @@ class MagData(object):
 
     @property
     def dim(self):
+        """Dimensions (z, y, x) of the grid."""
         return self._dim
 
     @property
     def magnitude(self):
+        """The `x`-, `y`- and `z`-component of the magnetization vector for every 3D-gridpoint."""
         return self._magnitude
 
     @magnitude.setter
@@ -85,25 +82,27 @@ class MagData(object):
 
     @property
     def mag_amp(self):
-        return np.sqrt(np.sum(self.magnitude**2, axis=0))
+        """The length (amplitude) of the magnetization vectors as a 3D-array."""
+        return np.sqrt(np.sum(self.magnitude ** 2, axis=0))
 
     @property
     def mag_vec(self):
+        """Vector containing the magnetic distribution."""
         return np.reshape(self.magnitude, -1)
 
     @mag_vec.setter
     def mag_vec(self, mag_vec):
         mag_vec = np.asarray(mag_vec, dtype=fft.FLOAT)
-        assert np.size(mag_vec) == 3*np.prod(self.dim), \
+        assert np.size(mag_vec) == 3 * np.prod(self.dim), \
             'Vector has to match magnitude dimensions! {} {}'.format(mag_vec.shape,
-                                                                     3*np.prod(self.dim))
-        self.magnitude = mag_vec.reshape((3,)+self.dim)
+                                                                     3 * np.prod(self.dim))
+        self.magnitude = mag_vec.reshape((3,) + self.dim)
 
     def __init__(self, a, magnitude):
         self._log.debug('Calling __init__')
         self.a = a
         self.magnitude = magnitude
-        self._log.debug('Created '+str(self))
+        self._log.debug('Created ' + str(self))
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
@@ -124,12 +123,12 @@ class MagData(object):
         if isinstance(other, MagData):
             self._log.debug('Adding two MagData objects')
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
-            assert other.magnitude.shape == (3,)+self.dim, \
+            assert other.magnitude.shape == (3,) + self.dim, \
                 'Added magnitude has to have the same dimensions!'
-            return MagData(self.a, self.magnitude+other.magnitude)
+            return MagData(self.a, self.magnitude + other.magnitude)
         else:  # other is a Number
             self._log.debug('Adding an offset')
-            return MagData(self.a, self.magnitude+other)
+            return MagData(self.a, self.magnitude + other)
 
     def __sub__(self, other):  # self - other
         self._log.debug('Calling __sub__')
@@ -138,7 +137,7 @@ class MagData(object):
     def __mul__(self, other):  # self * other
         self._log.debug('Calling __mul__')
         assert isinstance(other, Number), 'MagData objects can only be multiplied by numbers!'
-        return MagData(self.a, other*self.magnitude)
+        return MagData(self.a, other * self.magnitude)
 
     def __radd__(self, other):  # other + self
         self._log.debug('Calling __radd__')
@@ -165,23 +164,19 @@ class MagData(object):
         return self.__mul__(other)
 
     def copy(self):
-        '''Returns a copy of the :class:`~.MagData` object
-
-        Parameters
-        ----------
-        None
+        """Returns a copy of the :class:`~.MagData` object
 
         Returns
         -------
         mag_data: :class:`~.MagData`
             A copy of the :class:`~.MagData`.
 
-        '''
+        """
         self._log.debug('Calling copy')
         return MagData(self.a, self.magnitude.copy())
 
     def scale_down(self, n=1):
-        '''Scale down the magnetic distribution by averaging over two pixels along each axis.
+        """Scale down the magnetic distribution by averaging over two pixels along each axis.
 
         Parameters
         ----------
@@ -197,7 +192,7 @@ class MagData(object):
         Acts in place and changes dimensions and grid spacing accordingly.
         Only possible, if each axis length is a power of 2!
 
-        '''
+        """
         self._log.debug('Calling scale_down')
         assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
         self.a *= 2 ** n
@@ -208,11 +203,11 @@ class MagData(object):
                 self.magnitude = np.pad(self.magnitude, ((0, 0), (0, pz), (0, py), (0, px)),
                                         mode='constant')
             # Create coarser grid for the magnetization:
-            self.magnitude = self.magnitude.reshape(
-                3, self.dim[0]/2, 2, self.dim[1]/2, 2, self.dim[2]/2, 2).mean(axis=(6, 4, 2))
+            shape_4d = (3, self.dim[0] / 2, 2, self.dim[1] / 2, 2, self.dim[2] / 2, 2)
+            self.magnitude = self.magnitude.reshape(shape_4d).mean(axis=(6, 4, 2))
 
     def scale_up(self, n=1, order=0):
-        '''Scale up the magnetic distribution using spline interpolation of the requested order.
+        """Scale up the magnetic distribution using spline interpolation of the requested order.
 
         Parameters
         ----------
@@ -230,18 +225,18 @@ class MagData(object):
         Notes
         -----
         Acts in place and changes dimensions and grid spacing accordingly.
-        '''
+        """
         self._log.debug('Calling scale_up')
         assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
         assert 5 > order >= 0 and isinstance(order, (int, long)), \
             'order must be a positive integer between 0 and 5!'
         self.a /= 2 ** n
-        self.magnitude = np.array((zoom(self.magnitude[0], zoom=2**n, order=order),
-                                   zoom(self.magnitude[1], zoom=2**n, order=order),
-                                   zoom(self.magnitude[2], zoom=2**n, order=order)))
+        self.magnitude = np.array((zoom(self.magnitude[0], zoom=2 ** n, order=order),
+                                   zoom(self.magnitude[1], zoom=2 ** n, order=order),
+                                   zoom(self.magnitude[2], zoom=2 ** n, order=order)))
 
     def pad(self, pad_values):
-        '''Pad the current magnetic distribution with zeros for each individual axis.
+        """Pad the current magnetic distribution with zeros for each individual axis.
 
         Parameters
         ----------
@@ -257,19 +252,19 @@ class MagData(object):
         Notes
         -----
         Acts in place and changes dimensions accordingly.
-        '''
+        """
         self._log.debug('Calling pad')
         assert len(pad_values) == 3, 'Pad values for each dimension have to be provided!'
         pv = np.zeros(6, dtype=np.int)
         for i, values in enumerate(pad_values):
             assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
-            pv[2*i:2*(i+1)] = values
+            pv[2 * i:2 * (i + 1)] = values
         self.magnitude = np.pad(self.magnitude,
                                 ((0, 0), (pv[0], pv[1]), (pv[2], pv[3]), (pv[4], pv[5])),
                                 mode='constant')
 
     def crop(self, crop_values):
-        '''Crop the current magnetic distribution with zeros for each individual axis.
+        """Crop the current magnetic distribution with zeros for each individual axis.
 
         Parameters
         ----------
@@ -285,19 +280,19 @@ class MagData(object):
         Notes
         -----
         Acts in place and changes dimensions accordingly.
-        '''
+        """
         self._log.debug('Calling crop')
         assert len(crop_values) == 3, 'Crop values for each dimension have to be provided!'
         cv = np.zeros(6, dtype=np.int)
         for i, values in enumerate(crop_values):
             assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
-            cv[2*i:2*(i+1)] = values
+            cv[2 * i:2 * (i + 1)] = values
         cv *= np.resize([1, -1], len(cv))
         cv = np.where(cv == 0, None, cv)
         self.magnitude = self.magnitude[:, cv[0]:cv[1], cv[2]:cv[3], cv[4]:cv[5]]
 
     def get_mask(self, threshold=0):
-        '''Mask all pixels where the amplitude of the magnetization lies above `threshold`.
+        """Mask all pixels where the amplitude of the magnetization lies above `threshold`.
 
         Parameters
         ----------
@@ -309,12 +304,12 @@ class MagData(object):
         mask : :class:`~numpy.ndarray` (N=3, boolean)
             Mask of the pixels where the amplitude of the magnetization lies above `threshold`.
 
-        '''
+        """
         self._log.debug('Calling get_mask')
-        return self.mag_amp > threshold
+        return np.where(self.mag_amp > threshold, True, False)
 
     def get_vector(self, mask):
-        '''Returns the magnetic components arranged in a vector, specified by a mask.
+        """Returns the magnetic components arranged in a vector, specified by a mask.
 
         Parameters
         ----------
@@ -327,7 +322,7 @@ class MagData(object):
             The vector containing magnetization components of the specified pixels.
             Order is: first all `x`-, then all `y`-, then all `z`-components.
 
-        '''
+        """
         self._log.debug('Calling get_vector')
         if mask is not None:
             return np.reshape([self.magnitude[0][mask],
@@ -337,7 +332,7 @@ class MagData(object):
             return self.mag_vec
 
     def set_vector(self, vector, mask=None):
-        '''Set the magnetic components of the masked pixels to the values specified by `vector`.
+        """Set the magnetic components of the masked pixels to the values specified by `vector`.
 
         Parameters
         ----------
@@ -351,20 +346,20 @@ class MagData(object):
         -------
         None
 
-        '''
+        """
         self._log.debug('Calling set_vector')
         vector = np.asarray(vector, dtype=fft.FLOAT)
         assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
-        count = np.size(vector)//3
+        count = np.size(vector) // 3
         if mask is not None:
             self.magnitude[0][mask] = vector[:count]  # x-component
-            self.magnitude[1][mask] = vector[count:2*count]  # y-component
-            self.magnitude[2][mask] = vector[2*count:]  # z-component
+            self.magnitude[1][mask] = vector[count:2 * count]  # y-component
+            self.magnitude[2][mask] = vector[2 * count:]  # z-component
         else:
             self.mag_vec = vector
 
     def get_magslice(self, ax_slice=0, proj_axis='z', mode='complex'):
-        '''Extract a slice from the :class:`~.MagData` object.
+        """Extract a slice from the :class:`~.MagData` object.
 
         Parameters
         ----------
@@ -381,7 +376,7 @@ class MagData(object):
         mag_slice : :class:`~numpy.ndarray` (N=2)
             The extracted magnetization slice.
 
-        '''
+        """
         self._log.debug('Calling get_mag_slice')
         # Find slice:
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
@@ -398,16 +393,18 @@ class MagData(object):
             self._log.debug('proj_axis == x')
             u_mag = np.swapaxes(np.copy(self.magnitude[2][..., ax_slice]), 0, 1)  # z-component
             v_mag = np.swapaxes(np.copy(self.magnitude[1][..., ax_slice]), 0, 1)  # y-component
+        else:
+            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
         # Create data field:
         if mode == 'complex':
-            return u_mag + 1j*v_mag
+            return u_mag + 1j * v_mag
         elif mode == 'amplitude':
             return np.hypot(u_mag, v_mag)
         else:
             raise ValueError('Given mode not understood!')
 
     def flip(self, axis='x'):
-        '''Flip/mirror the magnetization around the specified axis.
+        """Flip/mirror the magnetization around the specified axis.
 
         Parameters
         ----------
@@ -419,7 +416,7 @@ class MagData(object):
         mag_data_flip: :class:`~.MagData`
            A flipped copy of the :class:`~.MagData` object.
 
-        '''
+        """
         self._log.debug('Calling flip')
         if axis == 'x':
             mag_x, mag_y, mag_z = self.magnitude[:, :, :, ::-1]
@@ -435,7 +432,7 @@ class MagData(object):
         return MagData(self.a, magnitude_flip)
 
     def rot90(self, axis='x'):
-        '''Rotate the magnetization 90° around the specified axis (right hand rotation).
+        """Rotate the magnetization 90° around the specified axis (right hand rotation).
 
         Parameters
         ----------
@@ -447,7 +444,7 @@ class MagData(object):
         mag_data_rot: :class:`~.MagData`
            A rotated copy of the :class:`~.MagData` object.
 
-        '''
+        """
         self._log.debug('Calling rot90')
         if axis == 'x':
             magnitude_rot = np.zeros((3, self.dim[1], self.dim[0], self.dim[2]))
@@ -472,11 +469,7 @@ class MagData(object):
         return MagData(self.a, magnitude_rot)
 
     def to_signal(self):
-        '''Convert :class:`~.MagData` data into a HyperSpy signal.
-
-        Parameters
-        ----------
-        None
+        """Convert :class:`~.MagData` data into a HyperSpy signal.
 
         Returns
         -------
@@ -487,7 +480,7 @@ class MagData(object):
         -----
         This method recquires the hyperspy package!
 
-        '''
+        """
         self._log.debug('Calling to_signal')
         # Try importing HyperSpy:
         if hs is None:
@@ -514,7 +507,7 @@ class MagData(object):
 
     @classmethod
     def from_signal(cls, signal):
-        '''Convert a :class:`~hyperspy.signals.Signal` object to a :class:`~.MagData` object.
+        """Convert a :class:`~hyperspy.signals.Signal` object to a :class:`~.MagData` object.
 
         Parameters
         ----------
@@ -530,7 +523,7 @@ class MagData(object):
         -----
         This method recquires the hyperspy package!
 
-        '''
+        """
         cls._log.debug('Calling from_signal')
         # Extract magnitude:
         magnitude = np.rollaxis(signal.data, 3, 0)
@@ -539,7 +532,7 @@ class MagData(object):
         return cls(a, magnitude)
 
     def save_to_hdf5(self, filename='magdata.hdf5'):
-        '''Save magnetization data in a file with HyperSpys HDF5-format.
+        """Save magnetization data in a file with HyperSpys HDF5-format.
 
         Parameters
         ----------
@@ -551,7 +544,7 @@ class MagData(object):
         -------
         None
 
-        '''
+        """
         self._log.debug('Calling save_to_hdf5')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
@@ -561,11 +554,11 @@ class MagData(object):
                 os.makedirs(directory)
             filename = os.path.join(directory, filename)
         # Save data to file:
-        self.to_signal.save(filename)
+        self.to_signal().save(filename)
 
     @classmethod
     def load_from_hdf5(cls, filename):
-        '''Construct :class:`~.MagData` object from HyperSpys HDF5-file.
+        """Construct :class:`~.MagData` object from HyperSpys HDF5-file.
 
         Parameters
         ----------
@@ -577,10 +570,10 @@ class MagData(object):
         mag_data: :class:`~.MagData`
             A :class:`~.MagData` object containing the loaded data.
 
-        '''
+        """
         cls._log.debug('Calling load_from_hdf5')
         if hs is None:
-            self._log.error('This method recquires the hyperspy package!')
+            cls._log.error('This method recquires the hyperspy package!')
             return
         # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
@@ -591,7 +584,7 @@ class MagData(object):
         return MagData.from_signal(hs.load(filename))
 
     def save_to_llg(self, filename='magdata.txt'):
-        '''Save magnetization data in a file with LLG-format.
+        """Save magnetization data in a file with LLG-format.
 
         Parameters
         ----------
@@ -603,11 +596,11 @@ class MagData(object):
         -------
         None
 
-        '''
+        """
         self._log.debug('Calling save_to_llg')
         SCALE = 1.0E-9 / 1.0E-2  # from nm to cm
         # Create 3D meshgrid and reshape it and the magnetization into a list where x varies first:
-        zz, yy, xx = self.a * SCALE * (np.indices(self.dim)+0.5).reshape(3, -1)
+        zz, yy, xx = self.a * SCALE * (np.indices(self.dim) + 0.5).reshape(3, -1)
         x_vec, y_vec, z_vec = self.magnitude.reshape(3, -1)
         data = np.array([xx, yy, zz, x_vec, y_vec, z_vec]).T
         # Construct path if filename isn't already absolute:
@@ -622,11 +615,11 @@ class MagData(object):
             mag_file.write('LLGFileCreator: %s\n' % filename)
             mag_file.write('    %d    %d    %d\n' % (self.dim[2], self.dim[1], self.dim[0]))
             mag_file.writelines('\n'.join('   '.join('{:7.6e}'.format(cell)
-                                          for cell in row) for row in data))
+                                                     for cell in row) for row in data))
 
     @classmethod
     def load_from_llg(cls, filename):
-        '''Construct :class:`~.MagData` object from LLG-file.
+        """Construct :class:`~.MagData` object from LLG-file.
 
         Parameters
         ----------
@@ -638,7 +631,7 @@ class MagData(object):
         mag_data: :class:`~.MagData`
             A :class:`~.MagData` object containing the loaded data.
 
-        '''
+        """
         cls._log.debug('Calling load_from_llg')
         SCALE = 1.0E-9 / 1.0E-2  # From cm to nm
         # Use relative path if filename isn't already absolute:
@@ -650,13 +643,13 @@ class MagData(object):
         data = np.genfromtxt(filename, skip_header=2)
         dim = tuple(np.genfromtxt(filename, dtype=int, skip_header=1, skip_footer=len(data[:, 0])))
         a = (data[1, 0] - data[0, 0]) / SCALE
-        magnitude = data[:, 3:6].T.reshape((3,)+dim)
+        magnitude = data[:, 3:6].T.reshape((3,) + dim)
         return cls(a, magnitude)
 
     def quiver_plot(self, title='Magnetization Distribution', axis=None, proj_axis='z',
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
                     scale=1., show_mask=True):
-        '''Plot a slice of the magnetization as a quiver plot.
+        """Plot a slice of the magnetization as a quiver plot.
 
         Parameters
         ----------
@@ -689,7 +682,7 @@ class MagData(object):
         axis: :class:`~matplotlib.axes.AxesSubplot`
             The axis on which the graph is plotted.
 
-        '''
+        """
         self._log.debug('Calling quiver_plot')
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             'Axis has to be x, y or z (as string).'
@@ -723,6 +716,8 @@ class MagData(object):
             u_label = 'z [px]'
             v_label = 'y [px]'
             submask = self.get_mask()[..., ax_slice]
+        else:
+            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
         # Prepare quiver (select only used arrows if ar_dens is specified):
         dim_uv = plot_u.shape
         vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
@@ -731,11 +726,11 @@ class MagData(object):
         plot_u = plot_u[::ar_dens, ::ar_dens]
         plot_v = plot_v[::ar_dens, ::ar_dens]
         amplitudes = np.hypot(plot_u, plot_v)
-        angles = np.angle(plot_u+1j*plot_v, deg=True).tolist()
+        angles = np.angle(plot_u + 1j * plot_v, deg=True).tolist()
         # Calculate the arrow colors:
         if coloring == 'angle':
             self._log.debug('Encoding angles')
-            colorinds = (1 + np.arctan2(plot_v, plot_u)/np.pi) / 2  # in-plane color index (0 - 1)
+            colorinds = (1 + np.arctan2(plot_v, plot_u) / np.pi) / 2  # in-plane color index (0-1).
             cmap = DirectionalColormap()
         elif coloring == 'amplitude':
             self._log.debug('Encoding amplitude')
@@ -759,16 +754,16 @@ class MagData(object):
             amp = np.round(amplitudes, decimals=cutoff)
             min_value = amp[np.nonzero(amp)].min()
             plot_u = np.round(plot_u, decimals=cutoff) / min_value
-            plot_u = np.log10(np.abs(plot_u)+1) * np.sign(plot_u)
+            plot_u = np.log10(np.abs(plot_u) + 1) * np.sign(plot_u)
             plot_v = np.round(plot_v, decimals=cutoff) / min_value
-            plot_v = np.log10(np.abs(plot_v)+1) * np.sign(plot_v)
+            plot_v = np.log10(np.abs(plot_v) + 1) * np.sign(plot_v)
             amplitudes = np.hypot(plot_u, plot_v)  # Recalculate!
         # Scale the magnitude of the arrows to the highest one (if specified):
         if scaled:
             plot_u /= amplitudes.max() + 1E-30
             plot_v /= amplitudes.max() + 1E-30
         axis.quiver(uu, vv, plot_u, plot_v, colorinds, cmap=cmap, clim=(0, 1), angles=angles,
-                    pivot='middle', units='xy', scale_units='xy', scale=scale/ar_dens,
+                    pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
                     minlength=0.25, headwidth=6, headlength=7)
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
@@ -780,9 +775,9 @@ class MagData(object):
         axis.set_ylabel(v_label, fontsize=15)
         axis.tick_params(axis='both', which='major', labelsize=14)
         if dim_uv[0] >= dim_uv[1]:
-            u_bin, v_bin = np.max((2, np.floor(9*dim_uv[1]/dim_uv[0]))), 9
+            u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
         else:
-            u_bin, v_bin = 9, np.max((2, np.floor(9*dim_uv[0]/dim_uv[1])))
+            u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
         axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
         # Return plotting axis:
@@ -790,7 +785,7 @@ class MagData(object):
 
     def quiver_plot3d(self, title='Magnetization Distribution', limit=None, cmap='jet',
                       ar_dens=1, mode='arrow', coloring='angle', show_pipeline=False):
-        '''Plot the magnetization as 3D-vectors in a quiverplot.
+        """Plot the magnetization as 3D-vectors in a quiverplot.
 
         Parameters
         ----------
@@ -817,7 +812,7 @@ class MagData(object):
         plot : :class:`mayavi.modules.vectors.Vectors`
             The plot object.
 
-        '''
+        """
         self._log.debug('Calling quiver_plot3D')
         from mayavi import mlab
         a = self.a
@@ -826,7 +821,7 @@ class MagData(object):
             limit = np.max(self.mag_amp)
         ad = ar_dens
         # Create points and vector components as lists:
-        zz, yy, xx = (np.indices(dim)-a/2).reshape((3,)+dim)
+        zz, yy, xx = (np.indices(dim) - a / 2).reshape((3,) + dim)
         zz = zz[::ad, ::ad, ::ad].flatten()
         yy = yy[::ad, ::ad, ::ad].flatten()
         xx = xx[::ad, ::ad, ::ad].flatten()
@@ -840,7 +835,7 @@ class MagData(object):
             self._log.debug('Encoding full 3D angles')
             from tvtk.api import tvtk
             rgb = DirectionalColormap.rgb_from_direction(x_mag, y_mag, z_mag)
-            colors = map(tuple, rgb)  # convert to list of tuples!
+            colors = [tuple(c) for c in rgb]  # convert to list of tuples!
             sc = tvtk.UnsignedCharArray()  # Used to hold the colors
             sc.from_array(colors)
             plot.mlab_source.dataset.point_data.scalars = sc
