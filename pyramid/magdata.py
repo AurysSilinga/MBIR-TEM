@@ -548,7 +548,7 @@ class MagData(object):
         self._log.debug('Calling save_to_hdf5')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
+            from pyramid.config import DIR_FILES
             directory = os.path.join(DIR_FILES, 'magdata')
             if not os.path.exists(directory):
                 os.makedirs(directory)
@@ -577,7 +577,7 @@ class MagData(object):
             return
         # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
+            from pyramid.config import DIR_FILES
             directory = os.path.join(DIR_FILES, 'magdata')
             filename = os.path.join(directory, filename)
         # Load data from file:
@@ -605,7 +605,7 @@ class MagData(object):
         data = np.array([xx, yy, zz, x_vec, y_vec, z_vec]).T
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
+            from pyramid.config import DIR_FILES
             directory = os.path.join(DIR_FILES, 'magdata')
             if not os.path.exists(directory):
                 os.makedirs(directory)
@@ -636,7 +636,7 @@ class MagData(object):
         SCALE = 1.0E-9 / 1.0E-2  # From cm to nm
         # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
+            from pyramid.config import DIR_FILES
             directory = os.path.join(DIR_FILES, 'magdata')
             filename = os.path.join(directory, filename)
         # Load data from file:
@@ -668,7 +668,8 @@ class MagData(object):
             The slice-index of the axis specified in `proj_axis`. Is set to the center of
             `proj_axis` if not specified.
         log : boolean, optional
-            Takes the Default is False.
+            The loratihm of the arrow length is plotted instead. This is helpful if only the
+             direction of the arrows is important and the amplitude varies a lot. Default is False.
         scaled : boolean, optional
             Normalizes the plotted arrows in respect to the highest one. Default is True.
         scale: float, optional
@@ -691,8 +692,8 @@ class MagData(object):
             if ax_slice is None:
                 self._log.debug('ax_slice is None')
                 ax_slice = self.dim[0] // 2
-            plot_u = np.copy(self.magnitude[0][ax_slice, ...])  # x-component
-            plot_v = np.copy(self.magnitude[1][ax_slice, ...])  # y-component
+            u_mag = np.copy(self.magnitude[0][ax_slice, ...])  # x-component
+            v_mag = np.copy(self.magnitude[1][ax_slice, ...])  # y-component
             u_label = 'x [px]'
             v_label = 'y [px]'
             submask = self.get_mask()[ax_slice, ...]
@@ -701,8 +702,8 @@ class MagData(object):
             if ax_slice is None:
                 self._log.debug('ax_slice is None')
                 ax_slice = self.dim[1] // 2
-            plot_u = np.copy(self.magnitude[0][:, ax_slice, :])  # x-component
-            plot_v = np.copy(self.magnitude[2][:, ax_slice, :])  # z-component
+            u_mag = np.copy(self.magnitude[0][:, ax_slice, :])  # x-component
+            v_mag = np.copy(self.magnitude[2][:, ax_slice, :])  # z-component
             u_label = 'x [px]'
             v_label = 'z [px]'
             submask = self.get_mask()[:, ax_slice, :]
@@ -711,26 +712,26 @@ class MagData(object):
             if ax_slice is None:
                 self._log.debug('ax_slice is None')
                 ax_slice = self.dim[2] // 2
-            plot_u = np.swapaxes(np.copy(self.magnitude[2][..., ax_slice]), 0, 1)  # z-component
-            plot_v = np.swapaxes(np.copy(self.magnitude[1][..., ax_slice]), 0, 1)  # y-component
+            u_mag = np.swapaxes(np.copy(self.magnitude[2][..., ax_slice]), 0, 1)  # z-component
+            v_mag = np.swapaxes(np.copy(self.magnitude[1][..., ax_slice]), 0, 1)  # y-component
             u_label = 'z [px]'
             v_label = 'y [px]'
             submask = self.get_mask()[..., ax_slice]
         else:
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
         # Prepare quiver (select only used arrows if ar_dens is specified):
-        dim_uv = plot_u.shape
+        dim_uv = u_mag.shape
         vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
         uu = uu[::ar_dens, ::ar_dens]
         vv = vv[::ar_dens, ::ar_dens]
-        plot_u = plot_u[::ar_dens, ::ar_dens]
-        plot_v = plot_v[::ar_dens, ::ar_dens]
-        amplitudes = np.hypot(plot_u, plot_v)
-        angles = np.angle(plot_u + 1j * plot_v, deg=True).tolist()
+        u_mag = u_mag[::ar_dens, ::ar_dens]
+        v_mag = v_mag[::ar_dens, ::ar_dens]
+        amplitudes = np.hypot(u_mag, v_mag)
+        angles = np.angle(u_mag + 1j * v_mag, deg=True).tolist()
         # Calculate the arrow colors:
         if coloring == 'angle':
             self._log.debug('Encoding angles')
-            colorinds = (1 + np.arctan2(plot_v, plot_u) / np.pi) / 2  # in-plane color index (0-1).
+            colorinds = (1 + np.arctan2(v_mag, u_mag) / np.pi) / 2  # in-plane color index (0-1).
             cmap = DirectionalColormap()
         elif coloring == 'amplitude':
             self._log.debug('Encoding amplitude')
@@ -738,7 +739,7 @@ class MagData(object):
             cmap = 'jet'
         elif coloring == 'uniform':
             self._log.debug('No color encoding')
-            colorinds = np.zeros_like(plot_u)  # use black arrows!
+            colorinds = np.zeros_like(u_mag)  # use black arrows!
             cmap = 'gray'
         else:
             raise AttributeError("Invalid coloring mode! Use 'angles', 'amplitude' or 'uniform'!")
@@ -749,20 +750,20 @@ class MagData(object):
             axis = fig.add_subplot(1, 1, 1)
         axis.set_aspect('equal')
         # Take the logarithm of the arrows to clearly show directions (if specified):
-        if log:
+        if log and np.any(amplitudes):  # If the slice is empty, skip!
             cutoff = 10
             amp = np.round(amplitudes, decimals=cutoff)
             min_value = amp[np.nonzero(amp)].min()
-            plot_u = np.round(plot_u, decimals=cutoff) / min_value
-            plot_u = np.log10(np.abs(plot_u) + 1) * np.sign(plot_u)
-            plot_v = np.round(plot_v, decimals=cutoff) / min_value
-            plot_v = np.log10(np.abs(plot_v) + 1) * np.sign(plot_v)
-            amplitudes = np.hypot(plot_u, plot_v)  # Recalculate!
+            u_mag = np.round(u_mag, decimals=cutoff) / min_value
+            u_mag = np.log10(np.abs(u_mag) + 1) * np.sign(u_mag)
+            v_mag = np.round(v_mag, decimals=cutoff) / min_value
+            v_mag = np.log10(np.abs(v_mag) + 1) * np.sign(v_mag)
+            amplitudes = np.hypot(u_mag, v_mag)  # Recalculate (used if scaled)!
         # Scale the magnitude of the arrows to the highest one (if specified):
         if scaled:
-            plot_u /= amplitudes.max() + 1E-30
-            plot_v /= amplitudes.max() + 1E-30
-        axis.quiver(uu, vv, plot_u, plot_v, colorinds, cmap=cmap, clim=(0, 1), angles=angles,
+            u_mag /= amplitudes.max() + 1E-30
+            v_mag /= amplitudes.max() + 1E-30
+        axis.quiver(uu, vv, u_mag, v_mag, colorinds, cmap=cmap, clim=(0, 1), angles=angles,
                     pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
                     minlength=0.25, headwidth=6, headlength=7)
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
@@ -784,7 +785,7 @@ class MagData(object):
         return axis
 
     def quiver_plot3d(self, title='Magnetization Distribution', limit=None, cmap='jet',
-                      ar_dens=1, mode='arrow', coloring='angle', show_pipeline=False):
+                      mode='2darrow', coloring='angle', ar_dens=1, opacity=1.0):
         """Plot the magnetization as 3D-vectors in a quiverplot.
 
         Parameters
@@ -799,13 +800,12 @@ class MagData(object):
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.
         mode: string, optional
-            Mode, determining the glyphs used in the 3D plot. Default is 'arrow', which corresponds
-            to 3D arrows. For large amounts of arrows, '2darrow' should be used.
+            Mode, determining the glyphs used in the 3D plot. Default is '2darrow', which
+            corresponds to 2D arrows. For smaller amounts of arrows, 'arrow' (3D) is prettier.
         coloring : string
             Color coding mode of the arrows. Use 'angle' (default) or 'amplitude'.
-        show_pipeline : boolean, optional
-            If True, the mayavi pipeline, a GUI used for image manipulation is shown. The default
-            is False.
+        opacity: float, optional
+            Defines the opacity of the arrows. Default is 1.0 (completely opaque).
 
         Returns
         -------
@@ -821,16 +821,17 @@ class MagData(object):
             limit = np.max(self.mag_amp)
         ad = ar_dens
         # Create points and vector components as lists:
-        zz, yy, xx = (np.indices(dim) - a / 2).reshape((3,) + dim)
-        zz = zz[::ad, ::ad, ::ad].flatten()
-        yy = yy[::ad, ::ad, ::ad].flatten()
-        xx = xx[::ad, ::ad, ::ad].flatten()
+        zzz, yyy, xxx = (np.indices(dim) - a / 2).reshape((3,) + dim)
+        zzz = zzz[::ad, ::ad, ::ad].flatten()
+        yyy = yyy[::ad, ::ad, ::ad].flatten()
+        xxx = xxx[::ad, ::ad, ::ad].flatten()
         x_mag = self.magnitude[0][::ad, ::ad, ::ad].flatten()
         y_mag = self.magnitude[1][::ad, ::ad, ::ad].flatten()
         z_mag = self.magnitude[2][::ad, ::ad, ::ad].flatten()
         # Plot them as vectors:
         mlab.figure(size=(750, 700))
-        plot = mlab.quiver3d(xx, yy, zz, x_mag, y_mag, z_mag, mode=mode, colormap=cmap)
+        plot = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag,
+                             mode=mode, colormap=cmap, opacity=opacity)
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation
             self._log.debug('Encoding full 3D angles')
             from tvtk.api import tvtk
@@ -853,6 +854,39 @@ class MagData(object):
         mlab.axes(plot)
         mlab.title(title, height=0.95, size=0.35)
         mlab.orientation_axes()
-        if show_pipeline:
-            mlab.show_pipeline()
+        # mlab.show()
+        return plot
+
+    def contour_plot3d(self, title='Magnetization Distribution', contours=10, opacity=0.25):
+        """Plot the magnetization as 3D-vectors in a quiverplot.
+
+        Parameters
+        ----------
+        title: string, optional
+            The title for the plot.
+        contours: int, optional
+            Number of contours which should be plotted.
+        opacity: float, optional
+            Defines the opacity of the contours. Default is 0.25.
+
+        Returns
+        -------
+        plot : :class:`mayavi.modules.vectors.Vectors`
+            The plot object.
+
+
+        """
+        self._log.debug('Calling quiver_plot3D')
+        from mayavi import mlab
+        # Create points and vector components as lists:
+        x_mag, y_mag, z_mag = self.magnitude
+        amplitudes = np.sqrt(x_mag ** 2 + y_mag ** 2 + z_mag ** 2)
+        # Plot them as vectors:
+        mlab.figure(size=(750, 700))
+        plot = mlab.contour3d(amplitudes, contours=contours, opacity=opacity)
+        mlab.outline(plot)
+        mlab.axes(plot)
+        mlab.title(title, height=0.95, size=0.35)
+        mlab.orientation_axes()
+        # mlab.show()
         return plot

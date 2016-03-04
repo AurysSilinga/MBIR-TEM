@@ -11,14 +11,14 @@
 import os
 import sys
 
-from PyQt4 import QtCore, QtGui
-from matplotlibwidget import MatplotlibWidget
-
 import pyramid
 from pyramid.kernel import Kernel
 from pyramid.magdata import MagData
 from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.projector import SimpleProjector
+
+from PyQt4 import QtCore, QtGui
+from matplotlibwidget import MatplotlibWidget
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -230,8 +230,8 @@ class UI_MagSlicerMain(QtGui.QWidget):
     def load(self):
         directory = os.path.join(pyramid.DIR_FILES, 'magdata')
         mag_file = QtGui.QFileDialog.getOpenFileName(self, 'Open Data File', directory,
-                                                     'NetCDF files (*.nc)')
-        self.mag_data = MagData.load_from_netcdf4(mag_file)
+                                                     'HDF5 files (*.hdf5)')
+        self.mag_data = MagData.load_from_hdf5(mag_file)
         self.mag_data_loaded = True
         self.mplWidgetMag.axes.set_visible(True)
         self.mplWidgetHolo.axes.set_visible(True)

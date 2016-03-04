@@ -59,6 +59,7 @@ from . import analytic
 from . import magcreator
 from . import reconstruction
 from . import fft
+from . import fieldconverter
 from . import costfunction
 from .costfunction import *
 from . import dataset
@@ -92,7 +93,7 @@ from .version import hg_revision as __hg_revision__
 _log.info("Starting Pyramid V{} HG{}".format(__version__, __hg_revision__))
 del logging
 
-__all__ = ['analytic', 'magcreator', 'reconstruction', 'fft']
+__all__ = ['analytic', 'magcreator', 'reconstruction', 'fft', 'fieldconverter']
 __all__.extend(costfunction.__all__)
 __all__.extend(dataset.__all__)
 __all__.extend(diagnostics.__all__)
@@ -106,3 +107,4 @@ __all__.extend(regularisator.__all__)
 __all__.extend(ramp.__all__)
 __all__.extend(quaternion.__all__)
 __all__.extend(colormap.__all__)
+__all__.extend(config.__all__)

@@ -18,7 +18,7 @@ from pyramid import fft
 from pyramid.kernel import Kernel
 from pyramid.magdata import MagData
 from pyramid.phasemap import PhaseMap
-from pyramid.projector import SimpleProjector
+from pyramid.projector import RotTiltProjector, XTiltProjector, YTiltProjector, SimpleProjector
 
 __all__ = ['PhaseMapperRDFC', 'PhaseMapperRDRC', 'PhaseMapperFDFC', 'pm']
 _log = logging.getLogger(__name__)
@@ -142,7 +142,7 @@ class PhaseMapperRDFC(PhaseMapper):
         self.u_mag_fft = fft.rfftn(self.u_mag)
         self.v_mag_fft = fft.rfftn(self.v_mag)
         # Convolve the magnetization with the kernel in Fourier space:
-        self.phase_fft = self.u_mag_fft * self.kernel.u_fft - self.v_mag_fft * self.kernel.v_fft
+        self.phase_fft = self.u_mag_fft * self.kernel.v_fft - self.v_mag_fft * self.kernel.u_fft
         # Return the result:
         return fft.irfftn(self.phase_fft)[self.kernel.slice_phase]
 
@@ -188,8 +188,8 @@ class PhaseMapperRDFC(PhaseMapper):
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
         self.mag_adj[self.kernel.slice_mag] = vector.reshape(self.kernel.dim_uv)
         mag_adj_fft = fft.irfftn_adj(self.mag_adj)
-        u_phase_adj_fft = mag_adj_fft * self.kernel.u_fft
-        v_phase_adj_fft = mag_adj_fft * -self.kernel.v_fft
+        u_phase_adj_fft = mag_adj_fft * self.kernel.v_fft
+        v_phase_adj_fft = mag_adj_fft * -self.kernel.u_fft
         u_phase_adj = fft.rfftn_adj(u_phase_adj_fft)[self.kernel.slice_phase]
         v_phase_adj = fft.rfftn_adj(v_phase_adj_fft)[self.kernel.slice_phase]
         result = np.concatenate((-u_phase_adj.flatten(), -v_phase_adj.flatten()))
@@ -258,19 +258,19 @@ class PhaseMapperRDRC(PhaseMapper):
         # Calculation of the phase:
         phase = np.zeros(dim_uv, dtype=np.float32)
         if self.numcore:
-            nc.phasemapper_real_convolve(dim_uv[0], dim_uv[1], v_phi, u_phi,
+            nc.phasemapper_real_convolve(dim_uv[0], dim_uv[1], u_phi, v_phi,
                                          v_mag, u_mag, phase, self.threshold)
         else:
             for j in range(dim_uv[0]):
                 for i in range(dim_uv[1]):
-                    u_phase = u_phi[dim_uv[0] - 1 - j:(2 * dim_uv[0] - 1) - j,
-                              dim_uv[1] - 1 - i:(2 * dim_uv[1] - 1) - i]
-                    if abs(u_mag[j, i]) > self.threshold:
-                        phase += u_mag[j, i] * u_phase
                     v_phase = v_phi[dim_uv[0] - 1 - j:(2 * dim_uv[0] - 1) - j,
                               dim_uv[1] - 1 - i:(2 * dim_uv[1] - 1) - i]
                     if abs(v_mag[j, i]) > self.threshold:
-                        phase -= v_mag[j, i] * v_phase
+                        phase += u_mag[j, i] * v_phase
+                    u_phase = u_phi[dim_uv[0] - 1 - j:(2 * dim_uv[0] - 1) - j,
+                              dim_uv[1] - 1 - i:(2 * dim_uv[1] - 1) - i]
+                    if abs(u_mag[j, i]) > self.threshold:
+                        phase -= v_mag[j, i] * u_phase
         # Return the phase:
         return PhaseMap(mag_data.a, phase)
 
@@ -297,7 +297,7 @@ class PhaseMapperRDRC(PhaseMapper):
         if self.numcore:
             if vector.dtype != np.float32:
                 vector = vector.astype(np.float32)
-            nc.jac_dot_real_convolve(v_dim, u_dim, self.kernel.u, self.kernel.v, vector, result)
+            nc.jac_dot_real_convolve(v_dim, u_dim, self.kernel.v, self.kernel.u, vector, result)
         else:
             # Iterate over all contributing pixels (numbered consecutively)
             for s in range(self.m):  # column-wise (two columns at a time, u- and v-component)
@@ -307,8 +307,8 @@ class PhaseMapperRDRC(PhaseMapper):
                 u_max = (2 * u_dim - 1) - i  # = u_min + u_dim
                 v_min = (v_dim - 1) - j  # v_dim-1: center of the kernel
                 v_max = (2 * v_dim - 1) - j  # = v_min + v_dim
-                result += vector[s] * self.kernel.u[v_min:v_max, u_min:u_max].reshape(-1)
-                result -= vector[s + self.m] * self.kernel.v[v_min:v_max, u_min:u_max].reshape(-1)
+                result += vector[s] * self.kernel.v[v_min:v_max, u_min:u_max].reshape(-1)
+                result -= vector[s + self.m] * self.kernel.u[v_min:v_max, u_min:u_max].reshape(-1)
         return result
 
     def jac_T_dot(self, vector):
@@ -334,7 +334,7 @@ class PhaseMapperRDRC(PhaseMapper):
         if self.numcore:
             if vector.dtype != np.float32:
                 vector = vector.astype(np.float32)
-            nc.jac_T_dot_real_convolve(v_dim, u_dim, self.kernel.u, self.kernel.v, vector, result)
+            nc.jac_T_dot_real_convolve(v_dim, u_dim, self.kernel.v, self.kernel.u, vector, result)
         else:
             # Iterate over all contributing pixels (numbered consecutively):
             for s in range(self.m):  # row-wise (two rows at a time, u- and v-component)
@@ -344,9 +344,9 @@ class PhaseMapperRDRC(PhaseMapper):
                 u_max = (2 * u_dim - 1) - i  # = u_min + u_dim
                 v_min = (v_dim - 1) - j  # v_dim-1: center of the kernel
                 v_max = (2 * v_dim - 1) - j  # = v_min + v_dim
-                result[s] = np.sum(vector * self.kernel.u[v_min:v_max, u_min:u_max].reshape(-1))
+                result[s] = np.sum(vector * self.kernel.v[v_min:v_max, u_min:u_max].reshape(-1))
                 result[s + self.m] = np.sum(vector *
-                                            -self.kernel.v[v_min:v_max, u_min:u_max].reshape(-1))
+                                            -self.kernel.u[v_min:v_max, u_min:u_max].reshape(-1))
         return result
 
 
@@ -579,20 +579,22 @@ class PhaseMapperMIP(PhaseMapper):
         raise NotImplementedError()
 
 
-def pm(mag_data, axis='z', dim_uv=None, b_0=1):
+def pm(mag_data, mode='z', b_0=1, **kwargs):
     """Convenience function for fast phase mapping.
 
     Parameters
     ----------
     mag_data : :class:`~.MagData`
         A :class:`~.MagData` object, from which the projected phase map should be calculated.
-    axis: {'z', 'y', 'x'}, optional
-        Axis along which the :class:`.~SimpleProjector` projects the magnetic distribution.
-    dim_uv : tuple of int (N=2), optional
-        Dimensions of the 2-dimensional projected magnetization grid from which the phase should
-        be calculated.
+    mode: {'z', 'y', 'x', 'x-tilt', 'y-tilt', 'rot-tilt'}, optional
+        Projection mode which determines the :class:`~.pyramid.projector.Projector` subclass, which
+        is used for the projection. Default is a simple projection along the `z`-direction.
     b_0 : float, optional
         Saturation magnetization in Tesla, which is used for the phase calculation. Default is 1.
+    **kwargs : additional arguments
+        Additional arguments like `dim_uv`, 'tilt' or 'rotation', which are passed to the
+        projector-constructor, defined by the `mode`.
+
     Returns
     -------
     phase_map : :class:`~pyramid.phasemap.PhaseMap`
@@ -600,9 +602,23 @@ def pm(mag_data, axis='z', dim_uv=None, b_0=1):
 
     """
     _log.debug('Calling pm')
-    projector = SimpleProjector(mag_data.dim, axis=axis, dim_uv=dim_uv)
+    # Determine projection mode:
+    if mode == 'rot-tilt':
+        projector = RotTiltProjector(mag_data.dim, **kwargs)
+    elif mode == 'x-tilt':
+        projector = XTiltProjector(mag_data.dim, **kwargs)
+    elif mode == 'y-tilt':
+        projector = YTiltProjector(mag_data.dim, **kwargs)
+    elif mode in ['x', 'y', 'z']:
+        projector = SimpleProjector(mag_data.dim, axis=mode, **kwargs)
+    else:
+        raise ValueError("Invalid mode (use 'x', 'y', 'z', 'x-tilt', 'y-tilt' or 'rot-tilt')")
+    # Project:
     mag_proj = projector(mag_data)
+    # Set up phasemapper and map phase:
     phasemapper = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv, b_0=b_0))
     phase_map = phasemapper(mag_proj)
+    # Get mask from magdata:
     phase_map.mask = mag_proj.get_mask()[0, ...]
+    # Return phase:
     return phase_map

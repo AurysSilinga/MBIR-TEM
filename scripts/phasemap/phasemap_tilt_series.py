@@ -19,7 +19,7 @@ angles = np.linspace()
 ###################################################################################################
 
 mag_data = py.MagData.load_from_netcdf4(filename)
-phase_map = py.pm(mag_data, axis=axis, dim_uv=dim_uv, b_0=b_0)
+phase_map = py.pm(mag_data, mode=axis, dim_uv=dim_uv, b_0=b_0)
 phase_map.save_to_netcdf4('phasemap_{}_axis={}'.format(filename.replace('magdata_', ''), axis))
 phase_map.display_combined()
 

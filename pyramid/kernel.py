@@ -94,8 +94,8 @@ class Kernel(object):
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
         uu, vv = np.meshgrid(u, v)
-        self.u = fft.empty(self.dim_kern, fft.FLOAT)
-        self.v = fft.empty(self.dim_kern, fft.FLOAT)
+        self.u = fft.empty(self.dim_kern, dtype=fft.FLOAT)
+        self.v = fft.empty(self.dim_kern, dtype=fft.FLOAT)
         self.u[...] = coeff * self._get_elementary_phase(geometry, uu, vv, a)
         self.v[...] = coeff * self._get_elementary_phase(geometry, vv, uu, a)
         # Include perturbed reference wave:
@@ -123,15 +123,15 @@ class Kernel(object):
         self._log.debug('Calling _get_elementary_phase')
         if geometry == 'disc':
             in_or_out = ~ np.logical_and(n == 0, m == 0)
-            return m / (n ** 2 + m ** 2 + 1E-30) * in_or_out
+            return n / (n ** 2 + m ** 2 + 1E-30) * in_or_out
         elif geometry == 'slab':
             def _F_a(n, m):
                 A = np.log(a ** 2 * (n ** 2 + m ** 2))
                 B = np.arctan(n / m)
                 return n * A - 2 * n + 2 * m * B
 
-            return 0.5 * (_F_a(n - 0.5, m - 0.5) - _F_a(n + 0.5, m - 0.5)
-                          - _F_a(n - 0.5, m + 0.5) + _F_a(n + 0.5, m + 0.5))
+            return 0.5 * (_F_a(n - 0.5, m - 0.5) - _F_a(n + 0.5, m - 0.5) -
+                          _F_a(n - 0.5, m + 0.5) + _F_a(n + 0.5, m + 0.5))
 
     def print_info(self):
         """Print information about the kernel.

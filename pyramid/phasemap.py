@@ -485,7 +485,7 @@ class PhaseMap(object):
         self._log.debug('Calling save_to_hdf5')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
+            from pyramid.config import DIR_FILES
             directory = os.path.join(DIR_FILES, 'phasemap')
             if not os.path.exists(directory):
                 os.makedirs(directory)
@@ -514,7 +514,7 @@ class PhaseMap(object):
             return
         # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
+            from pyramid.config import DIR_FILES
             directory = os.path.join(DIR_FILES, 'phasemap')
             filename = os.path.join(directory, filename)
         # Load data from file:
@@ -540,7 +540,7 @@ class PhaseMap(object):
         self._log.debug('Calling save_to_txt')
         # Construct path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
+            from pyramid.config import DIR_FILES
             directory = os.path.join(DIR_FILES, 'phasemap')
             if not os.path.exists(directory):
                 os.makedirs(directory)
@@ -575,7 +575,7 @@ class PhaseMap(object):
         cls._log.debug('Calling load_from_txt')
         # Use relative path if filename isn't already absolute:
         if not os.path.isabs(filename):
-            from pyramid import DIR_FILES
+            from pyramid.config import DIR_FILES
             directory = os.path.join(DIR_FILES, 'phasemap')
             filename = os.path.join(directory, filename)
         # Load data from file:

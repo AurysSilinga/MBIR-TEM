@@ -5,53 +5,18 @@
     <option name="ANALYSIS_IN_BACKGROUND" value="true" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="990252ab-aff5-4ac2-a857-b193d2c46b18" name="Default" comment="Commit after Reformatting with PyCharms!">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/scopes/__c.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/scopes/__init__.xml" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/pyramid/template.x3d" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/pyramid/tests/pep8_log.txt" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/Pyramid.iml" afterPath="$PROJECT_DIR$/.idea/Pyramid.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" />
+    <list default="true" id="990252ab-aff5-4ac2-a857-b193d2c46b18" name="Default" comment="Added fieldconverter module!&#10;fieldconverter: methods to convert M to A to B&#10;magdata: a bit more parameters for quiver_plot3d(), added contour_plot3d()&#10;phasemapper: pm() extended for different projections (not just simple)&#10;kernel: u and v switched (now named after the unit magnetization direction, which makes much more sense)">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/pyramid/fieldconverter.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_kernel/ref_u_fft.npy" afterPath="$PROJECT_DIR$/pyramid/tests/test_kernel/ref_u_fft.npy" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_kernel/ref_v_fft.npy" afterPath="$PROJECT_DIR$/pyramid/tests/test_kernel/ref_v_fft.npy" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/docs/Makefile" afterPath="$PROJECT_DIR$/docs/Makefile" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/docs/conf.py" afterPath="$PROJECT_DIR$/docs/conf.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/docs/index.rst" afterPath="$PROJECT_DIR$/docs/index.rst" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/docs/make.bat" afterPath="$PROJECT_DIR$/docs/make.bat" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/docs/pyramid.rst" afterPath="$PROJECT_DIR$/docs/pyramid.rst" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/__init__.py" afterPath="$PROJECT_DIR$/pyramid/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/analytic.py" afterPath="$PROJECT_DIR$/pyramid/analytic.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/colormap.py" afterPath="$PROJECT_DIR$/pyramid/colormap.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/config.py" afterPath="$PROJECT_DIR$/pyramid/config.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/costfunction.py" afterPath="$PROJECT_DIR$/pyramid/costfunction.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/dataset.py" afterPath="$PROJECT_DIR$/pyramid/dataset.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/diagnostics.py" afterPath="$PROJECT_DIR$/pyramid/diagnostics.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/fft.py" afterPath="$PROJECT_DIR$/pyramid/fft.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/forwardmodel.py" afterPath="$PROJECT_DIR$/pyramid/forwardmodel.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/kernel.py" afterPath="$PROJECT_DIR$/pyramid/kernel.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/magcreator.py" afterPath="$PROJECT_DIR$/pyramid/magcreator.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/magdata.py" afterPath="$PROJECT_DIR$/pyramid/magdata.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/phasemap.py" afterPath="$PROJECT_DIR$/pyramid/phasemap.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/phasemapper.py" afterPath="$PROJECT_DIR$/pyramid/phasemapper.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/projector.py" afterPath="$PROJECT_DIR$/pyramid/projector.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/quaternion.py" afterPath="$PROJECT_DIR$/pyramid/quaternion.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/ramp.py" afterPath="$PROJECT_DIR$/pyramid/ramp.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/reconstruction.py" afterPath="$PROJECT_DIR$/pyramid/reconstruction.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/regularisator.py" afterPath="$PROJECT_DIR$/pyramid/regularisator.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_analytic.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_analytic.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_costfunction.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_costfunction.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_dataset.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_dataset.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_forwardmodel.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_forwardmodel.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_kernel.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_kernel.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_magcreator.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_magcreator.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_magdata.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_magdata.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_phasemap.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_phasemap.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_phasemapper.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_phasemapper.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_projector.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_projector.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/tests/test_regularisator.py" afterPath="$PROJECT_DIR$/pyramid/tests/test_regularisator.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pyramid/version.py" afterPath="$PROJECT_DIR$/pyramid/version.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scripts/gui/mag_slicer.py" afterPath="$PROJECT_DIR$/scripts/gui/mag_slicer.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scripts/reconstruction/reconstruction_3d_from_magdata.py" afterPath="$PROJECT_DIR$/scripts/reconstruction/reconstruction_3d_from_magdata.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/setup.py" afterPath="$PROJECT_DIR$/setup.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scripts/phasemap/phasemap_tilt_series.py" afterPath="$PROJECT_DIR$/scripts/phasemap/phasemap_tilt_series.py" />
     </list>
     <ignored path="Pyramid.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -75,7 +40,185 @@
     <favorites_list name="Pyramid" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300" />
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="magcreator.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/magcreator.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="16" column="3" selection-start-line="4" selection-start-column="0" selection-end-line="16" selection-end-column="3" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="projector.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/projector.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="608" column="51" selection-start-line="608" selection-start-column="8" selection-end-line="608" selection-end-column="51" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="phasemapper.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/phasemapper.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="-8.666667">
+              <caret line="332" column="51" selection-start-line="332" selection-start-column="51" selection-end-line="332" selection-end-column="51" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="test_kernel.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/tests/test_kernel.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="26" column="0" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="mag_slicer.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/scripts/gui/mag_slicer.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="223" column="57" selection-start-line="223" selection-start-column="57" selection-end-line="223" selection-end-column="57" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="phasemap_creator.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/scripts/gui/phasemap_creator.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="11" column="10" selection-start-line="11" selection-start-column="10" selection-end-line="11" selection-end-column="10" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="fft.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/fft.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="296" column="15" selection-start-line="296" selection-start-column="15" selection-end-line="296" selection-end-column="28" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="kernel.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/kernel.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="95" column="34" selection-start-line="95" selection-start-column="34" selection-end-line="95" selection-end-column="34" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="phasemap_tilt_series.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/scripts/phasemap/phasemap_tilt_series.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="40" column="16" selection-start-line="40" selection-start-column="16" selection-end-line="40" selection-end-column="16" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="dataset.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/dataset.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="157" column="8" selection-start-line="157" selection-start-column="8" selection-end-line="157" selection-end-column="8" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="reconstruction.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/reconstruction.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="46" column="27" selection-start-line="46" selection-start-column="27" selection-end-line="46" selection-end-column="27" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="reconstruction_3d_from_magdata.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/scripts/reconstruction/reconstruction_3d_from_magdata.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="76" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Untitled.py" pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/Downloads/Untitled.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="44" column="40" selection-start-line="44" selection-start-column="40" selection-end-line="44" selection-end-column="40" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="phasemap.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/phasemap.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="781" column="8" selection-start-line="781" selection-start-column="8" selection-end-line="781" selection-end-column="8" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="magdata.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/pyramid/magdata.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.62133646">
+              <caret line="879" column="31" selection-start-line="879" selection-start-column="31" selection-end-line="879" selection-end-column="31" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="__init__.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/__init__.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="90" column="38" selection-start-line="90" selection-start-column="38" selection-end-line="90" selection-end-column="38" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="config.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pyramid/config.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="14" column="4" selection-start-line="14" selection-start-column="4" selection-end-line="14" selection-end-column="4" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="HgUpdateConfigurationSettings">
     <option name="updateType" value="MERGE" />
@@ -93,27 +236,21 @@
         <option value="$PROJECT_DIR$/pyramid/numcore/__init__.py" />
         <option value="$PROJECT_DIR$/../HyperSpy/hyperspy/_signals/phase_image.py" />
         <option value="$PROJECT_DIR$/../HyperSpy/hyperspy/signals.py" />
-        <option value="$PROJECT_DIR$/scripts/gui/mag_slicer.py" />
         <option value="$PROJECT_DIR$/pyramid/costfunction.py" />
         <option value="$PROJECT_DIR$/pyramid/projector.py" />
         <option value="$PROJECT_DIR$/pyramid/reconstruction.py" />
         <option value="$PROJECT_DIR$/pyramid/regularisator.py" />
         <option value="$PROJECT_DIR$/pyramid/dataset.py" />
-        <option value="$PROJECT_DIR$/pyramid/kernel.py" />
         <option value="$PROJECT_DIR$/docs/index.rst" />
         <option value="$PROJECT_DIR$/docs/pyramid.rst" />
         <option value="$PROJECT_DIR$/pyramid/colormap.py" />
         <option value="$PROJECT_DIR$/pyramid/ramp.py" />
         <option value="$PROJECT_DIR$/docs/conf.py" />
-        <option value="$PROJECT_DIR$/pyramid/magcreator.py" />
-        <option value="$PROJECT_DIR$/pyramid/phasemap.py" />
         <option value="$PROJECT_DIR$/pyramid/quaternion.py" />
         <option value="$PROJECT_DIR$/scripts/reconstruction/reconstruction_3d_from_magdata.py" />
         <option value="$PROJECT_DIR$/pyramid/forwardmodel.py" />
-        <option value="$PROJECT_DIR$/pyramid/magdata.py" />
         <option value="$PROJECT_DIR$/pyramid/diagnostics.py" />
         <option value="$PROJECT_DIR$/pyramid/fft.py" />
-        <option value="$PROJECT_DIR$/pyramid/phasemapper.py" />
         <option value="$PROJECT_DIR$/pyramid/version.py" />
         <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/pyramid/tests/test_dataset.py" />
@@ -129,7 +266,15 @@
         <option value="$PROJECT_DIR$/pyramid/tests/test_analytic.py" />
         <option value="$PROJECT_DIR$/pyramid/config.py" />
         <option value="$PROJECT_DIR$/pyramid/analytic.py" />
+        <option value="$PROJECT_DIR$/pyramid/magcreator.py" />
+        <option value="$USER_HOME$/Downloads/Untitled.py" />
         <option value="$PROJECT_DIR$/pyramid/__init__.py" />
+        <option value="$PROJECT_DIR$/pyramid/phasemap.py" />
+        <option value="$PROJECT_DIR$/scripts/gui/mag_slicer.py" />
+        <option value="$PROJECT_DIR$/pyramid/fieldconverter.py" />
+        <option value="$PROJECT_DIR$/pyramid/phasemapper.py" />
+        <option value="$PROJECT_DIR$/pyramid/kernel.py" />
+        <option value="$PROJECT_DIR$/pyramid/magdata.py" />
       </list>
     </option>
   </component>
@@ -142,8 +287,8 @@
   <component name="ProjectFrameBounds">
     <option name="x" value="-8" />
     <option name="y" value="-8" />
-    <option name="width" value="1616" />
-    <option name="height" value="876" />
+    <option name="width" value="1936" />
+    <option name="height" value="1056" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -195,7 +340,34 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scratches" />
+      <pane id="Scope">
+        <subPane subId="Changed Files">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="Pyramid">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="Pyramid">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="pyramid">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -256,40 +428,31 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="scripts" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="gui" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Pyramid" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Pyramid" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="pyramid" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope">
-        <subPane subId="Changed Files">
-          <PATH>
-            <PATH_ELEMENT USER_OBJECT="Root">
-              <option name="myItemId" value="" />
-              <option name="myItemType" value="" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT USER_OBJECT="Pyramid">
-              <option name="myItemId" value="" />
-              <option name="myItemType" value="" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT USER_OBJECT="Root">
-              <option name="myItemId" value="" />
-              <option name="myItemType" value="" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT USER_OBJECT="Pyramid">
-              <option name="myItemId" value="" />
-              <option name="myItemType" value="" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT USER_OBJECT="pyramid">
-              <option name="myItemId" value="" />
-              <option name="myItemType" value="" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
+      <pane id="Scratches" />
       <pane id="ColorIdeProjectViewPane">
         <subPane>
           <PATH>
@@ -313,7 +476,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="settings.editor.selected.configurable" value="preferences.sourceCode.Python" />
+    <property name="settings.editor.selected.configurable" value="reference.settingsdialog.IDE.editor.colors.Debugger" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/docs/_build" />
     <property name="FileHistory.org.zmlx.hg4idea.provider.HgHistoryProvider_flatWidth0" value="44" />
@@ -333,11 +496,17 @@
     <property name="FileHistory.org.zmlx.hg4idea.provider.HgHistoryProvider_treeWidth3" value="306" />
     <property name="FileHistory.org.zmlx.hg4idea.provider.HgHistoryProvider_treeOrder3" value="3" />
     <property name="last.edited.regexp" value="asdf&#10;aasfasf.version_info&#10;" />
+    <property name="restartRequiresConfirmation" value="false" />
+  </component>
+  <component name="Push.Settings">
+    <excluded-roots>
+      <path value="$PROJECT_DIR$/../HyperSpy" />
+    </excluded-roots>
   </component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
-      <console-settings custom-start-script="from __future__ import division&#10;import sys&#10;import os&#10;import pdb&#10;import hyperspy.api as hs&#10;import pyramid&#10;from pyramid import *&#10;import pyramid.analytic as an&#10;import pyramid.magcreator as mc&#10;import pyramid.reconstruction as rc&#10;import jutil&#10;import numpy as np&#10;import scipy as sp&#10;import matplotlib as mpl&#10;import matplotlib.pyplot as plt&#10;from pylab import *&#10;ion()  # Enable Matplotlib's interactive mode&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])" module-name="Pyramid" is-module-sdk="true" working-directory="$PROJECT_DIR$/files/magdata">
-        <option name="myCustomStartScript" value="from __future__ import division&#10;import sys&#10;import os&#10;import pdb&#10;import hyperspy.api as hs&#10;import pyramid&#10;from pyramid import *&#10;import pyramid.analytic as an&#10;import pyramid.magcreator as mc&#10;import pyramid.reconstruction as rc&#10;import jutil&#10;import numpy as np&#10;import scipy as sp&#10;import matplotlib as mpl&#10;import matplotlib.pyplot as plt&#10;from pylab import *&#10;ion()  # Enable Matplotlib's interactive mode&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])" />
+      <console-settings custom-start-script="# coding: utf-8&#10;&quot;&quot;&quot;Startup!&quot;&quot;&quot;&#10;from __future__ import division&#10;import sys&#10;import os&#10;import pdb&#10;import hyperspy.api as hs&#10;import pyramid&#10;from pyramid import *&#10;import pyramid.analytic as an&#10;import pyramid.magcreator as mc&#10;import pyramid.reconstruction as rc&#10;import jutil&#10;import numpy as np&#10;import scipy as sp&#10;import matplotlib as mpl&#10;import matplotlib.pyplot as plt&#10;from pylab import *&#10;import logging.config&#10;logging.config.fileConfig(LOGGING_CONFIG, disable_existing_loggers=False)&#10;ion()  # Enable Matplotlib's interactive mode&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;" module-name="Pyramid" is-module-sdk="true" working-directory="$PROJECT_DIR$/files/magdata">
+        <option name="myCustomStartScript" value="# coding: utf-8&#10;&quot;&quot;&quot;Startup!&quot;&quot;&quot;&#10;from __future__ import division&#10;import sys&#10;import os&#10;import pdb&#10;import hyperspy.api as hs&#10;import pyramid&#10;from pyramid import *&#10;import pyramid.analytic as an&#10;import pyramid.magcreator as mc&#10;import pyramid.reconstruction as rc&#10;import jutil&#10;import numpy as np&#10;import scipy as sp&#10;import matplotlib as mpl&#10;import matplotlib.pyplot as plt&#10;from pylab import *&#10;import logging.config&#10;logging.config.fileConfig(LOGGING_CONFIG, disable_existing_loggers=False)&#10;ion()  # Enable Matplotlib's interactive mode&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;" />
         <option name="myUseModuleSdk" value="true" />
         <option name="myModuleName" value="Pyramid" />
         <option name="myWorkingDirectory" value="$PROJECT_DIR$/files/magdata" />
@@ -354,24 +523,7 @@
     </key>
   </component>
   <component name="RunManager" selected="Python tests.Pyramid Tests">
-    <configuration default="false" name="mag_slicer" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/scripts/gui" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="Pyramid" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scripts/gui/mag_slicer.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <method />
-    </configuration>
-    <configuration default="false" name="phasemap" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration default="false" name="magdata" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
@@ -383,41 +535,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="Pyramid" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyramid/phasemap.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <method />
-    </configuration>
-    <configuration default="false" name="reconstruction_3d_from_magdata" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="C:\Anaconda2\python.exe" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/scripts/reconstruction" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="Script-Vault" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scripts/reconstruction/reconstruction_3d_from_magdata.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <method />
-    </configuration>
-    <configuration default="false" name="fft" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="C:\Anaconda2\python.exe" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyramid" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="Pyramid" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyramid/fft.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyramid/magdata.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="true" />
       <method />
@@ -435,6 +553,23 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="Script-Vault" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/setup.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Untitled" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Anaconda2\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$USER_HOME$/Downloads" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="Pyramid" />
+      <option name="SCRIPT_NAME" value="$USER_HOME$/Downloads/Untitled.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="true" />
       <method />
@@ -581,6 +716,40 @@
       <option name="USE_KEYWORD" value="false" />
       <method />
     </configuration>
+    <configuration default="false" name="mag_slicer" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Anaconda2\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/scripts/gui" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="Script-Vault" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scripts/gui/mag_slicer.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <method />
+    </configuration>
+    <configuration default="false" name="fieldconverter" type="PythonConfigurationType" factoryName="Python" singleton="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyramid" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="Pyramid" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyramid/fieldconverter.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <method />
+    </configuration>
     <configuration default="false" name="Pyramid Sphinx" type="docs" factoryName="Sphinx task" singleton="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -620,21 +789,19 @@
       <method />
     </configuration>
     <list size="7">
-      <item index="0" class="java.lang.String" itemvalue="Python docs.Pyramid Sphinx" />
-      <item index="1" class="java.lang.String" itemvalue="Python tests.Pyramid Tests" />
-      <item index="2" class="java.lang.String" itemvalue="Python.mag_slicer" />
-      <item index="3" class="java.lang.String" itemvalue="Python.phasemap" />
-      <item index="4" class="java.lang.String" itemvalue="Python.reconstruction_3d_from_magdata" />
-      <item index="5" class="java.lang.String" itemvalue="Python.fft" />
-      <item index="6" class="java.lang.String" itemvalue="Python.setup" />
+      <item index="0" class="java.lang.String" itemvalue="Python.mag_slicer" />
+      <item index="1" class="java.lang.String" itemvalue="Python.fieldconverter" />
+      <item index="2" class="java.lang.String" itemvalue="Python docs.Pyramid Sphinx" />
+      <item index="3" class="java.lang.String" itemvalue="Python tests.Pyramid Tests" />
+      <item index="4" class="java.lang.String" itemvalue="Python.magdata" />
+      <item index="5" class="java.lang.String" itemvalue="Python.setup" />
+      <item index="6" class="java.lang.String" itemvalue="Python.Untitled" />
     </list>
     <recent_temporary>
-      <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Python.setup" />
-        <item index="1" class="java.lang.String" itemvalue="Python.fft" />
-        <item index="2" class="java.lang.String" itemvalue="Python.reconstruction_3d_from_magdata" />
-        <item index="3" class="java.lang.String" itemvalue="Python.phasemap" />
-        <item index="4" class="java.lang.String" itemvalue="Python.mag_slicer" />
+      <list size="3">
+        <item index="0" class="java.lang.String" itemvalue="Python.magdata" />
+        <item index="1" class="java.lang.String" itemvalue="Python.Untitled" />
+        <item index="2" class="java.lang.String" itemvalue="Python.setup" />
       </list>
     </recent_temporary>
   </component>
@@ -695,28 +862,16 @@
       <option name="project" value="LOCAL" />
       <updated>1456209518394</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Commit after Reformatting with PyCharms!">
+      <created>1456703900364</created>
+      <option name="number" value="00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1456703900364</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="Pyramid_Tests - 2016.02.25 at 12h 10m 06s.xml">
-      <configuration name="Pyramid Tests" configurationId="tests" />
-    </history-entry>
-    <history-entry file="Pyramid_Tests - 2016.02.25 at 12h 11m 44s.xml">
-      <configuration name="Pyramid Tests" configurationId="tests" />
-    </history-entry>
-    <history-entry file="Pyramid_Tests - 2016.02.25 at 12h 11m 50s.xml">
-      <configuration name="Pyramid Tests" configurationId="tests" />
-    </history-entry>
-    <history-entry file="Pyramid_Tests - 2016.02.26 at 16h 08m 01s.xml">
-      <configuration name="Pyramid Tests" configurationId="tests" />
-    </history-entry>
-    <history-entry file="Pyramid_Tests - 2016.02.28 at 23h 04m 43s.xml">
-      <configuration name="Pyramid Tests" configurationId="tests" />
-    </history-entry>
-    <history-entry file="Pyramid_Tests - 2016.02.28 at 23h 09m 16s.xml">
-      <configuration name="Pyramid Tests" configurationId="tests" />
-    </history-entry>
     <history-entry file="Pyramid_Tests - 2016.02.28 at 23h 13m 11s.xml">
       <configuration name="Pyramid Tests" configurationId="tests" />
     </history-entry>
@@ -727,6 +882,24 @@
       <configuration name="Pyramid Tests" configurationId="tests" />
     </history-entry>
     <history-entry file="Pyramid_Tests - 2016.02.29 at 00h 21m 13s.xml">
+      <configuration name="Pyramid Tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="Pyramid_Tests - 2016.03.04 at 11h 28m 50s.xml">
+      <configuration name="Pyramid Tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="Pyramid_Tests - 2016.03.04 at 12h 53m 22s.xml">
+      <configuration name="Pyramid Tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="Pyramid_Tests - 2016.03.04 at 12h 55m 39s.xml">
+      <configuration name="Pyramid Tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="Pyramid_Tests - 2016.03.04 at 12h 56m 18s.xml">
+      <configuration name="Pyramid Tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="Pyramid_Tests - 2016.03.04 at 12h 56m 40s.xml">
+      <configuration name="Pyramid Tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="Pyramid_Tests - 2016.03.04 at 12h 56m 47s.xml">
       <configuration name="Pyramid Tests" configurationId="tests" />
     </history-entry>
   </component>
@@ -740,27 +913,27 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1616" height="876" extended-state="6" />
-    <editor active="false" />
+    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info id="TODO" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.40616965" sideWeight="0.49746513" order="9" side_tool="false" content_ui="tabs" x="-33" y="355" width="1594" height="283" />
-      <window_info id="Messages" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33290488" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.13859275" sideWeight="0.49186993" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="TODO" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.40565032" sideWeight="0.49746513" order="9" side_tool="false" content_ui="tabs" x="-33" y="355" width="1594" height="283" />
+      <window_info id="Messages" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3326226" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.42866325" sideWeight="0.50253487" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Inspection" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.37596402" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.51349616" sideWeight="0.49746513" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.36620468" sideWeight="0.49746513" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4415167" sideWeight="0.49746513" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.41773778" sideWeight="0.49746513" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.37739873" sideWeight="0.49746513" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1108742" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.43316194" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.18508998" sideWeight="0.49186993" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.41791046" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.087403595" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.4224" sideWeight="0.5081301" order="11" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.40565032" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.30398458" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.37596402" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Thumbnails" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="false" show_stripe_button="false" weight="0.3708108" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" x="6" y="307" width="1908" height="381" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.34254497" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -790,7 +963,8 @@
     <MESSAGE value="Hopefully made hyperspy import (now at beginning of pyramid package) work!&#10;Added PyCharm files!&#10;Commit before Reformatting with PyCharms!" />
     <MESSAGE value="New branch: new signals for holographic analysis!" />
     <MESSAGE value="Commit after Reformatting with PyCharms!" />
-    <option name="LAST_COMMIT_MESSAGE" value="Commit after Reformatting with PyCharms!" />
+    <MESSAGE value="Added fieldconverter module!&#10;fieldconverter: methods to convert M to A to B&#10;magdata: a bit more parameters for quiver_plot3d(), added contour_plot3d()&#10;phasemapper: pm() extended for different projections (not just simple)&#10;kernel: u and v switched (now named after the unit magnetization direction, which makes much more sense)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added fieldconverter module!&#10;fieldconverter: methods to convert M to A to B&#10;magdata: a bit more parameters for quiver_plot3d(), added contour_plot3d()&#10;phasemapper: pm() extended for different projections (not just simple)&#10;kernel: u and v switched (now named after the unit magnetization direction, which makes much more sense)" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="CHANGE_BROWSER_SETTINGS">
@@ -818,81 +992,18 @@
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="23" />
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+      <option name="time" value="51" />
     </breakpoint-manager>
-    <watches-manager>
-      <configuration name="PythonConfigurationType">
-        <watch expression="result.shape" />
-        <watch expression="recv.shape" />
-        <watch expression="sub_vec.shape" />
-      </configuration>
-    </watches-manager>
+    <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/../HyperSpy/hyperspy/io.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.28687415">
-          <caret line="342" column="54" selection-start-line="342" selection-start-column="54" selection-end-line="342" selection-end-column="54" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Anaconda2/Lib/site-packages/numpy/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.20457019">
-          <caret line="191" column="23" selection-start-line="191" selection-start-column="23" selection-end-line="191" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../Notebooks/Current Line/Current line.ipynb">
-      <provider selected="true" editor-type-id="ipnb-editor">
-        <state>
-          <selected id="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Anaconda2/Lib/site-packages/pyface/qt/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.36806494">
-          <caret line="16" column="0" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/regularisator.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="5.8132186">
-          <caret line="238" column="0" selection-start-line="238" selection-start-column="0" selection-end-line="238" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/reconstruction.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.64511496">
-          <caret line="28" column="0" selection-start-line="28" selection-start-column="0" selection-end-line="28" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/costfunction.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.24425288">
-          <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/projector.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="16.09064">
-          <caret line="637" column="34" selection-start-line="637" selection-start-column="34" selection-end-line="637" selection-end-column="34" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/docs/Makefile">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/docs/make.bat">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-1.9860919">
@@ -947,19 +1058,10 @@
         <state />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/magcreator.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.2836485">
-          <caret line="99" column="94" selection-start-line="99" selection-start-column="94" selection-end-line="99" selection-end-column="94" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pyramid/colormap.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.42407808">
           <caret line="23" column="9" selection-start-line="23" selection-start-column="9" selection-end-line="23" selection-end-column="9" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -967,7 +1069,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.5021692">
           <caret line="119" column="24" selection-start-line="119" selection-start-column="24" selection-end-line="119" selection-end-column="24" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -975,15 +1076,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.59002167">
           <caret line="32" column="13" selection-start-line="32" selection-start-column="13" selection-end-line="32" selection-end-column="13" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/forwardmodel.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5272525">
-          <caret line="303" column="47" selection-start-line="303" selection-start-column="47" selection-end-line="303" selection-end-column="47" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1001,51 +1093,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/phasemap.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.324295">
-          <caret line="108" column="40" selection-start-line="108" selection-start-column="40" selection-end-line="108" selection-end-column="40" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/magdata.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.44685465">
-          <caret line="834" column="54" selection-start-line="834" selection-start-column="54" selection-end-line="834" selection-end-column="54" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../Jutil/jutil/cg.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="1.4663073">
-          <caret line="109" column="16" selection-start-line="109" selection-start-column="16" selection-end-line="109" selection-end-column="16" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pyramid/diagnostics.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.29784366">
           <caret line="13" column="23" selection-start-line="13" selection-start-column="23" selection-end-line="13" selection-end-column="23" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/kernel.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-2.6060605">
-          <caret line="4" column="0" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/fft.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.41322315">
-          <caret line="227" column="0" selection-start-line="227" selection-start-column="0" selection-end-line="227" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1053,7 +1104,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0945758">
           <caret line="4" column="0" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1061,15 +1111,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.32962447">
           <caret line="103" column="0" selection-start-line="103" selection-start-column="0" selection-end-line="103" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/phasemapper.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.6334232">
-          <caret line="598" column="65" selection-start-line="598" selection-start-column="65" selection-end-line="598" selection-end-column="65" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1077,15 +1118,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.17097701">
           <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/dataset.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.024425287">
-          <caret line="28" column="66" selection-start-line="28" selection-start-column="62" selection-end-line="28" selection-end-column="66" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1093,7 +1125,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.21982759">
           <caret line="9" column="37" selection-start-line="9" selection-start-column="37" selection-end-line="9" selection-end-column="37" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1101,7 +1132,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1109,15 +1139,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/tests/test_kernel.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1125,7 +1146,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1133,7 +1153,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1141,7 +1160,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.47304583">
           <caret line="159" column="21" selection-start-line="159" selection-start-column="21" selection-end-line="159" selection-end-column="21" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1149,7 +1167,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1157,7 +1174,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-1.9097035">
           <caret line="17" column="0" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1165,7 +1181,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.43530998">
           <caret line="19" column="16" selection-start-line="19" selection-start-column="16" selection-end-line="19" selection-end-column="16" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1173,39 +1188,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-5.7277627">
           <caret line="2" column="24" selection-start-line="2" selection-start-column="24" selection-end-line="2" selection-end-column="24" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/gui/mag_slicer.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.32210243">
-          <caret line="167" column="50" selection-start-line="167" selection-start-column="50" selection-end-line="167" selection-end-column="50" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/config.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.4811321">
-          <caret line="21" column="0" selection-start-line="21" selection-start-column="0" selection-end-line="21" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pyramid/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.1522911">
-          <caret line="65" column="25" selection-start-line="65" selection-start-column="25" selection-end-line="65" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/reconstruction/reconstruction_3d_from_magdata.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.25202155">
-          <caret line="11" column="29" selection-start-line="11" selection-start-column="29" selection-end-line="11" selection-end-column="29" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1213,6 +1195,185 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.9541779">
           <caret line="215" column="31" selection-start-line="215" selection-start-column="31" selection-end-line="215" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/scripts/reconstruction/reconstruction_3d_from_magdata.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="76" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="14" column="4" selection-start-line="14" selection-start-column="4" selection-end-line="14" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Anaconda2/Lib/site-packages/numpy/core/_methods.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-0.47831184">
+          <caret line="24" column="0" selection-start-line="24" selection-start-column="0" selection-end-line="24" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/scripts/gui/phasemap_creator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="11" column="10" selection-start-line="11" selection-start-column="10" selection-end-line="11" selection-end-column="10" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/forwardmodel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.27511415">
+          <caret line="72" column="8" selection-start-line="72" selection-start-column="8" selection-end-line="72" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/dataset.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="157" column="8" selection-start-line="157" selection-start-column="8" selection-end-line="157" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/fft.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="296" column="15" selection-start-line="296" selection-start-column="15" selection-end-line="296" selection-end-column="28" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/phasemap.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="781" column="8" selection-start-line="781" selection-start-column="8" selection-end-line="781" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Anaconda2/Lib/site-packages/matplotlib/backend_bases.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.72362554">
+          <caret line="2436" column="0" selection-start-line="2436" selection-start-column="0" selection-end-line="2436" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/pydevd.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.9346314">
+          <caret line="2410" column="0" selection-start-line="2410" selection-start-column="0" selection-end-line="2410" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/scripts/gui/mag_slicer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="223" column="57" selection-start-line="223" selection-start-column="57" selection-end-line="223" selection-end-column="57" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Downloads/Untitled.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="44" column="40" selection-start-line="44" selection-start-column="40" selection-end-line="44" selection-end-column="40" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/projector.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="608" column="51" selection-start-line="608" selection-start-column="8" selection-end-line="608" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../Jutil/jutil/cg.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0189099">
+          <caret line="72" column="18" selection-start-line="72" selection-start-column="18" selection-end-line="72" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/fieldconverter.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.378198">
+          <caret line="20" column="36" selection-start-line="20" selection-start-column="36" selection-end-line="20" selection-end-column="36" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/magcreator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="16" column="3" selection-start-line="4" selection-start-column="0" selection-end-line="16" selection-end-column="3" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/reconstruction.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="46" column="27" selection-start-line="46" selection-start-column="27" selection-end-line="46" selection-end-column="27" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="90" column="38" selection-start-line="90" selection-start-column="38" selection-end-line="90" selection-end-column="38" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/tests/test_kernel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="26" column="0" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/phasemapper.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-8.666667">
+          <caret line="332" column="51" selection-start-line="332" selection-start-column="51" selection-end-line="332" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/kernel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="95" column="34" selection-start-line="95" selection-start-column="34" selection-end-line="95" selection-end-column="34" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/scripts/phasemap/phasemap_tilt_series.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="40" column="16" selection-start-line="40" selection-start-column="16" selection-end-line="40" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pyramid/magdata.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.62133646">
+          <caret line="879" column="31" selection-start-line="879" selection-start-column="31" selection-end-line="879" selection-end-column="31" />
           <folding />
         </state>
       </provider>
