@@ -29,8 +29,8 @@ center = (32, 96, 64)  # in px (z, y, x), index starts with 0!
 radius = 24  # in px
 mag_shape_sphere = py.magcreator.Shapes.sphere(dim, center, radius)
 
-# Create and save MagData object:
-mag_data = py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape_slab, np.pi/4))
-mag_data += py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape_disc, np.pi/2))
-mag_data += py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape_sphere, np.pi))
+# Create and save VectorData object:
+mag_data = py.VectorData(a, py.magcreator.create_mag_dist_homog(mag_shape_slab, np.pi / 4))
+mag_data += py.VectorData(a, py.magcreator.create_mag_dist_homog(mag_shape_disc, np.pi / 2))
+mag_data += py.VectorData(a, py.magcreator.create_mag_dist_homog(mag_shape_sphere, np.pi))
 mag_data.save_to_hdf5(filename)

@@ -22,6 +22,7 @@ radius = dim[2]//4
 height = dim[0]//2
 mag_shape = py.magcreator.Shapes.disc(dim, center, radius, height, axis)
 
-# Create and save MagData object:
-mag_data = py.MagData(a, py.magcreator.create_mag_dist_vortex(mag_shape, center, axis, magnitude))
+# Create and save VectorData object:
+mag_data = py.VectorData(a,
+                         py.magcreator.create_mag_dist_vortex(mag_shape, center, axis, magnitude))
 mag_data.save_to_netcdf4(filename)

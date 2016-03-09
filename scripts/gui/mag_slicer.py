@@ -13,7 +13,7 @@ import sys
 
 import pyramid
 from pyramid.kernel import Kernel
-from pyramid.magdata import MagData
+from pyramid.fielddata import VectorData
 from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.projector import SimpleProjector
 
@@ -231,7 +231,7 @@ class UI_MagSlicerMain(QtGui.QWidget):
         directory = os.path.join(pyramid.DIR_FILES, 'magdata')
         mag_file = QtGui.QFileDialog.getOpenFileName(self, 'Open Data File', directory,
                                                      'HDF5 files (*.hdf5)')
-        self.mag_data = MagData.load_from_hdf5(mag_file)
+        self.mag_data = VectorData.load_from_hdf5(mag_file)
         self.mag_data_loaded = True
         self.mplWidgetMag.axes.set_visible(True)
         self.mplWidgetHolo.axes.set_visible(True)

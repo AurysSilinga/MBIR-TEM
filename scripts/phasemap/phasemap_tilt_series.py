@@ -18,7 +18,7 @@ dim_uv = None
 angles = np.linspace()
 ###################################################################################################
 
-mag_data = py.MagData.load_from_netcdf4(filename)
+mag_data = py.VectorData.load_from_netcdf4(filename)
 phase_map = py.pm(mag_data, mode=axis, dim_uv=dim_uv, b_0=b_0)
 phase_map.save_to_netcdf4('phasemap_{}_axis={}'.format(filename.replace('magdata_', ''), axis))
 phase_map.display_combined()
@@ -29,11 +29,11 @@ dim_uv = (500, 200)
 angles = np.arange(-60, 61, 5)#[0, 20, 40, 60]
 
 #mag_data_xy = mag_data.copy()
-#mag_data_xy.magnitude[2] = 0
+# mag_data_xy.field[2] = 0
 #
 #mag_data_z = mag_data.copy()
-#mag_data_z.magnitude[0] = 0
-#mag_data_z.magnitude[1] = 0
+# mag_data_z.field[0] = 0
+# mag_data_z.field[1] = 0
 
 # Iterate over all angles:
 for angle in angles:

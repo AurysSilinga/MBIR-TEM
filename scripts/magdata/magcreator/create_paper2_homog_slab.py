@@ -26,10 +26,10 @@ width = (0, 80, 80)  # in px
 mag_shape_1 = py.magcreator.Shapes.slab(dim, center_1, width)
 mag_shape_2 = py.magcreator.Shapes.slab(dim, center_2, width)
 
-# Create and save MagData object:
-mag = py.magcreator.create_mag_dist_homog(mag_shape_1, phi=7/12.*np.pi, magnitude=magnitude)
-mag += py.magcreator.create_mag_dist_homog(mag_shape_2, phi=1/3.*np.pi, magnitude=magnitude)
-mag_data = py.MagData(a, mag)
+# Create and save VectorData object:
+mag = py.magcreator.create_mag_dist_homog(mag_shape_1, phi=7 / 12. * np.pi, amplitude=magnitude)
+mag += py.magcreator.create_mag_dist_homog(mag_shape_2, phi=1 / 3. * np.pi, amplitude=magnitude)
+mag_data = py.VectorData(a, mag)
 projector = py.RotTiltProjector(mag_data.dim, rotation, tilt)
 mag_data = projector(mag_data)
 mag_data.save_to_netcdf4(filename)

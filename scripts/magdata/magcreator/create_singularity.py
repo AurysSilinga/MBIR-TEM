@@ -20,7 +20,7 @@ zz, yy, xx = np.indices(dim)
 magnitude = np.array((xx-center[2], yy-center[1], zz-center[0]))
 magnitude /= np.sqrt((magnitude**2).sum(axis=0))
 
-# Create and save MagData object:
-mag_data = py.MagData(a, magnitude)
+# Create and save VectorData object:
+mag_data = py.VectorData(a, magnitude)
 mag_data.quiver_plot3d(coloring='full angle')
 mag_data.save_to_netcdf4(filename)

@@ -16,7 +16,7 @@ from numpy import pi
 from scipy.sparse import coo_matrix, csr_matrix
 
 import pyramid.fft as fft
-from pyramid.magdata import MagData
+from pyramid.fielddata import FieldData, VectorData, ScalarData
 from pyramid.quaternion import Quaternion
 
 __all__ = ['RotTiltProjector', 'XTiltProjector', 'YTiltProjector', 'SimpleProjector']
@@ -80,11 +80,20 @@ class Projector(object):
         self._log.debug('Calling __str__')
         return 'Projector(dim=%s, dim_uv=%s, coeff=%s)' % (self.dim, self.dim_uv, self.coeff)
 
-    def __call__(self, mag_data):
-        mag_proj = MagData(mag_data.a, fft.zeros((3, 1) + self.dim_uv, dtype=fft.FLOAT))
-        magnitude_proj = self.jac_dot(mag_data.mag_vec).reshape((2,) + self.dim_uv)
-        mag_proj.magnitude[0:2, 0, ...] = magnitude_proj
-        return mag_proj
+    def __call__(self, field_data):
+        if isinstance(field_data, VectorData):
+            field_empty = fft.zeros((3, 1) + self.dim_uv, dtype=fft.FLOAT)
+            field_data_proj = VectorData(field_data.a, field_empty)
+            field_proj = self.jac_dot(field_data.field_vec).reshape((2,) + self.dim_uv)
+            field_data_proj.field[0:2, 0, ...] = field_proj
+        elif isinstance(field_data, ScalarData):
+            field_empty = fft.zeros((1,) + self.dim_uv, dtype=fft.FLOAT)
+            field_data_proj = ScalarData(field_data.a, field_empty)
+            field_proj = self.jac_dot(field_data.field_vec).reshape(self.dim_uv)
+            field_data_proj.field[0, ...] = field_proj
+        else:
+            raise TypeError('Input is neither of type VectorData or ScalarData')
+        return field_data_proj
 
     def _vector_field_projection(self, vector):
         result = fft.zeros(2 * self.size_2d, dtype=fft.FLOAT)

@@ -8,14 +8,14 @@ import numpy as np
 from numpy import pi
 from numpy.testing import assert_allclose
 
-from pyramid.magdata import MagData
+from pyramid.fielddata import VectorData
 from pyramid.projector import XTiltProjector, YTiltProjector, SimpleProjector
 
 
 class TestCaseSimpleProjector(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
-        self.mag_data = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
+        self.mag_data = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
         self.proj_z = SimpleProjector(self.mag_data.dim, axis='z')
         self.proj_y = SimpleProjector(self.mag_data.dim, axis='y')
         self.proj_x = SimpleProjector(self.mag_data.dim, axis='x')
@@ -31,29 +31,29 @@ class TestCaseSimpleProjector(unittest.TestCase):
         mag_proj_z = self.proj_z(self.mag_data)
         mag_proj_y = self.proj_y(self.mag_data)
         mag_proj_x = self.proj_x(self.mag_data)
-        mag_proj_z_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_z.hdf5'))
-        mag_proj_y_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y.hdf5'))
-        mag_proj_x_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x.hdf5'))
-        assert_allclose(mag_proj_z.magnitude, mag_proj_z_ref.magnitude,
+        mag_proj_z_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_z.hdf5'))
+        mag_proj_y_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y.hdf5'))
+        mag_proj_x_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x.hdf5'))
+        assert_allclose(mag_proj_z.field, mag_proj_z_ref.field,
                         err_msg='Unexpected behaviour in SimpleProjector (z-axis)')
-        assert_allclose(mag_proj_y.magnitude, mag_proj_y_ref.magnitude,
+        assert_allclose(mag_proj_y.field, mag_proj_y_ref.field,
                         err_msg='Unexpected behaviour in SimpleProjector (y-axis)')
-        assert_allclose(mag_proj_x.magnitude, mag_proj_x_ref.magnitude,
+        assert_allclose(mag_proj_x.field, mag_proj_x_ref.field,
                         err_msg='Unexpected behaviour in SimpleProjector (x-axis)')
 
     def test_SimpleProjector_jac_dot(self):
-        mag_vec = self.mag_data.mag_vec
+        mag_vec = self.mag_data.field_vec
         mag_proj_z = self.proj_z.jac_dot(mag_vec).reshape((2,) + self.proj_z.dim_uv)
         mag_proj_y = self.proj_y.jac_dot(mag_vec).reshape((2,) + self.proj_y.dim_uv)
         mag_proj_x = self.proj_x.jac_dot(mag_vec).reshape((2,) + self.proj_x.dim_uv)
-        mag_proj_z_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_z.hdf5'))
-        mag_proj_y_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y.hdf5'))
-        mag_proj_x_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x.hdf5'))
-        assert_allclose(mag_proj_z, mag_proj_z_ref.magnitude[:2, 0, ...],
+        mag_proj_z_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_z.hdf5'))
+        mag_proj_y_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y.hdf5'))
+        mag_proj_x_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x.hdf5'))
+        assert_allclose(mag_proj_z, mag_proj_z_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (z-axis)')
-        assert_allclose(mag_proj_y, mag_proj_y_ref.magnitude[:2, 0, ...],
+        assert_allclose(mag_proj_y, mag_proj_y_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (y-axis)')
-        assert_allclose(mag_proj_x, mag_proj_x_ref.magnitude[:2, 0, ...],
+        assert_allclose(mag_proj_x, mag_proj_x_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (x-axis)')
         nz = self.proj_z.n
         ny = self.proj_y.n
@@ -92,7 +92,7 @@ class TestCaseSimpleProjector(unittest.TestCase):
 class TestCaseXTiltProjector(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
-        self.mag_data = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
+        self.mag_data = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
         self.proj_00 = XTiltProjector(self.mag_data.dim, tilt=0)
         self.proj_45 = XTiltProjector(self.mag_data.dim, tilt=pi / 4)
         self.proj_90 = XTiltProjector(self.mag_data.dim, tilt=pi / 2)
@@ -108,29 +108,35 @@ class TestCaseXTiltProjector(unittest.TestCase):
         mag_proj_00 = self.proj_00(self.mag_data)
         mag_proj_45 = self.proj_45(self.mag_data)
         mag_proj_90 = self.proj_90(self.mag_data)
-        mag_proj_00_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x00.hdf5'))
-        mag_proj_45_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x45.hdf5'))
-        mag_proj_90_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x90.hdf5'))
-        assert_allclose(mag_proj_00.magnitude, mag_proj_00_ref.magnitude,
+        mag_proj_00_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_x00.hdf5'))
+        mag_proj_45_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_x45.hdf5'))
+        mag_proj_90_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_x90.hdf5'))
+        assert_allclose(mag_proj_00.field, mag_proj_00_ref.field,
                         err_msg='Unexpected behaviour in XTiltProjector (0°)')
-        assert_allclose(mag_proj_45.magnitude, mag_proj_45_ref.magnitude,
+        assert_allclose(mag_proj_45.field, mag_proj_45_ref.field,
                         err_msg='Unexpected behaviour in XTiltProjector (45°)')
-        assert_allclose(mag_proj_90.magnitude, mag_proj_90_ref.magnitude,
+        assert_allclose(mag_proj_90.field, mag_proj_90_ref.field,
                         err_msg='Unexpected behaviour in XTiltProjector (90°)')
 
     def test_XTiltProjector_jac_dot(self):
-        mag_vec = self.mag_data.mag_vec
+        mag_vec = self.mag_data.field_vec
         mag_proj_00 = self.proj_00.jac_dot(mag_vec).reshape((2,) + self.proj_00.dim_uv)
         mag_proj_45 = self.proj_45.jac_dot(mag_vec).reshape((2,) + self.proj_45.dim_uv)
         mag_proj_90 = self.proj_90.jac_dot(mag_vec).reshape((2,) + self.proj_90.dim_uv)
-        mag_proj_00_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x00.hdf5'))
-        mag_proj_45_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x45.hdf5'))
-        mag_proj_90_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x90.hdf5'))
-        assert_allclose(mag_proj_00, mag_proj_00_ref.magnitude[:2, 0, ...],
+        mag_proj_00_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_x00.hdf5'))
+        mag_proj_45_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_x45.hdf5'))
+        mag_proj_90_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_x90.hdf5'))
+        assert_allclose(mag_proj_00, mag_proj_00_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (0°)')
-        assert_allclose(mag_proj_45, mag_proj_45_ref.magnitude[:2, 0, ...],
+        assert_allclose(mag_proj_45, mag_proj_45_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (45°)')
-        assert_allclose(mag_proj_90, mag_proj_90_ref.magnitude[:2, 0, ...],
+        assert_allclose(mag_proj_90, mag_proj_90_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (90°)')
         n00 = self.proj_00.n
         n45 = self.proj_45.n
@@ -169,7 +175,7 @@ class TestCaseXTiltProjector(unittest.TestCase):
 class TestCaseYTiltProjector(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
-        self.mag_data = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
+        self.mag_data = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
         self.proj_00 = YTiltProjector(self.mag_data.dim, tilt=0)
         self.proj_45 = YTiltProjector(self.mag_data.dim, tilt=pi / 4)
         self.proj_90 = YTiltProjector(self.mag_data.dim, tilt=pi / 2)
@@ -185,29 +191,35 @@ class TestCaseYTiltProjector(unittest.TestCase):
         mag_proj_00 = self.proj_00(self.mag_data)
         mag_proj_45 = self.proj_45(self.mag_data)
         mag_proj_90 = self.proj_90(self.mag_data)
-        mag_proj_00_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y00.hdf5'))
-        mag_proj_45_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y45.hdf5'))
-        mag_proj_90_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y90.hdf5'))
-        assert_allclose(mag_proj_00.magnitude, mag_proj_00_ref.magnitude,
+        mag_proj_00_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_y00.hdf5'))
+        mag_proj_45_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_y45.hdf5'))
+        mag_proj_90_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_y90.hdf5'))
+        assert_allclose(mag_proj_00.field, mag_proj_00_ref.field,
                         err_msg='Unexpected behaviour in XTiltProjector (0°)')
-        assert_allclose(mag_proj_45.magnitude, mag_proj_45_ref.magnitude,
+        assert_allclose(mag_proj_45.field, mag_proj_45_ref.field,
                         err_msg='Unexpected behaviour in XTiltProjector (45°)')
-        assert_allclose(mag_proj_90.magnitude, mag_proj_90_ref.magnitude,
+        assert_allclose(mag_proj_90.field, mag_proj_90_ref.field,
                         err_msg='Unexpected behaviour in XTiltProjector (90°)')
 
     def test_XTiltProjector_jac_dot(self):
-        mag_vec = self.mag_data.mag_vec
+        mag_vec = self.mag_data.field_vec
         mag_proj_00 = self.proj_00.jac_dot(mag_vec).reshape((2,) + self.proj_00.dim_uv)
         mag_proj_45 = self.proj_45.jac_dot(mag_vec).reshape((2,) + self.proj_45.dim_uv)
         mag_proj_90 = self.proj_90.jac_dot(mag_vec).reshape((2,) + self.proj_90.dim_uv)
-        mag_proj_00_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y00.hdf5'))
-        mag_proj_45_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y45.hdf5'))
-        mag_proj_90_ref = MagData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y90.hdf5'))
-        assert_allclose(mag_proj_00, mag_proj_00_ref.magnitude[:2, 0, ...],
+        mag_proj_00_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_y00.hdf5'))
+        mag_proj_45_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_y45.hdf5'))
+        mag_proj_90_ref = VectorData.load_from_hdf5(
+            os.path.join(self.path, 'ref_mag_proj_y90.hdf5'))
+        assert_allclose(mag_proj_00, mag_proj_00_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (0°)')
-        assert_allclose(mag_proj_45, mag_proj_45_ref.magnitude[:2, 0, ...],
+        assert_allclose(mag_proj_45, mag_proj_45_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (45°)')
-        assert_allclose(mag_proj_90, mag_proj_90_ref.magnitude[:2, 0, ...],
+        assert_allclose(mag_proj_90, mag_proj_90_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (90°)')
         n00 = self.proj_00.n
         n45 = self.proj_45.n

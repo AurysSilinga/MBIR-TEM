@@ -17,7 +17,7 @@ rotation = np.pi/4.
 tilt = 0.
 ###################################################################################################
 
-mag_data = py.MagData.load_from_netcdf4(filename)
+mag_data = py.VectorData.load_from_netcdf4(filename)
 projector = py.RotTiltProjector(mag_data.dim, rotation, tilt, dim_uv)
 mag_proj = projector(mag_data)
 phasemapper = py.PhaseMapperRDFC(py.Kernel(mag_data.a, projector.dim_uv, b_0))

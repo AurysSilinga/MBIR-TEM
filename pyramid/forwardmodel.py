@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 from pyramid.dataset import DataSet
-from pyramid.magdata import MagData
+from pyramid.fielddata import VectorData
 from pyramid.ramp import Ramp
 
 __all__ = ['ForwardModel', 'DistributedForwardModel']
@@ -59,7 +59,7 @@ class ForwardModel(object):
             self.n += self.ramp.n
         self.shape = (self.m, self.n)
         self.hook_points = data_set.hook_points
-        self.mag_data = MagData(self.data_set.a, np.zeros((3,) + self.data_set.dim))
+        self.mag_data = VectorData(self.data_set.a, np.zeros((3,) + self.data_set.dim))
         self._log.debug('Creating ' + str(self))
 
     def __repr__(self):
@@ -74,7 +74,7 @@ class ForwardModel(object):
         # Extract ramp parameters if necessary (x will be shortened!):
         x = self.ramp.extract_ramp_params(x)
         # Reset mag_data and fill with vector:
-        self.mag_data.magnitude[...] = 0
+        self.mag_data.field[...] = 0
         self.mag_data.set_vector(x, self.data_set.mask)
         # Simulate all phase maps and create result vector:
         result = np.zeros(self.m)
@@ -110,13 +110,13 @@ class ForwardModel(object):
         # Extract ramp parameters if necessary (vector will be shortened!):
         vector = self.ramp.extract_ramp_params(vector)
         # Reset mag_data and fill with vector:
-        self.mag_data.magnitude[...] = 0
+        self.mag_data.field[...] = 0
         self.mag_data.set_vector(vector, self.data_set.mask)
         # Simulate all phase maps and create result vector:
         result = np.zeros(self.m)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
-            mag_vec = self.mag_data.mag_vec
+            mag_vec = self.mag_data.field_vec
             mapper = self.phase_mappers[projector.dim_uv]
             res = mapper.jac_dot(projector.jac_dot(mag_vec))
             res += self.ramp.jac_dot(i)  # add ramp!
@@ -148,7 +148,7 @@ class ForwardModel(object):
             sub_vec = vector[hp[i]:hp[i + 1]]
             mapper = self.phase_mappers[projector.dim_uv]
             proj_T_result += projector.jac_T_dot(mapper.jac_T_dot(sub_vec))
-        self.mag_data.mag_vec = proj_T_result
+        self.mag_data.field_vec = proj_T_result
         result = self.mag_data.get_vector(self.data_set.mask)
         ramp_params = self.ramp.jac_T_dot(vector)  # calculate ramp_params separately!
         return np.concatenate((result, ramp_params))

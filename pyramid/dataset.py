@@ -157,11 +157,11 @@ class DataSet(object):
 
     def create_phase_maps(self, mag_data):
         """Create a list of phasemaps with the projectors in the dataset for a given
-        :class:`~.MagData` object.
+        :class:`~.VectorData` object.
 
         Parameters
         ----------
-        mag_data : :class:`~.MagData`
+        mag_data : :class:`~.VectorData`
             Magnetic distribution to which the projectors of the dataset should be applied.
 
         Returns
@@ -280,7 +280,7 @@ class DataSet(object):
 
         Parameters
         ----------
-        mag_data : :class:`~.MagData`, optional
+        mag_data : :class:`~.VectorData`, optional
             Magnetic distribution to which the projectors of the dataset should be applied. If not
             given, the phase_maps in the dataset are used.
         title : string, optional
@@ -317,7 +317,7 @@ class DataSet(object):
 
         Parameters
         ----------
-        mag_data : :class:`~.MagData`, optional
+        mag_data : :class:`~.VectorData`, optional
             Magnetic distribution to which the projectors of the dataset should be applied. If not
             given, the phase_maps in the dataset are used.
         title : string, optional

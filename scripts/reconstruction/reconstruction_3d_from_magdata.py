@@ -34,7 +34,7 @@ if __name__ == '__main__':
     mp.freeze_support()
 
     # Load magnetization distribution:
-    mag_data = pr.MagData.load_from_hdf5(mag_name + '.hdf5')
+    mag_data = pr.VectorData.load_from_hdf5(mag_name + '.hdf5')
     dim = mag_data.dim
 
     # Construct data set and regularisator:

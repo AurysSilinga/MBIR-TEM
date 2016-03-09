@@ -22,6 +22,6 @@ filename = 'magdata_mc_homog_filament.nc'
 pos = (0, dim[1]//2)
 mag_shape = py.magcreator.Shapes.filament(dim, pos)
 
-# Create and save MagData object:
-mag_data = py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape, phi, theta, magnitude))
+# Create and save VectorData object:
+mag_data = py.VectorData(a, py.magcreator.create_mag_dist_homog(mag_shape, phi, theta, magnitude))
 mag_data.save_to_netcdf4(filename)

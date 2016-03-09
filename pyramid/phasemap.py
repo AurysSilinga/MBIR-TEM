@@ -214,7 +214,7 @@ class PhaseMap(object):
             self._log.debug('Adding two PhaseMap objects')
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
             assert other.phase.shape == self.dim_uv, \
-                'Added magnitude has to have the same dimensions!'
+                'Added field has to have the same dimensions!'
             mask_comb = np.logical_or(self.mask, other.mask)  # masks combine
             conf_comb = (self.confidence + other.confidence) / 2  # confidence averaged!
             return PhaseMap(self.a, self.phase + other.phase, mask_comb, conf_comb, self.unit)
@@ -504,8 +504,8 @@ class PhaseMap(object):
 
         Returns
         -------
-        mag_data: :class:`~.MagData`
-            A :class:`~.MagData` object containing the loaded data.
+        mag_data: :class:`~.VectorData`
+            A :class:`~.VectorData` object containing the loaded data.
 
         """
         cls._log.debug('Calling load_from_hdf5')
@@ -735,7 +735,7 @@ class PhaseMap(object):
         holo = np.cos(gain * self.phase)
         holo += 1  # Shift to positive values
         holo /= 2  # Rescale to [0, 1]
-        # Calculate the phase gradients, expressed by magnitude and angle:
+        # Calculate the phase gradients, expressed by amplitude and angle:
         phase_grad_x, phase_grad_y = np.gradient(self.phase, self.a, self.a)
         angles = (1 - np.arctan2(phase_grad_y, phase_grad_x) / np.pi) / 2
         phase_grad_amp = np.hypot(phase_grad_y, phase_grad_x)

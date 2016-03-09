@@ -34,7 +34,7 @@ class Shapes(object):
     The :class:`~.Shapes` class is a collection of some methods that return a 3-dimensional
     matrix that represents the magnetized volume and consists of values between 0 and 1.
     This matrix is used in the functions of the :mod:`~.magcreator` module to create
-    :class:`~pyramid.magdata.MagData` objects which store the magnetic informations.
+    :class:`~pyramid.magdata.VectorData` objects which store the magnetic informations.
 
     """
 
@@ -274,7 +274,7 @@ class Shapes(object):
         return mag_shape
 
 
-def create_mag_dist_homog(mag_shape, phi, theta=pi / 2, magnitude=1):
+def create_mag_dist_homog(mag_shape, phi, theta=pi / 2, amplitude=1):
     """Create a 3-dimensional magnetic distribution of a homogeneously magnetized object.
 
     Parameters
@@ -286,12 +286,12 @@ def create_mag_dist_homog(mag_shape, phi, theta=pi / 2, magnitude=1):
     theta : float, optional
         The polar angle, describing the direction of the magnetized object.
         The default is pi/2, which means, the z-component is zero.
-    magnitude : float, optional
-        The relative magnitude for the magnetic shape. The default is 1.
+    amplitude : float, optional
+        The relative amplitude for the magnetic shape. The default is 1.
 
     Returns
     -------
-    magnitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3)
+    amplitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3)
         The magnetic distribution as a tuple of the 3 components in
         `x`-, `y`- and `z`-direction on the 3-dimensional grid.
 
@@ -299,13 +299,13 @@ def create_mag_dist_homog(mag_shape, phi, theta=pi / 2, magnitude=1):
     _log.debug('Calling create_mag_dist_homog')
     dim = np.shape(mag_shape)
     assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
-    z_mag = np.ones(dim) * np.cos(theta) * mag_shape * magnitude
-    y_mag = np.ones(dim) * np.sin(theta) * np.sin(phi) * mag_shape * magnitude
-    x_mag = np.ones(dim) * np.sin(theta) * np.cos(phi) * mag_shape * magnitude
+    z_mag = np.ones(dim) * np.cos(theta) * mag_shape * amplitude
+    y_mag = np.ones(dim) * np.sin(theta) * np.sin(phi) * mag_shape * amplitude
+    x_mag = np.ones(dim) * np.sin(theta) * np.cos(phi) * mag_shape * amplitude
     return np.array([x_mag, y_mag, z_mag])
 
 
-def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
+def create_mag_dist_vortex(mag_shape, center=None, axis='z', amplitude=1):
     """Create a 3-dimensional magnetic distribution of a homogeneous magnetized object.
 
     Parameters
@@ -316,15 +316,15 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
         The vortex center, given in 2D `(v, u)` or 3D `(z, y, x)`, where the perpendicular axis
         is is discarded. Is set to the center of the field of view if not specified. The vortex
         center has to be between two pixels.
-    magnitude : float, optional
-        The relative magnitude for the magnetic shape. The default is 1. Negative signs reverse
+    amplitude : float, optional
+        The relative amplitude for the magnetic shape. The default is 1. Negative signs reverse
         the vortex direction (left-handed instead of right-handed).
     axis :  {'z', 'y', 'x'}, optional
         The orientation of the vortex axis. The default is 'z'.
 
     Returns
     -------
-    magnitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3)
+    amplitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3)
         The magnetic distribution as a tuple of the 3 components in
         `x`-, `y`- and `z`-direction on the 3-dimensional grid.
 
@@ -352,8 +352,8 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
         phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=0)
         phi = np.tile(phi, (dim[0], 1, 1))
         z_mag = np.zeros(dim)
-        y_mag = -np.ones(dim) * np.sin(phi) * mag_shape * magnitude
-        x_mag = -np.ones(dim) * np.cos(phi) * mag_shape * magnitude
+        y_mag = -np.ones(dim) * np.sin(phi) * mag_shape * amplitude
+        x_mag = -np.ones(dim) * np.cos(phi) * mag_shape * amplitude
     elif axis == 'y':
         if len(center) == 3:  # if a 3D-center is given, just take the x and z components
             center = (center[0], center[2])
@@ -362,9 +362,9 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
         uu, vv = np.meshgrid(u, v)
         phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=1)
         phi = np.tile(phi, (1, dim[1], 1))
-        z_mag = np.ones(dim) * np.sin(phi) * mag_shape * magnitude
+        z_mag = np.ones(dim) * np.sin(phi) * mag_shape * amplitude
         y_mag = np.zeros(dim)
-        x_mag = np.ones(dim) * np.cos(phi) * mag_shape * magnitude
+        x_mag = np.ones(dim) * np.cos(phi) * mag_shape * amplitude
     elif axis == 'x':
         if len(center) == 3:  # if a 3D-center is given, just take the z and y components
             center = (center[0], center[1])
@@ -373,8 +373,8 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', magnitude=1):
         uu, vv = np.meshgrid(u, v)
         phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=2)
         phi = np.tile(phi, (1, 1, dim[2]))
-        z_mag = -np.ones(dim) * np.sin(phi) * mag_shape * magnitude
-        y_mag = -np.ones(dim) * np.cos(phi) * mag_shape * magnitude
+        z_mag = -np.ones(dim) * np.sin(phi) * mag_shape * amplitude
+        y_mag = -np.ones(dim) * np.cos(phi) * mag_shape * amplitude
         x_mag = np.zeros(dim)
     else:
         raise ValueError('{} is not a valid argument (use x, y or z)'.format(axis))

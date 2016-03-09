@@ -10,7 +10,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from pyramid.dataset import DataSet
-from pyramid.magdata import MagData
+from pyramid.fielddata import VectorData
 from pyramid.phasemap import PhaseMap
 from pyramid.projector import SimpleProjector
 
@@ -42,7 +42,7 @@ class TestCaseDataSet(unittest.TestCase):
 
     def test_create_phase_maps(self):
         self.data.projectors = [self.projector]
-        mag_data = MagData(self.a, np.ones((3,) + self.dim))
+        mag_data = VectorData(self.a, np.ones((3,) + self.dim))
         self.data.phase_maps = self.data.create_phase_maps(mag_data)
         phase_vec_ref = np.load(os.path.join(self.path, 'phase_vec_ref.npy'))
         assert_allclose(self.data.phase_vec, phase_vec_ref, atol=1E-6,

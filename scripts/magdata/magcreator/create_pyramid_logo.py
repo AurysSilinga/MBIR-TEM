@@ -28,6 +28,6 @@ left = (yy <= 0.75/0.5 * dim[1]/dim[2] * xx)
 right = np.fliplr(left)
 mag_shape[0, ...] = np.logical_and(np.logical_and(left, right), bottom)
 
-# Create and save MagData object:
-mag_data = py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape, phi, theta, magnitude))
+# Create and save VectorData object:
+mag_data = py.VectorData(a, py.magcreator.create_mag_dist_homog(mag_shape, phi, theta, magnitude))
 mag_data.save_to_netcdf4(filename)

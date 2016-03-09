@@ -23,6 +23,6 @@ center = (dim[0]//2-0.5, dim[1]//2-0.5, dim[2]//2-0.5)
 radius = dim[2]//4  # in px
 mag_shape = py.magcreator.Shapes.sphere(dim, center, radius)
 
-# Create and save MagData object:
-mag_data = py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape, phi, theta, magnitude))
+# Create and save VectorData object:
+mag_data = py.VectorData(a, py.magcreator.create_mag_dist_homog(mag_shape, phi, theta, magnitude))
 mag_data.save_to_netcdf4(filename)

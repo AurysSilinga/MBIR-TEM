@@ -26,6 +26,6 @@ y_mag = np.reshape(data[:, 4], dim, order='F')
 z_mag = np.reshape(data[:, 5], dim, order='F')
 magnitude = np.array((x_mag, y_mag, z_mag))
 
-# Create and save MagData object:
-mag_data = py.MagData(a, magnitude)
+# Create and save VectorData object:
+mag_data = py.VectorData(a, magnitude)
 mag_data.save_to_netcdf4('magdata_txtfortran_{}'.format(filename.replace('.txt', '.nc')))

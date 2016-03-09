@@ -8,16 +8,16 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from pyramid.kernel import Kernel
-from pyramid.magdata import MagData
+from pyramid.fielddata import VectorData, ScalarData
 from pyramid.phasemap import PhaseMap
-from pyramid.phasemapper import PhaseMapperMIP, pm
 from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperRDRC, PhaseMapperFDFC
+from pyramid.phasemapper import PhaseMapperMIP, pm
 
 
 class TestCasePhaseMapperRDFC(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
+        self.mag_proj = VectorData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperRDFC(Kernel(self.mag_proj.a, self.mag_proj.dim[1:]))
 
     def tearDown(self):
@@ -34,7 +34,7 @@ class TestCasePhaseMapperRDFC(unittest.TestCase):
 
     def test_PhaseMapperRDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
-        mag_proj_vec = self.mag_proj.magnitude[:2, ...].flatten()
+        mag_proj_vec = self.mag_proj.field[:2, ...].flatten()
         phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.kernel.dim_uv)
         assert_allclose(phase, phase_jac, atol=1E-7,
                         err_msg='Inconsistency between __call__() and jac_dot()!')
@@ -55,7 +55,7 @@ class TestCasePhaseMapperRDFC(unittest.TestCase):
 class TestCasePhaseMapperRDRC(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
+        self.mag_proj = VectorData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperRDRC(Kernel(self.mag_proj.a, self.mag_proj.dim[1:]))
 
     def tearDown(self):
@@ -72,7 +72,7 @@ class TestCasePhaseMapperRDRC(unittest.TestCase):
 
     def test_PhaseMapperRDRC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
-        mag_proj_vec = self.mag_proj.magnitude[:2, ...].flatten()
+        mag_proj_vec = self.mag_proj.field[:2, ...].flatten()
         phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.kernel.dim_uv)
         assert_allclose(phase, phase_jac, atol=1E-7,
                         err_msg='Inconsistency between __call__() and jac_dot()!')
@@ -93,7 +93,7 @@ class TestCasePhaseMapperRDRC(unittest.TestCase):
 class TestCasePhaseMapperFDFC(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
+        self.mag_proj = VectorData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperFDFC(self.mag_proj.a, self.mag_proj.dim[1:], padding=0)
 
     def tearDown(self):
@@ -110,7 +110,7 @@ class TestCasePhaseMapperFDFC(unittest.TestCase):
 
     def test_PhaseMapperFDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
-        mag_proj_vec = self.mag_proj.magnitude[:2, ...].flatten()
+        mag_proj_vec = self.mag_proj.field[:2, ...].flatten()
         phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.dim_uv)
         assert_allclose(phase, phase_jac, atol=1E-7,
                         err_msg='Inconsistency between __call__() and jac_dot()!')
@@ -124,10 +124,10 @@ class TestCasePhaseMapperFDFC(unittest.TestCase):
         self.assertRaises(NotImplementedError, self.mapper.jac_T_dot, None)
 
 
-class TestCasePhaseMapperElectric(unittest.TestCase):
+class TestCasePhaseMapperMIP(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
+        self.mag_proj = ScalarData.load_from_hdf5(os.path.join(self.path, 'elec_proj.hdf5'))
         self.mapper = PhaseMapperMIP(self.mag_proj.a, self.mag_proj.dim[1:])
 
     def tearDown(self):
@@ -136,7 +136,11 @@ class TestCasePhaseMapperElectric(unittest.TestCase):
         self.mapper = None
 
     def test_call(self):
-        self.assertRaises(NotImplementedError, self.mapper, None)
+        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map_elec.hdf5'))
+        phase_map = self.mapper(self.mag_proj)
+        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+                        err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
 
     def test_jac_dot(self):
         self.assertRaises(NotImplementedError, self.mapper.jac_dot, None)
@@ -148,7 +152,7 @@ class TestCasePhaseMapperElectric(unittest.TestCase):
 class TestCasePM(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = MagData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
+        self.mag_proj = VectorData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
 
     def tearDown(self):
         self.path = None
@@ -170,7 +174,7 @@ if __name__ == '__main__':
     unittest.TextTestRunner(verbosity=2).run(suite)
     suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePhaseMapperFDFC)
     unittest.TextTestRunner(verbosity=2).run(suite)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePhaseMapperElectric)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePhaseMapperMIP)
     unittest.TextTestRunner(verbosity=2).run(suite)
     suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePM)
     unittest.TextTestRunner(verbosity=2).run(suite)

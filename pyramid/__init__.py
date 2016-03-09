@@ -70,8 +70,8 @@ from . import forwardmodel
 from .forwardmodel import *
 from . import kernel
 from .kernel import *
-from . import magdata
-from .magdata import *
+from . import fielddata
+from .fielddata import *
 from . import phasemap
 from .phasemap import *
 from . import phasemapper
@@ -99,7 +99,7 @@ __all__.extend(dataset.__all__)
 __all__.extend(diagnostics.__all__)
 __all__.extend(forwardmodel.__all__)
 __all__.extend(kernel.__all__)
-__all__.extend(magdata.__all__)
+__all__.extend(fielddata.__all__)
 __all__.extend(phasemap.__all__)
 __all__.extend(phasemapper.__all__)
 __all__.extend(projector.__all__)

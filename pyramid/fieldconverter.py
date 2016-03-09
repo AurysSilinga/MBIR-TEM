@@ -12,7 +12,7 @@ import logging
 import numpy as np
 
 from pyramid import fft
-from pyramid.magdata import MagData
+from pyramid.fielddata import VectorData
 
 __all__ = ['convert_M_to_A', 'convert_A_to_B', 'convert_M_to_B']
 _log = logging.getLogger(__name__)
@@ -23,20 +23,20 @@ def convert_M_to_A(mag_data, b_0=1.0):
 
     Parameters
     ----------
-    mag_data: :class:`~pyramid.magdata.MagData` object
+    mag_data: :class:`~pyramid.magdata.VectorData` object
         The magnetic vector field from which the A-field is calculated.
     b_0: float, optional
         The saturation magnetization which is used in the calculation.
 
     Returns
     -------
-    b_data: :class:`~pyramid.magdata.MagData` object
+    b_data: :class:`~pyramid.magdata.VectorData` object
         The calculated B-field.
 
     """
     _log.debug('Calling convert_M_to_A')
     # Preparations of variables:
-    assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
+    assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
     dim = mag_data.dim
     dim_kern = tuple(2 * np.array(dim) - 1)  # Dimensions of the kernel
     if fft.BACKEND == 'pyfftw':
@@ -71,9 +71,9 @@ def convert_M_to_A(mag_data, b_0=1.0):
     x_mag = fft.zeros(dim_pad, dtype=fft.FLOAT)
     y_mag = fft.zeros(dim_pad, dtype=fft.FLOAT)
     z_mag = fft.zeros(dim_pad, dtype=fft.FLOAT)
-    x_mag[slice_M] = mag_data.magnitude[0, ...]
-    y_mag[slice_M] = mag_data.magnitude[1, ...]
-    z_mag[slice_M] = mag_data.magnitude[2, ...]
+    x_mag[slice_M] = mag_data.field[0, ...]
+    y_mag[slice_M] = mag_data.field[1, ...]
+    z_mag[slice_M] = mag_data.field[2, ...]
     # Calculate Fourier trafo of magnetization components:
     x_mag_fft = fft.rfftn(x_mag)
     y_mag_fft = fft.rfftn(y_mag)
@@ -86,7 +86,7 @@ def convert_M_to_A(mag_data, b_0=1.0):
     a_y = fft.irfftn(a_y_fft)[slice_B]
     a_z = fft.irfftn(a_z_fft)[slice_B]
     # Return A-field:
-    return MagData(mag_data.a, np.asarray((a_x, a_y, a_z)))
+    return VectorData(mag_data.a, np.asarray((a_x, a_y, a_z)))
 
 
 def convert_A_to_B(a_data):
@@ -94,19 +94,19 @@ def convert_A_to_B(a_data):
 
     Parameters
     ----------
-    a_data: :class:`~pyramid.magdata.MagData` object
+    a_data: :class:`~pyramid.magdata.VectorData` object
         The vector potential field from which the A-field is calculated.
 
     Returns
     -------
-    b_data: :class:`~pyramid.magdata.MagData` object
+    b_data: :class:`~pyramid.magdata.VectorData` object
         The calculated B-field.
 
     """
     _log.debug('Calling convert_A_to_B')
-    assert isinstance(a_data, MagData), 'Only MagData objects can be mapped!'
+    assert isinstance(a_data, VectorData), 'Only VectorData objects can be mapped!'
     # Calculate gradients:
-    x_mag, y_mag, z_mag = a_data.magnitude
+    x_mag, y_mag, z_mag = a_data.field
     x_grad_z, x_grad_y, x_grad_x = np.gradient(x_mag)
     y_grad_z, y_grad_y, y_grad_x = np.gradient(y_mag)
     z_grad_z, z_grad_y, z_grad_x = np.gradient(z_mag)
@@ -115,7 +115,7 @@ def convert_A_to_B(a_data):
     b_y = (x_grad_z - z_grad_x)
     b_z = (y_grad_x - x_grad_y)
     # Return B-field:
-    return MagData(a_data.a, np.asarray((b_x, b_y, b_z)))
+    return VectorData(a_data.a, np.asarray((b_x, b_y, b_z)))
 
 
 def convert_M_to_B(mag_data, b_0=1.0):
@@ -123,17 +123,17 @@ def convert_M_to_B(mag_data, b_0=1.0):
 
     Parameters
     ----------
-    mag_data: :class:`~pyramid.magdata.MagData` object
+    mag_data: :class:`~pyramid.magdata.VectorData` object
         The magnetic vector field from which the B-field is calculated.
     b_0: float, optional
         The saturation magnetization which is used in the calculation.
 
     Returns
     -------
-    b_data: :class:`~pyramid.magdata.MagData` object
+    b_data: :class:`~pyramid.magdata.VectorData` object
         The calculated B-field.
 
     """
     _log.debug('Calling convert_M_to_B')
-    assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
+    assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
     return convert_A_to_B(convert_M_to_A(mag_data, b_0=b_0))

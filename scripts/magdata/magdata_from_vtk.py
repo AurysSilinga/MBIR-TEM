@@ -113,13 +113,13 @@ def excluding_mesh(x, y, nx=30, ny=30):
 #plt.show()
 
 
-# Create empty magnitude:
+# Create empty field:
 magnitude = np.zeros((3, len(z), len(y), len(x)), dtype=py.fft.FLOAT)
 print 'Mag Dimensions:', magnitude.shape[1:]
 
 
 #import pdb; pdb.set_trace()
-# Fill magnitude slice per slice:
+# Fill field slice per slice:
 for i, zi in tqdm(enumerate(z), total=len(z)):
     # Take all points that lie in one z-voxel of the new regular grid into account (use weights!):
     z_slice = data[np.abs(data[:, 2]-zi) <= a/2., :]
@@ -150,7 +150,7 @@ for i, zi in tqdm(enumerate(z), total=len(z)):
 a *= 10
 
 print 'CREATE AND SAVE MAGDATA OBJECT!'
-mag_data = py.MagData(a, magnitude)
+mag_data = py.VectorData(a, magnitude)
 mag_data.save_to_netcdf4('magdata_vtk_{}'.format(filename.replace('.vtk', '.nc')))
 
 py.pm(mag_data).display_combined()

@@ -12,7 +12,7 @@ import numpy as np
 
 import jutil
 from pyramid import fft
-from pyramid.magdata import MagData
+from pyramid.fielddata import VectorData
 from pyramid.phasemap import PhaseMap
 
 __all__ = ['Diagnostics']
@@ -157,14 +157,14 @@ class Diagnostics(object):
 
         Returns
         -------
-        mag_data_avg_kern: :class:`~pyramid.magdata.MagData`
+        mag_data_avg_kern: :class:`~pyramid.fielddata.VectorData`
             Averaging kernel matrix row represented as a 3D magnetization distribution
 
         """
         self._log.debug('Calling get_avg_kern_row')
         if pos is not None:
             self.pos = pos
-        mag_data_avg_kern = MagData(self.cost.data_set.a, fft.zeros((3,) + self.dim))
+        mag_data_avg_kern = VectorData(self.cost.data_set.a, fft.zeros((3,) + self.dim))
         mag_data_avg_kern.set_vector(self.avrg_kern_row, mask=self.mask)
         return mag_data_avg_kern
 
@@ -181,7 +181,7 @@ class Diagnostics(object):
         px_avrg: float
             The number of pixels over which is approximately averaged. The inverse is the FWHM.
         (x, y, z): tuple of floats
-            The magnitude of the averaging kernel summed along two axes (the remaining are x, y, z,
+            The field of the averaging kernel summed along two axes (the remaining are x, y, z,
             respectively).
 
         Notes
@@ -191,7 +191,7 @@ class Diagnostics(object):
         """
         self._log.debug('Calling calculate_averaging')
         mag_data_avg_kern = self.get_avg_kern_row(pos)
-        mag_x, mag_y, mag_z = mag_data_avg_kern.magnitude
+        mag_x, mag_y, mag_z = mag_data_avg_kern.field
         x = mag_x.sum(axis=(0, 1))
         y = mag_y.sum(axis=(0, 2))
         z = mag_z.sum(axis=(1, 2))

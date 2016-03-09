@@ -4,7 +4,7 @@
 #
 """Reconstruct magnetic distributions from given phasemaps.
 
-This module reconstructs 3-dimensional magnetic distributions (as :class:`~pyramid.magdata.MagData`
+This module reconstructs 3-dimensional magnetic distributions (as :class:`~pyramid.magdata.VectorData`
 objects) from a given set of phase maps (represented by :class:`~pyramid.phasemap.PhaseMap`
 objects) by using several model based reconstruction algorithms which use the forward model
 provided by :mod:`~pyramid.projector` and :mod:`~pyramid.phasemapper` and a priori knowledge of
@@ -16,7 +16,7 @@ import logging
 
 import numpy as np
 
-from pyramid.magdata import MagData
+from pyramid.fielddata import VectorData
 
 __all__ = ['optimize_linear', 'optimize_nonlin', 'optimize_splitbregman']
 _log = logging.getLogger(__name__)
@@ -37,8 +37,8 @@ def optimize_linear(costfunction, max_iter=None):
 
     Returns
     -------
-    mag_data : :class:`~pyramid.magdata.MagData`
-        The reconstructed magnetic distribution as a :class:`~.MagData` object.
+    mag_data : :class:`~pyramid.fielddata.VectorData`
+        The reconstructed magnetic distribution as a :class:`~.VectorData` object.
 
     """
     import jutil.cg as jcg
@@ -48,9 +48,9 @@ def optimize_linear(costfunction, max_iter=None):
     _log.info('Cost after optimization: {}'.format(costfunction(x_opt)))
     # Cut ramp parameters if necessary (this also saves the final parameters in the ramp class!):
     x_opt = costfunction.fwd_model.ramp.extract_ramp_params(x_opt)
-    # Create and return fitting MagData object:
+    # Create and return fitting VectorData object:
     data_set = costfunction.fwd_model.data_set
-    mag_opt = MagData(data_set.a, np.zeros((3,) + data_set.dim))
+    mag_opt = VectorData(data_set.a, np.zeros((3,) + data_set.dim))
     mag_opt.set_vector(x_opt, data_set.mask)
     return mag_opt
 
@@ -65,13 +65,13 @@ def optimize_nonlin(costfunction, first_guess=None):
     costfunction : :class:`~.Costfunction`
         A :class:`~.Costfunction` object which implements a specified forward model and
         regularisator which is minimized in the optimization process.
-    first_guess : :class:`~pyramid.magdata.MagData`
+    first_guess : :class:`~pyramid.fielddata.VectorData`
         magnetization to start the non-linear iteration with.
 
     Returns
     -------
-    mag_data : :class:`~pyramid.magdata.MagData`
-        The reconstructed magnetic distribution as a :class:`~.MagData` object.
+    mag_data : :class:`~pyramid.fielddata.VectorData`
+        The reconstructed magnetic distribution as a :class:`~.VectorData` object.
 
     """
     import jutil.minimizer as jmin
@@ -79,7 +79,7 @@ def optimize_nonlin(costfunction, first_guess=None):
     _log.debug('Calling optimize_nonlin')
     data_set = costfunction.fwd_model.data_set
     if first_guess is None:
-        first_guess = MagData(data_set.a, np.zeros((3,) + data_set.dim))
+        first_guess = VectorData(data_set.a, np.zeros((3,) + data_set.dim))
 
     x_0 = first_guess.get_vector(data_set.mask)
     assert len(x_0) == costfunction.n, (len(x_0), costfunction.m, costfunction.n)
@@ -102,7 +102,7 @@ def optimize_nonlin(costfunction, first_guess=None):
         tol={"max_iteration": 10000})
     x_opt = result.x
     _log.info('Cost after optimization: {}'.format(costfunction(x_opt)))
-    mag_opt = MagData(data_set.a, np.zeros((3,) + data_set.dim))
+    mag_opt = VectorData(data_set.a, np.zeros((3,) + data_set.dim))
     mag_opt.set_vector(x_opt, data_set.mask)
     return mag_opt
 
@@ -129,8 +129,8 @@ def optimize_splitbregman(costfunction, weight, lam, mu):
 
     Returns
     -------
-    mag_data : :class:`~pyramid.magdata.MagData`
-        The reconstructed magnetic distribution as a :class:`~.MagData` object.
+    mag_data : :class:`~pyramid.fielddata.VectorData`
+        The reconstructed magnetic distribution as a :class:`~.VectorData` object.
 
     """
     import jutil.splitbregman as jsb
@@ -157,6 +157,6 @@ def optimize_splitbregman(costfunction, weight, lam, mu):
         A, D, y,
         weight=weight, mu=mu, lambd=lam, max_iter=1000)
 
-    mag_opt = MagData(data_set.a, np.zeros((3,) + data_set.dim))
+    mag_opt = VectorData(data_set.a, np.zeros((3,) + data_set.dim))
     mag_opt.set_vector(x_opt, data_set.mask)
     return mag_opt

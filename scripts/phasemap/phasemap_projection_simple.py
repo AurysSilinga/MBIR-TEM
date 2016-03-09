@@ -14,7 +14,7 @@ b_0 = 1.
 dim_uv = None
 ###################################################################################################
 
-mag_data = py.MagData.load_from_netcdf4(filename)
+mag_data = py.VectorData.load_from_netcdf4(filename)
 phase_map = py.pm(mag_data, dim_uv=dim_uv, b_0=b_0)
 phase_map.save_to_netcdf4('phasemap_{}'.format(filename.replace('magdata_', '')))
 phase_map.display_combined()

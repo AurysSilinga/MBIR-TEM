@@ -24,7 +24,7 @@ mag_shape_disc = py.magcreator.Shapes.disc(dim, center, radius_core, height=dim[
 mag_shape_core = np.logical_and(mag_shape_sphere, mag_shape_disc)
 mag_shape_shell = np.logical_and(mag_shape_sphere, np.logical_not(mag_shape_core))
 
-# Create and save MagData object:
-mag_data = py.MagData(a, py.magcreator.create_mag_dist_vortex(mag_shape_shell, magnitude=0.75))
-mag_data += py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape_core, phi=0, theta=0))
+# Create and save VectorData object:
+mag_data = py.VectorData(a, py.magcreator.create_mag_dist_vortex(mag_shape_shell, amplitude=0.75))
+mag_data += py.VectorData(a, py.magcreator.create_mag_dist_homog(mag_shape_core, phi=0, theta=0))
 mag_data.save_to_netcdf4(filename)

@@ -16,11 +16,11 @@ from numpy import pi
 
 from pyramid import fft
 from pyramid.kernel import Kernel
-from pyramid.magdata import MagData
+from pyramid.fielddata import VectorData, ScalarData
 from pyramid.phasemap import PhaseMap
 from pyramid.projector import RotTiltProjector, XTiltProjector, YTiltProjector, SimpleProjector
 
-__all__ = ['PhaseMapperRDFC', 'PhaseMapperRDRC', 'PhaseMapperFDFC', 'pm']
+__all__ = ['PhaseMapperRDFC', 'PhaseMapperRDRC', 'PhaseMapperFDFC', 'PhaseMapperMIP', 'pm']
 _log = logging.getLogger(__name__)
 
 PHI_0 = 2067.83  # magnetic flux in T*nm²
@@ -34,10 +34,10 @@ class PhaseMapper(object):
     """Abstract base class for the phase calculation from a 2-dimensional distribution.
 
     The :class:`~.PhaseMapper-` class represents a strategy for the phasemapping of a
-    2-dimensional magnetic distribution with two components onto a scalar phase map.
-    :class:`~.Kernel` is an abstract base class and provides a unified interface which should be
-    subclassed with custom :func:`__init__` and :func:`__call__` functions. Concrete subclasses
-    can be called as a function and take a :class:`~.MagData` object as input and return a
+    2-dimensional magnetic/electric distribution onto a scalar phase map. :class:`~.PhaseMapper`
+    is an abstract base class and provides a unified interface which should be subclassed with
+    custom :func:`__init__` and :func:`__call__` functions. Concrete subclasses
+    can be called as a function and take a :class:`~.FieldData` object as input and return a
     :class:`~.PhaseMap` object.
 
     """
@@ -46,7 +46,7 @@ class PhaseMapper(object):
     _log = logging.getLogger(__name__ + '.PhaseMapper')
 
     @abc.abstractmethod
-    def __call__(self, mag_data):
+    def __call__(self, field_data):
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -56,9 +56,7 @@ class PhaseMapper(object):
         Parameters
         ----------
         vector : :class:`~numpy.ndarray` (N=1)
-            Vectorized form of the magnetization in `u`- and `v`-direction of every pixel
-            (row-wise). The first ``N**2`` elements have to correspond to the `u`-, the next
-            ``N**2`` elements to the `v`-component of the magnetization.
+            Vectorized form of the field.
 
         Returns
         -------
@@ -75,14 +73,13 @@ class PhaseMapper(object):
         Parameters
         ----------
         vector : :class:`~numpy.ndarray` (N=1)
-            Vector with ``N**2`` entries which represents a matrix with dimensions like a scalar
-            phasemap.
+            Vector which represents a matrix with dimensions like a scalar phasemap.
 
         Returns
         -------
         result : :class:`~numpy.ndarray` (N=1)
             Product of the transposed Jacobi matrix (which is not explicitely calculated) with
-            the vector, which has ``2*N**2`` entries like a 2D magnetic projection.
+            the vector.
 
         """
         raise NotImplementedError()
@@ -93,7 +90,7 @@ class PhaseMapperRDFC(PhaseMapper):
     space convolution.
 
     The :class:`~.PMConvolve` class represents a phase mapping strategy involving discretization in
-    real space. It utilizes the convolution in Fourier space, directly takes :class:`~.MagData`
+    real space. It utilizes the convolution in Fourier space, directly takes :class:`~.VectorData`
     objects and returns :class:`~.PhaseMap` objects.
 
     Attributes
@@ -128,13 +125,13 @@ class PhaseMapperRDFC(PhaseMapper):
         return 'PhaseMapperRDFC(kernel=%s)' % self.kernel
 
     def __call__(self, mag_data):
-        assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
+        assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
         assert mag_data.a == self.kernel.a, 'Grid spacing has to match!'
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
         assert mag_data.dim[1:3] == self.kernel.dim_uv, 'Dimensions do not match!'
         # Process input parameters:
-        self.u_mag[self.kernel.slice_mag] = mag_data.magnitude[0, 0, ...]  # u-component
-        self.v_mag[self.kernel.slice_mag] = mag_data.magnitude[1, 0, ...]  # v-component
+        self.u_mag[self.kernel.slice_mag] = mag_data.field[0, 0, ...]  # u-component
+        self.v_mag[self.kernel.slice_mag] = mag_data.field[1, 0, ...]  # v-component
         return PhaseMap(mag_data.a, self._convolve())
 
     def _convolve(self):
@@ -201,7 +198,7 @@ class PhaseMapperRDRC(PhaseMapper):
     """Class representing a phase mapping strategy using real space discretization.
 
     The :class:`~.PMReal` class represents a phase mapping strategy involving discretization in
-    real space. It directly takes :class:`~.MagData` objects and returns :class:`~.PhaseMap`
+    real space. It directly takes :class:`~.VectorData` objects and returns :class:`~.PhaseMap`
     objects.
 
     Attributes
@@ -246,12 +243,12 @@ class PhaseMapperRDRC(PhaseMapper):
     def __call__(self, mag_data):
         self._log.debug('Calling __call__')
         dim_uv = self.kernel.dim_uv
-        assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
+        assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
         assert mag_data.a == self.kernel.a, 'Grid spacing has to match!'
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
         assert mag_data.dim[1:3] == dim_uv, 'Dimensions do not match!'
         # Process input parameters:
-        u_mag, v_mag = mag_data.magnitude[0:2, 0, ...]
+        u_mag, v_mag = mag_data.field[0:2, 0, ...]
         # Get kernel (lookup-tables for the phase of one pixel):
         u_phi = self.kernel.u
         v_phi = self.kernel.v
@@ -355,7 +352,7 @@ class PhaseMapperFDFC(PhaseMapper):
 
     The :class:`~.PMFourier` class represents a phase mapping strategy involving discretization in
     Fourier space. It utilizes the Fourier transforms, which are inherently calculated in the
-    :class:`~.Kernel` class and directly takes :class:`~.MagData` objects and returns
+    :class:`~.Kernel` class and directly takes :class:`~.VectorData` objects and returns
     :class:`~.PhaseMap` objects.
 
     Attributes
@@ -401,12 +398,12 @@ class PhaseMapperFDFC(PhaseMapper):
 
     def __call__(self, mag_data):
         self._log.debug('Calling __call__')
-        assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
+        assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
         assert mag_data.a == self.a, 'Grid spacing has to match!'
         assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
         assert mag_data.dim[1:3] == self.dim_uv, 'Dimensions do not match!'
         v_dim, u_dim = self.dim_uv
-        u_mag, v_mag = mag_data.magnitude[0:2, 0, ...]
+        u_mag, v_mag = mag_data.field[0:2, 0, ...]
         # Create zero padded matrices:
         u_pad = int(u_dim / 2 * self.padding)
         v_pad = int(v_dim / 2 * self.padding)
@@ -446,9 +443,9 @@ class PhaseMapperFDFC(PhaseMapper):
         self._log.debug('Calling jac_dot')
         assert len(vector) == self.n, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
-        mag_proj = MagData(self.a, np.zeros((3, 1) + self.dim_uv, dtype=np.float32))
+        mag_proj = VectorData(self.a, np.zeros((3, 1) + self.dim_uv, dtype=np.float32))
         magnitude_proj = np.reshape(vector, (2,) + self.dim_uv)
-        mag_proj.magnitude[:2, 0, ...] = magnitude_proj
+        mag_proj.field[:2, 0, ...] = magnitude_proj
         return self(mag_proj).phase_vec
 
     def jac_T_dot(self, vector):
@@ -476,7 +473,7 @@ class PhaseMapperMIP(PhaseMapper):
     The :class:`~.PhaseMapperMIP` class represents a phase mapping strategy for the electrostatic
     contribution to the electron phase shift which results e.g. from the mean inner potential in
     certain samples and which is sensitive to properties of the electron microscope. It directly
-    takes :class:`~.MagData` objects and returns :class:`~.PhaseMap` objects.
+    takes :class:`~.ScalarData` objects and returns :class:`~.PhaseMap` objects.
 
     Attributes
     ----------
@@ -508,7 +505,7 @@ class PhaseMapperMIP(PhaseMapper):
         self.v_acc = v_acc
         self.threshold = threshold
         self.m = np.prod(self.dim_uv)
-        self.n = np.prod(self.dim_uv)
+        self.n = self.m
         # Coefficient calculation:
         lam = H_BAR / np.sqrt(2 * M_E * Q_E * v_acc * (1 + Q_E * v_acc / (2 * M_E * C ** 2)))
         C_e = 2 * pi * Q_E / lam * (Q_E * v_acc + M_E * C ** 2) / (
@@ -526,21 +523,14 @@ class PhaseMapperMIP(PhaseMapper):
         return 'PhaseMapperMIP(a=%s, dim_uv=%s, v_0=%s, v_acc=%s, threshold=%s)' % \
                (self.a, self.dim_uv, self.v_0, self.v_acc, self.threshold)
 
-    def __call__(self, mag_data):
+    def __call__(self, elec_data):
         self._log.debug('Calling __call__')
-        raise NotImplementedError()  # TODO: Implement right!
-        # assert isinstance(mag_data, MagData), 'Only MagData objects can be mapped!'
-        # assert mag_data.a == self.a, 'Grid spacing has to match!'
-        # assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
-        # assert mag_data.dim[1:3] == self.dim_uv, 'Dimensions do not match!'
-        # return self.coeff * mag_data.get_mask(self.threshold)[0, ...].reshape(self.dim_uv)
-        # # Calculate mask:
-        # mask = mag_data.get_mask(self.threshold)
-        # # Project and calculate phase:
-        # # TODO: check if projector manages scalar multiplication (problem with MagData) and fix!
-        # projection = self.projector(mask.reshape(-1)).reshape(self.projector.dim_uv)
-        # phase = self.coeff * projection
-        # return PhaseMap(mag_data.a, phase)
+        assert isinstance(elec_data, ScalarData), 'Only ScalarData objects can be mapped!'
+        assert elec_data.a == self.a, 'Grid spacing has to match!'
+        assert elec_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
+        assert elec_data.dim[1:3] == self.dim_uv, 'Dimensions do not match!'
+        phase = self.coeff * np.squeeze(elec_data.get_mask(self.threshold))
+        return PhaseMap(elec_data.a, phase)
 
     def jac_dot(self, vector):
         """Calculate the product of the Jacobi matrix with a given `vector`.
@@ -548,9 +538,7 @@ class PhaseMapperMIP(PhaseMapper):
         Parameters
         ----------
         vector : :class:`~numpy.ndarray` (N=1)
-            Vectorized form of the magnetization in `u`- and `v`-direction of every pixel
-            (row-wise). The first ``N**2`` elements have to correspond to the `u`-, the next
-            ``N**2`` elements to the `v`-component of the magnetization.
+            Vectorized form of the electrostatic field of every pixel (row-wise).
 
         Returns
         -------
@@ -558,7 +546,7 @@ class PhaseMapperMIP(PhaseMapper):
             Product of the Jacobi matrix (which is not explicitely calculated) with the vector.
 
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # TODO: Implement right!
 
     def jac_T_dot(self, vector):
         """Calculate the product of the transposed Jacobi matrix with a given `vector`.
@@ -573,19 +561,19 @@ class PhaseMapperMIP(PhaseMapper):
         -------
         result : :class:`~numpy.ndarray` (N=1)
             Product of the transposed Jacobi matrix (which is not explicitely calculated) with
-            the vector, which has ``2*N**2`` entries like a 2D magnetic projection.
+            the vector, which has ``N**2`` entries like an electrostatic projection.
 
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # TODO: Implement right!
 
 
 def pm(mag_data, mode='z', b_0=1, **kwargs):
-    """Convenience function for fast phase mapping.
+    """Convenience function for fast magnetic phase mapping.
 
     Parameters
     ----------
-    mag_data : :class:`~.MagData`
-        A :class:`~.MagData` object, from which the projected phase map should be calculated.
+    mag_data : :class:`~.VectorData`
+        A :class:`~.VectorData` object, from which the projected phase map should be calculated.
     mode: {'z', 'y', 'x', 'x-tilt', 'y-tilt', 'rot-tilt'}, optional
         Projection mode which determines the :class:`~.pyramid.projector.Projector` subclass, which
         is used for the projection. Default is a simple projection along the `z`-direction.

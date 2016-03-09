@@ -29,8 +29,8 @@ left = (yy <= 0.75/0.5 * dim[1]/dim[2] * xx)
 right = np.fliplr(left)
 mag_shape[0, ...] = np.logical_and(np.logical_and(left, right), bottom)
 
-# Create and save MagData object:
-mag_data = py.MagData(a, np.zeros((3,)+dim))
+# Create and save VectorData object:
+mag_data = py.VectorData(a, np.zeros((3,) + dim))
 for i in range(count):
     width = (1, rnd.randint(1, w_max), rnd.randint(1, w_max))
     center = (rnd.randrange(int(width[0]/2), dim[0]-int(width[0]/2)),
@@ -38,5 +38,5 @@ for i in range(count):
               rnd.randrange(int(width[2]/2), dim[2]-int(width[2]/2)))
     mag_shape = py.magcreator.Shapes.slab(dim, center, width)
     phi = 2 * np.pi * rnd.random()
-    mag_data += py.MagData(a, py.magcreator.create_mag_dist_homog(mag_shape, phi))
+    mag_data += py.VectorData(a, py.magcreator.create_mag_dist_homog(mag_shape, phi))
 mag_data.save_to_netcdf4(filename)
