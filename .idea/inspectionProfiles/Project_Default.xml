@@ -4,9 +4,17 @@
     <inspection_tool class="LongLine" enabled="true" level="WARNING" enabled_by_default="true">
       <scope name="*.c" level="WARNING" enabled="false" />
     </inspection_tool>
+    <inspection_tool class="PyArgumentListInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <scope name="gui" level="WARNING" enabled="false" />
+    </inspection_tool>
     <inspection_tool class="PyAttributeOutsideInitInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="PyBroadExceptionInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
-    <inspection_tool class="PyClassicStyleClassInspection" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="PyCallByClassInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <scope name="gui" level="WEAK WARNING" enabled="false" />
+    </inspection_tool>
+    <inspection_tool class="PyClassicStyleClassInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <scope name="gui" level="WARNING" enabled="false" />
+    </inspection_tool>
     <inspection_tool class="PyCompatibilityInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ourVersions">
         <value>
@@ -17,8 +25,27 @@
       </option>
     </inspection_tool>
     <inspection_tool class="PyMandatoryEncodingInspection" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="PyMissingOrEmptyDocstringInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
+    <inspection_tool class="PyMissingOrEmptyDocstringInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <scope name="gui" level="WEAK WARNING" enabled="false" />
+    </inspection_tool>
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <scope name="gui" level="WARNING" enabled="false">
+        <option name="ignoredPackages">
+          <value>
+            <list size="0" />
+          </value>
+        </option>
+      </scope>
+      <scope name="scripts" level="WARNING" enabled="true">
+        <option name="ignoredPackages">
+          <value>
+            <list size="2">
+              <item index="0" class="java.lang.String" itemvalue="pylab" />
+              <item index="1" class="java.lang.String" itemvalue="tqdm" />
+            </list>
+          </value>
+        </option>
+      </scope>
       <option name="ignoredPackages">
         <value>
           <list size="1">

@@ -4,11 +4,11 @@
 #
 """Reconstruct magnetic distributions from given phasemaps.
 
-This module reconstructs 3-dimensional magnetic distributions (as :class:`~pyramid.magdata.VectorData`
-objects) from a given set of phase maps (represented by :class:`~pyramid.phasemap.PhaseMap`
-objects) by using several model based reconstruction algorithms which use the forward model
-provided by :mod:`~pyramid.projector` and :mod:`~pyramid.phasemapper` and a priori knowledge of
-the distribution.
+This module reconstructs 3-dimensional magnetic distributions (as
+:class:`~pyramid.magdata.VectorData` objects) from a given set of phase maps (represented by
+:class:`~pyramid.phasemap.PhaseMap` objects) by using several model based reconstruction algorithms
+ which use the forward model provided by :mod:`~pyramid.projector` and :mod:`~pyramid.phasemapper`
+ and a priori knowledge of the distribution.
 
 """
 

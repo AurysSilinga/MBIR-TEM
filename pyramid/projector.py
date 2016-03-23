@@ -16,7 +16,7 @@ from numpy import pi
 from scipy.sparse import coo_matrix, csr_matrix
 
 import pyramid.fft as fft
-from pyramid.fielddata import FieldData, VectorData, ScalarData
+from pyramid.fielddata import VectorData, ScalarData
 from pyramid.quaternion import Quaternion
 
 __all__ = ['RotTiltProjector', 'XTiltProjector', 'YTiltProjector', 'SimpleProjector']

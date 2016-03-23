@@ -130,8 +130,8 @@ class Kernel(object):
                 B = np.arctan(n / m)
                 return n * A - 2 * n + 2 * m * B
 
-            return 0.5 * (_F_a(n - 0.5, m - 0.5) - _F_a(n + 0.5, m - 0.5) -
-                          _F_a(n - 0.5, m + 0.5) + _F_a(n + 0.5, m + 0.5))
+            return 0.5 * (_F_a(m - 0.5, n - 0.5) - _F_a(m + 0.5, n - 0.5) -
+                          _F_a(m - 0.5, n + 0.5) + _F_a(m + 0.5, n + 0.5))
 
     def print_info(self):
         """Print information about the kernel.

@@ -6,21 +6,19 @@
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
-
+"""GUI for setting up PhasMaps from existing data in different formats."""
 
 import os
 import sys
 
-import numpy as np
+import hyperspy.api as hs
 
-from PyQt4 import QtCore, QtGui
-
-from matplotlibwidget import MatplotlibWidget
-
-from PIL import Image
 from pyramid import PhaseMap
-import ercpy
 
+import numpy as np
+from PIL import Image
+from PyQt4 import QtCore, QtGui
+from matplotlibwidget import MatplotlibWidget
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -30,6 +28,7 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
+
 
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
@@ -202,22 +201,19 @@ class UI_PhaseMapCreatorMain(QtGui.QWidget):
     def update_mask(self):
         if self.mask_loaded:
             threshold = self.doubleSpinBox_thres.value()
-            mask_img = Image.fromarray(self.emd['mask'])
-            mask = np.asarray(mask_img.resize(reversed(self.emd['phase'].shape)))
+            mask_img = Image.fromarray(self.raw_mask)
+            mask = np.asarray(mask_img.resize(list(reversed(self.phase_map.dim_uv))))
             self.phase_map.mask = np.where(mask >= threshold, True, False)
             self.update_phasemap()
 
     def load_phase(self):
         try:
             self.phase_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Phase', self.dir)
-            self.emd = ercpy.EMD()
-            self.emd.add_signal_from_file(self.phase_path, name='phase')
+            self.phase_map = PhaseMap.from_signal(hs.load(self.phase_path))
         except ValueError:
             return  # Abort if no phase_path is selected!
-        if self.emd.signals['phase'].axes_manager[0].scale != 1.:
-            self.doubleSpinBox_a.setValue(self.emd.signals['phase'].axes_manager[0].scale)
+        self.doubleSpinBox_a.setValue(self.phase_map.a)
         self.dir = os.path.join(os.path.dirname(self.phase_path))
-        self.phase_map = PhaseMap(self.doubleSpinBox_a.value(), self.emd['phase'])
         self.mplwidget.axes.set_visible(True)
         self.mplwidget.axes.set_visible(True)
         self.mplwidget.axes.set_visible(True)
@@ -238,21 +234,21 @@ class UI_PhaseMapCreatorMain(QtGui.QWidget):
     def load_mask(self):
         try:
             mask_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Mask', self.dir)
-            self.emd.add_signal_from_file(mask_path, name='mask')
+            self.raw_mask = hs.load(mask_path).data
         except ValueError:
             return  # Abort if no mask_path is selected!
-        mask_min = self.emd['mask'].min()
-        mask_max = self.emd['mask'].max()
+        mask_min = self.raw_mask.min()
+        mask_max = self.raw_mask.max()
         self.horizontalScrollBar.setEnabled(True)
         self.horizontalScrollBar.setMinimum(mask_min)
         self.horizontalScrollBar.setMaximum(mask_max)
-        self.horizontalScrollBar.setSingleStep((mask_max-mask_min)/255.)
-        self.horizontalScrollBar.setValue((mask_max-mask_min)/2.)
+        self.horizontalScrollBar.setSingleStep((mask_max - mask_min) / 255.)
+        self.horizontalScrollBar.setValue((mask_max - mask_min) / 2.)
         self.doubleSpinBox_thres.setEnabled(True)
         self.doubleSpinBox_thres.setMinimum(mask_min)
         self.doubleSpinBox_thres.setMaximum(mask_max)
-        self.doubleSpinBox_thres.setSingleStep((mask_max-mask_min)/255.)
-        self.doubleSpinBox_thres.setValue((mask_max-mask_min)/2.)
+        self.doubleSpinBox_thres.setSingleStep((mask_max - mask_min) / 255.)
+        self.doubleSpinBox_thres.setValue((mask_max - mask_min) / 2.)
         self.mask_loaded = True
         self.update_mask()
 
@@ -261,25 +257,22 @@ class UI_PhaseMapCreatorMain(QtGui.QWidget):
             conf_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Confidence', self.dir)
         except ValueError:
             return  # Abort if no conf_path is selected!
-        self.emd.add_signal_from_file(conf_path, name='confidence')
-        confidence = self.emd['confidence'] / self.emd['confidence'].max()
-        confidence = np.asarray(Image.fromarray(confidence).resize(self.emd['phase'].shape))
+        confidence = hs.load(conf_path).data
+        confidence /= confidence.max()
+        confidence = np.asarray(Image.fromarray(confidence).resize(self.phase_map.dim_uv))
         self.phase_map.confidence = confidence
         self.update_phasemap()
 
     def export(self):
         try:
             export_name = os.path.splitext(os.path.basename(self.phase_path))[0]
-            export_default = os.path.join(self.dir, 'phasemap_gui_{}.nc'.format(export_name))
+            export_default = os.path.join(self.dir, 'phasemap_gui_{}.hdf5'.format(export_name))
             export_path = QtGui.QFileDialog.getSaveFileName(self, 'Export PhaseMap',
-                                                            export_default,
-                                                            'EMD/NetCDF4 (*.emd *.nc)')
-            if export_path.endswith('.nc'):
-                self.phase_map.save_to_netcdf4(export_path)
-            elif export_path.endswith('.emd'):
-                self.emd.save_to_emd(export_path)
+                                                            export_default, 'HDF5 (*.hdf5)')
+            self.phase_map.to_signal().save(export_path, overwrite=True)
         except ValueError:
             return  # Abort if no export_path is selected!
+
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)

@@ -7,13 +7,14 @@ specified costfunction for a fixed magnetization distribution."""
 
 import logging
 
+from pyramid import fft
+from pyramid.fielddata import VectorData
+from pyramid.phasemap import PhaseMap
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 import jutil
-from pyramid import fft
-from pyramid.fielddata import VectorData
-from pyramid.phasemap import PhaseMap
 
 __all__ = ['Diagnostics']
 

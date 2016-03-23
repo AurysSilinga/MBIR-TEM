@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-
 # Form implementation generated from reading ui file 'mag_slicer2.ui'
 #
 # Created: Sun Aug 31 20:39:52 2014
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
-
+"""GUI for slicing 3D magnetization distributions."""
 
 import os
 import sys
 
 import pyramid
-from pyramid.kernel import Kernel
 from pyramid.fielddata import VectorData
+from pyramid.kernel import Kernel
 from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.projector import SimpleProjector
 
@@ -28,6 +27,7 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
+
 
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
@@ -205,7 +205,7 @@ class UI_MagSlicerMain(QtGui.QWidget):
             self.projector = SimpleProjector(self.mag_data.dim, axis=self.mode)
             self.spinBoxSlice.setMaximum(length)
             self.scrollBarSlice.setMaximum(length)
-            self.spinBoxSlice.setValue(int(length/2.))
+            self.spinBoxSlice.setValue(int(length / 2.))
             self.update_slice()
             self.phase_mapper = PhaseMapperRDFC(Kernel(self.mag_data.a, self.projector.dim_uv))
             self.phase_map = self.phase_mapper(self.projector(self.mag_data))

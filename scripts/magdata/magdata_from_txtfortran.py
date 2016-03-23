@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """Create magnetization distributions from fortran sorted txt-files."""
 
-
-import os
-import numpy as np
-import pyramid as py
 import logging.config
+import os
 
+import numpy as np
+
+import pyramid as py
 
 logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
@@ -28,4 +28,5 @@ magnitude = np.array((x_mag, y_mag, z_mag))
 
 # Create and save VectorData object:
 mag_data = py.VectorData(a, magnitude)
-mag_data.save_to_netcdf4('magdata_txtfortran_{}'.format(filename.replace('.txt', '.nc')))
+mag_name = 'magdata_txtfortran_{}'.format(filename.replace('.txt', '.hdf5'))
+mag_data.save_to_hdf5(mag_name, overwrite=True)

@@ -6,6 +6,11 @@
 
 from __future__ import division
 
+from scipy.ndimage.interpolation import zoom
+
+from pyramid import fft
+from pyramid.colormap import DirectionalColormap
+
 import logging
 import os
 from abc import ABCMeta, abstractmethod
@@ -14,10 +19,6 @@ from numbers import Number
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
-from scipy.ndimage.interpolation import zoom
-
-from pyramid import fft
-from pyramid.colormap import DirectionalColormap
 
 _log = logging.getLogger(__name__)
 try:  # Try importing HyperSpy:
@@ -123,20 +124,20 @@ class FieldData(object):
 
     def __neg__(self):  # -self
         self._log.debug('Calling __neg__')
-        return VectorData(self.a, -self.field)
+        return self.__class__(self.a, -self.field)
 
     def __add__(self, other):  # self + other
         self._log.debug('Calling __add__')
         assert isinstance(other, (FieldData, Number)), \
             'Only FieldData objects and scalar numbers (as offsets) can be added/subtracted!'
-        if isinstance(other, FieldData):
-            self._log.debug('Adding two VectorData objects')
+        if isinstance(other, Number):  # other is a Number
+            self._log.debug('Adding an offset')
+            return self.__class__(self.a, self.field + other)
+        elif isinstance(other, FieldData):
+            self._log.debug('Adding two FieldData objects')
             assert other.a == self.a, 'Added phase has to have the same grid spacing!'
             assert other.shape == self.shape, 'Added field has to have the same dimensions!'
-            return self.__init__(self.a, self.field + other.field)
-        else:  # other is a Number
-            self._log.debug('Adding an offset')
-            return self.__init__(self.a, self.field + other)
+            return self.__class__(self.a, self.field + other.field)
 
     def __sub__(self, other):  # self - other
         self._log.debug('Calling __sub__')
@@ -145,7 +146,7 @@ class FieldData(object):
     def __mul__(self, other):  # self * other
         self._log.debug('Calling __mul__')
         assert isinstance(other, Number), 'FieldData objects can only be multiplied by numbers!'
-        return VectorData(self.a, other * self.field)
+        return self.__class__(self.a, other * self.field)
 
     def __radd__(self, other):  # other + self
         self._log.debug('Calling __radd__')
@@ -181,7 +182,7 @@ class FieldData(object):
 
         """
         self._log.debug('Calling copy')
-        return self.__init__(self.a, self.field.copy())
+        return self.__class__(self.a, self.field.copy())
 
     def get_mask(self, threshold=0):
         """Mask all pixels where the amplitude of the field lies above `threshold`.
@@ -228,7 +229,6 @@ class FieldData(object):
         mlab.axes(plot)
         mlab.title(title, height=0.95, size=0.35)
         mlab.orientation_axes()
-        # mlab.show()
         return plot
 
     @abstractmethod
@@ -327,7 +327,7 @@ class FieldData(object):
         pass
 
     @abstractmethod
-    def save_to_hdf5(self, filename):
+    def save_to_hdf5(self, filename, *args, **kwargs):
         """Save field data in a file with HyperSpys HDF5-format.
 
         Parameters
@@ -709,7 +709,7 @@ class VectorData(FieldData):
         a = signal.axes_manager[0].scale
         return cls(a, field)
 
-    def save_to_hdf5(self, filename='vecdata.hdf5'):
+    def save_to_hdf5(self, filename='vecdata.hdf5', *args, **kwargs):
         """Save vector field data in a file with HyperSpys HDF5-format.
 
         Parameters
@@ -732,7 +732,7 @@ class VectorData(FieldData):
                 os.makedirs(directory)
             filename = os.path.join(directory, filename)
         # Save data to file:
-        self.to_signal().save(filename)
+        self.to_signal().save(filename, *args, **kwargs)
 
     @classmethod
     def load_from_hdf5(cls, filename):
@@ -1221,7 +1221,7 @@ class ScalarData(FieldData):
         a = signal.axes_manager[0].scale
         return cls(a, field)
 
-    def save_to_hdf5(self, filename='scaldata.hdf5'):
+    def save_to_hdf5(self, filename='scaldata.hdf5', *args, **kwargs):
         """Save field data in a file with HyperSpys HDF5-format.
 
         Parameters

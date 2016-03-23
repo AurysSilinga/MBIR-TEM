@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """Create magnetization distributions from a raw image format."""
 
-
+import logging.config
 import os
+
+import pyramid as pr
+
+import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-import pyramid as pr
-import logging.config
 
 
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
@@ -14,7 +16,7 @@ logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 ###################################################################################################
 path_mag = '83-225x148.raw'
 path_mask = path_mag
-filename = 'skyrmion_cutout_83.nc'
+filename = 'skyrmion_cutout_83.hdf5'
 im_size = (225, 148)
 dim_uv = None
 a = 1.
@@ -39,5 +41,6 @@ mask = np.where(np.asarray(im_mask) >= threshold, True, False)
 
 # Create and save PhaseMap object:
 phase_map = pr.PhaseMap(a, phase, mask, confidence=None, unit='rad')
-phase_map.save_to_netcdf4(os.path.join(pr.DIR_FILES, 'phasemap', filename))
+phase_map.save_to_hdf5(os.path.join(pr.DIR_FILES, 'phasemap', filename), overwrite=True)
 phase_map.display_combined()
+plt.show()

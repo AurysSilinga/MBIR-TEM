@@ -8,14 +8,14 @@ and additional data like corresponding projectors."""
 import logging
 from numbers import Number
 
+from pyramid.kernel import Kernel
+from pyramid.phasemap import PhaseMap
+from pyramid.phasemapper import PhaseMapperRDFC
+from pyramid.projector import Projector
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import sparse
-
-from .kernel import Kernel
-from .phasemap import PhaseMap
-from .phasemapper import PhaseMapperRDFC
-from .projector import Projector
 
 __all__ = ['DataSet']
 

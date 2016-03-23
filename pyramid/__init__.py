@@ -66,12 +66,14 @@ from . import dataset
 from .dataset import *
 from . import diagnostics
 from .diagnostics import *
+from . import fieldconverter
+from .fieldconverter import *
+from . import fielddata
+from .fielddata import *
 from . import forwardmodel
 from .forwardmodel import *
 from . import kernel
 from .kernel import *
-from . import fielddata
-from .fielddata import *
 from . import phasemap
 from .phasemap import *
 from . import phasemapper

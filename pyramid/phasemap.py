@@ -8,6 +8,8 @@ import logging
 import os
 from numbers import Number
 
+from pyramid.colormap import DirectionalColormap, TransparentColormap
+
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
@@ -15,8 +17,6 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.ndimage.interpolation import zoom
-
-from pyramid.colormap import DirectionalColormap, TransparentColormap
 
 _log = logging.getLogger(__name__)
 try:  # Try importing HyperSpy:
@@ -468,7 +468,7 @@ class PhaseMap(object):
             confidence = None
         return cls(a, phase, mask, confidence, unit)
 
-    def save_to_hdf5(self, filename='phasemap.hdf5'):
+    def save_to_hdf5(self, filename='phasemap.hdf5', *args, **kwargs):
         """Save magnetization data in a file with HyperSpys HDF5-format.
 
         Parameters
@@ -491,7 +491,7 @@ class PhaseMap(object):
                 os.makedirs(directory)
             filename = os.path.join(directory, filename)
         # Save data to file:
-        self.to_signal().save(filename)
+        self.to_signal().save(filename, *args, **kwargs)
 
     @classmethod
     def load_from_hdf5(cls, filename):

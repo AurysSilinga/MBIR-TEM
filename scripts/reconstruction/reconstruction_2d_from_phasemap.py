@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 """Reconstruct a magnetization distributions from a single phase map."""
 
+from __future__ import print_function
 
 import numpy as np
 import pyramid as pr
 from jutil.taketime import TakeTime
 import logging.config
 
-
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-phase_name = 'phasemap_gui_Pha1'
+phase_name = 'phasemap_gui_150917_skyrm_M_100mT'
 b_0 = 1  # in T
 lam = 1E-1
 max_iter = 100
@@ -21,7 +21,7 @@ order = 1
 
 
 # Load phase map:
-phase_map = pr.PhaseMap.load_from_netcdf4(phase_name+'.nc')
+phase_map = pr.PhaseMap.load_from_hdf5(phase_name + '.hdf5')
 phase_map.pad((buffer_pixel, buffer_pixel))
 dim = (1,) + phase_map.dim_uv
 
@@ -41,14 +41,17 @@ with TakeTime('reconstruction time'):
 if order >= 1:
     offset, ramp = param_cache[0][0], (param_cache[1][0], param_cache[2][0])
 elif order == 0:
-    offset = param_cache[0][0]
+    offset, ramp = param_cache[0][0], (0, 0)
+else:
+    offset, ramp = 0, (0, 0)
 mag_data_buffer = mag_data_rec.copy()
 mag_data_rec.crop((0, buffer_pixel, buffer_pixel))
 mag_name = '{}_lam={}'.format(phase_name.replace('phasemap', 'magdata_rec'), lam)
-mag_data_rec.save_to_netcdf4(mag_name+'.nc')
+mag_data_rec = mag_data_rec.flip(axis='y')
+mag_data_rec.save_to_hdf5(mag_name + '.hdf5', overwrite=True)
 
 # Plot stuff:
-mag_data_rec.quiver_plot('Reconstructed Distribution', ar_dens=int(np.ceil(np.max(dim)/128.)))
+mag_data_rec.quiver_plot('Reconstructed Distribution', ar_dens=int(np.ceil(np.max(dim) / 128.)))
 phase_map.crop((buffer_pixel, buffer_pixel))
 phase_map.display_combined('Input Phase')
 phase_map -= fwd_model.ramp(index=0)
@@ -56,13 +59,13 @@ phase_map.display_combined('Input Phase (ramp corrected)')
 phase_map_rec = pr.pm(mag_data_rec)
 title = 'Reconstructed Phase'
 if order >= 0:
-    print 'offset:', offset
+    print('offset:', offset)
     title += ', fitted Offset: {:.2g} [rad]'.format(offset)
 if order >= 1:
-    print 'ramp:', ramp
+    print('ramp:', ramp)
     title += ', (Fitted Ramp: (u:{:.2g}, v:{:.2g}) [rad/nm]'.format(*ramp)
 phase_map_rec.display_combined(title)
-difference = (phase_map_rec.phase-phase_map.phase).mean()
-(phase_map_rec-phase_map).display_phase('Difference (mean: {:.2g})'.format(difference))
+difference = (phase_map_rec.phase - phase_map.phase).mean()
+(phase_map_rec - phase_map).display_phase('Difference (mean: {:.2g})'.format(difference))
 if order is not None:
     fwd_model.ramp(0).display_combined('Fitted Ramp')
