@@ -6,19 +6,18 @@
 
 from __future__ import division
 
-from scipy.ndimage.interpolation import zoom
-
-from pyramid import fft
-from pyramid.colormap import DirectionalColormap
-
+import abc
 import logging
 import os
-from abc import ABCMeta, abstractmethod
 from numbers import Number
 
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
+from scipy.ndimage.interpolation import zoom
+
+from pyramid import fft
+from pyramid.colormap import DirectionalColormap
 
 _log = logging.getLogger(__name__)
 try:  # Try importing HyperSpy:
@@ -30,7 +29,7 @@ except ImportError:
 __all__ = ['VectorData', 'ScalarData']
 
 
-class FieldData(object):
+class FieldData(object, metaclass=abc.ABCMeta):
     """Class for storing field data.
 
     Abstract base class for the representatio of magnetic or electric fields (see subclasses).
@@ -50,7 +49,6 @@ class FieldData(object):
 
     """
 
-    __metaclass__ = ABCMeta
     _log = logging.getLogger(__name__ + '.FieldData')
 
     @property
@@ -231,7 +229,7 @@ class FieldData(object):
         mlab.orientation_axes()
         return plot
 
-    @abstractmethod
+    @abc.abstractmethod
     def scale_down(self, n):
         """Scale down the field distribution by averaging over two pixels along each axis.
 
@@ -252,7 +250,7 @@ class FieldData(object):
         """
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def scale_up(self, n, order):
         """Scale up the field distribution using spline interpolation of the requested order.
 
@@ -275,7 +273,7 @@ class FieldData(object):
         """
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_vector(self, mask):
         """Returns the field as a vector, specified by a mask.
 
@@ -292,7 +290,7 @@ class FieldData(object):
         """
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def set_vector(self, vector, mask):
         """Set the field of the masked pixels to the values specified by `vector`.
 
@@ -310,7 +308,7 @@ class FieldData(object):
         """
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def to_signal(self):
         """Convert :class:`~.FieldData` data into a HyperSpy signal.
 
@@ -326,7 +324,7 @@ class FieldData(object):
         """
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def save_to_hdf5(self, filename, *args, **kwargs):
         """Save field data in a file with HyperSpys HDF5-format.
 
@@ -365,11 +363,6 @@ class VectorData(FieldData):
     """
     _log = logging.getLogger(__name__ + '.VectorData')
 
-    def __init__(self, a, field):
-        self._log.debug('Calling __init__')
-        super(VectorData, self).__init__(a, field)
-        self._log.debug('Created ' + str(self))
-
     def scale_down(self, n=1):
         """Scale down the field distribution by averaging over two pixels along each axis.
 
@@ -389,7 +382,7 @@ class VectorData(FieldData):
 
         """
         self._log.debug('Calling scale_down')
-        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
         self.a *= 2 ** n
         for t in range(n):
             # Pad if necessary:
@@ -422,8 +415,8 @@ class VectorData(FieldData):
         Acts in place and changes dimensions and grid spacing accordingly.
         """
         self._log.debug('Calling scale_up')
-        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
-        assert 5 > order >= 0 and isinstance(order, (int, long)), \
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
+        assert 5 > order >= 0 and isinstance(order, int), \
             'order must be a positive integer between 0 and 5!'
         self.a /= 2 ** n
         self.field = np.array((zoom(self.field[0], zoom=2 ** n, order=order),
@@ -1056,11 +1049,6 @@ class ScalarData(FieldData):
     """
     _log = logging.getLogger(__name__ + '.ScalarData')
 
-    def __init__(self, a, field):
-        self._log.debug('Calling __init__')
-        super(ScalarData, self).__init__(a, field)
-        self._log.debug('Created ' + str(self))
-
     def scale_down(self, n=1):
         """Scale down the field distribution by averaging over two pixels along each axis.
 
@@ -1080,7 +1068,7 @@ class ScalarData(FieldData):
 
         """
         self._log.debug('Calling scale_down')
-        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
         self.a *= 2 ** n
         for t in range(n):
             # Pad if necessary:
@@ -1112,8 +1100,8 @@ class ScalarData(FieldData):
         Acts in place and changes dimensions and grid spacing accordingly.
         """
         self._log.debug('Calling scale_up')
-        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
-        assert 5 > order >= 0 and isinstance(order, (int, long)), \
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
+        assert 5 > order >= 0 and isinstance(order, int), \
             'order must be a positive integer between 0 and 5!'
         self.a /= 2 ** n
         self.field = zoom(self.field, zoom=2 ** n, order=order)

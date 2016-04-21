@@ -289,7 +289,7 @@ class PhaseMap(object):
 
         """
         self._log.debug('Calling scale_down')
-        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
         self.a *= 2 ** n
         for t in range(n):
             # Pad if necessary:
@@ -326,8 +326,8 @@ class PhaseMap(object):
 
         """
         self._log.debug('Calling scale_up')
-        assert n > 0 and isinstance(n, (int, long)), 'n must be a positive integer!'
-        assert 5 > order >= 0 and isinstance(order, (int, long)), \
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
+        assert 5 > order >= 0 and isinstance(order, int), \
             'order must be a positive integer between 0 and 5!'
         self.a /= 2 ** n
         self.phase = zoom(self.phase, zoom=2 ** n, order=order)

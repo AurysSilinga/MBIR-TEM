@@ -13,3 +13,4 @@ files*
 build*
 Pyramid.egg-info*
 logfile.log
+.idea*

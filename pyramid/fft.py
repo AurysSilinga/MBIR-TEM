@@ -11,10 +11,8 @@ FFT operations.
 
 """
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+
+import pickle
 import logging
 import os
 
@@ -22,28 +20,19 @@ import numpy as np
 
 from pyramid.config import NTHREADS
 
-# pyFFTW depends on this
-# try:
-#     from collections import Counter
-# except ImportError:
-#     from collections_python27 import Counter
-#     import collections
-#
-#     collections.Counter = Counter
+_log = logging.getLogger(__name__)
 
 try:
     import pyfftw
-
     BACKEND = 'fftw'
 except ImportError:
     pyfftw = None
     BACKEND = 'numpy'
-    print("pyFFTW module not found. Using numpy implementation.")
+    _log.info('pyFFTW module not found. Using numpy implementation.')
 
 __all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom',  # analysis:ignore
            'zeros', 'empty', 'configure_backend',
            'fftn', 'ifftn', 'rfftn', 'irfftn', 'rfftn_adj', 'irfftn_adj']
-_log = logging.getLogger(__name__)
 
 
 class FFTWCache(object):
@@ -384,6 +373,12 @@ def configure_backend(backend):
 
 
 # On import:
+ifftn = None
+fftn = None
+rfftn = None
+irfftn = None
+rfftn_adj = None
+irfftn_adj = None
 if pyfftw is not None:
     configure_backend('fftw')
 else:

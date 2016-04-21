@@ -28,7 +28,7 @@ __all__ = ['Shapes', 'create_mag_dist_homog', 'create_mag_dist_vortex']
 _log = logging.getLogger(__name__)
 
 
-class Shapes(object):
+class Shapes(object, metaclass=abc.ABCMeta):
     """Abstract class containing functions for generating magnetic shapes.
 
     The :class:`~.Shapes` class is a collection of some methods that return a 3-dimensional
@@ -38,11 +38,10 @@ class Shapes(object):
 
     """
 
-    __metaclass__ = abc.ABCMeta
     _log = logging.getLogger(__name__ + '.Shapes')
 
-    @classmethod
-    def slab(cls, dim, center, width):
+    @staticmethod
+    def slab(dim, center, width):
         """Create the shape of a slab.
 
         Parameters
@@ -60,7 +59,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         """
-        cls._log.debug('Calling slab')
+        _log.debug('Calling slab')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a tuple of length 3!'
@@ -70,8 +69,8 @@ class Shapes(object):
         zz_shape = np.where(abs(zz - center[0]) <= width[0] / 2, True, False)
         return np.logical_and(np.logical_and(xx_shape, yy_shape), zz_shape)
 
-    @classmethod
-    def disc(cls, dim, center, radius, height, axis='z'):
+    @staticmethod
+    def disc(dim, center, radius, height, axis='z'):
         """Create the shape of a cylindrical disc in x-, y-, or z-direction.
 
         Parameters
@@ -93,7 +92,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         """
-        cls._log.debug('Calling disc')
+        _log.debug('Calling disc')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'
@@ -114,8 +113,8 @@ class Shapes(object):
         return np.logical_and(np.where(np.hypot(uu, vv) <= radius, True, False),
                               np.where(abs(ww) <= height / 2, True, False))
 
-    @classmethod
-    def ellipse(cls, dim, center, width, height, axis='z'):
+    @staticmethod
+    def ellipse(dim, center, width, height, axis='z'):
         """Create the shape of an elliptical cylinder in x-, y-, or z-direction.
 
         Parameters
@@ -137,7 +136,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         """
-        cls._log.debug('Calling ellipse')
+        _log.debug('Calling ellipse')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert np.shape(width) == (2,), 'Parameter width has to be a a tuple of length 2!'
@@ -159,8 +158,8 @@ class Shapes(object):
         return np.logical_and(np.where(distance <= 1, True, False),
                               np.where(abs(ww) <= height / 2, True, False))
 
-    @classmethod
-    def sphere(cls, dim, center, radius):
+    @staticmethod
+    def sphere(dim, center, radius):
         """Create the shape of a sphere.
 
         Parameters
@@ -178,7 +177,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         """
-        cls._log.debug('Calling sphere')
+        _log.debug('Calling sphere')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'
@@ -186,8 +185,8 @@ class Shapes(object):
         distance = np.sqrt((xx - center[2]) ** 2 + (yy - center[1]) ** 2 + (zz - center[0]) ** 2)
         return np.where(distance <= radius, True, False)
 
-    @classmethod
-    def ellipsoid(cls, dim, center, width):
+    @staticmethod
+    def ellipsoid(dim, center, width):
         """Create the shape of an ellipsoid.
 
         Parameters
@@ -205,7 +204,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         """
-        cls._log.debug('Calling ellipsoid')
+        _log.debug('Calling ellipsoid')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
         assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
         assert np.shape(width) == (3,), 'Parameter width has to be a a tuple of length 3!'
@@ -215,8 +214,8 @@ class Shapes(object):
                            + ((zz - center[0]) / (width[0] / 2)) ** 2)
         return np.where(distance <= 1, True, False)
 
-    @classmethod
-    def filament(cls, dim, pos, axis='y'):
+    @staticmethod
+    def filament(dim, pos, axis='y'):
         """Create the shape of a filament.
 
         Parameters
@@ -236,7 +235,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         """
-        cls._log.debug('Calling filament')
+        _log.debug('Calling filament')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(pos) == (2,), 'Parameter pos has to be a tuple of length 2!'
         assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'
@@ -249,8 +248,8 @@ class Shapes(object):
             mag_shape[pos[0], pos[1], :] = 1
         return mag_shape
 
-    @classmethod
-    def pixel(cls, dim, pixel):
+    @staticmethod
+    def pixel(dim, pixel):
         """Create the shape of a single pixel.
 
         Parameters
@@ -266,7 +265,7 @@ class Shapes(object):
             The magnetic shape as a 3D-array with values between 1 and 0.
 
         """
-        cls._log.debug('Calling pixel')
+        _log.debug('Calling pixel')
         assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
         assert np.shape(pixel) == (3,), 'Parameter pixel has to be a tuple of length 3!'
         mag_shape = np.zeros(dim)

@@ -22,7 +22,7 @@ from pyramid.quaternion import Quaternion
 __all__ = ['RotTiltProjector', 'XTiltProjector', 'YTiltProjector', 'SimpleProjector']
 
 
-class Projector(object):
+class Projector(object, metaclass=abc.ABCMeta):
     """Abstract base class representing a projection function.
 
     The :class:`~.Projector` class represents a projection function for a 3-dimensional
@@ -56,7 +56,6 @@ class Projector(object):
 
     """
 
-    __metaclass__ = abc.ABCMeta
     _log = logging.getLogger(__name__ + '.Projector')
 
     @abc.abstractmethod
@@ -301,7 +300,7 @@ class RotTiltProjector(Projector):
         weights = csr_matrix(coo_matrix((data, (rows, columns)), shape=shape))
         # Calculate coefficients by rotating unity matrix (unit vectors, (x,y,z)):
         coeff = quat.matrix[:2, :].dot(np.eye(3))
-        super(RotTiltProjector, self).__init__(dim, dim_uv, weights, coeff)
+        super().__init__(dim, dim_uv, weights, coeff)
         self._log.debug('Created ' + str(self))
 
     @staticmethod
@@ -420,7 +419,7 @@ class XTiltProjector(Projector):
         self.sparsity = 1. - len(data) / np.prod(shape, dtype=np.float)
         weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=shape))
         coeff = [[1, 0, 0], [0, np.cos(tilt), np.sin(tilt)]]
-        super(XTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
+        super().__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created ' + str(self))
 
     @staticmethod
@@ -537,7 +536,7 @@ class YTiltProjector(Projector):
         self.sparsity = 1. - len(data) / np.prod(shape, dtype=np.float)
         weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=shape))
         coeff = [[np.cos(tilt), 0, np.sin(tilt)], [0, 1, 0]]
-        super(YTiltProjector, self).__init__(dim, dim_uv, weight, coeff)
+        super().__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created ' + str(self))
 
     @staticmethod
@@ -664,7 +663,7 @@ class SimpleProjector(Projector):
         shape = (np.prod(dim_uv), np.prod(dim))
         self.sparsity = 1. - len(data) / np.prod(shape, dtype=np.float)
         weight = csr_matrix((data, indices, indptr), shape=shape)
-        super(SimpleProjector, self).__init__(dim, dim_uv, weight, coeff)
+        super().__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created ' + str(self))
 
     def get_info(self, verbose=False):

@@ -83,7 +83,7 @@ class DirectionalColormap(colors.LinearSegmentedColormap):
     def __init__(self, inverted=False):
         self._log.debug('Calling __create_directional_colormap')
         cdict = self.CDICT_INV if inverted else self.CDICT
-        super(DirectionalColormap, self).__init__('directional_colormap', cdict, N=256)
+        super().__init__('directional_colormap', cdict, N=256)
         self._log.debug('Created ' + str(self))
 
     @classmethod
@@ -250,5 +250,5 @@ class TransparentColormap(colors.LinearSegmentedColormap):
         blue = [(0., 0., b), (1., b, 1.)]
         alpha = [(0., 0., alpha_range[0]), (1., alpha_range[1], 1.)]
         cdict = {'red': red, 'green': green, 'blue': blue, 'alpha': alpha}
-        super(TransparentColormap, self).__init__('transparent_colormap', cdict, N=256)
+        super().__init__('transparent_colormap', cdict, N=256)
         self._log.debug('Created ' + str(self))

@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 """Reconstruct a magnetization distributions from a single phase map."""
 
-from __future__ import print_function
+import logging.config
 
+import matplotlib.pyplot as plt
 import numpy as np
+
 import pyramid as pr
 from jutil.taketime import TakeTime
-import logging.config
 
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-phase_name = 'phasemap_gui_150917_skyrm_M_100mT'
+phase_name = 'phasemap_dm3_zi_an_skyrmions_02_38kx_220K_06p27_r_t_magn_x13_y27_w420_h400'
 b_0 = 1  # in T
-lam = 1E-1
+lam = 1E-3
 max_iter = 100
 buffer_pixel = 0
 order = 1
@@ -47,7 +48,6 @@ else:
 mag_data_buffer = mag_data_rec.copy()
 mag_data_rec.crop((0, buffer_pixel, buffer_pixel))
 mag_name = '{}_lam={}'.format(phase_name.replace('phasemap', 'magdata_rec'), lam)
-mag_data_rec = mag_data_rec.flip(axis='y')
 mag_data_rec.save_to_hdf5(mag_name + '.hdf5', overwrite=True)
 
 # Plot stuff:
@@ -69,3 +69,4 @@ difference = (phase_map_rec.phase - phase_map.phase).mean()
 (phase_map_rec - phase_map).display_phase('Difference (mean: {:.2g})'.format(difference))
 if order is not None:
     fwd_model.ramp(0).display_combined('Fitted Ramp')
+plt.show()

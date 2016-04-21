@@ -43,9 +43,9 @@ def optimize_linear(costfunction, max_iter=None):
     """
     import jutil.cg as jcg
     _log.debug('Calling optimize_linear')
-    _log.info('Cost before optimization: {}'.format(costfunction(np.zeros(costfunction.n))))
+    _log.info('Cost before optimization: {:.3e}'.format(costfunction(np.zeros(costfunction.n))))
     x_opt = jcg.conj_grad_minimize(costfunction, max_iter=max_iter).x
-    _log.info('Cost after optimization: {}'.format(costfunction(x_opt)))
+    _log.info('Cost after optimization: {:.3e}'.format(costfunction(x_opt)))
     # Cut ramp parameters if necessary (this also saves the final parameters in the ramp class!):
     x_opt = costfunction.fwd_model.ramp.extract_ramp_params(x_opt)
     # Create and return fitting VectorData object:

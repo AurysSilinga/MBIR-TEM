@@ -26,7 +26,8 @@ class TestCaseAnalytic(unittest.TestCase):
         width = (self.dim[0] / 2, self.dim[1] / 2, self.dim[2] / 2)
         phase = an.phase_mag_slab(self.dim, self.a, self.phi, self.center, width).phase
         reference = np.load(os.path.join(self.path, 'ref_phase_slab.npy'))
-        assert_allclose(phase, reference, err_msg='Unexpected behavior in phase_mag_slab()')
+        assert_allclose(phase, reference, atol=1E-10,
+                        err_msg='Unexpected behavior in phase_mag_slab()')
 
     def test_phase_mag_disc(self):
         """Test of the phase_mag_disc method."""
@@ -34,15 +35,16 @@ class TestCaseAnalytic(unittest.TestCase):
         height = self.dim[2] / 2
         phase = an.phase_mag_disc(self.dim, self.a, self.phi, self.center, radius, height).phase
         reference = np.load(os.path.join(self.path, 'ref_phase_disc.npy'))
-        assert_allclose(phase, reference, err_msg='Unexpected behavior in phase_mag_disc()')
+        assert_allclose(phase, reference, atol=1E-10,
+                        err_msg='Unexpected behavior in phase_mag_disc()')
 
     def test_phase_mag_sphere(self):
         """Test of the phase_mag_sphere method."""
         radius = self.dim[2] / 4
         phase = an.phase_mag_sphere(self.dim, self.a, self.phi, self.center, radius).phase
         reference = np.load(os.path.join(self.path, 'ref_phase_sphere.npy'))
-        assert_allclose(phase, reference, err_msg='Unexpected behavior in phase_mag_sphere()',
-                        atol=1E-10)
+        assert_allclose(phase, reference, atol=1E-10,
+                        err_msg='Unexpected behavior in phase_mag_sphere()')
 
     def test_phase_mag_vortex(self):
         """Test of the phase_mag_vortex method."""
@@ -50,7 +52,8 @@ class TestCaseAnalytic(unittest.TestCase):
         height = self.dim[2] / 2
         phase = an.phase_mag_vortex(self.dim, self.a, self.center, radius, height).phase
         reference = np.load(os.path.join(self.path, 'ref_phase_vort.npy'))
-        assert_allclose(phase, reference, err_msg='Unexpected behavior in phase_mag_vortex()')
+        assert_allclose(phase, reference, atol=1E-10,
+                        err_msg='Unexpected behavior in phase_mag_vortex()')
 
 
 if __name__ == '__main__':

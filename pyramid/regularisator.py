@@ -18,7 +18,7 @@ __all__ = ['NoneRegularisator', 'ZeroOrderRegularisator', 'FirstOrderRegularisat
            'ComboRegularisator']
 
 
-class Regularisator(object):
+class Regularisator(object, metaclass=abc.ABCMeta):
     """Class for providing a regularisation term which implements additional constraints.
 
     Represents a certain constraint for the 3D magnetization distribution whose cost is to minimize
@@ -40,7 +40,6 @@ class Regularisator(object):
 
     """
 
-    __metaclass__ = abc.ABCMeta
     _log = logging.getLogger(__name__ + '.Regularisator')
 
     @abc.abstractmethod
@@ -150,7 +149,7 @@ class ComboRegularisator(Regularisator):
     def __init__(self, reg_list):
         self._log.debug('Calling __init__')
         self.reg_list = reg_list
-        super(ComboRegularisator, self).__init__(norm=None, lam=None)
+        super().__init__(norm=None, lam=None)
         self._log.debug('Created ' + str(self))
 
     def __call__(self, x):
@@ -246,7 +245,7 @@ class NoneRegularisator(Regularisator):
         self.norm = None
         self.lam = 0
         self.add_params = None
-        super(NoneRegularisator, self).__init__(norm=None, lam=None)
+        super().__init__(norm=None, lam=None)
         self._log.debug('Created ' + str(self))
 
     def __call__(self, x):
@@ -324,19 +323,22 @@ class ZeroOrderRegularisator(Regularisator):
         Regularisation parameter determining the weighting between measurements and regularisation.
     p: int, optional
         Order of the norm (default: 2, which means a standard L2-norm).
+    add_params : int
+        Number of additional parameters which are not used in the regularisation. Used to cut
+        the input vector into the appropriate size.
 
     """
 
     _log = logging.getLogger(__name__ + '.ZeroOrderRegularisator')
 
-    def __init__(self, _=None, lam=1E-4, p=2, add_params=None):
+    def __init__(self, _=None, lam=1E-4, p=2, add_params=0):
         self._log.debug('Calling __init__')
         self.p = p
         if p == 2:
             norm = jnorm.L2Square()
         else:
             norm = jnorm.LPPow(p, 1e-12)
-        super(ZeroOrderRegularisator, self).__init__(norm, lam, add_params)
+        super().__init__(norm, lam, add_params)
         self._log.debug('Created ' + str(self))
 
 
@@ -356,10 +358,13 @@ class FirstOrderRegularisator(Regularisator):
         Regularisation parameter determining the weighting between measurements and regularisation.
     p: int, optional
         Order of the norm (default: 2, which means a standard L2-norm).
+    add_params : int
+        Number of additional parameters which are not used in the regularisation. Used to cut
+        the input vector into the appropriate size.
 
     """
 
-    def __init__(self, mask, lam=1E-4, p=2, add_params=None):
+    def __init__(self, mask, lam=1E-4, p=2, add_params=0):
         self.p = p
         D0 = jdiff.get_diff_operator(mask, 0, 3)
         D1 = jdiff.get_diff_operator(mask, 1, 3)
@@ -369,5 +374,5 @@ class FirstOrderRegularisator(Regularisator):
             norm = jnorm.WeightedL2Square(D)
         else:
             norm = jnorm.WeightedTV(jnorm.LPPow(p, 1e-12), D, [D0.shape[0], D.shape[0]])
-        super(FirstOrderRegularisator, self).__init__(norm, lam, add_params)
+        super().__init__(norm, lam, add_params)
         self._log.debug('Created ' + str(self))

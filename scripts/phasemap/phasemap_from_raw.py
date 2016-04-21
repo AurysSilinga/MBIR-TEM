@@ -4,12 +4,11 @@
 import logging.config
 import os
 
-import pyramid as pr
-
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 
+import pyramid as pr
 
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 

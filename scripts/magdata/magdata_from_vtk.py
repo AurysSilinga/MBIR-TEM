@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Create magnetization distributions from vtk-files."""
 
-from __future__ import print_function
-
 import logging.config
 import os
 from time import sleep
@@ -25,8 +23,7 @@ b_0 = 1.
 
 
 def enclosing_zero(x, y, nx=30, ny=30):
-    """
-    Construct a grid of points, that are some distance away from points (x, y)
+    """Construct a grid of points, that are some distance away from points (x, y)
 
     Parameters
     ----------
@@ -47,7 +44,7 @@ def enclosing_zero(x, y, nx=30, ny=30):
     dx = x.ptp() / nx
     dy = y.ptp() / ny
     xp, yp = np.mgrid[x.min() - 2 * dx:x.max() + 2 * dx:(nx + 2) * 1j,
-             y.min() - 2 * dy:y.max() + 2 * dy:(ny + 2) * 1j]
+                      y.min() - 2 * dy:y.max() + 2 * dy:(ny + 2) * 1j]
     xp = xp.ravel()
     yp = yp.ravel()
     # Use KDTree to answer the question: "which point of set (x, y) is the

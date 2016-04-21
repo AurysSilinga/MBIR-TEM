@@ -5,8 +5,6 @@
 """This module provides the :class:`~.Kernel` class, representing the phase contribution of one
 single magnetized pixel."""
 
-from __future__ import print_function
-
 import logging
 
 import numpy as np
@@ -89,6 +87,10 @@ class Kernel(object):
         self.slice_mag = (slice(0, dim_uv[0]),  # Magnetization is padded on the far end!
                           slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
         # Calculate kernel (single pixel phase):
+        # [M_0] = [PHI_0 / µ_0] = Tm² / N/A² = N/Am * A²/N = A/m
+        #       --> This is the magnetization, not the magnetic moment (A/m * m³ = Am²)!
+        # [b_0] = [µ_0] * [M_0] = A/m * N/A² = N/Am = T
+        # [coeff] = [b_0 * a² / (2*PHI_0)] = T * m² / Tm² = 1  --> without unit (phase)!
         coeff = b_0 * a ** 2 / (2 * PHI_0)  # Minus is gone because of negative z-direction
         v_dim, u_dim = dim_uv
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
@@ -141,7 +143,7 @@ class Kernel(object):
         None
 
         """
-        self._log.debug('Calling print_info')
+        self._log.debug('Calling log_info')
         print('Shape of the FOV   :', self.dim_uv)
         print('Shape of the Kernel:', self.dim_kern)
         print('Zero-padded shape  :', self.dim_pad)

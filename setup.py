@@ -2,8 +2,6 @@
 # coding=utf-8
 """Setup for testing, building, distributing and installing the 'Pyramid'-package"""
 
-from __future__ import print_function
-
 import os
 import re
 import subprocess
@@ -16,7 +14,7 @@ from setuptools import setup, find_packages
 from setuptools.extension import Extension
 
 # Import Hyperspy before actually doing stuff, to set the PyQT API at the very beginning (to 2).
-# If this is not done, something sets it to 1 befor HyperSpy is imported, which leads to errors.
+# If this is not done, something sets it to 1 befor Hyperspy is imported, which leads to errors.
 
 
 DISTNAME = 'pyramid'
@@ -104,9 +102,9 @@ def write_version_py(filename='pyramid/version.py'):
 
     """
     version_string = '# -*- coding: utf-8 -*-\n' + \
-                     '"""This file is generated automatically by the Pyramid `setup.py`"""\n' + \
-                     'version = \'{}\'\n'.format(VERSION) + \
-                     'hg_revision = \'{}\'\n'.format(hg_version())
+                     '""""This file is generated automatically by the Pyramid `setup.py`"""\n' + \
+                     'version = "{}"\n'.format(VERSION) + \
+                     'hg_revision = "{}"\n'.format(hg_version())
     with open(os.path.join(os.path.dirname(__file__), filename), 'w') as vfile:
         vfile.write(version_string)
 
@@ -148,16 +146,12 @@ setup(name=DISTNAME,
       version=VERSION,
       packages=find_packages(exclude=['tests']),
       include_dirs=[numpy.get_include()],
-      requires=['numpy', 'matplotlib', 'mayavi', 'hyperspy', 'PIL', 'scipy', 'pyfftw', 'Cython'],
+      requires=['numpy', 'scipy', 'matplotlib', 'Pillow',
+                'mayavi', 'pyfftw', 'hyperspy', 'Cython'],
       scripts=get_files('scripts'),
       test_suite='nose.collector',
       cmdclass={'build_ext': build_ext, 'build': build},
       ext_package='pyramid/numcore',
-      ext_modules=[
-          Extension('phasemapper_core', ['pyramid/numcore/phasemapper_core.pyx'],
-                    include_dirs=[numpy.get_include()],
-                    extra_compile_args=['-march=native', '-mtune=native']
-                    )
-      ]
-      )
+      ext_modules=[Extension('phasemapper_core', ['pyramid/numcore/phasemapper_core.pyx'],
+                             include_dirs=[numpy.get_include()])])
 print('-------------------------------------------------------------------------------\n')

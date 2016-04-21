@@ -30,7 +30,7 @@ Q_E = 1.602E-19  # electron charge in C
 C = 2.998E8  # speed of light in m/s
 
 
-class PhaseMapper(object):
+class PhaseMapper(object, metaclass=abc.ABCMeta):
     """Abstract base class for the phase calculation from a 2-dimensional distribution.
 
     The :class:`~.PhaseMapper-` class represents a strategy for the phasemapping of a
@@ -42,7 +42,6 @@ class PhaseMapper(object):
 
     """
 
-    __metaclass__ = abc.ABCMeta
     _log = logging.getLogger(__name__ + '.PhaseMapper')
 
     @abc.abstractmethod
@@ -261,11 +260,11 @@ class PhaseMapperRDRC(PhaseMapper):
             for j in range(dim_uv[0]):
                 for i in range(dim_uv[1]):
                     v_phase = v_phi[dim_uv[0] - 1 - j:(2 * dim_uv[0] - 1) - j,
-                              dim_uv[1] - 1 - i:(2 * dim_uv[1] - 1) - i]
+                                    dim_uv[1] - 1 - i:(2 * dim_uv[1] - 1) - i]
                     if abs(v_mag[j, i]) > self.threshold:
                         phase += u_mag[j, i] * v_phase
                     u_phase = u_phi[dim_uv[0] - 1 - j:(2 * dim_uv[0] - 1) - j,
-                              dim_uv[1] - 1 - i:(2 * dim_uv[1] - 1) - i]
+                                    dim_uv[1] - 1 - i:(2 * dim_uv[1] - 1) - i]
                     if abs(u_mag[j, i]) > self.threshold:
                         phase -= v_mag[j, i] * u_phase
         # Return the phase:

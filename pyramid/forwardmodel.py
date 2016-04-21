@@ -5,7 +5,7 @@
 """This module provides the :class:`~.ForwardModel` class which represents a strategy to map a
 threedimensional magnetization distribution onto a two-dimensional phase map."""
 
-from __future__ import division, print_function
+from __future__ import division
 
 import logging
 import multiprocessing as mp
@@ -188,7 +188,7 @@ class DistributedForwardModel(ForwardModel):
 
     def __init__(self, data_set, ramp_order=None, nprocs=1):
         # Evoke super constructor to set up the normal ForwardModel:
-        super(DistributedForwardModel, self).__init__(data_set, ramp_order)
+        super().__init__(data_set, ramp_order)
         # Initialize multirocessing specific stuff:
         self.nprocs = nprocs
         img_per_proc = np.ceil(self.data_set.count / self.nprocs).astype(np.int)
