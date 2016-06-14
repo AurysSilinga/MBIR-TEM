@@ -5,9 +5,9 @@
 """Create simple magnetic distributions.
 
 The :mod:`~.magcreator` module is responsible for the creation of simple distributions of
-magnetic moments. In the :class:`~.Shapes` class, you can find several general shapes for the
+magnetic moments. In the :mod:`~.shapes` module, you can find several general shapes for the
 3-dimensional volume that should be magnetized (e.g. slabs, spheres, discs or single pixels).
-These magnetic shapes are then used as input for the creating functions (or you could specify the
+These shapes are then used as input for the creating functions (or you could specify the
 volume yourself as a 3-dimensional boolean matrix or a matrix with values in the range from 0 to 1,
 which modifies the magnetization amplitude). The specified volume can either be magnetized
 homogeneously with the :func:`~.create_mag_dist_homog` function by specifying the magnetization
@@ -18,259 +18,13 @@ center.
 
 from __future__ import division
 
-import abc
 import logging
 
 import numpy as np
 from numpy import pi
 
-__all__ = ['Shapes', 'create_mag_dist_homog', 'create_mag_dist_vortex']
+__all__ = ['create_mag_dist_homog', 'create_mag_dist_vortex']
 _log = logging.getLogger(__name__)
-
-
-class Shapes(object, metaclass=abc.ABCMeta):
-    """Abstract class containing functions for generating magnetic shapes.
-
-    The :class:`~.Shapes` class is a collection of some methods that return a 3-dimensional
-    matrix that represents the magnetized volume and consists of values between 0 and 1.
-    This matrix is used in the functions of the :mod:`~.magcreator` module to create
-    :class:`~pyramid.magdata.VectorData` objects which store the magnetic informations.
-
-    """
-
-    _log = logging.getLogger(__name__ + '.Shapes')
-
-    @staticmethod
-    def slab(dim, center, width):
-        """Create the shape of a slab.
-
-        Parameters
-        ----------
-        dim : tuple (N=3)
-            The dimensions of the grid `(z, y, x)`.
-        center : tuple (N=3)
-            The center of the slab in pixel coordinates `(z, y, x)`.
-        width : tuple (N=3)
-            The width of the slab in pixel coordinates `(z, y, x)`.
-
-        Returns
-        -------
-        mag_shape : :class:`~numpy.ndarray` (N=3)
-            The magnetic shape as a 3D-array with values between 1 and 0.
-
-        """
-        _log.debug('Calling slab')
-        assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
-        assert np.shape(center) == (3,), 'Parameter center has to be a tuple of length 3!'
-        assert np.shape(width) == (3,), 'Parameter width has to be a tuple of length 3!'
-        zz, yy, xx = np.indices(dim) + 0.5
-        xx_shape = np.where(abs(xx - center[2]) <= width[2] / 2, True, False)
-        yy_shape = np.where(abs(yy - center[1]) <= width[1] / 2, True, False)
-        zz_shape = np.where(abs(zz - center[0]) <= width[0] / 2, True, False)
-        return np.logical_and(np.logical_and(xx_shape, yy_shape), zz_shape)
-
-    @staticmethod
-    def disc(dim, center, radius, height, axis='z'):
-        """Create the shape of a cylindrical disc in x-, y-, or z-direction.
-
-        Parameters
-        ----------
-        dim : tuple (N=3)
-            The dimensions of the grid `(z, y, x)`.
-        center : tuple (N=3)
-            The center of the disc in pixel coordinates `(z, y, x)`.
-        radius : float
-            The radius of the disc in pixel coordinates.
-        height : float
-            The height of the disc in pixel coordinates.
-        axis : {'z', 'y', 'x'}, optional
-            The orientation of the disc axis. The default is 'z'.
-
-        Returns
-        -------
-        mag_shape : :class:`~numpy.ndarray` (N=3)
-            The magnetic shape as a 3D-array with values between 1 and 0.
-
-        """
-        _log.debug('Calling disc')
-        assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
-        assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
-        assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'
-        assert height > 0 and np.shape(height) == (), 'Height has to be a positive scalar value!'
-        assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'
-        zz, yy, xx = np.indices(dim) + 0.5
-        xx -= center[2]
-        yy -= center[1]
-        zz -= center[0]
-        if axis == 'z':
-            uu, vv, ww = xx, yy, zz
-        elif axis == 'y':
-            uu, vv, ww = zz, xx, yy
-        elif axis == 'x':
-            uu, vv, ww = yy, zz, xx
-        else:
-            raise ValueError('{} is not a valid argument (use x, y or z)'.format(axis))
-        return np.logical_and(np.where(np.hypot(uu, vv) <= radius, True, False),
-                              np.where(abs(ww) <= height / 2, True, False))
-
-    @staticmethod
-    def ellipse(dim, center, width, height, axis='z'):
-        """Create the shape of an elliptical cylinder in x-, y-, or z-direction.
-
-        Parameters
-        ----------
-        dim : tuple (N=3)
-            The dimensions of the grid `(z, y, x)`.
-        center : tuple (N=3)
-            The center of the ellipse in pixel coordinates `(z, y, x)`.
-        width : tuple (N=2)
-            Length of the two axes of the ellipse.
-        height : float
-            The height of the ellipse in pixel coordinates.
-        axis : {'z', 'y', 'x'}, optional
-            The orientation of the ellipse axis. The default is 'z'.
-
-        Returns
-        -------
-        mag_shape : :class:`~numpy.ndarray` (N=3)
-            The magnetic shape as a 3D-array with values between 1 and 0.
-
-        """
-        _log.debug('Calling ellipse')
-        assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
-        assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
-        assert np.shape(width) == (2,), 'Parameter width has to be a a tuple of length 2!'
-        assert height > 0 and np.shape(height) == (), 'Height has to be a positive scalar value!'
-        assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'
-        zz, yy, xx = np.indices(dim) + 0.5
-        xx -= center[2]
-        yy -= center[1]
-        zz -= center[0]
-        if axis == 'z':
-            uu, vv, ww = xx, yy, zz
-        elif axis == 'y':
-            uu, vv, ww = xx, zz, yy
-        elif axis == 'x':
-            uu, vv, ww = yy, zz, xx
-        else:
-            raise ValueError('{} is not a valid argument (use x, y or z)'.format(axis))
-        distance = np.hypot(uu / (width[1] / 2), vv / (width[0] / 2))
-        return np.logical_and(np.where(distance <= 1, True, False),
-                              np.where(abs(ww) <= height / 2, True, False))
-
-    @staticmethod
-    def sphere(dim, center, radius):
-        """Create the shape of a sphere.
-
-        Parameters
-        ----------
-        dim : tuple (N=3)
-            The dimensions of the grid `(z, y, x)`.
-        center : tuple (N=3)
-            The center of the sphere in pixel coordinates `(z, y, x)`.
-        radius : float
-            The radius of the sphere in pixel coordinates.
-
-        Returns
-        -------
-        mag_shape : :class:`~numpy.ndarray` (N=3)
-            The magnetic shape as a 3D-array with values between 1 and 0.
-
-        """
-        _log.debug('Calling sphere')
-        assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
-        assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
-        assert radius > 0 and np.shape(radius) == (), 'Radius has to be a positive scalar value!'
-        zz, yy, xx = np.indices(dim) + 0.5
-        distance = np.sqrt((xx - center[2]) ** 2 + (yy - center[1]) ** 2 + (zz - center[0]) ** 2)
-        return np.where(distance <= radius, True, False)
-
-    @staticmethod
-    def ellipsoid(dim, center, width):
-        """Create the shape of an ellipsoid.
-
-        Parameters
-        ----------
-        dim : tuple (N=3)
-            The dimensions of the grid `(z, y, x)`.
-        center : tuple (N=3)
-            The center of the ellipsoid in pixel coordinates `(z, y, x)`.
-        width : tuple (N=3)
-            The width of the ellipsoid `(z, y, x)`.
-
-        Returns
-        -------
-        mag_shape : :class:`~numpy.ndarray` (N=3)
-            The magnetic shape as a 3D-array with values between 1 and 0.
-
-        """
-        _log.debug('Calling ellipsoid')
-        assert np.shape(dim) == (3,), 'Parameter dim has to be a a tuple of length 3!'
-        assert np.shape(center) == (3,), 'Parameter center has to be a a tuple of length 3!'
-        assert np.shape(width) == (3,), 'Parameter width has to be a a tuple of length 3!'
-        zz, yy, xx = np.indices(dim) + 0.5
-        distance = np.sqrt(((xx - center[2]) / (width[2] / 2)) ** 2
-                           + ((yy - center[1]) / (width[1] / 2)) ** 2
-                           + ((zz - center[0]) / (width[0] / 2)) ** 2)
-        return np.where(distance <= 1, True, False)
-
-    @staticmethod
-    def filament(dim, pos, axis='y'):
-        """Create the shape of a filament.
-
-        Parameters
-        ----------
-        dim : tuple (N=3)
-            The dimensions of the grid `(z, y, x)`.
-        pos : tuple (N=2)
-            The position of the filament in pixel coordinates `(coord1, coord2)`.
-            `coord1` and `coord2` stand for the two axes, which are perpendicular to `axis`. For
-            the default case (`axis = y`), it is `(coord1, coord2) = (z, x)`.
-        axis :  {'y', 'x', 'z'}, optional
-            The orientation of the filament axis. The default is 'y'.
-
-        Returns
-        -------
-        mag_shape : :class:`~numpy.ndarray` (N=3)
-            The magnetic shape as a 3D-array with values between 1 and 0.
-
-        """
-        _log.debug('Calling filament')
-        assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
-        assert np.shape(pos) == (2,), 'Parameter pos has to be a tuple of length 2!'
-        assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'
-        mag_shape = np.zeros(dim)
-        if axis == 'z':
-            mag_shape[:, pos[0], pos[1]] = 1
-        elif axis == 'y':
-            mag_shape[pos[0], :, pos[1]] = 1
-        elif axis == 'x':
-            mag_shape[pos[0], pos[1], :] = 1
-        return mag_shape
-
-    @staticmethod
-    def pixel(dim, pixel):
-        """Create the shape of a single pixel.
-
-        Parameters
-        ----------
-        dim : tuple (N=3)
-            The dimensions of the grid `(z, y, x)`.
-        pixel : tuple (N=3)
-            The coordinates of the pixel `(z, y, x)`.
-
-        Returns
-        -------
-        mag_shape : :class:`~numpy.ndarray` (N=3)
-            The magnetic shape as a 3D-array with values between 1 and 0.
-
-        """
-        _log.debug('Calling pixel')
-        assert np.shape(dim) == (3,), 'Parameter dim has to be a tuple of length 3!'
-        assert np.shape(pixel) == (3,), 'Parameter pixel has to be a tuple of length 3!'
-        mag_shape = np.zeros(dim)
-        mag_shape[pixel] = 1
-        return mag_shape
 
 
 def create_mag_dist_homog(mag_shape, phi, theta=pi / 2, amplitude=1):
@@ -279,7 +33,7 @@ def create_mag_dist_homog(mag_shape, phi, theta=pi / 2, amplitude=1):
     Parameters
     ----------
     mag_shape : :class:`~numpy.ndarray` (N=3)
-        The magnetic shapes (see Shapes.* for examples).
+        The magnetic shapes (see :mod:`.~shapes` for examples).
     phi : float
         The azimuthal angle, describing the direction of the magnetized object.
     theta : float, optional
@@ -310,7 +64,7 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', amplitude=1):
     Parameters
     ----------
     mag_shape : :class:`~numpy.ndarray` (N=3)
-        The magnetic shapes (see :class:`.~Shapes` for examples).
+        The magnetic shapes (see :mod:`.~shapes`` for examples).
     center : tuple (N=2 or N=3), optional
         The vortex center, given in 2D `(v, u)` or 3D `(z, y, x)`, where the perpendicular axis
         is is discarded. Is set to the center of the field of view if not specified. The vortex

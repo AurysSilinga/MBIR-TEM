@@ -7,6 +7,7 @@ import logging.config
 import numpy as np
 
 import pyramid as pr
+import shapes
 
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
@@ -20,8 +21,8 @@ height = dim[0] // 2
 filename = 'magdata_mc_horseshoe.hdf5'
 
 # Magnetic shape:
-mag_shape_core = pr.magcreator.Shapes.disc(dim, center, radius_core, height)
-mag_shape_outer = pr.magcreator.Shapes.disc(dim, center, radius_shell, height)
+mag_shape_core = shapes.Shapes.disc(dim, center, radius_core, height)
+mag_shape_outer = shapes.Shapes.disc(dim, center, radius_shell, height)
 mag_shape_horseshoe = np.logical_xor(mag_shape_outer, mag_shape_core)
 mag_shape_horseshoe[:, dim[1] // 2:, :] = False
 

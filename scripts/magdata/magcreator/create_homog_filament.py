@@ -7,6 +7,7 @@ import logging.config
 import numpy as np
 
 import pyramid as pr
+import shapes
 
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
@@ -20,7 +21,7 @@ filename = 'magdata_mc_homog_filament.hdf5'
 
 # Magnetic shape:
 pos = (0, dim[1] // 2)
-mag_shape = pr.magcreator.Shapes.filament(dim, pos)
+mag_shape = shapes.Shapes.filament(dim, pos)
 
 # Create and save VectorData object:
 mag_data = pr.VectorData(a, pr.magcreator.create_mag_dist_homog(mag_shape, phi, theta, amplitude))

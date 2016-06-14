@@ -7,6 +7,7 @@ import logging.config
 import numpy as np
 
 import pyramid as pr
+import shapes
 
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
@@ -23,7 +24,7 @@ mag_data = pr.VectorData(a, np.zeros((3,) + dim))
 count = int((dim[1] - 1) / spacing) + 1
 for i in range(count):
     pos = i * spacing
-    mag_shape = pr.magcreator.Shapes.filament(dim, (0, pos))
+    mag_shape = shapes.Shapes.filament(dim, (0, pos))
     mag_data += pr.VectorData(a, pr.magcreator.create_mag_dist_homog(mag_shape, phi))
     phi *= -1  # Switch the angle
 mag_data.save_to_hdf5(filename, overwrite=True)
