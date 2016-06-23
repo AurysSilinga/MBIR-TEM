@@ -257,6 +257,15 @@ class PhaseMap(object):
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
 
+    def __array__(self, dtype=None):
+        if dtype:
+            return self.phase.astype(dtype)
+        else:
+            return self.phase
+
+    def __array_wrap__(self, array, _=None):  # _ catches the context, which is not used.
+        return PhaseMap(self.a, array, self.mask, self.confidence, self.unit)
+
     def copy(self):
         """Returns a copy of the :class:`~.PhaseMap` object
 

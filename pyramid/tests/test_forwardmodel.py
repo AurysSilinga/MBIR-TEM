@@ -70,5 +70,5 @@ class TestCaseForwardModel(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseForwardModel)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    import nose
+    nose.run(defaultTest=__name__)

@@ -74,5 +74,5 @@ class TestCasePhaseMap(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestCasePhaseMap)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    import nose
+    nose.run(defaultTest=__name__)

@@ -170,6 +170,15 @@ class FieldData(object, metaclass=abc.ABCMeta):
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
 
+    def __array__(self, dtype=None):
+        if dtype:
+            return self.field.astype(dtype)
+        else:
+            return self.field
+
+    def __array_wrap__(self, array, _=None):  # _ catches the context, which is not used.
+        return type(self)(self.a, array)
+
     def copy(self):
         """Returns a copy of the :class:`~.FieldData` object
 
