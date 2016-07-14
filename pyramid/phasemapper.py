@@ -11,7 +11,6 @@ import abc
 import logging
 
 import numpy as np
-import pyramid.numcore.phasemapper_core as nc
 from numpy import pi
 
 from pyramid import fft
@@ -20,7 +19,7 @@ from pyramid.fielddata import VectorData, ScalarData
 from pyramid.phasemap import PhaseMap
 from pyramid.projector import RotTiltProjector, XTiltProjector, YTiltProjector, SimpleProjector
 
-__all__ = ['PhaseMapperRDFC', 'PhaseMapperRDRC', 'PhaseMapperFDFC', 'PhaseMapperMIP', 'pm']
+__all__ = ['PhaseMapperRDFC', 'PhaseMapperFDFC', 'PhaseMapperMIP', 'pm']
 _log = logging.getLogger(__name__)
 
 PHI_0 = 2067.83  # magnetic flux in T*nm²
@@ -190,159 +189,6 @@ class PhaseMapperRDFC(PhaseMapper):
         v_phase_adj = fft.rfftn_adj(v_phase_adj_fft)[self.kernel.slice_phase]
         result = np.concatenate((-u_phase_adj.flatten(), -v_phase_adj.flatten()))
         # TODO: Why minus?
-        return result
-
-
-class PhaseMapperRDRC(PhaseMapper):
-    """Class representing a phase mapping strategy using real space discretization.
-
-    The :class:`~.PMReal` class represents a phase mapping strategy involving discretization in
-    real space. It directly takes :class:`~.VectorData` objects and returns :class:`~.PhaseMap`
-    objects.
-
-    Attributes
-    ----------
-    kernel : :class:`~pyramid.Kernel`
-        Convolution kernel, representing the phase contribution of one single magnetized pixel.
-    threshold : float, optional
-        Threshold determining for which voxels the phase contribution will be calculated. The
-        default is 0, which means that all voxels with non-zero magnetization will contribute.
-        Should be above noise level.
-    numcore : boolean, optional
-        Boolean choosing if Cython enhanced routines from the :mod:`~.pyramid.numcore` module
-        should be used. Default is True.
-    m: int
-        Size of the image space.
-    n: int
-        Size of the input space.
-
-    """
-
-    _log = logging.getLogger(__name__ + '.PhaseMapperRDRC')
-
-    def __init__(self, kernel, threshold=0, numcore=True):
-        self._log.debug('Calling __init__')
-        self.kernel = kernel
-        self.threshold = threshold
-        self.numcore = numcore
-        self.m = np.prod(kernel.dim_uv)
-        self.n = 2 * self.m
-        self._log.debug('Created ' + str(self))
-
-    def __repr__(self):
-        self._log.debug('Calling __repr__')
-        return '%s(kernel=%r, threshold=%r, numcore=%r)' % \
-               (self.__class__, self.kernel, self.threshold, self.numcore)
-
-    def __str__(self):
-        self._log.debug('Calling __str__')
-        return 'PhaseMapperRDRC(kernel=%s, threshold=%s, numcore=%s)' % \
-               (self.kernel, self.threshold, self.numcore)
-
-    def __call__(self, mag_data):
-        self._log.debug('Calling __call__')
-        dim_uv = self.kernel.dim_uv
-        assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
-        assert mag_data.a == self.kernel.a, 'Grid spacing has to match!'
-        assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
-        assert mag_data.dim[1:3] == dim_uv, 'Dimensions do not match!'
-        # Process input parameters:
-        u_mag, v_mag = mag_data.field[0:2, 0, ...]
-        # Get kernel (lookup-tables for the phase of one pixel):
-        u_phi = self.kernel.u
-        v_phi = self.kernel.v
-        # Calculation of the phase:
-        phase = np.zeros(dim_uv, dtype=np.float32)
-        if self.numcore:
-            nc.phasemapper_real_convolve(dim_uv[0], dim_uv[1], u_phi, v_phi,
-                                         v_mag, u_mag, phase, self.threshold)
-        else:
-            for j in range(dim_uv[0]):
-                for i in range(dim_uv[1]):
-                    v_phase = v_phi[dim_uv[0] - 1 - j:(2 * dim_uv[0] - 1) - j,
-                                    dim_uv[1] - 1 - i:(2 * dim_uv[1] - 1) - i]
-                    if abs(v_mag[j, i]) > self.threshold:
-                        phase += u_mag[j, i] * v_phase
-                    u_phase = u_phi[dim_uv[0] - 1 - j:(2 * dim_uv[0] - 1) - j,
-                                    dim_uv[1] - 1 - i:(2 * dim_uv[1] - 1) - i]
-                    if abs(u_mag[j, i]) > self.threshold:
-                        phase -= v_mag[j, i] * u_phase
-        # Return the phase:
-        return PhaseMap(mag_data.a, phase)
-
-    def jac_dot(self, vector):
-        """Calculate the product of the Jacobi matrix with a given `vector`.
-
-        Parameters
-        ----------
-        vector : :class:`~numpy.ndarray` (N=1)
-            Vectorized form of the magnetization in `u`- and `v`-direction of every pixel
-            (row-wise). The first ``N**2`` elements have to correspond to the `u`-, the next
-            ``N**2`` elements to the `v`-component of the magnetization.
-
-        Returns
-        -------
-        result : :class:`~numpy.ndarray` (N=1)
-            Product of the Jacobi matrix (which is not explicitely calculated) with the vector.
-
-        """
-        assert len(vector) == self.n, \
-            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
-        v_dim, u_dim = self.kernel.dim_uv
-        result = np.zeros(self.m, dtype=np.float32)
-        if self.numcore:
-            if vector.dtype != np.float32:
-                vector = vector.astype(np.float32)
-            nc.jac_dot_real_convolve(v_dim, u_dim, self.kernel.v, self.kernel.u, vector, result)
-        else:
-            # Iterate over all contributing pixels (numbered consecutively)
-            for s in range(self.m):  # column-wise (two columns at a time, u- and v-component)
-                i = s % u_dim  # u-coordinate of current contributing pixel
-                j = int(s / u_dim)  # v-coordinate of current ccontributing pixel
-                u_min = (u_dim - 1) - i  # u_dim-1: center of the kernel
-                u_max = (2 * u_dim - 1) - i  # = u_min + u_dim
-                v_min = (v_dim - 1) - j  # v_dim-1: center of the kernel
-                v_max = (2 * v_dim - 1) - j  # = v_min + v_dim
-                result += vector[s] * self.kernel.v[v_min:v_max, u_min:u_max].reshape(-1)
-                result -= vector[s + self.m] * self.kernel.u[v_min:v_max, u_min:u_max].reshape(-1)
-        return result
-
-    def jac_T_dot(self, vector):
-        """Calculate the product of the transposed Jacobi matrix with a given `vector`.
-
-        Parameters
-        ----------
-        vector : :class:`~numpy.ndarray` (N=1)
-            Vector with ``N**2`` entries which represents a matrix with dimensions like a scalar
-            phasemap.
-
-        Returns
-        -------
-        result : :class:`~numpy.ndarray` (N=1)
-            Product of the transposed Jacobi matrix (which is not explicitely calculated) with
-            the vector, which has ``2*N**2`` entries like a 2D magnetic projection.
-
-        """
-        assert len(vector) == self.m, \
-            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
-        v_dim, u_dim = self.kernel.dim_uv
-        result = np.zeros(self.n, dtype=np.float32)
-        if self.numcore:
-            if vector.dtype != np.float32:
-                vector = vector.astype(np.float32)
-            nc.jac_T_dot_real_convolve(v_dim, u_dim, self.kernel.v, self.kernel.u, vector, result)
-        else:
-            # Iterate over all contributing pixels (numbered consecutively):
-            for s in range(self.m):  # row-wise (two rows at a time, u- and v-component)
-                i = s % u_dim  # u-coordinate of current contributing pixel
-                j = int(s / u_dim)  # v-coordinate of current contributing pixel
-                u_min = (u_dim - 1) - i  # u_dim-1: center of the kernel
-                u_max = (2 * u_dim - 1) - i  # = u_min + u_dim
-                v_min = (v_dim - 1) - j  # v_dim-1: center of the kernel
-                v_max = (2 * v_dim - 1) - j  # = v_min + v_dim
-                result[s] = np.sum(vector * self.kernel.v[v_min:v_max, u_min:u_max].reshape(-1))
-                result[s + self.m] = np.sum(vector *
-                                            -self.kernel.u[v_min:v_max, u_min:u_max].reshape(-1))
         return result
 
 
