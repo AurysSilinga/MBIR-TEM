@@ -1,24 +1,19 @@
 # -*- coding: utf-8 -*-
 """Create magnetization distributions from fortran sorted txt-files."""
 
-import logging.config
-import os
-
 import numpy as np
 
 import pyramid as py
 
 import matplotlib.pyplot as plt
 
-logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
 filename = 'J=1.D=0.084.H=0.0067.Bobber.dat'
 scale = 1
 ###################################################################################################
 
-path = os.path.join(py.DIR_FILES, 'dat', filename)
-data = np.genfromtxt(path, dtype=np.float32, delimiter=',', usecols=(0, 1, 2, 3, 4, 5))
+data = np.genfromtxt(filename, dtype=np.float32, delimiter=',', usecols=(0, 1, 2, 3, 4, 5))
 x, y, z, xmag, ymag, zmag = data.T
 a = (y[1] - y[0]) * scale
 dim_z = len(np.unique(z))

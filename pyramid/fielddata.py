@@ -722,14 +722,6 @@ class VectorData(FieldData):
 
         """
         self._log.debug('Calling save_to_hdf5')
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'vecdata')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
-        # Save data to file:
         self.to_signal().save(filename, *args, **kwargs)
 
     @classmethod
@@ -751,11 +743,6 @@ class VectorData(FieldData):
         if hs is None:
             cls._log.error('This method recquires the hyperspy package!')
             return
-        # Use relative path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'vecdata')
-            filename = os.path.join(directory, filename)
         # Load data from file:
         return VectorData.from_signal(hs.load(filename))
 
@@ -779,13 +766,6 @@ class VectorData(FieldData):
         zz, yy, xx = self.a * SCALE * (np.indices(self.dim) + 0.5).reshape(3, -1)
         x_vec, y_vec, z_vec = self.field.reshape(3, -1)
         data = np.array([xx, yy, zz, x_vec, y_vec, z_vec]).T
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'vecdata')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
         # Save data to file:
         with open(filename, 'w') as mag_file:
             mag_file.write('LLGFileCreator: %s\n' % filename)
@@ -810,11 +790,6 @@ class VectorData(FieldData):
         """
         cls._log.debug('Calling load_from_llg')
         SCALE = 1.0E-9 / 1.0E-2  # From cm to nm
-        # Use relative path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'vecdata')
-            filename = os.path.join(directory, filename)
         # Load data from file:
         data = np.genfromtxt(filename, skip_header=2)
         dim = tuple(np.genfromtxt(filename, dtype=int, skip_header=1, skip_footer=len(data[:, 0])))
@@ -1231,14 +1206,6 @@ class ScalarData(FieldData):
 
         """
         self._log.debug('Calling save_to_hdf5')
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'scaldata')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
-        # Save data to file:
         self.to_signal().save(filename)
 
     @classmethod
@@ -1260,10 +1227,5 @@ class ScalarData(FieldData):
         if hs is None:
             cls._log.error('This method recquires the hyperspy package!')
             return
-        # Use relative path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'scaldata')
-            filename = os.path.join(directory, filename)
         # Load data from file:
         return ScalarData.from_signal(hs.load(filename))

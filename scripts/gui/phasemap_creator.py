@@ -54,7 +54,7 @@ class Main(QMainWindow, UI_MainWindow):
                      self.update_mask)
         self.phase_loaded = False
         self.mask_loaded = False
-        self.dir = os.path.join(pr.DIR_FILES)
+        self.dir = ''
 
     def addmpl(self):
         fig = Figure()
@@ -86,7 +86,8 @@ class Main(QMainWindow, UI_MainWindow):
 
     def load_phase(self):
         try:
-            self.phase_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Phase', self.dir)
+            self.phase_path = QtGui.QFileDialog.getOpenFileName(self, str_caption='Load Phase',
+                                                                str_directory=self.dir)
             self.phase_map = pr.PhaseMap.from_signal(hs.load(self.phase_path))
         except ValueError:
             return  # Abort if no phase_path is selected!
@@ -110,7 +111,8 @@ class Main(QMainWindow, UI_MainWindow):
 
     def load_mask(self):
         try:
-            mask_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Mask', self.dir)
+            mask_path = QtGui.QFileDialog.getOpenFileName(self, str_caption='Load Mask',
+                                                          str_directory=self.dir)
             self.raw_mask = hs.load(mask_path).data
         except ValueError:
             return  # Abort if no mask_path is selected!
@@ -131,7 +133,8 @@ class Main(QMainWindow, UI_MainWindow):
 
     def load_conf(self):
         try:
-            conf_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Confidence', self.dir)
+            conf_path = QtGui.QFileDialog.getOpenFileName(self, str_caption='Load Confidence',
+                                                          str_directory=self.dir)
         except ValueError:
             return  # Abort if no conf_path is selected!
         confidence = hs.load(conf_path).data
@@ -144,8 +147,9 @@ class Main(QMainWindow, UI_MainWindow):
         try:
             export_name = os.path.splitext(os.path.basename(self.phase_path))[0]
             export_default = os.path.join(self.dir, 'phasemap_gui_{}.hdf5'.format(export_name))
-            export_path = QtGui.QFileDialog.getSaveFileName(self, 'Export PhaseMap',
-                                                            export_default, 'HDF5 (*.hdf5)')
+            export_path = QtGui.QFileDialog.getSaveFileName(self, str_caption='Export PhaseMap',
+                                                            str_directory=export_default,
+                                                            str_filter='HDF5 (*.hdf5)')
             self.phase_map.to_signal().save(export_path, overwrite=True)
         except ValueError:
             return  # Abort if no export_path is selected!

@@ -18,8 +18,6 @@ import os
 
 import numpy as np
 
-from pyramid.config import NTHREADS
-
 _log = logging.getLogger(__name__)
 
 try:
@@ -29,6 +27,15 @@ except ImportError:
     pyfftw = None
     BACKEND = 'numpy'
     _log.info('pyFFTW module not found. Using numpy implementation.')
+
+try:
+    import multiprocessing
+    NTHREADS = multiprocessing.cpu_count()
+    del multiprocessing
+except ImportError:
+    NTHREADS = 1
+    _log.info('multiprocessing module not found. Using single core.')
+
 
 __all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom',  # analysis:ignore
            'zeros', 'empty', 'configure_backend',

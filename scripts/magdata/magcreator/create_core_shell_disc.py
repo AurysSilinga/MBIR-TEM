@@ -2,14 +2,10 @@
 # -*- coding: utf-8 -*-
 """Create magnetic core shell disc."""
 
-import logging.config
-
 import numpy as np
 
 import pyramid as pr
-import shapes
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 # Parameters:
 dim = (32, 32, 32)
@@ -21,8 +17,8 @@ height = dim[0] // 2
 filename = 'magdata_mc_core_shell_disc.hdf5'
 
 # Magnetic shape:
-mag_shape_core = shapes.Shapes.disc(dim, center, radius_core, height)
-mag_shape_outer = shapes.Shapes.disc(dim, center, radius_shell, height)
+mag_shape_core = pr.shapes.disc(dim, center, radius_core, height)
+mag_shape_outer = pr.shapes.disc(dim, center, radius_shell, height)
 mag_shape_shell = np.logical_xor(mag_shape_outer, mag_shape_core)
 
 # Create and save VectorData object:

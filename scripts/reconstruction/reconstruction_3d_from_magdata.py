@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Reconstruct a magnetization distributions from phase maps created from it."""
 
-import logging.config
 import multiprocessing as mp
 
 import matplotlib.pyplot as plt
@@ -11,7 +10,6 @@ import numpy as np
 import pyramid as pr
 from jutil.taketime import TakeTime
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
 mag_name = 'magdata_mc_alternating_vortices'

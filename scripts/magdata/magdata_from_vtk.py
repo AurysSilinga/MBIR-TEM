@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Create magnetization distributions from vtk-files."""
 
-import logging.config
-import os
 from time import sleep
 
 import pyramid as pr
@@ -14,7 +12,6 @@ from pylab import griddata
 from scipy.spatial import cKDTree as KDTree
 from tqdm import tqdm
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
 filename = 'tube_90x30x35nm.vtk'
@@ -55,13 +52,10 @@ def enclosing_zero(x, y, nx=30, ny=30):
     m = (dist > np.hypot(dx, dy))
     return xp[m], yp[m]
 
-
-filepath = os.path.join(pr.DIR_FILES, 'vtk', filename)
-
 print('LOAD VTK-DATA!')
 # Setting up reader:
 reader = vtk.vtkDataSetReader()
-reader.SetFileName(filepath)
+reader.SetFileName(filename)
 reader.ReadAllScalarsOn()
 reader.ReadAllVectorsOn()
 reader.Update()

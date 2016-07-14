@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 """Create magnetization distributions from fortran sorted txt-files."""
 
-import logging.config
-import os
-
 import numpy as np
 
 import pyramid as py
 
-logging.config.fileConfig(py.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
 filename = 'long_grain_remapped_0p0070.txt'
 ###################################################################################################
 
 # Load data:
-data = np.loadtxt(os.path.join(py.DIR_FILES, 'txtfortran', filename), delimiter=',')
+data = np.loadtxt(filename, delimiter=',')
 # Get parameters:
 a = 1000 * (data[1, 2] - data[0, 2])
 dim = len(np.unique(data[:, 2])), len(np.unique(data[:, 1])), len(np.unique(data[:, 0]))

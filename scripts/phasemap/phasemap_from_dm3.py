@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Create magnetization distributions from DM3 (Digital Micrograph 3) files."""
 
-import logging.config
 import os
 
 import numpy as np
@@ -12,7 +11,6 @@ import pyramid as pr
 
 import matplotlib.pyplot as plt
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
 path_mag = '14p5kx_m0150mT_q3_pha_sb400_sc512_magn.dm3'
@@ -27,16 +25,16 @@ flip_up_down = True
 ###################################################################################################
 
 # Load images:
-im_mag_hp = hs.load(os.path.join(pr.DIR_FILES, 'dm3', path_mag))
+im_mag_hp = hs.load(path_mag)
 im_mag = Image.fromarray(im_mag_hp.data)
 if path_mask is not None:
-    # im_mask_hp = hp.load(os.path.join(pr.DIR_FILES, 'dm3', path_mask))
-    mask_data = np.genfromtxt(os.path.join(pr.DIR_FILES, 'dm3', path_mask), delimiter=',')
+    im_mask_hp = hs.load(path_mask)
+    mask_data = np.genfromtxt(path_mask, delimiter=',')
     im_mask = Image.fromarray(mask_data)  # )im_mask_hp.data)
 else:
     im_mask = Image.new('F', im_mag.size, 'white')
 if path_conf is not None:
-    im_conf_hp = hs.load(os.path.join(pr.DIR_FILES, 'dm3', path_conf))
+    im_conf_hp = hs.load(path_conf)
     im_conf = Image.fromarray(im_conf_hp.data)
 else:
     im_conf = Image.new('F', im_mag.size, 'white')
@@ -56,6 +54,6 @@ confidence = np.where(np.asarray(im_conf) >= threshold, 1, 0)
 
 # Create and save PhaseMap object:
 phase_map = pr.PhaseMap(a, phase, mask, confidence, unit='rad')
-phase_map.save_to_hdf5(os.path.join(pr.DIR_FILES, 'phasemap', filename), overwrite=True)
+phase_map.save_to_hdf5(filename, overwrite=True)
 phase_map.display_combined()
 plt.show()

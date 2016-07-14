@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 """Create magnetic distribution of alternating filaments."""
 
-import logging.config
 import numpy as np
 import pyramid as pr
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 # Parameters:
 segments = 8

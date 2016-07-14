@@ -2,15 +2,12 @@
 # -*- coding: utf-8 -*-
 """Create random magnetic distributions."""
 
-import logging.config
 import random as rnd
 
 import numpy as np
 
 import pyramid as pr
-import shapes
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 # Parameters:
 dim = (1, 128, 128)
@@ -37,7 +34,7 @@ for i in range(count):
     center = (rnd.randrange(int(width[0] / 2), dim[0] - int(width[0] / 2)),
               rnd.randrange(int(width[1] / 2), dim[1] - int(width[1] / 2)),
               rnd.randrange(int(width[2] / 2), dim[2] - int(width[2] / 2)))
-    mag_shape = shapes.Shapes.slab(dim, center, width)
+    mag_shape = pr.shapes.slab(dim, center, width)
     phi = 2 * np.pi * rnd.random()
     mag_data += pr.VectorData(a, pr.magcreator.create_mag_dist_homog(mag_shape, phi))
 mag_data.save_to_hdf5(filename, overwrite=True)

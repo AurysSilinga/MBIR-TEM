@@ -69,7 +69,6 @@ from .regularisator import *
 from .ramp import *
 from .quaternion import *
 from .colormap import *
-from .config import *
 from .version import version as __version__
 from .version import hg_revision as __hg_revision__
 
@@ -92,4 +91,3 @@ __all__.extend(regularisator.__all__)
 __all__.extend(ramp.__all__)
 __all__.extend(quaternion.__all__)
 __all__.extend(colormap.__all__)
-__all__.extend(config.__all__)

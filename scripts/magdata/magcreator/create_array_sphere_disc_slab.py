@@ -2,14 +2,10 @@
 # -*- coding: utf-8 -*-
 """Create multiple magnetic distributions."""
 
-import logging.config
-
 import numpy as np
 
 import pyramid as pr
-import shapes
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 # Parameters:
 dim = (64, 128, 128)
@@ -19,16 +15,16 @@ filename = 'magdata_mc_array_sphere_disc_slab.hdf5'
 # Slab:
 center = (32, 32, 32)  # in px (z, y, x), index starts with 0!
 width = (48, 48, 48)  # in px (z, y, x)
-mag_shape_slab = shapes.Shapes.slab(dim, center, width)
+mag_shape_slab = pr.shapes.slab(dim, center, width)
 # Disc:
 center = (32, 32, 96)  # in px (z, y, x), index starts with 0!
 radius = 24  # in px
 height = 24  # in px
-mag_shape_disc = shapes.Shapes.disc(dim, center, radius, height)
+mag_shape_disc = pr.shapes.disc(dim, center, radius, height)
 # Sphere:
 center = (32, 96, 64)  # in px (z, y, x), index starts with 0!
 radius = 24  # in px
-mag_shape_sphere = shapes.Shapes.sphere(dim, center, radius)
+mag_shape_sphere = pr.shapes.sphere(dim, center, radius)
 
 # Create and save VectorData object:
 mag_data = pr.VectorData(a, pr.magcreator.create_mag_dist_homog(mag_shape_slab, np.pi / 4))

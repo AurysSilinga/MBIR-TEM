@@ -2,14 +2,10 @@
 # -*- coding: utf-8 -*-
 """Create vortex disc magnetization distribution."""
 
-import logging.config
-
 import numpy as np
 
 import pyramid as pr
-import shapes
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 # Parameters:
 dim = (1, 512, 512)
@@ -24,8 +20,8 @@ tilt = 0
 center_1 = (0, dim[1] // 2 - 0.5 + 40, dim[2] // 2 - 0.5)
 center_2 = (0, dim[1] // 2 - 0.5 - 40, dim[2] // 2 - 0.5)
 width = (1, 80, 80)  # in px
-mag_shape_1 = shapes.Shapes.slab(dim, center_1, width)
-mag_shape_2 = shapes.Shapes.slab(dim, center_2, width)
+mag_shape_1 = pr.shapes.slab(dim, center_1, width)
+mag_shape_2 = pr.shapes.slab(dim, center_2, width)
 
 # Create and save VectorData object:
 mag = pr.magcreator.create_mag_dist_homog(mag_shape_1, phi=7 / 12. * np.pi, amplitude=amplitude)

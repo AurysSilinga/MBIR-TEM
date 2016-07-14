@@ -2,14 +2,10 @@
 # -*- coding: utf-8 -*-
 """Create magnetic core shell sphere."""
 
-import logging.config
-
 import numpy as np
 
 import pyramid as pr
-import shapes
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 # Parameters:
 dim = (32, 32, 32)
@@ -20,8 +16,8 @@ radius_shell = dim[1] // 4
 filename = 'magdata_mc_core_shell_sphere.hdf5'
 
 # Magnetic shape:
-mag_shape_sphere = shapes.Shapes.sphere(dim, center, radius_shell)
-mag_shape_disc = shapes.Shapes.disc(dim, center, radius_core, height=dim[0])
+mag_shape_sphere = pr.shapes.sphere(dim, center, radius_shell)
+mag_shape_disc = pr.shapes.disc(dim, center, radius_core, height=dim[0])
 mag_shape_core = np.logical_and(mag_shape_sphere, mag_shape_disc)
 mag_shape_shell = np.logical_and(mag_shape_sphere, np.logical_not(mag_shape_core))
 

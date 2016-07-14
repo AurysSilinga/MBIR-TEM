@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 """Reconstruct a magnetization distributions from a single phase map."""
 
-import logging.config
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 import pyramid as pr
 from jutil.taketime import TakeTime
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
 phase_name = 'phasemap_dm3_14p5kx_m0150mT_q3_pha_sb400_sc512_magn'

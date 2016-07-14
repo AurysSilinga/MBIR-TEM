@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 """magnetic singularity"""
 
-import logging.config
-
 import numpy as np
 
 import pyramid as pr
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 # Parameters:
 dim = (5, 5, 5)

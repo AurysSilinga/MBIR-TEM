@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
 """Create magnetization distributions from a raw image format."""
 
-import logging.config
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 
 import pyramid as pr
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
 path_mag = '83-225x148.raw'
@@ -24,10 +20,10 @@ offset = 0.
 ###################################################################################################
 
 # Load images:
-with open(os.path.join(pr.DIR_FILES, 'raw', path_mag), 'rb') as raw_file:
+with open(path_mag, 'rb') as raw_file:
     raw_data = raw_file.read()
 im_mag = Image.fromstring('F', im_size, raw_data, 'raw')
-with open(os.path.join(pr.DIR_FILES, 'raw', path_mask), 'rb') as raw_file:
+with open(path_mask, 'rb') as raw_file:
     raw_data = raw_file.read()
 im_mask = Image.fromstring('F', im_size, raw_data, 'raw')
 if dim_uv is not None:
@@ -40,6 +36,6 @@ mask = np.where(np.asarray(im_mask) >= threshold, True, False)
 
 # Create and save PhaseMap object:
 phase_map = pr.PhaseMap(a, phase, mask, confidence=None, unit='rad')
-phase_map.save_to_hdf5(os.path.join(pr.DIR_FILES, 'phasemap', filename), overwrite=True)
+phase_map.save_to_hdf5(filename, overwrite=True)
 phase_map.display_combined()
 plt.show()

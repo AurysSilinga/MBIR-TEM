@@ -503,14 +503,6 @@ class PhaseMap(object):
 
         """
         self._log.debug('Calling save_to_hdf5')
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'phasemap')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
-        # Save data to file:
         self.to_signal().save(filename, *args, **kwargs)
 
     @classmethod
@@ -532,11 +524,6 @@ class PhaseMap(object):
         if hs is None:
             cls._log.error('This method recquires the hyperspy package!')
             return
-        # Use relative path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'phasemap')
-            filename = os.path.join(directory, filename)
         # Load data from file:
         return PhaseMap.from_signal(hs.load(filename))
 
@@ -558,13 +545,6 @@ class PhaseMap(object):
 
         """
         self._log.debug('Calling save_to_txt')
-        # Construct path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'phasemap')
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            filename = os.path.join(directory, filename)
         # Save data to file:
         with open(filename, 'w') as phase_file:
             if not skip_header:
@@ -593,11 +573,6 @@ class PhaseMap(object):
 
         """
         cls._log.debug('Calling load_from_txt')
-        # Use relative path if filename isn't already absolute:
-        if not os.path.isabs(filename):
-            from pyramid.config import DIR_FILES
-            directory = os.path.join(DIR_FILES, 'phasemap')
-            filename = os.path.join(directory, filename)
         # Load data from file:
         with open(filename, 'r') as phase_file:
             phase_file.readline()  # Headerline is not used

@@ -116,9 +116,8 @@ class Main(QMainWindow, UI_MainWindow):
 
     def load(self):
         try:
-            directory = os.path.join(pr.DIR_FILES, 'vecdata')
-            mag_file = QtGui.QFileDialog.getOpenFileName(self, 'Open Data File', directory,
-                                                         'HDF5 files (*.hdf5)')
+            mag_file = QtGui.QFileDialog.getOpenFileName(self, str_caption='Open Data File',
+                                                         str_filter='HDF5 files (*.hdf5)')
         except ValueError:
             return  # Abort if no conf_path is selected!
         self.mag_data = pr.VectorData.load_from_hdf5(mag_file)

@@ -2,13 +2,10 @@
 # -*- coding: utf-8 -*-
 """Create pyramid logo."""
 
-import logging.config
-
 import numpy as np
 
 import pyramid as pr
 
-logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 # Parameters:
 dim = (1, 256, 256)
