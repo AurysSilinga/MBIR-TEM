@@ -231,7 +231,14 @@ class PhaseMap(object):
         assert (isinstance(other, Number) or
                 (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
-        return PhaseMap(self.a, other * self.phase, self.mask, self.confidence, self.unit)
+        return PhaseMap(self.a, self.phase * other, self.mask, self.confidence, self.unit)
+
+    def __div__(self, other):  # self / other
+        self._log.debug('Calling __div__')
+        assert (isinstance(other, Number) or
+                (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
+            'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
+        return PhaseMap(self.a, self.phase / other, self.mask, self.confidence, self.unit)
 
     def __radd__(self, other):  # other + self
         self._log.debug('Calling __radd__')
@@ -256,6 +263,10 @@ class PhaseMap(object):
     def __imul__(self, other):  # self *= other
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
+
+    def __idiv__(self, other):  # self /= other
+        self._log.debug('Calling __idiv__')
+        return self.__div__(other)
 
     def __array__(self, dtype=None):
         if dtype:
@@ -427,14 +438,14 @@ class PhaseMap(object):
             self._log.error('This method recquires the hyperspy package!')
             return
         # Create signal:
-        signal = hs.signals.Image(self.phase)
+        signal = hs.signals.Signal2D(self.phase)
         # Set axes:
-        signal.axes_manager[0].name = 'x-axis'
-        signal.axes_manager[0].units = 'nm'
-        signal.axes_manager[0].scale = self.a
-        signal.axes_manager[1].name = 'y-axis'
-        signal.axes_manager[1].units = 'nm'
-        signal.axes_manager[1].scale = self.a
+        signal.axes_manager.signal_axes[0].name = 'x-axis'
+        signal.axes_manager.signal_axes[0].units = 'nm'
+        signal.axes_manager.signal_axes[0].scale = self.a
+        signal.axes_manager.signal_axes[1].name = 'y-axis'
+        signal.axes_manager.signal_axes[1].units = 'nm'
+        signal.axes_manager.signal_axes[1].scale = self.a
         # Set metadata:
         signal.metadata.Signal.title = 'PhaseMap'
         signal.metadata.Signal.unit = self.unit
@@ -466,7 +477,7 @@ class PhaseMap(object):
         # Extract phase:
         phase = signal.data
         # Extract properties:
-        a = signal.axes_manager[0].scale
+        a = signal.axes_manager.signal_axes[0].scale
         try:
             unit = signal.metadata.Signal.unit
             mask = signal.metadata.Signal.mask
@@ -594,7 +605,7 @@ class PhaseMap(object):
             phase = np.loadtxt(filename, delimiter='\t', skiprows=2)
         return cls(a, phase)
 
-    def display_phase(self, title='Phase Map', cmap='RdBu', limit=None,
+    def display_phase(self, title='Phase Map', cbar_title=None, cmap='RdBu', limit=None,
                       norm=None, axis=None, cbar=True, show_mask=True, show_conf=True):
         """Display the phasemap as a colormesh.
 
@@ -602,6 +613,8 @@ class PhaseMap(object):
         ----------
         title : string, optional
             The title of the plot. The default is 'Phase Map'.
+        cbar_title : string, optional
+            The title of the colorbar.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             The default is 'RdBu'.
@@ -666,7 +679,9 @@ class PhaseMap(object):
             cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
             cbar = fig.colorbar(im, cax=cbar_ax)
             cbar.ax.tick_params(labelsize=14)
-            cbar.set_label(u'phase shift [{}]'.format(self.unit), fontsize=15)
+            if cbar_title is None:
+                cbar_title = u'phase shift [{}]'.format(self.unit)
+            cbar.set_label(cbar_title, fontsize=15)
         # Return plotting axis:
         return axis
 
@@ -739,7 +754,7 @@ class PhaseMap(object):
             gain = 4 * 2 * np.pi / (np.abs(self.phase).max() + 1E-30)
         # Set title if not set:
         if title is None:
-            title = 'Contour Map (gain: %.2g)' % gain
+            title = 'Holographic contour Map (gain: {:g})'.format(gain)
         # Calculate the holography image intensity:
         holo = np.cos(gain * self.phase)
         holo += 1  # Shift to positive values
@@ -788,15 +803,22 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def display_combined(self, title='Combined Plot', cmap='RdBu', limit=None, norm=None,
-                         gain='auto', interpolation='none', grad_encode='bright',
-                         cbar=True, show_mask=True, show_conf=True):
+    def display_combined(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
+                         cbar_title=None, cmap='RdBu', limit=None, norm=None, gain='auto',
+                         interpolation='none', grad_encode='bright', cbar=True, show_mask=True,
+                         show_conf=True):
         """Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
         ----------
-        title : string, optional
-            The title of the plot. The default is 'Combined Plot'.
+        sup_title : string, optional
+            The super title of the plot. The default is 'Combined Plot'.
+        phase_title : string, optional
+            The title of the phase map.
+        holo_title : string, optional
+            The title of the holographic contour map
+        cbar_title : string, optional
+            The title of the colorbar.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             The default is 'RdBu'.
@@ -833,15 +855,16 @@ class PhaseMap(object):
         self._log.debug('Calling display_combined')
         # Create combined plot and set title:
         fig = plt.figure(figsize=(15, 7))
-        fig.suptitle(title, fontsize=20)
+        fig.suptitle(sup_title, fontsize=20)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-        self.display_holo(gain=gain, axis=holo_axis, interpolation=interpolation,
+        self.display_holo(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation,
                           grad_encode=grad_encode)
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         fig.subplots_adjust(right=0.85)
-        self.display_phase(cmap=cmap, limit=limit, norm=norm, axis=phase_axis,
-                           cbar=cbar, show_mask=show_mask, show_conf=show_conf)
+        self.display_phase(title=phase_title, cbar_title=cbar_title, cmap=cmap, limit=limit,
+                           norm=norm, axis=phase_axis, cbar=cbar, show_mask=show_mask,
+                           show_conf=show_conf)
         # Return the plotting axes:
         return phase_axis, holo_axis

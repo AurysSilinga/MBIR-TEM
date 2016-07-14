@@ -154,7 +154,7 @@ class TestCaseXTiltProjector(unittest.TestCase):
         assert_allclose(jac_90, jac_90_ref,
                         err_msg='Unexpected behaviour in the the jacobi matrix! (90°)')
 
-    def test_SimpleProjector_jac_T_dot(self):
+    def test_XTiltProjector_jac_T_dot(self):
         m00 = self.proj_00.m
         m45 = self.proj_45.m
         m90 = self.proj_90.m
@@ -237,7 +237,7 @@ class TestCaseYTiltProjector(unittest.TestCase):
         assert_allclose(jac_90, jac_90_ref,
                         err_msg='Unexpected behaviour in the the jacobi matrix! (90°)')
 
-    def test_SimpleProjector_jac_T_dot(self):
+    def test_YTiltProjector_jac_T_dot(self):
         m00 = self.proj_00.m
         m45 = self.proj_45.m
         m90 = self.proj_90.m

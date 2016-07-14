@@ -112,9 +112,9 @@ class TestCaseVectorData(unittest.TestCase):
     def test_load_from_hdf5(self):
         mag_data = VectorData.load_from_hdf5(os.path.join(self.path, 'mag_data_ref_load.hdf5'))
         assert_allclose(mag_data.field, self.mag_data.field,
-                        err_msg='Unexpected behavior in load_from_netcdf4()!')
+                        err_msg='Unexpected behavior in load_from_hdf5()!')
         assert_allclose(mag_data.a, self.mag_data.a,
-                        err_msg='Unexpected behavior in load_from_netcdf4()!')
+                        err_msg='Unexpected behavior in load_from_hdf5()!')
 
 
 if __name__ == '__main__':

@@ -409,17 +409,16 @@ class PhaseMapperFDFC(PhaseMapper):
         u_mag_pad = np.pad(u_mag, ((v_pad, v_pad), (u_pad, u_pad)), 'constant')
         v_mag_pad = np.pad(v_mag, ((v_pad, v_pad), (u_pad, u_pad)), 'constant')
         # Fourier transform of the two components:
-        u_mag_fft = np.fft.fftshift(np.fft.rfft2(u_mag_pad), axes=0)
-        v_mag_fft = np.fft.fftshift(np.fft.rfft2(v_mag_pad), axes=0)
+        u_mag_fft = np.fft.rfft2(u_mag_pad)
+        v_mag_fft = np.fft.rfft2(v_mag_pad)
         # Calculate the Fourier transform of the phase:
-        f_nyq = 0.5 / self.a  # nyquist frequency
-        f_u = np.linspace(0, f_nyq, u_mag_fft.shape[1])
-        f_v = np.linspace(-f_nyq, f_nyq, u_mag_fft.shape[0], endpoint=False)
+        f_u = np.fft.rfftfreq(u_dim + 2 * u_pad, self.a)
+        f_v = np.fft.fftfreq(v_dim + 2 * v_pad, self.a)
         f_uu, f_vv = np.meshgrid(f_u, f_v)
         coeff = - (1j * self.b_0 * self.a) / (2 * PHI_0)  # Minus because of negative z-direction
         phase_fft = coeff * (u_mag_fft * f_vv - v_mag_fft * f_uu) / (f_uu ** 2 + f_vv ** 2 + 1e-30)
         # Transform to real space and revert padding:
-        phase_pad = np.fft.irfft2(np.fft.ifftshift(phase_fft, axes=0))
+        phase_pad = np.fft.irfft2(phase_fft)
         phase = phase_pad[v_pad:v_pad + v_dim, u_pad:u_pad + u_dim]
         return PhaseMap(mag_data.a, phase)
 

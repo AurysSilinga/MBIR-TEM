@@ -15,12 +15,12 @@ import matplotlib.pyplot as plt
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-path_mag = 'zi_an_skyrmions_02_38kx_220K_06p27_r_t_magn_x13_y27_w420_h400.dm3'
-path_mask = 'zi_an_skyrmions_02_38kx_220K_06p27_r_t_magn_x13_y27_w420_h400_mask_roi.txt'
+path_mag = '14p5kx_m0150mT_q3_pha_sb400_sc512_magn.dm3'
+path_mask = '14p5kx_m0150mT_q3_pha_sb400_sc512_magn_mask.txt'
 path_conf = None
 filename = 'phasemap_dm3_{}.hdf5'.format(os.path.splitext(path_mag)[0])
 print(filename)
-a = 1.
+a = 3.898
 dim_uv = None
 threshold = 0.5
 flip_up_down = True

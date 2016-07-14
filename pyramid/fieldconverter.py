@@ -105,6 +105,35 @@ def convert_A_to_B(a_data):
     """
     _log.debug('Calling convert_A_to_B')
     assert isinstance(a_data, VectorData), 'Only VectorData objects can be mapped!'
+    #
+    axis = tuple([i for i in range(3) if a_data.dim[i] > 1])
+    #
+    x_grads = np.gradient(a_data.field[0, ...], axis=axis) #/ a_data.a
+    y_grads = np.gradient(a_data.field[1, ...], axis=axis) #/ a_data.a
+    z_grads = np.gradient(a_data.field[2, ...], axis=axis) #/ a_data.a
+    #
+    x_gradii = np.zeros(a_data.shape)
+    y_gradii = np.zeros(a_data.shape)
+    z_gradii = np.zeros(a_data.shape)
+    #
+    for i, axis in enumerate(axis):
+        x_gradii[axis] = x_grads[i]
+        y_gradii[axis] = y_grads[i]
+        z_gradii[axis] = z_grads[i]
+    #
+    x_grad_z, x_grad_y, x_grad_x = x_gradii
+    y_grad_z, y_grad_y, y_grad_x = y_gradii
+    z_grad_z, z_grad_y, z_grad_x = z_gradii
+    # Calculate cross product:
+    b_x = (z_grad_y - y_grad_z)
+    b_y = (x_grad_z - z_grad_x)
+    b_z = (y_grad_x - x_grad_y)
+    # Return B-field:
+    return VectorData(a_data.a, np.asarray((b_x, b_y, b_z)))
+
+
+
+
     # Calculate gradients:
     x_mag, y_mag, z_mag = a_data.field
     x_grad_z, x_grad_y, x_grad_x = np.gradient(x_mag)

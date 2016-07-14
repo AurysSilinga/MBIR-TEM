@@ -91,12 +91,12 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', amplitude=1):
     _log.debug('Calling create_mag_dist_vortex')
     dim = mag_shape.shape
     assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
-    assert axis in {'z', 'y', 'x'}, 'Axis has to be x, y or z (as a string)!'
     assert center is None or len(center) in {2, 3}, \
         'Vortex center has to be defined in 3D or 2D or not at all!'
     if center is None:
         center = (dim[1] / 2, dim[2] / 2)
-    if axis == 'z':
+    sign = -1 if '-' in axis else 1
+    if axis in ('z', '-z'):
         if len(center) == 3:  # if a 3D-center is given, just take the x and y components
             center = (center[1], center[2])
         u = np.linspace(-center[1], dim[2] - 1 - center[1], dim[2]) + 0.5  # pixel center!
@@ -105,9 +105,9 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', amplitude=1):
         phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=0)
         phi = np.tile(phi, (dim[0], 1, 1))
         z_mag = np.zeros(dim)
-        y_mag = -np.ones(dim) * np.sin(phi) * mag_shape * amplitude
-        x_mag = -np.ones(dim) * np.cos(phi) * mag_shape * amplitude
-    elif axis == 'y':
+        y_mag = -np.ones(dim) * np.sin(phi) * mag_shape * amplitude * sign
+        x_mag = -np.ones(dim) * np.cos(phi) * mag_shape * amplitude * sign
+    elif axis in ('y', '-y'):
         if len(center) == 3:  # if a 3D-center is given, just take the x and z components
             center = (center[0], center[2])
         u = np.linspace(-center[1], dim[2] - 1 - center[1], dim[2]) + 0.5  # pixel center!
@@ -115,10 +115,10 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', amplitude=1):
         uu, vv = np.meshgrid(u, v)
         phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=1)
         phi = np.tile(phi, (1, dim[1], 1))
-        z_mag = np.ones(dim) * np.sin(phi) * mag_shape * amplitude
+        z_mag = np.ones(dim) * np.sin(phi) * mag_shape * amplitude * sign
         y_mag = np.zeros(dim)
-        x_mag = np.ones(dim) * np.cos(phi) * mag_shape * amplitude
-    elif axis == 'x':
+        x_mag = np.ones(dim) * np.cos(phi) * mag_shape * amplitude * sign
+    elif axis in ('x', '-x'):
         if len(center) == 3:  # if a 3D-center is given, just take the z and y components
             center = (center[0], center[1])
         u = np.linspace(-center[1], dim[1] - 1 - center[1], dim[1]) + 0.5  # pixel center!
@@ -126,9 +126,9 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z', amplitude=1):
         uu, vv = np.meshgrid(u, v)
         phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=2)
         phi = np.tile(phi, (1, 1, dim[2]))
-        z_mag = -np.ones(dim) * np.sin(phi) * mag_shape * amplitude
-        y_mag = -np.ones(dim) * np.cos(phi) * mag_shape * amplitude
+        z_mag = -np.ones(dim) * np.sin(phi) * mag_shape * amplitude * sign
+        y_mag = -np.ones(dim) * np.cos(phi) * mag_shape * amplitude * sign
         x_mag = np.zeros(dim)
     else:
-        raise ValueError('{} is not a valid argument (use x, y or z)'.format(axis))
+        raise ValueError('{} is not a valid argument (use x, -x, y, -y, z or -z)'.format(axis))
     return np.array([x_mag, y_mag, z_mag])

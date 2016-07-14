@@ -12,9 +12,9 @@ from jutil.taketime import TakeTime
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-phase_name = 'phasemap_dm3_zi_an_skyrmions_02_38kx_220K_06p27_r_t_magn_x13_y27_w420_h400'
+phase_name = 'phasemap_dm3_14p5kx_m0150mT_q3_pha_sb400_sc512_magn'
 b_0 = 1  # in T
-lam = 1E-3
+lam = 1E-1
 max_iter = 100
 buffer_pixel = 0
 order = 1
@@ -26,8 +26,11 @@ phase_map = pr.PhaseMap.load_from_hdf5(phase_name + '.hdf5')
 phase_map.pad((buffer_pixel, buffer_pixel))
 dim = (1,) + phase_map.dim_uv
 
+ar_dens = np.max(dim) // 128
+
 # Construct regularisator, forward model and costfunction:
 data = pr.DataSet(phase_map.a, dim, b_0)
+data.append(phase_map, pr.SimpleProjector(dim))
 data.append(phase_map, pr.SimpleProjector(dim))
 data.set_3d_mask()
 
@@ -51,7 +54,7 @@ mag_name = '{}_lam={}'.format(phase_name.replace('phasemap', 'magdata_rec'), lam
 mag_data_rec.save_to_hdf5(mag_name + '.hdf5', overwrite=True)
 
 # Plot stuff:
-mag_data_rec.quiver_plot('Reconstructed Distribution', ar_dens=int(np.ceil(np.max(dim) / 128.)))
+mag_data_rec.quiver_plot('Reconstructed Distribution', ar_dens=ar_dens)
 phase_map.crop((buffer_pixel, buffer_pixel))
 phase_map.display_combined('Input Phase')
 phase_map -= fwd_model.ramp(index=0)

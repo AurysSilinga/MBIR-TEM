@@ -4,6 +4,8 @@
 import logging.config
 import multiprocessing as mp
 
+import matplotlib.pyplot as plt
+
 import numpy as np
 
 import pyramid as pr
@@ -12,19 +14,20 @@ from jutil.taketime import TakeTime
 logging.config.fileConfig(pr.LOGGING_CONFIG, disable_existing_loggers=False)
 
 ###################################################################################################
-mag_name = 'magdata_mc_horseshoe'
+mag_name = 'magdata_mc_alternating_vortices'
 dim_uv = None
-angles = np.linspace(-90, 90, num=7)
+angles = np.linspace(-90, 90, num=19)
 axes = {'x': True, 'y': True}
 b_0 = 1
-noise = 0.1
-lam = 1E-1
+noise = 0
+lam = 1E-5
 max_iter = 100
 use_internal_mask = True
-offset_max = 2
-ramp_max = 0.01
+offset_max = 0
+ramp_max = 0
 order = 1
 show_input = True
+ar_dens = 1 # 'auto'
 nprocs = mp.cpu_count()  # or 1 for non-multiprocessing
 ###################################################################################################
 
@@ -34,6 +37,8 @@ if __name__ == '__main__':
     # Load magnetization distribution:
     mag_data = pr.VectorData.load_from_hdf5(mag_name + '.hdf5')
     dim = mag_data.dim
+    if ar_dens == 'auto':
+        ar_dens = np.ceil(np.max(dim) / 64)
     # Construct data set and regularisator:
     data = pr.DataSet(mag_data.a, mag_data.dim, b_0)
     # Construct projectors:
@@ -57,10 +62,6 @@ if __name__ == '__main__':
         for i, phase_map in enumerate(data.phase_maps):
             phase_map.phase += np.random.normal(0, noise, phase_map.dim_uv)
             data.phase_maps[i] = phase_map
-    # Plot input:
-    if show_input:
-        for i, phase_map in enumerate(data.phase_maps):
-            phase_map.display_phase()
     # Construct mask:
     if use_internal_mask:
         data.mask = mag_data.get_mask()  # Use perfect mask from mag_data!
@@ -81,11 +82,11 @@ if __name__ == '__main__':
     mag_name_rec = mag_name.replace('magdata', 'magdata_rec')
     mag_data_rec.save_to_hdf5(mag_name_rec + '.hdf5', overwrite=True)
     # Plot stuff:
-    data.display_mask(ar_dens=np.ceil(np.max(dim) / 64.))
-    mag_data.quiver_plot3d('Original Distribution', ar_dens=np.ceil(np.max(dim) / 64.))
-    mag_data_rec.quiver_plot3d('Reconstructed Distribution', ar_dens=np.ceil(np.max(dim) / 64.))
-    mag_data_rec.quiver_plot3d('Reconstructed Distribution', ar_dens=np.ceil(np.max(dim) / 64.),
-                               coloring='amplitude')
-    import matplotlib.pyplot as plt
-
+    data.display_mask(ar_dens=ar_dens)
+    mag_data.quiver_plot3d('Original Distribution', ar_dens=ar_dens)
+    mag_data_rec.quiver_plot3d('Reconstructed Distribution', ar_dens=ar_dens)
+    mag_data_rec.quiver_plot3d('Reconstructed Distribution', ar_dens=ar_dens, coloring='amplitude')
+    # Plot input:
+    if show_input:
+        data.display_phase()
     plt.show()

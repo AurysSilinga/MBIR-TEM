@@ -307,9 +307,8 @@ class DataSet(object):
         else:
             phase_maps = self.phase_maps
         [phase_map.display_phase('{} ({})'.format(title, self.projectors[i].get_info()),
-                                 cmap, limit, norm)
+                                 cmap=cmap, limit=limit, norm=norm)
          for (i, phase_map) in enumerate(phase_maps)]
-        plt.show()
 
     def display_combined(self, mag_data=None, title='Combined Plot', cmap='RdBu', limit=None,
                          norm=None, gain='auto', interpolation='none', grad_encode='bright'):

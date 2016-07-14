@@ -667,7 +667,7 @@ class VectorData(FieldData):
             self._log.error('This method recquires the hyperspy package!')
             return
         # Create signal:
-        signal = hs.signals.Signal(np.rollaxis(self.field, 0, 4))
+        signal = hs.signals.BaseSignal(self.field)  # All axes are signal axes!
         # Set axes:
         signal.axes_manager[0].name = 'x-axis'
         signal.axes_manager[0].units = 'nm'
@@ -678,7 +678,7 @@ class VectorData(FieldData):
         signal.axes_manager[2].name = 'z-axis'
         signal.axes_manager[2].units = 'nm'
         signal.axes_manager[2].scale = self.a
-        signal.axes_manager[3].name = 'components (x,y,z)'
+        signal.axes_manager[3].name = 'x/y/z-component'
         signal.axes_manager[3].units = ''
         # Set metadata:
         signal.metadata.Signal.title = 'VectorData'
@@ -705,11 +705,7 @@ class VectorData(FieldData):
 
         """
         cls._log.debug('Calling from_signal')
-        # Extract field:
-        field = np.rollaxis(signal.data, 3, 0)
-        # Extract properties:
-        a = signal.axes_manager[0].scale
-        return cls(a, field)
+        return cls(signal.axes_manager[0].scale, signal.data)
 
     def save_to_hdf5(self, filename='vecdata.hdf5', *args, **kwargs):
         """Save vector field data in a file with HyperSpys HDF5-format.
@@ -828,7 +824,7 @@ class VectorData(FieldData):
 
     def quiver_plot(self, title='Vector Field', axis=None, proj_axis='z',
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
-                    scale=1., show_mask=True):
+                    scale=1., show_mask=True, bgcolor='black'):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -857,6 +853,8 @@ class VectorData(FieldData):
             (no further scaling).
         show_mask: boolean
             Default is True. Shows the outlines of the mask slice if available.
+        bgcolor: {'black', 'white'}, optional
+            Determines the background color of the plot.
 
         Returns
         -------
@@ -946,9 +944,14 @@ class VectorData(FieldData):
         axis.quiver(uu, vv, u_mag, v_mag, colorinds, cmap=cmap, clim=(0, 1), angles=angles,
                     pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
                     minlength=0.25, headwidth=6, headlength=7)
+        # Change background color:
+        axis.set_axis_bgcolor(bgcolor)
+        # Show mask:
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
-            axis.contour(uu, vv, submask, levels=[0.5], colors='k', linestyles='dotted')
+            mask_color = 'white' if bgcolor == 'black' else 'black'
+            axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color, linestyles='dotted')
+        # Further plot formatting:
         axis.set_xlim(0, dim_uv[1])
         axis.set_ylim(0, dim_uv[0])
         axis.set_title(title, fontsize=18)
@@ -982,7 +985,7 @@ class VectorData(FieldData):
         mode: string, optional
             Mode, determining the glyphs used in the 3D plot. Default is '2darrow', which
             corresponds to 2D arrows. For smaller amounts of arrows, 'arrow' (3D) is prettier.
-        coloring : string
+        coloring : {'angle', 'amplitude'}, optional
             Color coding mode of the arrows. Use 'angle' (default) or 'amplitude'.
         opacity: float, optional
             Defines the opacity of the arrows. Default is 1.0 (completely opaque).
@@ -998,7 +1001,7 @@ class VectorData(FieldData):
         a = self.a
         dim = self.dim
         if limit is None:
-            limit = np.max(self.field_amp)
+            limit = np.max(np.nan_to_num(self.field_amp))
         ad = ar_dens
         # Create points and vector components as lists:
         zzz, yyy, xxx = (np.indices(dim) - a / 2).reshape((3,) + dim)
@@ -1010,31 +1013,30 @@ class VectorData(FieldData):
         z_mag = self.field[2][::ad, ::ad, ::ad].flatten()
         # Plot them as vectors:
         mlab.figure(size=(750, 700))
-        plot = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag,
-                             mode=mode, colormap=cmap, opacity=opacity)
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation
             self._log.debug('Encoding full 3D angles')
-            from tvtk.api import tvtk
-            rgb = DirectionalColormap.rgb_from_direction(x_mag, y_mag, z_mag)
-            colors = [tuple(c) for c in rgb]  # convert to list of tuples!
-            sc = tvtk.UnsignedCharArray()  # Used to hold the colors
-            sc.from_array(colors)
-            plot.mlab_source.dataset.point_data.scalars = sc
-            plot.mlab_source.dataset.modified()
-            plot.glyph.color_mode = 'color_by_scalar'
+            vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
+                                 scalars=np.arange(len(xxx)))
+            rgbs = DirectionalColormap.rgb_from_direction(x_mag, y_mag, z_mag)
+            rgbas = np.hstack((rgbs, 255 * np.ones((len(xxx), 1)))).astype(np.uint8)
+            vecs.glyph.color_mode = 'color_by_scalar'
+            vecs.module_manager.scalar_lut_manager.lut.table = rgbas
+            mlab.draw()
         elif coloring == 'amplitude':  # Encodes the amplitude of the arrows with the jet colormap
             self._log.debug('Encoding amplitude')
+            vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag,
+                                 mode=mode, colormap=cmap, opacity=opacity)
             mlab.colorbar(label_fmt='%.2f')
             mlab.colorbar(orientation='vertical')
         else:
             raise AttributeError('Coloring mode not supported!')
-        plot.glyph.glyph_source.glyph_position = 'center'
-        plot.module_manager.vector_lut_manager.data_range = np.array([0, limit])
-        mlab.outline(plot)
-        mlab.axes(plot)
+        vecs.glyph.glyph_source.glyph_position = 'center'
+        vecs.module_manager.vector_lut_manager.data_range = np.array([0, limit])
+        mlab.outline(vecs)
+        mlab.axes(vecs)
         mlab.title(title, height=0.95, size=0.35)
         mlab.orientation_axes()
-        return plot
+        return vecs
 
 
 class ScalarData(FieldData):
@@ -1176,7 +1178,7 @@ class ScalarData(FieldData):
             self._log.error('This method recquires the hyperspy package!')
             return
         # Create signal:
-        signal = hs.signals.Signal(self.field)
+        signal = hs.signals.BaseSignal(self.field)
         # Set axes:
         signal.axes_manager[0].name = 'x-axis'
         signal.axes_manager[0].units = 'nm'
@@ -1212,11 +1214,7 @@ class ScalarData(FieldData):
 
         """
         cls._log.debug('Calling from_signal')
-        # Extract field:
-        field = signal.data
-        # Extract properties:
-        a = signal.axes_manager[0].scale
-        return cls(a, field)
+        return cls(signal.axes_manager[0].scale, signal.data)
 
     def save_to_hdf5(self, filename='scaldata.hdf5', *args, **kwargs):
         """Save field data in a file with HyperSpys HDF5-format.
