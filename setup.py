@@ -11,10 +11,6 @@ from distutils.command.build import build
 import numpy
 from Cython.Distutils import build_ext
 from setuptools import setup, find_packages
-from setuptools.extension import Extension
-
-# Import Hyperspy before actually doing stuff, to set the PyQT API at the very beginning (to 2).
-# If this is not done, something sets it to 1 befor Hyperspy is imported, which leads to errors.
 
 
 DISTNAME = 'pyramid'

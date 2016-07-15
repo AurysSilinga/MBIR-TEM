@@ -7,7 +7,7 @@
 # WARNING! All changes made in this file will be lost!
 """GUI for slicing 3D magnetization distributions."""
 
-import os
+
 import sys
 
 from PyQt4 import QtGui, QtCore
@@ -116,10 +116,12 @@ class Main(QMainWindow, UI_MainWindow):
 
     def load(self):
         try:
-            mag_file = QtGui.QFileDialog.getOpenFileName(self, str_caption='Open Data File',
-                                                         str_filter='HDF5 files (*.hdf5)')
+            mag_file = QtGui.QFileDialog.getOpenFileName(self, 'Open Data File', '',
+                                                         'HDF5 files (*.hdf5)')
         except ValueError:
             return  # Abort if no conf_path is selected!
+        import hyperspy.api as hs
+        print(hs.load(mag_file))
         self.mag_data = pr.VectorData.load_from_hdf5(mag_file)
         if not self.mag_data_loaded:
             self.addmpl()

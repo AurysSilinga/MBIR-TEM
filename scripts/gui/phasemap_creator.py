@@ -86,9 +86,12 @@ class Main(QMainWindow, UI_MainWindow):
 
     def load_phase(self):
         try:
-            self.phase_path = QtGui.QFileDialog.getOpenFileName(self, str_caption='Load Phase',
-                                                                str_directory=self.dir)
-            self.phase_map = pr.PhaseMap.from_signal(hs.load(self.phase_path))
+            self.phase_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Phase', self.dir)
+            if self.phase_path.endswith('.txt'):
+                phase = np.genfromtxt(self.phase_path, delimiter=',')
+                self.phase_map = pr.PhaseMap(1., phase)
+            else:
+                self.phase_map = pr.PhaseMap.from_signal(hs.load(self.phase_path))
         except ValueError:
             return  # Abort if no phase_path is selected!
         self.doubleSpinBox_a.setValue(self.phase_map.a)
@@ -111,9 +114,11 @@ class Main(QMainWindow, UI_MainWindow):
 
     def load_mask(self):
         try:
-            mask_path = QtGui.QFileDialog.getOpenFileName(self, str_caption='Load Mask',
-                                                          str_directory=self.dir)
-            self.raw_mask = hs.load(mask_path).data
+            mask_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Mask', self.dir)
+            if mask_path.endswith('.txt'):
+                self.raw_mask = np.genfromtxt(mask_path, delimiter=',')
+            else:
+                self.raw_mask = hs.load(mask_path).data
         except ValueError:
             return  # Abort if no mask_path is selected!
         mask_min = self.raw_mask.min()
@@ -133,11 +138,13 @@ class Main(QMainWindow, UI_MainWindow):
 
     def load_conf(self):
         try:
-            conf_path = QtGui.QFileDialog.getOpenFileName(self, str_caption='Load Confidence',
-                                                          str_directory=self.dir)
+            conf_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Confidence', self.dir)
+            if conf_path.endswith('.txt'):
+                confidence = np.genfromtxt(conf_path, delimiter=',')
+            else:
+                confidence = hs.load(conf_path).data
         except ValueError:
             return  # Abort if no conf_path is selected!
-        confidence = hs.load(conf_path).data
         confidence = confidence / confidence.max()
         confidence = np.asarray(Image.fromarray(confidence).resize(self.phase_map.dim_uv))
         self.phase_map.confidence = confidence
@@ -147,12 +154,12 @@ class Main(QMainWindow, UI_MainWindow):
         try:
             export_name = os.path.splitext(os.path.basename(self.phase_path))[0]
             export_default = os.path.join(self.dir, 'phasemap_gui_{}.hdf5'.format(export_name))
-            export_path = QtGui.QFileDialog.getSaveFileName(self, str_caption='Export PhaseMap',
-                                                            str_directory=export_default,
-                                                            str_filter='HDF5 (*.hdf5)')
+            export_path = QtGui.QFileDialog.getSaveFileName(self, 'Export PhaseMap',
+                                                            export_default,
+                                                            'HDF5 (*.hdf5)')
             self.phase_map.to_signal().save(export_path, overwrite=True)
-        except ValueError:
-            return  # Abort if no export_path is selected!
+        except (ValueError, AttributeError):
+            return  # Abort if no export_path is selected or self.phase_map doesn't exist yet!
 
 
 if __name__ == '__main__':
