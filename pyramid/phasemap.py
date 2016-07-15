@@ -233,12 +233,19 @@ class PhaseMap(object):
             'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
         return PhaseMap(self.a, self.phase * other, self.mask, self.confidence, self.unit)
 
-    def __div__(self, other):  # self / other
-        self._log.debug('Calling __div__')
+    def __truediv__(self, other):  # self / other
+        self._log.debug('Calling __truediv__')
         assert (isinstance(other, Number) or
                 (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
-            'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
+            'PhaseMap objects can only be divided by scalar numbers or fitting arrays!'
         return PhaseMap(self.a, self.phase / other, self.mask, self.confidence, self.unit)
+
+    def __floordiv__(self, other):  # self // other
+        self._log.debug('Calling __floordiv__')
+        assert (isinstance(other, Number) or
+                (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
+            'PhaseMap objects can only be divided by scalar numbers or fitting arrays!'
+        return PhaseMap(self.a, self.phase // other, self.mask, self.confidence, self.unit)
 
     def __radd__(self, other):  # other + self
         self._log.debug('Calling __radd__')
@@ -264,9 +271,13 @@ class PhaseMap(object):
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
 
-    def __idiv__(self, other):  # self /= other
-        self._log.debug('Calling __idiv__')
-        return self.__div__(other)
+    def __itruediv__(self, other):  # self /= other
+        self._log.debug('Calling __itruediv__')
+        return self.__truediv__(other)
+
+    def __ifloordiv__(self, other):  # self //= other
+        self._log.debug('Calling __ifloordiv__')
+        return self.__floordiv__(other)
 
     def __array__(self, dtype=None):
         if dtype:

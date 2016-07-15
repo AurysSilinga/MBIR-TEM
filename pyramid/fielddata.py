@@ -144,7 +144,17 @@ class FieldData(object, metaclass=abc.ABCMeta):
     def __mul__(self, other):  # self * other
         self._log.debug('Calling __mul__')
         assert isinstance(other, Number), 'FieldData objects can only be multiplied by numbers!'
-        return self.__class__(self.a, other * self.field)
+        return self.__class__(self.a, self.field * other)
+
+    def __truediv__(self, other):  # self / other
+        self._log.debug('Calling __truediv__')
+        assert isinstance(other, Number), 'FieldData objects can only be divided by numbers!'
+        return self.__class__(self.a, self.field / other)
+
+    def __floordiv__(self, other):  # self // other
+        self._log.debug('Calling __floordiv__')
+        assert isinstance(other, Number), 'FieldData objects can only be divided by numbers!'
+        return self.__class__(self.a, self.field // other)
 
     def __radd__(self, other):  # other + self
         self._log.debug('Calling __radd__')
@@ -169,6 +179,14 @@ class FieldData(object, metaclass=abc.ABCMeta):
     def __imul__(self, other):  # self *= other
         self._log.debug('Calling __imul__')
         return self.__mul__(other)
+
+    def __itruediv__(self, other):  # self /= other
+        self._log.debug('Calling __itruediv__')
+        return self.__truediv__(other)
+
+    def __ifloordiv__(self, other):  # self //= other
+        self._log.debug('Calling __ifloordiv__')
+        return self.__floordiv__(other)
 
     def __array__(self, dtype=None):
         if dtype:
