@@ -7,7 +7,7 @@
 # WARNING! All changes made in this file will be lost!
 """GUI for slicing 3D magnetization distributions."""
 
-
+import os
 import sys
 
 from PyQt4 import QtGui, QtCore
@@ -20,7 +20,8 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 import pyramid as pr
 
 
-UI_MainWindow, QMainWindow = loadUiType('mag_slicer.ui')
+ui_location = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'mag_slicer.ui')
+UI_MainWindow, QMainWindow = loadUiType(ui_location)
 
 
 class Main(QMainWindow, UI_MainWindow):
@@ -44,7 +45,8 @@ class Main(QMainWindow, UI_MainWindow):
                      self.update_phase)
         self.connect(self.pushButtonLoad, QtCore.SIGNAL('clicked()'),
                      self.load)
-        self.mag_data_loaded = False
+        self.is_mag_data_loaded = False
+        self.mag_data = None
 
     def addmpl(self):
         fig = Figure()
@@ -70,7 +72,7 @@ class Main(QMainWindow, UI_MainWindow):
         self.layoutHolo.addWidget(self.toolbarHolo)
 
     def update_phase(self):
-        if self.mag_data_loaded:
+        if self.is_mag_data_loaded:
             mode_ind = self.comboBoxSlice.currentIndex()
             if mode_ind == 0:
                 self.mode = 'z'
@@ -106,7 +108,7 @@ class Main(QMainWindow, UI_MainWindow):
             self.canvasHolo.draw()
 
     def update_slice(self):
-        if self.mag_data_loaded:
+        if self.is_mag_data_loaded:
             self.canvasMag.figure.axes[0].clear()
             self.mag_data.quiver_plot(axis=self.canvasMag.figure.axes[0], proj_axis=self.mode,
                                       ax_slice=self.spinBoxSlice.value(),
@@ -123,14 +125,16 @@ class Main(QMainWindow, UI_MainWindow):
         import hyperspy.api as hs
         print(hs.load(mag_file))
         self.mag_data = pr.VectorData.load_from_hdf5(mag_file)
-        if not self.mag_data_loaded:
+        if not self.is_mag_data_loaded:
             self.addmpl()
-        self.mag_data_loaded = True
+        self.is_mag_data_loaded = True
         self.comboBoxSlice.setCurrentIndex(0)
         self.update_phase()
 
-if __name__ == '__main__':
+
+def mag_slicer():
     app = QtGui.QApplication(sys.argv)
     main = Main()
     main.show()
-    sys.exit(app.exec_())
+    app.exec()
+    return main.mag_data

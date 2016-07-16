@@ -18,13 +18,17 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 
-import numpy as np
-import pyramid as pr
-import hyperspy.api as hs
 from PIL import Image
 
+import numpy as np
 
-UI_MainWindow, QMainWindow = loadUiType('phasemap_creator.ui')
+import hyperspy.api as hs
+
+import pyramid as pr
+
+
+ui_location = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'phasemap_creator.ui')
+UI_MainWindow, QMainWindow = loadUiType(ui_location)
 
 
 class Main(QMainWindow, UI_MainWindow):
@@ -55,6 +59,7 @@ class Main(QMainWindow, UI_MainWindow):
         self.phase_loaded = False
         self.mask_loaded = False
         self.dir = ''
+        self.phase_map = None
 
     def addmpl(self):
         fig = Figure()
@@ -162,8 +167,9 @@ class Main(QMainWindow, UI_MainWindow):
             return  # Abort if no export_path is selected or self.phase_map doesn't exist yet!
 
 
-if __name__ == '__main__':
+def phasemap_creator():
     app = QtGui.QApplication(sys.argv)
     main = Main()
     main.show()
-    sys.exit(app.exec_())
+    app.exec()
+    return main.phase_map

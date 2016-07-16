@@ -9,7 +9,7 @@ import pyramid as pr
 # Parameters:
 segments = 8
 size = 32
-segment_height = size / 4
+segment_height = size // 4
 dim = (segment_height * (segments + 2), size, size)
 a = 1.
 filename = 'magdata_mc_alternating_vortices.hdf5'
