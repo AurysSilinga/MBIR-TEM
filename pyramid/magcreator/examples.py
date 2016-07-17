@@ -14,6 +14,7 @@ _log = logging.getLogger(__name__)
 
 
 def pyramid_logo(a=1., dim=(1, 256, 256), phi=-np.pi / 2, theta=np.pi / 2):
+    """Create pyramid logo."""
     mag_shape = np.zeros(dim)
     x = range(dim[2])
     y = range(dim[1])
@@ -26,6 +27,7 @@ def pyramid_logo(a=1., dim=(1, 256, 256), phi=-np.pi / 2, theta=np.pi / 2):
 
 
 def singularity(a=1., dim=(5, 5, 5), center=None):
+    """Create magnetic singularity."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     zz, yy, xx = np.indices(dim)
@@ -35,6 +37,7 @@ def singularity(a=1., dim=(5, 5, 5), center=None):
 
 
 def homog_pixel(a=1., dim=(1, 9, 9), pixel=None, phi=np.pi / 4, theta=np.pi / 2):
+    """Create single magnetised slab."""
     if pixel is None:
         pixel = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     mag_shape = shapes.pixel(dim, pixel)
@@ -42,6 +45,7 @@ def homog_pixel(a=1., dim=(1, 9, 9), pixel=None, phi=np.pi / 4, theta=np.pi / 2)
 
 
 def homog_slab(a=1., dim=(32, 32, 32), center=None, width=None, phi=np.pi / 4, theta=np.pi / 4):
+    """Create homogeneous slab magnetisation distribution."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if width is None:
@@ -52,6 +56,7 @@ def homog_slab(a=1., dim=(32, 32, 32), center=None, width=None, phi=np.pi / 4, t
 
 def homog_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None,
                phi=np.pi / 4, theta=np.pi / 4):
+    """Create homogeneous disc magnetisation distribution."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if radius is None:
@@ -63,6 +68,7 @@ def homog_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None,
 
 
 def homog_sphere(a=1., dim=(32, 32, 32), center=None, radius=None, phi=np.pi / 4, theta=np.pi / 4):
+    """Create homogeneous sphere magnetisation distribution."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if radius is None:
@@ -72,6 +78,7 @@ def homog_sphere(a=1., dim=(32, 32, 32), center=None, radius=None, phi=np.pi / 4
 
 
 def homog_filament(a=1., dim=(1, 21, 21), pos=None, phi=np.pi / 2, theta=np.pi / 2):
+    """Create magnetisation distribution of a single magnetised filaments."""
     if pos is None:
         pos = (0, dim[1] // 2)
     mag_shape = shapes.filament(dim, pos)
@@ -79,6 +86,7 @@ def homog_filament(a=1., dim=(1, 21, 21), pos=None, phi=np.pi / 2, theta=np.pi /
 
 
 def homog_alternating_filament(a=1., dim=(1, 21, 21), spacing=5, phi=np.pi / 2, theta=np.pi / 2):
+    """Create magnetisation distribution of alternating filaments."""
     count = int((dim[1] - 1) / spacing) + 1
     mag_data = VectorData(a, np.zeros((3,) + dim))
     for i in range(count):
@@ -92,6 +100,7 @@ def homog_alternating_filament(a=1., dim=(1, 21, 21), spacing=5, phi=np.pi / 2, 
 def homog_array_sphere_disc_slab(a=1., dim=(64, 128, 128), center_sp=(32, 96, 64), radius_sp=24,
                                  center_di=(32, 32, 96), radius_di=24, height_di=24,
                                  center_sl=(32, 32, 32), width_sl=(48, 48, 48)):
+    """Create array of several  magnetisation distribution (sphere, disc and slab)."""
     mag_shape_sphere = shapes.sphere(dim, center_sp, radius_sp)
     mag_shape_disc = shapes.disc(dim, center_di, radius_di, height_di)
     mag_shape_slab = shapes.slab(dim, center_sl, width_sl)
@@ -102,6 +111,7 @@ def homog_array_sphere_disc_slab(a=1., dim=(64, 128, 128), center_sp=(32, 96, 64
 
 
 def homog_random_pixels(a=1., dim=(1, 64, 64), count=10, rnd_seed=24):
+    """Create random magnetised pixels."""
     rnd.seed(rnd_seed)
     mag_data = VectorData(a, np.zeros((3,) + dim))
     for i in range(count):
@@ -113,6 +123,7 @@ def homog_random_pixels(a=1., dim=(1, 64, 64), count=10, rnd_seed=24):
 
 
 def homog_random_slabs(a=1., dim=(1, 64, 64), count=10, width_max=5, rnd_seed=2):
+    """Create random magnetised slabs."""
     rnd.seed(rnd_seed)
     mag_data = VectorData(a, np.zeros((3,) + dim))
     for i in range(count):
@@ -127,6 +138,7 @@ def homog_random_slabs(a=1., dim=(1, 64, 64), count=10, width_max=5, rnd_seed=2)
 
 
 def vortex_slab(a=1., dim=(32, 32, 32), center=None, width=None, axis='z'):
+    """Create vortex slab magnetisation distribution."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if width is None:
@@ -137,6 +149,7 @@ def vortex_slab(a=1., dim=(32, 32, 32), center=None, width=None, axis='z'):
 
 
 def vortex_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None, axis='z'):
+    """Create vortex disc magnetisation distribution."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if radius is None:
@@ -149,6 +162,7 @@ def vortex_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None, a
 
 
 def vortex_alternating_discs(a=1., dim=(80, 32, 32), count=8):
+    """Create pillar of alternating vortex disc magnetisation distributions."""
     segment_height = dim[0] // (count + 2)
     mag_data = VectorData(a, np.zeros((3,) + dim))
     for i in range(count):
@@ -163,6 +177,7 @@ def vortex_alternating_discs(a=1., dim=(80, 32, 32), count=8):
 
 
 def vortex_sphere(a=1., dim=(32, 32, 32), center=None, radius=None, axis = 'z'):
+    """Create vortex sphere magnetisation distribution."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if radius is None:
@@ -174,6 +189,7 @@ def vortex_sphere(a=1., dim=(32, 32, 32), center=None, radius=None, axis = 'z'):
 
 def vortex_horseshoe(a=1., dim=(16, 64, 64), center=None, radius_core=None,
                      radius_shell=None, height=None):
+    """Create magnetic horseshoe vortex magnetisation distribution."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if radius_core is None:
@@ -191,6 +207,7 @@ def vortex_horseshoe(a=1., dim=(16, 64, 64), center=None, radius_core=None,
 
 def core_shell_disc(a=1., dim=(32, 32, 32), center=None, radius_core=None,
                     radius_shell=None, height=None, rate_core_to_shell=0.75):
+    """Create magnetic core shell disc magnetisation distribution."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if radius_core is None:
@@ -209,6 +226,7 @@ def core_shell_disc(a=1., dim=(32, 32, 32), center=None, radius_core=None,
 
 def core_shell_sphere(a=1., dim=(32, 32, 32), center=None, radius_core=None,
                       radius_shell=None, rate_core_to_shell=0.75):
+    """Create magnetic core shell sphere magnetisation distribution."""
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if radius_core is None:
