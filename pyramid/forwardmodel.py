@@ -5,8 +5,6 @@
 """This module provides the :class:`~.ForwardModel` class which represents a strategy to map a
 threedimensional magnetization distribution onto a two-dimensional phase map."""
 
-from __future__ import division
-
 import logging
 import multiprocessing as mp
 import sys

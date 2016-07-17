@@ -4,8 +4,6 @@
 #
 """This module provides classes for storing vector and scalar 3D-field."""
 
-from __future__ import division
-
 import abc
 import logging
 import os

@@ -5,8 +5,6 @@
 """This module provides the abstract base class :class:`~.Projector` and concrete subclasses for
 projections of vector and scalar fields."""
 
-from __future__ import division
-
 import abc
 import itertools
 import logging
