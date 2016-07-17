@@ -472,8 +472,7 @@ class VectorData(FieldData):
         for i, values in enumerate(pad_values):
             assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
             pv[2 * i:2 * (i + 1)] = values
-        self.field = np.pad(self.field,
-                            ((0, 0), (pv[0], pv[1]), (pv[2], pv[3]), (pv[4], pv[5])),
+        self.field = np.pad(self.field, ((0, 0), (pv[0], pv[1]), (pv[2], pv[3]), (pv[4], pv[5])),
                             mode='constant')
 
     def crop(self, crop_values):

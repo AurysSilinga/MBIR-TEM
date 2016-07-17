@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Author: J. Caron
+#
 
 import logging
 
@@ -10,6 +13,12 @@ from . import magcreator as mc
 from . import shapes
 from ..fielddata import VectorData
 
+
+__all__ = ['pyramid_logo', 'singularity', 'homog_pixel', 'homog_slab', 'homog_disc',
+           'homog_sphere', 'homog_filament', 'homog_alternating_filament',
+           'homog_array_sphere_disc_slab', 'homog_random_pixels', 'homog_random_slabs',
+           'vortex_slab', 'vortex_disc', 'vortex_alternating_discs', 'vortex_sphere',
+           'vortex_horseshoe', 'core_shell_disc', 'core_shell_sphere']
 _log = logging.getLogger(__name__)
 
 

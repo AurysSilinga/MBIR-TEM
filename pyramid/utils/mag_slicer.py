@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Form implementation generated from reading ui file 'mag_slicer2.ui'
+# Form implementation generated from reading ui file 'mag_slicer.ui'
 #
 # Created: Sun Aug 31 20:39:52 2014
 #      by: PyQt4 UI code generator 4.9.6
@@ -17,7 +17,10 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 
-import pyramid as pr
+from ..projector import SimpleProjector
+from ..kernel import Kernel
+from ..phasemapper import PhaseMapperRDFC
+from ..fielddata import VectorData
 
 
 ui_location = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'mag_slicer.ui')
@@ -87,13 +90,13 @@ class Main(QMainWindow, UI_MainWindow):
                 gain = 'auto'
             else:
                 gain = self.spinBoxGain.value()
-            self.projector = pr.SimpleProjector(self.mag_data.dim, axis=self.mode)
+            self.projector = SimpleProjector(self.mag_data.dim, axis=self.mode)
             self.spinBoxSlice.setMaximum(length)
             self.scrollBarSlice.setMaximum(length)
             self.spinBoxSlice.setValue(int(length / 2.))
             self.update_slice()
-            kernel = pr.Kernel(self.mag_data.a, self.projector.dim_uv)
-            self.phase_mapper = pr.PhaseMapperRDFC(kernel)
+            kernel = Kernel(self.mag_data.a, self.projector.dim_uv)
+            self.phase_mapper = PhaseMapperRDFC(kernel)
             self.phase_map = self.phase_mapper(self.projector(self.mag_data))
             self.canvasPhase.figure.axes[0].clear()
             self.phase_map.display_phase(axis=self.canvasPhase.figure.axes[0], cbar=False)
@@ -124,7 +127,7 @@ class Main(QMainWindow, UI_MainWindow):
             return  # Abort if no conf_path is selected!
         import hyperspy.api as hs
         print(hs.load(mag_file))
-        self.mag_data = pr.VectorData.load_from_hdf5(mag_file)
+        self.mag_data = VectorData.load_from_hdf5(mag_file)
         if not self.is_mag_data_loaded:
             self.addmpl()
         self.is_mag_data_loaded = True
@@ -132,7 +135,7 @@ class Main(QMainWindow, UI_MainWindow):
         self.update_phase()
 
 
-def mag_slicer():
+def gui_mag_slicer():
     app = QtGui.QApplication(sys.argv)
     main = Main()
     main.show()

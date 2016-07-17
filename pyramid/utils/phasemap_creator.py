@@ -167,7 +167,7 @@ class Main(QMainWindow, UI_MainWindow):
             return  # Abort if no export_path is selected or self.phase_map doesn't exist yet!
 
 
-def phasemap_creator():
+def gui_phasemap_creator():
     app = QtGui.QApplication(sys.argv)
     main = Main()
     main.show()
