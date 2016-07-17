@@ -40,7 +40,7 @@ class PhaseMap(object):
     corresponding holographic contour map are provided. Holographic contour maps are created by
     taking the cosine of the (optionally amplified) phase and encoding the direction of the
     2-dimensional gradient via color. The directional encoding can be seen by using the
-    :func:`~.make_color_wheel` function. Use the :func:`~.display_combined` function to plot the
+    :func:`~.make_color_wheel` function. Use the :func:`~.combined_plot` function to plot the
     phase map and the holographic contour map next to each other.
 
     Attributes
@@ -591,8 +591,8 @@ class PhaseMap(object):
             phase = np.loadtxt(filename, delimiter='\t', skiprows=2)
         return cls(a, phase)
 
-    def display_phase(self, title='Phase Map', cbar_title=None, cmap='RdBu', limit=None,
-                      norm=None, axis=None, cbar=True, show_mask=True, show_conf=True):
+    def phase_plot(self, title='Phase Map', cbar_title=None, cmap='RdBu', limit=None,
+                   norm=None, axis=None, cbar=True, show_mask=True, show_conf=True):
         """Display the phasemap as a colormesh.
 
         Parameters
@@ -624,7 +624,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted and the colorbar.
 
         """
-        self._log.debug('Calling display_phase')
+        self._log.debug('Calling phase_plot')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[self.unit]
         if limit is None:
@@ -671,8 +671,8 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def display_phase3d(self, title='Phase Map', cmap='RdBu'):
-        """Display the phasemap as a 3-D surface with contourplots.
+    def phase3d_plot(self, title='Phase Map', cmap='RdBu'):
+        """Display the phasemap as a 3D surface with contourplots.
 
         Parameters
         ----------
@@ -688,7 +688,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         """
-        self._log.debug('Calling display_phase3d')
+        self._log.debug('Calling phase3d_plot')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[self.unit]
         # Create figure and axis:
@@ -707,8 +707,8 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def display_holo(self, title=None, gain='auto', axis=None, grad_encode='bright',
-                     interpolation='none'):
+    def holo_plot(self, title=None, gain='auto', axis=None, grad_encode='bright',
+                  interpolation='none'):
         """Display the color coded holography image.
 
         Parameters
@@ -734,7 +734,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         """
-        self._log.debug('Calling display_holo')
+        self._log.debug('Calling holo_plot')
         # Calculate gain if 'auto' is selected:
         if gain == 'auto':
             gain = 4 * 2 * np.pi / (np.abs(self.phase).max() + 1E-30)
@@ -789,10 +789,10 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def display_combined(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
-                         cbar_title=None, cmap='RdBu', limit=None, norm=None, gain='auto',
-                         interpolation='none', grad_encode='bright', cbar=True, show_mask=True,
-                         show_conf=True):
+    def combined_plot(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
+                      cbar_title=None, cmap='RdBu', limit=None, norm=None, gain='auto',
+                      interpolation='none', grad_encode='bright', cbar=True, show_mask=True,
+                      show_conf=True):
         """Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -838,19 +838,19 @@ class PhaseMap(object):
             The axes on which the graphs are plotted.
 
         """
-        self._log.debug('Calling display_combined')
+        self._log.debug('Calling combined_plot')
         # Create combined plot and set title:
         fig = plt.figure(figsize=(15, 7))
         fig.suptitle(sup_title, fontsize=20)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-        self.display_holo(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation,
-                          grad_encode=grad_encode)
+        self.holo_plot(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation,
+                       grad_encode=grad_encode)
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         fig.subplots_adjust(right=0.85)
-        self.display_phase(title=phase_title, cbar_title=cbar_title, cmap=cmap, limit=limit,
-                           norm=norm, axis=phase_axis, cbar=cbar, show_mask=show_mask,
-                           show_conf=show_conf)
+        self.phase_plot(title=phase_title, cbar_title=cbar_title, cmap=cmap, limit=limit,
+                        norm=norm, axis=phase_axis, cbar=cbar, show_mask=show_mask,
+                        show_conf=show_conf)
         # Return the plotting axes:
         return phase_axis, holo_axis

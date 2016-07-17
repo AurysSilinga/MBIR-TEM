@@ -41,5 +41,5 @@ if path_mask is not None:
 # Create and save PhaseMap object:
 phase_map = py.PhaseMap(a, phase, mask, confidence=None, unit='rad')
 phase_map.save_to_hdf5(filename, overwrite=True)
-phase_map.display_combined()
+phase_map.combined_plot()
 plt.show()

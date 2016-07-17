@@ -71,7 +71,7 @@ def reconstruction_3d_from_magdata(filename, b_0=1, lam=1E-3, max_iter=100, ramp
     fwd_model.finalize()
     # Plot input:
     if plot_input:
-        data.display_phase()
+        data.phase_plots()
     # Plot results:
     if plot_results:
         data.display_mask(ar_dens=ar_dens)

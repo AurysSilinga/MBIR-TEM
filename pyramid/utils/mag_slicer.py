@@ -99,14 +99,14 @@ class Main(QMainWindow, UI_MainWindow):
             self.phase_mapper = PhaseMapperRDFC(kernel)
             self.phase_map = self.phase_mapper(self.projector(self.mag_data))
             self.canvasPhase.figure.axes[0].clear()
-            self.phase_map.display_phase(axis=self.canvasPhase.figure.axes[0], cbar=False)
+            self.phase_map.phase_plot(axis=self.canvasPhase.figure.axes[0], cbar=False)
             if self.checkBoxSmooth.isChecked():
                 interpolation = 'bilinear'
             else:
                 interpolation = 'none'
             self.canvasHolo.figure.axes[0].clear()
-            self.phase_map.display_holo(axis=self.canvasHolo.figure.axes[0], gain=gain,
-                                        interpolation=interpolation)
+            self.phase_map.holo_plot(axis=self.canvasHolo.figure.axes[0], gain=gain,
+                                     interpolation=interpolation)
             self.canvasPhase.draw()
             self.canvasHolo.draw()
 

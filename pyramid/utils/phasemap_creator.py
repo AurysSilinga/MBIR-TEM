@@ -77,8 +77,8 @@ class Main(QMainWindow, UI_MainWindow):
             show_conf = self.checkBox_conf.isChecked()
             self.canvas.figure.axes[0].clear()
             self.canvas.figure.axes[0].hold(True)
-            self.phase_map.display_phase('PhaseMap', axis=self.canvas.figure.axes[0],
-                                         show_mask=show_mask, show_conf=show_conf, cbar=False)
+            self.phase_map.phase_plot('PhaseMap', axis=self.canvas.figure.axes[0],
+                                      show_mask=show_mask, show_conf=show_conf, cbar=False)
             self.canvas.draw()
 
     def update_mask(self):

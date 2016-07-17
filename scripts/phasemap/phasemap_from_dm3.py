@@ -55,5 +55,5 @@ confidence = np.where(np.asarray(im_conf) >= threshold, 1, 0)
 # Create and save PhaseMap object:
 phase_map = pr.PhaseMap(a, phase, mask, confidence, unit='rad')
 phase_map.save_to_hdf5(filename, overwrite=True)
-phase_map.display_combined()
+phase_map.combined_plot()
 plt.show()

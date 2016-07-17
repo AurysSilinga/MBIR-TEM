@@ -43,9 +43,9 @@ def reconstruction_2d_from_phasemap(filename, b_0=1, lam=1E-3, max_iter=100, ram
         if ar_dens is None:
             ar_dens = np.max(dim) // 128
         mag_data_rec.quiver_plot('Reconstructed Distribution', ar_dens=ar_dens)
-        phase_map.display_combined('Input Phase')
+        phase_map.combined_plot('Input Phase')
         phase_map -= fwd_model.ramp(index=0)
-        phase_map.display_combined('Input Phase (ramp corrected)')
+        phase_map.combined_plot('Input Phase (ramp corrected)')
         phase_map_rec = pm(mag_data_rec)
         title = 'Reconstructed Phase'
         if ramp_order >= 0:
@@ -54,10 +54,10 @@ def reconstruction_2d_from_phasemap(filename, b_0=1, lam=1E-3, max_iter=100, ram
         if ramp_order >= 1:
             print('ramp:', ramp)
             title += ', (Fitted Ramp: (u:{:.2g}, v:{:.2g}) [rad/nm]'.format(*ramp)
-        phase_map_rec.display_combined(title)
+        phase_map_rec.combined_plot(title)
         difference = (phase_map_rec.phase - phase_map.phase).mean()
-        (phase_map_rec - phase_map).display_phase('Difference (mean: {:.2g})'.format(difference))
+        (phase_map_rec - phase_map).phase_plot('Difference (mean: {:.2g})'.format(difference))
         if ramp_order is not None:
-            fwd_model.ramp(0).display_combined('Fitted Ramp')
+            fwd_model.ramp(0).combined_plot('Fitted Ramp')
     # Return reconstructed magnetisation distribution and cost function:
     return mag_data_rec, cost

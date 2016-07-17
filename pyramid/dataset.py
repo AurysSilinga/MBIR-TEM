@@ -274,8 +274,8 @@ class DataSet(object):
             mlab.axes(plot)
             return plot
 
-    def display_phase(self, mag_data=None, title='Phase Map',
-                      cmap='RdBu', limit=None, norm=None):
+    def phase_plots(self, mag_data=None, title='Phase Map',
+                    cmap='RdBu', limit=None, norm=None):
         """Display all phasemaps saved in the :class:`~.DataSet` as a colormesh.
 
         Parameters
@@ -301,17 +301,17 @@ class DataSet(object):
         None
 
         """
-        self._log.debug('Calling display_phase')
+        self._log.debug('Calling phase_plots')
         if mag_data is not None:
             phase_maps = self.create_phase_maps(mag_data)
         else:
             phase_maps = self.phase_maps
-        [phase_map.display_phase('{} ({})'.format(title, self.projectors[i].get_info()),
-                                 cmap=cmap, limit=limit, norm=norm)
+        [phase_map.phase_plot('{} ({})'.format(title, self.projectors[i].get_info()),
+                              cmap=cmap, limit=limit, norm=norm)
          for (i, phase_map) in enumerate(phase_maps)]
 
-    def display_combined(self, mag_data=None, title='Combined Plot', cmap='RdBu', limit=None,
-                         norm=None, gain='auto', interpolation='none', grad_encode='bright'):
+    def combined_plots(self, mag_data=None, title='Combined Plot', cmap='RdBu', limit=None,
+                       norm=None, gain='auto', interpolation='none', grad_encode='bright'):
         """Display all phasemaps and the resulting color coded holography images.
 
         Parameters
@@ -347,12 +347,12 @@ class DataSet(object):
         None
 
         """
-        self._log.debug('Calling display_combined')
+        self._log.debug('Calling combined_plots')
         if mag_data is not None:
             phase_maps = self.create_phase_maps(mag_data)
         else:
             phase_maps = self.phase_maps
         for (i, phase_map) in enumerate(phase_maps):
-            phase_map.display_combined('{} ({})'.format(title, self.projectors[i].get_info()),
-                                       cmap, limit, norm, gain, interpolation, grad_encode)
+            phase_map.combined_plot('{} ({})'.format(title, self.projectors[i].get_info()),
+                                    cmap, limit, norm, gain, interpolation, grad_encode)
         plt.show()

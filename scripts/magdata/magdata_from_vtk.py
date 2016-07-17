@@ -124,5 +124,5 @@ a *= 10
 mag_data = pr.VectorData(a, magnitude)
 mag_data.save_to_hdf5('magdata_vtk_{}'.format(filename.replace('.vtk', '.hdf5')), overwrite=True)
 # Plot stuff:
-pr.pm(mag_data).display_combined()
+pr.pm(mag_data).combined_plot()
 plt.show()
