@@ -8,7 +8,6 @@ import multiprocessing as mp
 from jutil.taketime import TakeTime
 
 from .. import reconstruction
-from ..fielddata import VectorData
 from ..dataset import DataSet
 from ..projector import XTiltProjector, YTiltProjector
 from ..ramp import Ramp
@@ -17,15 +16,14 @@ from ..forwardmodel import ForwardModel, DistributedForwardModel
 from ..costfunction import Costfunction
 
 
-def reconstruction_3d_from_magdata(filename, b_0=1, lam=1E-3, max_iter=100, ramp_order=1,
+def reconstruction_3d_from_magdata(mag_data, b_0=1, lam=1E-3, max_iter=100, ramp_order=1,
                                    angles=np.linspace(-90, 90, num=19), dim_uv=None,
                                    axes=(True, True), noise=0, offset_max=0, ramp_max=0,
                                    use_internal_mask=True, plot_results=False, plot_input=False,
                                    ar_dens=None, multicore=True):
 
-    mag_data = VectorData.load_from_hdf5(filename)
+    # Construct DataSet:
     dim = mag_data.dim
-    # Load magnetization distribution:
     if ar_dens is None:
         ar_dens = np.max(dim) // 64
     data = DataSet(mag_data.a, mag_data.dim, b_0)

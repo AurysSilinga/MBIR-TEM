@@ -6,7 +6,6 @@ import numpy as np
 from jutil.taketime import TakeTime
 
 from .. import reconstruction
-from ..phasemap import PhaseMap
 from ..dataset import DataSet
 from ..projector import SimpleProjector
 from ..regularisator import FirstOrderRegularisator
@@ -15,12 +14,10 @@ from ..costfunction import Costfunction
 from .pm import pm
 
 
-def reconstruction_2d_from_phasemap(filename, b_0=1, lam=1E-3, max_iter=100, ramp_order=1,
+def reconstruction_2d_from_phasemap(phase_map, b_0=1, lam=1E-3, max_iter=100, ramp_order=1,
                                     plot_results=False, ar_dens=None):
 
-    # Load phase map:
-    phase_map = PhaseMap.load_from_hdf5(filename)
-    # Construct regularisator, forward model and costfunction:
+    # Construct DataSet, Regularisator, ForwardModel and Costfunction:
     dim = (1,) + phase_map.dim_uv
     data = DataSet(phase_map.a, dim, b_0)
     data.append(phase_map, SimpleProjector(dim))
