@@ -1,24 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Copyright 2016 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
+"""Convenience function for phase mapping magnetic distributions."""
+
 import logging
 
 from ..kernel import Kernel
 from ..phasemapper import PhaseMapperRDFC
 from ..projector import RotTiltProjector, XTiltProjector, YTiltProjector, SimpleProjector
 
-
 __all__ = ['pm']
 _log = logging.getLogger(__name__)
 
 
-def pm(mag_data, mode='z', b_0=1, **kwargs):
+def pm(magdata, mode='z', b_0=1, **kwargs):
     """Convenience function for fast magnetic phase mapping.
 
     Parameters
     ----------
-    mag_data : :class:`~.VectorData`
+    magdata : :class:`~.VectorData`
         A :class:`~.VectorData` object, from which the projected phase map should be calculated.
     mode: {'z', 'y', 'x', 'x-tilt', 'y-tilt', 'rot-tilt'}, optional
         Projection mode which determines the :class:`~.pyramid.projector.Projector` subclass, which
@@ -31,28 +32,28 @@ def pm(mag_data, mode='z', b_0=1, **kwargs):
 
     Returns
     -------
-    phase_map : :class:`~pyramid.phasemap.PhaseMap`
+    phasemap : :class:`~pyramid.phasemap.PhaseMap`
         The calculated phase map as a :class:`~.PhaseMap` object.
 
     """
     _log.debug('Calling pm')
     # Determine projection mode:
     if mode == 'rot-tilt':
-        projector = RotTiltProjector(mag_data.dim, **kwargs)
+        projector = RotTiltProjector(magdata.dim, **kwargs)
     elif mode == 'x-tilt':
-        projector = XTiltProjector(mag_data.dim, **kwargs)
+        projector = XTiltProjector(magdata.dim, **kwargs)
     elif mode == 'y-tilt':
-        projector = YTiltProjector(mag_data.dim, **kwargs)
+        projector = YTiltProjector(magdata.dim, **kwargs)
     elif mode in ['x', 'y', 'z']:
-        projector = SimpleProjector(mag_data.dim, axis=mode, **kwargs)
+        projector = SimpleProjector(magdata.dim, axis=mode, **kwargs)
     else:
         raise ValueError("Invalid mode (use 'x', 'y', 'z', 'x-tilt', 'y-tilt' or 'rot-tilt')")
     # Project:
-    mag_proj = projector(mag_data)
+    mag_proj = projector(magdata)
     # Set up phasemapper and map phase:
-    phasemapper = PhaseMapperRDFC(Kernel(mag_data.a, projector.dim_uv, b_0=b_0))
-    phase_map = phasemapper(mag_proj)
+    phasemapper = PhaseMapperRDFC(Kernel(magdata.a, projector.dim_uv, b_0=b_0))
+    phasemap = phasemapper(mag_proj)
     # Get mask from magdata:
-    phase_map.mask = mag_proj.get_mask()[0, ...]
+    phasemap.mask = mag_proj.get_mask()[0, ...]
     # Return phase:
-    return phase_map
+    return phasemap

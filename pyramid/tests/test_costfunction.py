@@ -10,9 +10,9 @@ from numpy.testing import assert_allclose
 from pyramid.costfunction import Costfunction
 from pyramid.dataset import DataSet
 from pyramid.forwardmodel import ForwardModel
-from pyramid.phasemap import PhaseMap
 from pyramid.projector import SimpleProjector
 from pyramid.regularisator import FirstOrderRegularisator
+from pyramid import load_phasemap
 
 
 class TestCaseCostfunction(unittest.TestCase):
@@ -24,9 +24,9 @@ class TestCaseCostfunction(unittest.TestCase):
         self.mask[1:-1, 1:-1, 1:-1] = True
         self.data = DataSet(self.a, self.dim, mask=self.mask)
         self.projector = SimpleProjector(self.dim)
-        self.phase_map = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map_ref.hdf5'))
-        self.data.append(self.phase_map, self.projector)
-        self.data.append(self.phase_map, self.projector)
+        self.phasemap = load_phasemap(os.path.join(self.path, 'phasemap_ref.hdf5'))
+        self.data.append(self.phasemap, self.projector)
+        self.data.append(self.phasemap, self.projector)
         self.reg = FirstOrderRegularisator(self.mask, lam=1E-4)
         self.cost = Costfunction(ForwardModel(self.data), self.reg)
 
@@ -37,7 +37,7 @@ class TestCaseCostfunction(unittest.TestCase):
         self.mask = None
         self.data = None
         self.projector = None
-        self.phase_map = None
+        self.phasemap = None
         self.reg = None
         self.cost = None
 

@@ -644,10 +644,11 @@ class SimpleProjector(Projector):
             raise ValueError('{} is not a valid axis parameter (use x, y or z)!'.format(axis))
         if dim_uv is not None:
             indptr = list(indptr)  # convert to use insert() and append()
-            d_v = np.floor((dim_uv[0] - dim_v) / 2), np.ceil(
-                (dim_uv[0] - dim_v) / 2)  # padding in v
-            d_u = np.floor((dim_uv[1] - dim_u) / 2), np.ceil(
-                (dim_uv[1] - dim_u) / 2)  # padding in u
+            # Calculate padding:
+            d_v = (np.floor((dim_uv[0] - dim_v) / 2).astype(int),
+                   np.ceil((dim_uv[0] - dim_v) / 2).astype(int))
+            d_u = (np.floor((dim_uv[1] - dim_u) / 2).astype(int),
+                   np.ceil((dim_uv[1] - dim_u) / 2).astype(int))
             indptr.extend([indptr[-1]] * d_v[1] * dim_uv[1])  # add empty lines at the end
             for i in np.arange(dim_v, 0, -1):  # all slices in between
                 up, lo = i * dim_u, (i - 1) * dim_u  # upper / lower slice end

@@ -9,8 +9,8 @@ from numpy.testing import assert_allclose
 
 from pyramid.dataset import DataSet
 from pyramid.forwardmodel import ForwardModel
-from pyramid.phasemap import PhaseMap
 from pyramid.projector import SimpleProjector
+from pyramid import load_phasemap
 
 
 class TestCaseForwardModel(unittest.TestCase):
@@ -22,9 +22,9 @@ class TestCaseForwardModel(unittest.TestCase):
         self.mask[1:-1, 1:-1, 1:-1] = True
         self.data = DataSet(self.a, self.dim, mask=self.mask)
         self.projector = SimpleProjector(self.dim)
-        self.phase_map = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map_ref.hdf5'))
-        self.data.append(self.phase_map, self.projector)
-        self.data.append(self.phase_map, self.projector)
+        self.phasemap = load_phasemap(os.path.join(self.path, 'phasemap_ref.hdf5'))
+        self.data.append(self.phasemap, self.projector)
+        self.data.append(self.phasemap, self.projector)
         self.fwd_model = ForwardModel(self.data)
 
     def tearDown(self):
@@ -34,16 +34,16 @@ class TestCaseForwardModel(unittest.TestCase):
         self.mask = None
         self.data = None
         self.projector = None
-        self.phase_map = None
+        self.phasemap = None
         self.fwdmodel = None
 
     def test_call(self):
         n = self.fwd_model.n
         result = self.fwd_model(np.ones(n))
         hp = self.data.hook_points
-        assert_allclose(result[hp[0]:hp[1]], self.phase_map.phase.flatten(), atol=1E-7,
+        assert_allclose(result[hp[0]:hp[1]], self.phasemap.phase.flatten(), atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
-        assert_allclose(result[hp[1]:hp[2]], self.phase_map.phase.flatten(), atol=1E-7,
+        assert_allclose(result[hp[1]:hp[2]], self.phasemap.phase.flatten(), atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
 
     def test_jac_dot(self):

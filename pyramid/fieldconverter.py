@@ -18,12 +18,12 @@ __all__ = ['convert_M_to_A', 'convert_A_to_B', 'convert_M_to_B']
 _log = logging.getLogger(__name__)
 
 
-def convert_M_to_A(mag_data, b_0=1.0):
+def convert_M_to_A(magdata, b_0=1.0):
     """Convert a magnetic vector distribution into a vector potential `A`.
 
     Parameters
     ----------
-    mag_data: :class:`~pyramid.magdata.VectorData` object
+    magdata: :class:`~pyramid.magdata.VectorData` object
         The magnetic vector field from which the A-field is calculated.
     b_0: float, optional
         The saturation magnetization which is used in the calculation.
@@ -36,8 +36,8 @@ def convert_M_to_A(mag_data, b_0=1.0):
     """
     _log.debug('Calling convert_M_to_A')
     # Preparations of variables:
-    assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
-    dim = mag_data.dim
+    assert isinstance(magdata, VectorData), 'Only VectorData objects can be mapped!'
+    dim = magdata.dim
     dim_kern = tuple(2 * np.array(dim) - 1)  # Dimensions of the kernel
     if fft.BACKEND == 'pyfftw':
         dim_pad = tuple(2 * np.array(dim))  # is at least even (not neccessary a power of 2)
@@ -52,7 +52,7 @@ def convert_M_to_A(mag_data, b_0=1.0):
                slice(0, dim[1]),  # B-field cutout is shifted as listed above
                slice(0, dim[2]))  # because of the kernel center!
     # Set up kernels
-    coeff = mag_data.a * b_0 / (4 * np.pi)
+    coeff = magdata.a * b_0 / (4 * np.pi)
     zzz, yyy, xxx = np.indices(dim_kern)
     xxx -= dim[2] - 1
     yyy -= dim[1] - 1
@@ -71,9 +71,9 @@ def convert_M_to_A(mag_data, b_0=1.0):
     x_mag = fft.zeros(dim_pad, dtype=fft.FLOAT)
     y_mag = fft.zeros(dim_pad, dtype=fft.FLOAT)
     z_mag = fft.zeros(dim_pad, dtype=fft.FLOAT)
-    x_mag[slice_M] = mag_data.field[0, ...]
-    y_mag[slice_M] = mag_data.field[1, ...]
-    z_mag[slice_M] = mag_data.field[2, ...]
+    x_mag[slice_M] = magdata.field[0, ...]
+    y_mag[slice_M] = magdata.field[1, ...]
+    z_mag[slice_M] = magdata.field[2, ...]
     # Calculate Fourier trafo of magnetization components:
     x_mag_fft = fft.rfftn(x_mag)
     y_mag_fft = fft.rfftn(y_mag)
@@ -86,7 +86,7 @@ def convert_M_to_A(mag_data, b_0=1.0):
     a_y = fft.irfftn(a_y_fft)[slice_B]
     a_z = fft.irfftn(a_z_fft)[slice_B]
     # Return A-field:
-    return VectorData(mag_data.a, np.asarray((a_x, a_y, a_z)))
+    return VectorData(magdata.a, np.asarray((a_x, a_y, a_z)))
 
 
 def convert_A_to_B(a_data):
@@ -147,12 +147,12 @@ def convert_A_to_B(a_data):
     return VectorData(a_data.a, np.asarray((b_x, b_y, b_z)))
 
 
-def convert_M_to_B(mag_data, b_0=1.0):
+def convert_M_to_B(magdata, b_0=1.0):
     """Convert a magnetic vector distribution into a B-field distribution.
 
     Parameters
     ----------
-    mag_data: :class:`~pyramid.magdata.VectorData` object
+    magdata: :class:`~pyramid.magdata.VectorData` object
         The magnetic vector field from which the B-field is calculated.
     b_0: float, optional
         The saturation magnetization which is used in the calculation.
@@ -164,5 +164,5 @@ def convert_M_to_B(mag_data, b_0=1.0):
 
     """
     _log.debug('Calling convert_M_to_B')
-    assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
-    return convert_A_to_B(convert_M_to_A(mag_data, b_0=b_0))
+    assert isinstance(magdata, VectorData), 'Only VectorData objects can be mapped!'
+    return convert_A_to_B(convert_M_to_A(magdata, b_0=b_0))

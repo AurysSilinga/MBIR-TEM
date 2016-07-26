@@ -42,7 +42,7 @@ class DataSet(object):
     Se_inv : :class:`~numpy.ndarray` (N=2), optional
         Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
         being the length of the targetvector y (vectorized phase map information).
-    phase_maps:
+    phasemaps:
         A list of all stored :class:`~.PhaseMap` objects.
     projectors: list of :class:`~.Projector`
         A list of all stored :class:`~.Projector` objects.
@@ -78,7 +78,7 @@ class DataSet(object):
     @property
     def m(self):
         """Size of the image space."""
-        return np.sum([len(p.phase_vec) for p in self.phase_maps])
+        return np.sum([len(p.phase_vec) for p in self.phasemaps])
 
     @property
     def n(self):
@@ -93,18 +93,18 @@ class DataSet(object):
     @property
     def phase_vec(self):
         """The concatenaded, vectorized phase of all ;class:`~.PhaseMap` objects."""
-        return np.concatenate([p.phase_vec for p in self.phase_maps])
+        return np.concatenate([p.phase_vec for p in self.phasemaps])
 
     @property
     def hook_points(self):
         """Hook points which determine the start of values of a phase map in the `phase_vec`."""
         result = [0]
-        for i, phase_map in enumerate(self.phase_maps):
-            result.append(result[i] + np.prod(phase_map.dim_uv))
+        for i, phasemap in enumerate(self.phasemaps):
+            result.append(result[i] + np.prod(phasemap.dim_uv))
         return result
 
     @property
-    def phase_mappers(self):
+    def phasemappers(self):
         """List of phase mappers, created on demand with the projectors in mind."""
         dim_uv_set = set([p.dim_uv for p in self.projectors])
         kernel_list = [Kernel(self.a, dim_uv) for dim_uv in dim_uv_set]
@@ -119,7 +119,7 @@ class DataSet(object):
         self.b_0 = b_0
         self.mask = mask
         self.Se_inv = Se_inv
-        self.phase_maps = []
+        self.phasemaps = []
         self.projectors = []
         self._log.debug('Created: ' + str(self))
 
@@ -132,12 +132,12 @@ class DataSet(object):
         self._log.debug('Calling __str__')
         return 'DataSet(a=%s, dim=%s, b_0=%s)' % (self.a, self.dim, self.b_0)
 
-    def append(self, phase_map, projector):
+    def append(self, phasemap, projector):
         """Appends a data pair of phase map and projection infos to the data collection.`
 
         Parameters
         ----------
-        phase_map: :class:`~.PhaseMap`
+        phasemap: :class:`~.PhaseMap`
             A :class:`~.PhaseMap` object which should be added to the data collection.
         projector: :class:`~.Projector`
             A :class:`~.Projector` object which should be added to the data collection.
@@ -148,36 +148,36 @@ class DataSet(object):
 
         """
         self._log.debug('Calling append')
-        assert isinstance(phase_map, PhaseMap) and isinstance(projector, Projector), \
+        assert isinstance(phasemap, PhaseMap) and isinstance(projector, Projector), \
             'Argument has to be a tuple of a PhaseMap and a Projector object!'
         assert projector.dim == self.dim, '3D dimensions must match!'
-        assert phase_map.dim_uv == projector.dim_uv, 'Projection dimensions (dim_uv) must match!'
-        self.phase_maps.append(phase_map)
+        assert phasemap.dim_uv == projector.dim_uv, 'Projection dimensions (dim_uv) must match!'
+        self.phasemaps.append(phasemap)
         self.projectors.append(projector)
 
-    def create_phase_maps(self, mag_data):
+    def create_phasemaps(self, magdata):
         """Create a list of phasemaps with the projectors in the dataset for a given
         :class:`~.VectorData` object.
 
         Parameters
         ----------
-        mag_data : :class:`~.VectorData`
+        magdata : :class:`~.VectorData`
             Magnetic distribution to which the projectors of the dataset should be applied.
 
         Returns
         -------
-        phase_maps : list of :class:`~.phasemap.PhaseMap`
+        phasemaps : list of :class:`~.phasemap.PhaseMap`
             A list of the phase maps resulting from the projections specified in the dataset.
 
         """
-        self._log.debug('Calling create_phase_maps')
-        phase_maps = []
+        self._log.debug('Calling create_phasemaps')
+        phasemaps = []
         for projector in self.projectors:
-            mag_proj = projector(mag_data)
-            phase_map = self.phase_mappers[projector.dim_uv](mag_proj)
-            phase_map.mask = mag_proj.get_mask()[0, ...]
-            phase_maps.append(phase_map)
-        return phase_maps
+            mag_proj = projector(magdata)
+            phasemap = self.phasemappers[projector.dim_uv](mag_proj)
+            phasemap.mask = mag_proj.get_mask()[0, ...]
+            phasemaps.append(phasemap)
+        return phasemaps
 
     def set_Se_inv_block_diag(self, cov_list):
         """Set the Se_inv matrix as a block diagonal matrix
@@ -193,7 +193,7 @@ class DataSet(object):
 
         """
         self._log.debug('Calling set_Se_inv_block_diag')
-        assert len(cov_list) == len(self.phase_maps), 'Needs one covariance matrix per phase map!'
+        assert len(cov_list) == len(self.phasemaps), 'Needs one covariance matrix per phase map!'
         self.Se_inv = sparse.block_diag(cov_list).tocsr()
 
     def set_Se_inv_diag_with_conf(self, conf_list=None):
@@ -212,7 +212,7 @@ class DataSet(object):
         """
         self._log.debug('Calling set_Se_inv_diag_with_conf')
         if conf_list is None:  # if no confidence matrizes are given, extract from the phase maps!
-            conf_list = [phase_map.confidence for phase_map in self.phase_maps]
+            conf_list = [phasemap.confidence for phasemap in self.phasemaps]
         cov_list = [sparse.diags(c.flatten().astype(np.float32), 0) for c in conf_list]
         self.set_Se_inv_block_diag(cov_list)
 
@@ -233,13 +233,13 @@ class DataSet(object):
         """
         self._log.debug('Calling set_3d_mask')
         if mask_list is None:  # if no masks are given, extract from phase maps:
-            mask_list = [phase_map.mask for phase_map in self.phase_maps]
-        if len(mask_list) == 1:  # just one phase_map --> 3D mask equals 2D mask
+            mask_list = [phasemap.mask for phasemap in self.phasemaps]
+        if len(mask_list) == 1:  # just one phasemap --> 3D mask equals 2D mask
             self.mask = np.expand_dims(mask_list[0], axis=0)  # z-dim is set to 1!
         else:  # 3D mask has to be constructed from 2D masks:
             mask_3d_inv = np.zeros(self.dim)
             for i, projector in enumerate(self.projectors):
-                mask_2d_inv = np.logical_not(self.phase_maps[i].mask.reshape(-1))  # inv. 2D mask
+                mask_2d_inv = np.logical_not(self.phasemaps[i].mask.reshape(-1))  # inv. 2D mask
                 # Add extrusion of inv. 2D mask:
                 mask_3d_inv += projector.weight.T.dot(mask_2d_inv).reshape(self.dim)
             self.mask = np.where(mask_3d_inv == 0, True, False)
@@ -274,15 +274,15 @@ class DataSet(object):
             mlab.axes(plot)
             return plot
 
-    def phase_plots(self, mag_data=None, title='Phase Map',
+    def phase_plots(self, magdata=None, title='Phase Map',
                     cmap='RdBu', limit=None, norm=None):
         """Display all phasemaps saved in the :class:`~.DataSet` as a colormesh.
 
         Parameters
         ----------
-        mag_data : :class:`~.VectorData`, optional
+        magdata : :class:`~.VectorData`, optional
             Magnetic distribution to which the projectors of the dataset should be applied. If not
-            given, the phase_maps in the dataset are used.
+            given, the phasemaps in the dataset are used.
         title : string, optional
             The main part of the title of the plots. The default is 'Phase Map'. Additional
             projector info is appended to this.
@@ -302,23 +302,23 @@ class DataSet(object):
 
         """
         self._log.debug('Calling phase_plots')
-        if mag_data is not None:
-            phase_maps = self.create_phase_maps(mag_data)
+        if magdata is not None:
+            phasemaps = self.create_phasemaps(magdata)
         else:
-            phase_maps = self.phase_maps
-        [phase_map.phase_plot('{} ({})'.format(title, self.projectors[i].get_info()),
+            phasemaps = self.phasemaps
+        [phasemap.phase_plot('{} ({})'.format(title, self.projectors[i].get_info()),
                               cmap=cmap, limit=limit, norm=norm)
-         for (i, phase_map) in enumerate(phase_maps)]
+         for (i, phasemap) in enumerate(phasemaps)]
 
-    def combined_plots(self, mag_data=None, title='Combined Plot', cmap='RdBu', limit=None,
+    def combined_plots(self, magdata=None, title='Combined Plot', cmap='RdBu', limit=None,
                        norm=None, gain='auto', interpolation='none', grad_encode='bright'):
         """Display all phasemaps and the resulting color coded holography images.
 
         Parameters
         ----------
-        mag_data : :class:`~.VectorData`, optional
+        magdata : :class:`~.VectorData`, optional
             Magnetic distribution to which the projectors of the dataset should be applied. If not
-            given, the phase_maps in the dataset are used.
+            given, the phasemaps in the dataset are used.
         title : string, optional
             The title of the plot. The default is 'Combined Plot'.
         cmap : string, optional
@@ -348,11 +348,11 @@ class DataSet(object):
 
         """
         self._log.debug('Calling combined_plots')
-        if mag_data is not None:
-            phase_maps = self.create_phase_maps(mag_data)
+        if magdata is not None:
+            phasemaps = self.create_phasemaps(magdata)
         else:
-            phase_maps = self.phase_maps
-        for (i, phase_map) in enumerate(phase_maps):
-            phase_map.combined_plot('{} ({})'.format(title, self.projectors[i].get_info()),
+            phasemaps = self.phasemaps
+        for (i, phasemap) in enumerate(phasemaps):
+            phasemap.combined_plot('{} ({})'.format(title, self.projectors[i].get_info()),
                                     cmap, limit, norm, gain, interpolation, grad_encode)
         plt.show()

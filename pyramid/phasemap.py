@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Copyright 2016 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
 """This module provides the :class:`~.PhaseMap` class for storing phase map data."""
 
 import logging
-import os
+
 from numbers import Number
-
-from pyramid.colormap import DirectionalColormap, TransparentColormap
-
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
@@ -18,12 +15,7 @@ from matplotlib.ticker import MaxNLocator, FuncFormatter
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.ndimage.interpolation import zoom
 
-_log = logging.getLogger(__name__)
-try:  # Try importing HyperSpy:
-    import hyperspy.api as hs
-except ImportError:
-    hs = None
-    _log.error('Could not load hyperspy package!')
+from .colormap import DirectionalColormap, TransparentColormap
 
 __all__ = ['PhaseMap']
 
@@ -53,15 +45,13 @@ class PhaseMap(object):
         Mask which determines the projected magnetization distribution, gotten from MIP images or
         otherwise acquired. Defaults to an array of ones (all pixels are considered).
     confidence: :class:`~numpy.ndarray` (N=2, optional)
-        Confidence array which determines the trust of specific regions of the phase_map. A value
+        Confidence array which determines the trust of specific regions of the phasemap. A value
         of 1 means the pixel is trustworthy, a value of 0 means it is not. Defaults to an array of
         ones (full trust for all pixels). Can be used for the construction of Se_inv.
-    unit: {'rad', 'mrad'}, optional
-        Set the unit of the phase map. This is important for the :func:`display` function,
-        because the phase is scaled accordingly. Does not change the phase itself, which is
-        always in `rad`.
 
     """
+
+
 
     _log = logging.getLogger(__name__)
 
@@ -162,7 +152,7 @@ class PhaseMap(object):
 
     @property
     def confidence(self):
-        """Confidence array which determines the trust of specific regions of the phase_map."""
+        """Confidence array which determines the trust of specific regions of the phasemap."""
         return self._confidence
 
     @confidence.setter
@@ -174,29 +164,18 @@ class PhaseMap(object):
             confidence = np.ones_like(self.phase)
         self._confidence = confidence.astype(dtype=np.float32)
 
-    @property
-    def unit(self):
-        """The unit of the phase map. Default is `rad`."""
-        return self._unit
-
-    @unit.setter
-    def unit(self, unit):
-        assert unit in self.UNITDICT, 'Unit {} not supported!'.format(unit)
-        self._unit = unit
-
-    def __init__(self, a, phase, mask=None, confidence=None, unit='rad'):
+    def __init__(self, a, phase, mask=None, confidence=None):
         self._log.debug('Calling __init__')
         self.a = a
         self.phase = phase
         self.mask = mask
         self.confidence = confidence
-        self.unit = unit
         self._log.debug('Created ' + str(self))
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
-        return '%s(a=%r, phase=%r, mask=%r, confidence=%r, unit=%r)' % \
-               (self.__class__, self.a, self.phase, self.mask, self.confidence, self.unit)
+        return '%s(a=%r, phase=%r, mask=%r, confidence=%r)' % \
+               (self.__class__, self.a, self.phase, self.mask, self.confidence)
 
     def __str__(self):
         self._log.debug('Calling __str__')
@@ -204,7 +183,7 @@ class PhaseMap(object):
 
     def __neg__(self):  # -self
         self._log.debug('Calling __neg__')
-        return PhaseMap(self.a, -self.phase, self.mask, self.confidence, self.unit)
+        return PhaseMap(self.a, -self.phase, self.mask, self.confidence)
 
     def __add__(self, other):  # self + other
         self._log.debug('Calling __add__')
@@ -217,10 +196,10 @@ class PhaseMap(object):
                 'Added field has to have the same dimensions!'
             mask_comb = np.logical_or(self.mask, other.mask)  # masks combine
             conf_comb = (self.confidence + other.confidence) / 2  # confidence averaged!
-            return PhaseMap(self.a, self.phase + other.phase, mask_comb, conf_comb, self.unit)
+            return PhaseMap(self.a, self.phase + other.phase, mask_comb, conf_comb)
         else:  # other is a Number
             self._log.debug('Adding an offset')
-            return PhaseMap(self.a, self.phase + other, self.mask, self.confidence, self.unit)
+            return PhaseMap(self.a, self.phase + other, self.mask, self.confidence)
 
     def __sub__(self, other):  # self - other
         self._log.debug('Calling __sub__')
@@ -231,21 +210,21 @@ class PhaseMap(object):
         assert (isinstance(other, Number) or
                 (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
-        return PhaseMap(self.a, self.phase * other, self.mask, self.confidence, self.unit)
+        return PhaseMap(self.a, self.phase * other, self.mask, self.confidence)
 
     def __truediv__(self, other):  # self / other
         self._log.debug('Calling __truediv__')
         assert (isinstance(other, Number) or
                 (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be divided by scalar numbers or fitting arrays!'
-        return PhaseMap(self.a, self.phase / other, self.mask, self.confidence, self.unit)
+        return PhaseMap(self.a, self.phase / other, self.mask, self.confidence)
 
     def __floordiv__(self, other):  # self // other
         self._log.debug('Calling __floordiv__')
         assert (isinstance(other, Number) or
                 (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be divided by scalar numbers or fitting arrays!'
-        return PhaseMap(self.a, self.phase // other, self.mask, self.confidence, self.unit)
+        return PhaseMap(self.a, self.phase // other, self.mask, self.confidence)
 
     def __radd__(self, other):  # other + self
         self._log.debug('Calling __radd__')
@@ -286,20 +265,20 @@ class PhaseMap(object):
             return self.phase
 
     def __array_wrap__(self, array, _=None):  # _ catches the context, which is not used.
-        return PhaseMap(self.a, array, self.mask, self.confidence, self.unit)
+        return PhaseMap(self.a, array, self.mask, self.confidence)
 
     def copy(self):
         """Returns a copy of the :class:`~.PhaseMap` object
 
         Returns
         -------
-        phase_map: :class:`~.PhaseMap`
+        phasemap: :class:`~.PhaseMap`
             A copy of the :class:`~.PhaseMap`.
 
         """
         self._log.debug('Calling copy')
         return PhaseMap(self.a, self.phase.copy(), self.mask.copy(),
-                        self.confidence.copy(), self.unit)
+                        self.confidence.copy())
 
     def scale_down(self, n=1):
         """Scale down the phase map by averaging over two pixels along each axis.
@@ -324,16 +303,17 @@ class PhaseMap(object):
         self.a *= 2 ** n
         for t in range(n):
             # Pad if necessary:
-            pv, pu = self.dim_uv[0] % 2, self.dim_uv[1] % 2
+            pv, pu = (0, self.dim_uv[0] % 2), (0, self.dim_uv[1] % 2)
             if pv != 0 or pu != 0:
-                self.phase = np.pad(self.phase, ((0, pv), (0, pu)), mode='constant')
+                self.pad((pv, pu), mode='edge')
             # Create coarser grid for the magnetization:
             dim_uv = self.dim_uv
-            self.phase = self.phase.reshape((dim_uv[0] / 2, 2, dim_uv[1] / 2, 2)).mean(axis=(3, 1))
-            mask = self.mask.reshape(dim_uv[0] / 2, 2, dim_uv[1] / 2, 2)
+            self.phase = self.phase.reshape((dim_uv[0] // 2, 2,
+                                             dim_uv[1] // 2, 2)).mean(axis=(3, 1))
+            mask = self.mask.reshape(dim_uv[0] // 2, 2, dim_uv[1] // 2, 2)
             self.mask = mask[:, 0, :, 0] & mask[:, 1, :, 0] & mask[:, 0, :, 1] & mask[:, 1, :, 1]
-            self.confidence = self.confidence.reshape(dim_uv[0] / 2, 2,
-                                                      dim_uv[1] / 2, 2).mean(axis=(3, 1))
+            self.confidence = self.confidence.reshape(dim_uv[0] // 2, 2,
+                                                      dim_uv[1] // 2, 2).mean(axis=(3, 1))
 
     def scale_up(self, n=1, order=0):
         """Scale up the phase map using spline interpolation of the requested order.
@@ -365,7 +345,7 @@ class PhaseMap(object):
         self.mask = zoom(self.mask, zoom=2 ** n, order=0)
         self.confidence = zoom(self.confidence, zoom=2 ** n, order=order)
 
-    def pad(self, pad_values, masked=True):
+    def pad(self, pad_values, mode='constant', masked=False, **kwds):
         """Pad the current phase map with zeros for each individual axis.
 
         Parameters
@@ -374,9 +354,12 @@ class PhaseMap(object):
             Number of zeros which should be padded. Provided as a tuple where each entry
             corresponds to an axis. An entry can be one int (same padding for both sides) or again
             a tuple which specifies the pad values for both sides of the corresponding axis.
-        masked: boolean
-            Determines if the padded areas should be masked or not. Defaults to `True` and thus
-            creates a 'buffer zone' for the magnetization distribution in the reconstruction.
+        mode: string or function
+            A string values or a user supplied function. ‘constant’ pads with zeros. ‘edge’ pads
+            with the edge values of array. See the numpy pad function for an in depth guide.
+        masked: boolean, optional
+            Determines if the padded areas should be masked or not. `True` creates a 'buffer
+            zone' for the magnetization distribution in the reconstruction. Default is `False`
 
         Returns
         -------
@@ -390,15 +373,19 @@ class PhaseMap(object):
         """
         self._log.debug('Calling pad')
         assert len(pad_values) == 2, 'Pad values for each dimension have to be provided!'
-        pv = np.zeros(4, dtype=np.int)
+        pval = np.zeros(4, dtype=np.int)
         for i, values in enumerate(pad_values):
             assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
-            pv[2 * i:2 * (i + 1)] = values
-        self.phase = np.pad(self.phase, ((pv[0], pv[1]), (pv[2], pv[3])), mode='constant')
-        self.mask = np.pad(self.mask, ((pv[0], pv[1]), (pv[2], pv[3])), mode='constant',
-                           constant_values=masked)
-        self.confidence = np.pad(self.confidence, ((pv[0], pv[1]), (pv[2], pv[3])),
-                                 mode='constant')
+            pval[2 * i:2 * (i + 1)] = values
+        self.phase = np.pad(self.phase, ((pval[0], pval[1]),
+                                         (pval[2], pval[3])), mode=mode, **kwds)
+        self.confidence = np.pad(self.confidence, ((pval[0], pval[1]),
+                                                   (pval[2], pval[3])), mode=mode, **kwds)
+        if masked:
+            mask_kwds = {'mode': 'constant', 'constant_values': True}
+        else:
+            mask_kwds = {'mode': mode}
+        self.mask = np.pad(self.mask, ((pval[0], pval[1]), (pval[2], pval[3])), **mask_kwds)
 
     def crop(self, crop_values):
         """Pad the current phase map with zeros for each individual axis.
@@ -431,40 +418,6 @@ class PhaseMap(object):
         self.mask = self.mask[cv[0]:cv[1], cv[2]:cv[3]]
         self.confidence = self.confidence[cv[0]:cv[1], cv[2]:cv[3]]
 
-    def to_signal(self):
-        """Convert :class:`~.PhaseMap` data into a HyperSpy Image.
-
-        Returns
-        -------
-        signal: :class:`~hyperspy.signals.Image`
-            Representation of the :class:`~.PhaseMap` object as a HyperSpy Image.
-
-        Notes
-        -----
-        This method recquires the hyperspy package!
-
-        """
-        self._log.debug('Calling to_signal')
-        if hs is None:
-            self._log.error('This method recquires the hyperspy package!')
-            return
-        # Create signal:
-        signal = hs.signals.Signal2D(self.phase)
-        # Set axes:
-        signal.axes_manager.signal_axes[0].name = 'x-axis'
-        signal.axes_manager.signal_axes[0].units = 'nm'
-        signal.axes_manager.signal_axes[0].scale = self.a
-        signal.axes_manager.signal_axes[1].name = 'y-axis'
-        signal.axes_manager.signal_axes[1].units = 'nm'
-        signal.axes_manager.signal_axes[1].scale = self.a
-        # Set metadata:
-        signal.metadata.Signal.title = 'PhaseMap'
-        signal.metadata.Signal.unit = self.unit
-        signal.metadata.Signal.mask = self.mask
-        signal.metadata.Signal.confidence = self.confidence
-        # Create and return EMD:
-        return signal
-
     @classmethod
     def from_signal(cls, signal):
         """Convert a :class:`~hyperspy.signals.Image` object to a :class:`~.PhaseMap` object.
@@ -476,7 +429,7 @@ class PhaseMap(object):
 
         Returns
         -------
-        phase_map: :class:`~.PhaseMap`
+        phasemap: :class:`~.PhaseMap`
             A :class:`~.PhaseMap` object containing the loaded data.
 
         Notes
@@ -490,108 +443,89 @@ class PhaseMap(object):
         # Extract properties:
         a = signal.axes_manager.signal_axes[0].scale
         try:
-            unit = signal.metadata.Signal.unit
             mask = signal.metadata.Signal.mask
             confidence = signal.metadata.Signal.confidence
         except AttributeError:
-            unit = 'rad'
             mask = None
             confidence = None
-        return cls(a, phase, mask, confidence, unit)
+        return cls(a, phase, mask, confidence)
 
-    def save_to_hdf5(self, filename='phasemap.hdf5', *args, **kwargs):
-        """Save magnetization data in a file with HyperSpys HDF5-format.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the HyperSpy-file in which to store the phase map.
-            The default is 'phasemap.hdf5' in the phasemap folder.
+    def to_signal(self):
+        """Convert :class:`~.PhaseMap` data into a HyperSpy Signal.
 
         Returns
         -------
-        None
-
-        """
-        self._log.debug('Calling save_to_hdf5')
-        self.to_signal().save(filename, *args, **kwargs)
-
-    @classmethod
-    def load_from_hdf5(cls, filename):
-        """Construct :class:`~.DataMag` object from HyperSpys HDF5-file.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the HDF5-file from which to load the data. Standard format is '\*.hdf5'.
-
-        Returns
-        -------
-        mag_data: :class:`~.VectorData`
-            A :class:`~.VectorData` object containing the loaded data.
-
-        """
-        cls._log.debug('Calling load_from_hdf5')
-        if hs is None:
-            cls._log.error('This method recquires the hyperspy package!')
-            return
-        # Load data from file:
-        return PhaseMap.from_signal(hs.load(filename))
-
-    def save_to_txt(self, filename='phasemap.txt', skip_header=False):
-        """Save :class:`~.PhaseMap` data in a file with txt-format.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the file in which to store the phase map data.
-            The default is '..\output\phasemap.txt'.
-        skip_header : boolean, optional
-            Determines if the header, should be skipped (useful for some other programs).
-            Default is False.
-
-        Returns
-        -------
-        None
-
-        """
-        self._log.debug('Calling save_to_txt')
-        # Save data to file:
-        with open(filename, 'w') as phase_file:
-            if not skip_header:
-                phase_file.write('{}\n'.format(filename.replace('.txt', '')))
-                phase_file.write('grid spacing = {} nm\n'.format(self.a))
-            np.savetxt(phase_file, self.phase, fmt='%7.6e', delimiter='\t')
-
-    @classmethod
-    def load_from_txt(cls, filename):
-        """Construct :class:`~.PhaseMap` object from a human readable txt-file.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the file from which to load the data.
-
-        Returns
-        -------
-        phase_map : :class:`~.PhaseMap`
-            A :class:`~.PhaseMap` object containing the loaded data.
+        signal: :class:`~hyperspy.signals.Signal2D`
+            Representation of the :class:`~.PhaseMap` object as a HyperSpy Signal.
 
         Notes
         -----
-        Does not recover the mask, confidence or unit of the original phase map, which default to
-        `None`, `None` and `'rad'`, respectively.
+        This method recquires the hyperspy package!
 
         """
-        cls._log.debug('Calling load_from_txt')
-        # Load data from file:
-        with open(filename, 'r') as phase_file:
-            phase_file.readline()  # Headerline is not used
-            a = float(phase_file.readline()[15:-4])
-            phase = np.loadtxt(filename, delimiter='\t', skiprows=2)
-        return cls(a, phase)
+        self._log.debug('Calling to_signal')
+        try:  # Try importing HyperSpy:
+            import hyperspy.api as hs
+        except ImportError:
+            self._log.error('This method recquires the hyperspy package!')
+            return
+        # Create signal:
+        signal = hs.signals.Signal2D(self.phase)
+        # Set axes:
+        signal.axes_manager.signal_axes[0].name = 'x-axis'
+        signal.axes_manager.signal_axes[0].units = 'nm'
+        signal.axes_manager.signal_axes[0].scale = self.a
+        signal.axes_manager.signal_axes[1].name = 'y-axis'
+        signal.axes_manager.signal_axes[1].units = 'nm'
+        signal.axes_manager.signal_axes[1].scale = self.a
+        # Set metadata:
+        signal.metadata.Signal.title = 'PhaseMap'
+        signal.metadata.Signal.unit = 'rad'
+        signal.metadata.Signal.mask = self.mask
+        signal.metadata.Signal.confidence = self.confidence
+        # Create and return EMD:
+        return signal
 
-    def phase_plot(self, title='Phase Map', cbar_title=None, cmap='RdBu', limit=None,
+    def save(self, filename, save_mask=False, save_conf=False, pyramid_format=True, **kwargs):
+        """Saves the phasemap in the specified format.
+
+        The function gets the format from the extension:
+            - hdf5 for HDF5.
+            - rpl for Ripple (useful to export to Digital Micrograph).
+            - unf for SEMPER unf binary format.
+            - txt format.
+            - Many image formats such as png, tiff, jpeg...
+
+        If no extension is provided, 'hdf5' is used. Most formats are
+        saved with the HyperSpy package (internally the phasemap is first
+        converted to a HyperSpy Signal.
+
+        Each format accepts a different set of parameters. For details
+        see the specific format documentation.
+
+        Parameters
+        ----------
+        filename: str, optional
+            Name of the file which the phasemap is saved into. The extension
+            determines the saving procedure.
+        save_mask: boolean, optional
+            If True, the `mask` is saved, too. For all formats, except HDF5, a separate file will
+            be created. HDF5 always saves the `mask` in the metadata, independent of this flag. The
+            default is False.
+        save_conf: boolean, optional
+            If True, the `confidence` is saved, too. For all formats, except HDF5, a separate file
+            will be created. HDF5 always saves the `confidence` in the metadata, independent of
+            this flag. The default is False
+        pyramid_format: boolean, optional
+            Only used for saving to '.txt' files. If this is True, the grid spacing is saved
+            in an appropriate header. Otherwise just the phase is written with the
+            corresponding `kwargs`.
+
+        """
+        from .file_io.io_phasemap import save_phasemap
+        save_phasemap(self, filename, save_mask, save_conf, pyramid_format, **kwargs)
+
+    def phase_plot(self, title='Phase Map', cbar_title=None, unit='rad', cmap='RdBu', limit=None,
                    norm=None, axis=None, cbar=True, show_mask=True, show_conf=True):
         """Display the phasemap as a colormesh.
 
@@ -601,6 +535,9 @@ class PhaseMap(object):
             The title of the plot. The default is 'Phase Map'.
         cbar_title : string, optional
             The title of the colorbar.
+        unit: {'rad', 'mrad', 'µrad'}, optional
+            The plotting unit of the phase map. The phase is scaled accordingly before plotting.
+        always in `rad`.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             The default is 'RdBu'.
@@ -626,7 +563,7 @@ class PhaseMap(object):
         """
         self._log.debug('Calling phase_plot')
         # Take units into consideration:
-        phase = self.phase * self.UNITDICT[self.unit]
+        phase = self.phase * self.UNITDICT[unit]
         if limit is None:
             limit = np.max(np.abs(phase))
         # If no axis is specified, a new figure is created:
@@ -666,18 +603,20 @@ class PhaseMap(object):
             cbar = fig.colorbar(im, cax=cbar_ax)
             cbar.ax.tick_params(labelsize=14)
             if cbar_title is None:
-                cbar_title = u'phase shift [{}]'.format(self.unit)
+                cbar_title = u'phase shift [{}]'.format(unit)
             cbar.set_label(cbar_title, fontsize=15)
         # Return plotting axis:
         return axis
 
-    def phase3d_plot(self, title='Phase Map', cmap='RdBu'):
+    def phase3d_plot(self, title='Phase Map', unit='rad', cmap='RdBu'):
         """Display the phasemap as a 3D surface with contourplots.
 
         Parameters
         ----------
         title : string, optional
             The title of the plot. The default is 'Phase Map'.
+        unit: {'rad', 'mrad', 'µrad'}, optional
+            The plotting unit of the phase map. The phase is scaled accordingly before plotting.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             The default is 'RdBu'.
@@ -690,7 +629,7 @@ class PhaseMap(object):
         """
         self._log.debug('Calling phase3d_plot')
         # Take units into consideration:
-        phase = self.phase * self.UNITDICT[self.unit]
+        phase = self.phase * self.UNITDICT[unit]
         # Create figure and axis:
         fig = plt.figure()
         axis = Axes3D(fig)
@@ -703,7 +642,7 @@ class PhaseMap(object):
         axis.view_init(45, -135)
         axis.set_xlabel('u-axis [px]')
         axis.set_ylabel('v-axis [px]')
-        axis.set_zlabel('phase shift [{}]'.format(self.unit))
+        axis.set_zlabel('phase shift [{}]'.format(unit))
         # Return plotting axis:
         return axis
 
@@ -790,7 +729,7 @@ class PhaseMap(object):
         return axis
 
     def combined_plot(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
-                      cbar_title=None, cmap='RdBu', limit=None, norm=None, gain='auto',
+                      cbar_title=None, unit='rad', cmap='RdBu', limit=None, norm=None, gain='auto',
                       interpolation='none', grad_encode='bright', cbar=True, show_mask=True,
                       show_conf=True):
         """Display the phase map and the resulting color coded holography image in one plot.
@@ -805,6 +744,8 @@ class PhaseMap(object):
             The title of the holographic contour map
         cbar_title : string, optional
             The title of the colorbar.
+        unit: {'rad', 'mrad', 'µrad'}, optional
+            The plotting unit of the phase map. The phase is scaled accordingly before plotting.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             The default is 'RdBu'.
@@ -849,8 +790,8 @@ class PhaseMap(object):
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         fig.subplots_adjust(right=0.85)
-        self.phase_plot(title=phase_title, cbar_title=cbar_title, cmap=cmap, limit=limit,
-                        norm=norm, axis=phase_axis, cbar=cbar, show_mask=show_mask,
-                        show_conf=show_conf)
+        self.phase_plot(title=phase_title, cbar_title=cbar_title, unit=unit, cmap=cmap,
+                        limit=limit, norm=norm, axis=phase_axis, cbar=cbar,
+                        show_mask=show_mask, show_conf=show_conf)
         # Return the plotting axes:
         return phase_axis, holo_axis

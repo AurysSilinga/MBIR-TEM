@@ -158,16 +158,16 @@ class Diagnostics(object):
 
         Returns
         -------
-        mag_data_avg_kern: :class:`~pyramid.fielddata.VectorData`
+        magdata_avg_kern: :class:`~pyramid.fielddata.VectorData`
             Averaging kernel matrix row represented as a 3D magnetization distribution
 
         """
         self._log.debug('Calling get_avg_kern_row')
         if pos is not None:
             self.pos = pos
-        mag_data_avg_kern = VectorData(self.cost.data_set.a, fft.zeros((3,) + self.dim))
-        mag_data_avg_kern.set_vector(self.avrg_kern_row, mask=self.mask)
-        return mag_data_avg_kern
+        magdata_avg_kern = VectorData(self.cost.data_set.a, fft.zeros((3,) + self.dim))
+        magdata_avg_kern.set_vector(self.avrg_kern_row, mask=self.mask)
+        return magdata_avg_kern
 
     def calculate_averaging(self, pos=None):
         """Calculate and plot the averaging pixel number at a specified position for x, y or z.
@@ -191,8 +191,8 @@ class Diagnostics(object):
 
         """
         self._log.debug('Calling calculate_averaging')
-        mag_data_avg_kern = self.get_avg_kern_row(pos)
-        mag_x, mag_y, mag_z = mag_data_avg_kern.field
+        magdata_avg_kern = self.get_avg_kern_row(pos)
+        mag_x, mag_y, mag_z = magdata_avg_kern.field
         x = mag_x.sum(axis=(0, 1))
         y = mag_y.sum(axis=(0, 2))
         z = mag_z.sum(axis=(1, 2))

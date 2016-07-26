@@ -23,7 +23,7 @@ class ForwardModel(object):
 
     Represents a strategy for the mapping of a 3D magnetic distribution to two-dimensional
     phase maps. A :class:`~.DataSet` object is given which is used as input for the model
-    (projectors, phase_mappers, etc.). A `ramp_order` can be specified to add polynomial ramps
+    (projectors, phasemappers, etc.). A `ramp_order` can be specified to add polynomial ramps
     to the constructed phase maps (which can also be reconstructed!). A :class:`~.Ramp` class
     object will be constructed accordingly, which also holds all info about the ramps after a
     reconstruction.
@@ -49,7 +49,7 @@ class ForwardModel(object):
         self._log.debug('Calling __init__')
         self.data_set = data_set
         self.ramp_order = ramp_order
-        self.phase_mappers = self.data_set.phase_mappers
+        self.phasemappers = self.data_set.phasemappers
         self.ramp = Ramp(self.data_set, self.ramp_order)
         self.m = self.data_set.m
         self.n = self.data_set.n
@@ -57,7 +57,7 @@ class ForwardModel(object):
             self.n += self.ramp.n
         self.shape = (self.m, self.n)
         self.hook_points = data_set.hook_points
-        self.mag_data = VectorData(self.data_set.a, np.zeros((3,) + self.data_set.dim))
+        self.magdata = VectorData(self.data_set.a, np.zeros((3,) + self.data_set.dim))
         self._log.debug('Creating ' + str(self))
 
     def __repr__(self):
@@ -71,17 +71,17 @@ class ForwardModel(object):
     def __call__(self, x):
         # Extract ramp parameters if necessary (x will be shortened!):
         x = self.ramp.extract_ramp_params(x)
-        # Reset mag_data and fill with vector:
-        self.mag_data.field[...] = 0
-        self.mag_data.set_vector(x, self.data_set.mask)
+        # Reset magdata and fill with vector:
+        self.magdata.field[...] = 0
+        self.magdata.set_vector(x, self.data_set.mask)
         # Simulate all phase maps and create result vector:
         result = np.zeros(self.m)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
-            mapper = self.phase_mappers[projector.dim_uv]
-            phase_map = mapper(projector(self.mag_data))
-            phase_map += self.ramp(i)  # add ramp!
-            result[hp[i]:hp[i + 1]] = phase_map.phase_vec
+            mapper = self.phasemappers[projector.dim_uv]
+            phasemap = mapper(projector(self.magdata))
+            phasemap += self.ramp(i)  # add ramp!
+            result[hp[i]:hp[i + 1]] = phasemap.phase_vec
         return np.reshape(result, -1)
 
     def jac_dot(self, x, vector):
@@ -107,15 +107,15 @@ class ForwardModel(object):
         """
         # Extract ramp parameters if necessary (vector will be shortened!):
         vector = self.ramp.extract_ramp_params(vector)
-        # Reset mag_data and fill with vector:
-        self.mag_data.field[...] = 0
-        self.mag_data.set_vector(vector, self.data_set.mask)
+        # Reset magdata and fill with vector:
+        self.magdata.field[...] = 0
+        self.magdata.set_vector(vector, self.data_set.mask)
         # Simulate all phase maps and create result vector:
         result = np.zeros(self.m)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
-            mag_vec = self.mag_data.field_vec
-            mapper = self.phase_mappers[projector.dim_uv]
+            mag_vec = self.magdata.field_vec
+            mapper = self.phasemappers[projector.dim_uv]
             res = mapper.jac_dot(projector.jac_dot(mag_vec))
             res += self.ramp.jac_dot(i)  # add ramp!
             result[hp[i]:hp[i + 1]] = res
@@ -144,10 +144,10 @@ class ForwardModel(object):
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
             sub_vec = vector[hp[i]:hp[i + 1]]
-            mapper = self.phase_mappers[projector.dim_uv]
+            mapper = self.phasemappers[projector.dim_uv]
             proj_T_result += projector.jac_T_dot(mapper.jac_T_dot(sub_vec))
-        self.mag_data.field_vec = proj_T_result
-        result = self.mag_data.get_vector(self.data_set.mask)
+        self.magdata.field_vec = proj_T_result
+        result = self.magdata.get_vector(self.data_set.mask)
         ramp_params = self.ramp.jac_T_dot(vector)  # calculate ramp_params separately!
         return np.concatenate((result, ramp_params))
 
@@ -202,7 +202,7 @@ class DistributedForwardModel(ForwardModel):
             start = proc_id * img_per_proc
             stop = np.min(((proc_id + 1) * img_per_proc, self.data_set.count))
             self.proc_hook_points.append(hp[stop])
-            sub_data.phase_maps = self.data_set.phase_maps[start:stop]
+            sub_data.phasemaps = self.data_set.phasemaps[start:stop]
             sub_data.projectors = self.data_set.projectors[start:stop]
             # Create SubForwardModel:
             sub_fwd_model = ForwardModel(sub_data, ramp_order=None)  # ramps handled in master!

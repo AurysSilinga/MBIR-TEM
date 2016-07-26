@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Copyright 2016 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
 """This module provides classes for storing vector and scalar 3D-field."""
 
-import abc
 import logging
-import os
+
+import abc
 from numbers import Number
 
 import numpy as np
@@ -14,15 +14,8 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from scipy.ndimage.interpolation import zoom
 
-from pyramid import fft
-from pyramid.colormap import DirectionalColormap
-
-_log = logging.getLogger(__name__)
-try:  # Try importing HyperSpy:
-    import hyperspy.api as hs
-except ImportError:
-    hs = None
-    _log.error('Could not load hyperspy package!')
+from . import fft
+from .colormap import DirectionalColormap
 
 __all__ = ['VectorData', 'ScalarData']
 
@@ -333,6 +326,28 @@ class FieldData(object, metaclass=abc.ABCMeta):
         """
         pass
 
+    @classmethod
+    def from_signal(cls, signal):
+        """Convert a :class:`~hyperspy.signals.Signal` object to a :class:`~.FieldData` object.
+
+        Parameters
+        ----------
+        signal: :class:`~hyperspy.signals.Signal`
+            The :class:`~hyperspy.signals.Signal` object which should be converted to FieldData.
+
+        Returns
+        -------
+        magdata: :class:`~.FieldData`
+            A :class:`~.FieldData` object containing the loaded data.
+
+        Notes
+        -----
+        This method recquires the hyperspy package!
+
+        """
+        cls._log.debug('Calling from_signal')
+        return cls(signal.axes_manager[0].scale, signal.data)
+
     @abc.abstractmethod
     def to_signal(self):
         """Convert :class:`~.FieldData` data into a HyperSpy signal.
@@ -347,23 +362,25 @@ class FieldData(object, metaclass=abc.ABCMeta):
         This method recquires the hyperspy package!
 
         """
-        pass
-
-    @abc.abstractmethod
-    def save_to_hdf5(self, filename, *args, **kwargs):
-        """Save field data in a file with HyperSpys HDF5-format.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the HDF5-file in which to store the field data.
-
-        Returns
-        -------
-        None
-
-        """
-        pass
+        self._log.debug('Calling to_signal')
+        try:  # Try importing HyperSpy:
+            import hyperspy.api as hs
+        except ImportError:
+            self._log.error('This method recquires the hyperspy package!')
+            return
+        # Create signal:
+        signal = hs.signals.BaseSignal(self.field)  # All axes are signal axes!
+        # Set axes:
+        signal.axes_manager[0].name = 'x-axis'
+        signal.axes_manager[0].units = 'nm'
+        signal.axes_manager[0].scale = self.a
+        signal.axes_manager[1].name = 'y-axis'
+        signal.axes_manager[1].units = 'nm'
+        signal.axes_manager[1].scale = self.a
+        signal.axes_manager[2].name = 'z-axis'
+        signal.axes_manager[2].units = 'nm'
+        signal.axes_manager[2].scale = self.a
+        return signal
 
 
 class VectorData(FieldData):
@@ -563,7 +580,7 @@ class VectorData(FieldData):
 
         Returns
         -------
-        mag_data_flip: :class:`~.VectorData`
+        magdata_flip: :class:`~.VectorData`
            A flipped copy of the :class:`~.VectorData` object.
 
         """
@@ -591,7 +608,7 @@ class VectorData(FieldData):
 
         Returns
         -------
-        mag_data_rot: :class:`~.VectorData`
+        magdata_rot: :class:`~.VectorData`
            A rotated copy of the :class:`~.VectorData` object.
 
         """
@@ -677,22 +694,8 @@ class VectorData(FieldData):
 
         """
         self._log.debug('Calling to_signal')
-        # Try importing HyperSpy:
-        if hs is None:
-            self._log.error('This method recquires the hyperspy package!')
-            return
-        # Create signal:
-        signal = hs.signals.BaseSignal(self.field)  # All axes are signal axes!
-        # Set axes:
-        signal.axes_manager[0].name = 'x-axis'
-        signal.axes_manager[0].units = 'nm'
-        signal.axes_manager[0].scale = self.a
-        signal.axes_manager[1].name = 'y-axis'
-        signal.axes_manager[1].units = 'nm'
-        signal.axes_manager[1].scale = self.a
-        signal.axes_manager[2].name = 'z-axis'
-        signal.axes_manager[2].units = 'nm'
-        signal.axes_manager[2].scale = self.a
+        signal = super().to_signal()
+        # Set component axis:
         signal.axes_manager[3].name = 'x/y/z-component'
         signal.axes_manager[3].units = ''
         # Set metadata:
@@ -700,117 +703,32 @@ class VectorData(FieldData):
         # Return signal:
         return signal
 
-    @classmethod
-    def from_signal(cls, signal):
-        """Convert a :class:`~hyperspy.signals.Signal` object to a :class:`~.FieldData` object.
+    def save(self, filename, **kwargs):
+        """Saves the VectorData in the specified format.
+
+        The function gets the format from the extension:
+            - hdf5 for HDF5.
+            - EMD Electron Microscopy Dataset format (also HDF5).
+            - llg format.
+            - ovf format.
+            - npy or npz for numpy formats.
+
+        If no extension is provided, 'hdf5' is used. Most formats are
+        saved with the HyperSpy package (internally the fielddata is first
+        converted to a HyperSpy Signal.
+
+        Each format accepts a different set of parameters. For details
+        see the specific format documentation.
 
         Parameters
         ----------
-        signal: :class:`~hyperspy.signals.Signal`
-            The :class:`~hyperspy.signals.Signal` object which should be converted to FieldData.
-
-        Returns
-        -------
-        mag_data: :class:`~.FieldData`
-            A :class:`~.VectorData` object containing the loaded data.
-
-        Notes
-        -----
-        This method recquires the hyperspy package!
+        filename : str, optional
+            Name of the file which the VectorData is saved into. The extension
+            determines the saving procedure.
 
         """
-        cls._log.debug('Calling from_signal')
-        return cls(signal.axes_manager[0].scale, signal.data)
-
-    def save_to_hdf5(self, filename='vecdata.hdf5', *args, **kwargs):
-        """Save vector field data in a file with HyperSpys HDF5-format.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the HDF5-file in which to store the vector field.
-            The default is 'vecdata.hdf5'.
-
-        Returns
-        -------
-        None
-
-        """
-        self._log.debug('Calling save_to_hdf5')
-        self.to_signal().save(filename, *args, **kwargs)
-
-    @classmethod
-    def load_from_hdf5(cls, filename):
-        """Construct :class:`~.VectorData` object from HyperSpys HDF5-file.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the HDF5-file from which to load the data. Standard format is '\*.hdf5'.
-
-        Returns
-        -------
-        mag_data: :class:`~.VectorData`
-            A :class:`~.VectorData` object containing the loaded data.
-
-        """
-        cls._log.debug('Calling load_from_hdf5')
-        if hs is None:
-            cls._log.error('This method recquires the hyperspy package!')
-            return
-        # Load data from file:
-        return VectorData.from_signal(hs.load(filename))
-
-    def save_to_llg(self, filename='vecdata.txt'):
-        """Save vector field data in a file with LLG-format.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the LLG-file in which to store the vector field data.
-            The default is 'vecdata.txt'.
-
-        Returns
-        -------
-        None
-
-        """
-        self._log.debug('Calling save_to_llg')
-        SCALE = 1.0E-9 / 1.0E-2  # from nm to cm
-        # Create 3D meshgrid and reshape it and the field into a list where x varies first:
-        zz, yy, xx = self.a * SCALE * (np.indices(self.dim) + 0.5).reshape(3, -1)
-        x_vec, y_vec, z_vec = self.field.reshape(3, -1)
-        data = np.array([xx, yy, zz, x_vec, y_vec, z_vec]).T
-        # Save data to file:
-        with open(filename, 'w') as mag_file:
-            mag_file.write('LLGFileCreator: %s\n' % filename)
-            mag_file.write('    %d    %d    %d\n' % (self.dim[2], self.dim[1], self.dim[0]))
-            mag_file.writelines('\n'.join('   '.join('{:7.6e}'.format(cell)
-                                                     for cell in row) for row in data))
-
-    @classmethod
-    def load_from_llg(cls, filename):
-        """Construct :class:`~.VectorData` object from LLG-file.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the LLG-file from which to load the data.
-
-        Returns
-        -------
-        mag_data: :class:`~.VectorData`
-            A :class:`~.VectorData` object containing the loaded data.
-
-        """
-        cls._log.debug('Calling load_from_llg')
-        SCALE = 1.0E-9 / 1.0E-2  # From cm to nm
-        # Load data from file:
-        data = np.genfromtxt(filename, skip_header=2)
-        dim = tuple(np.genfromtxt(filename, dtype=int, skip_header=1, skip_footer=len(data[:, 0])))
-        a = (data[1, 0] - data[0, 0]) / SCALE
-        field = data[:, 3:6].T.reshape((3,) + dim)
-        return cls(a, field)
+        from .file_io.io_vectordata import save_vectordata
+        save_vectordata(self, filename, **kwargs)
 
     def quiver_plot(self, title='Vector Field', axis=None, proj_axis='z',
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
@@ -827,7 +745,7 @@ class VectorData(FieldData):
             The axis, from which a slice is plotted. The default is 'z'.
         coloring : string
             Color coding mode of the arrows. Use 'angle' (default), 'amplitude' or 'uniform'.
-        ar_dens: int (optional)
+        ar_dens: int, optional
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.
         ax_slice : int, optional
@@ -931,9 +849,17 @@ class VectorData(FieldData):
         if scaled:
             u_mag /= amplitudes.max() + 1E-30
             v_mag /= amplitudes.max() + 1E-30
-        axis.quiver(uu, vv, u_mag, v_mag, colorinds, cmap=cmap, clim=(0, 1), angles=angles,
-                    pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
-                    minlength=0.25, headwidth=6, headlength=7)
+        im = axis.quiver(uu, vv, u_mag, v_mag, colorinds, cmap=cmap, clim=(0, 1), angles=angles,
+                         pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
+                         minlength=0.25, headwidth=6, headlength=7)
+        if coloring == 'amplitude':
+            fig = plt.gcf()
+            fig.subplots_adjust(right=0.8)
+            cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
+            cbar = fig.colorbar(im, cax=cbar_ax)
+            cbar.ax.tick_params(labelsize=14)
+            cbar_title = u'amplitude'
+            cbar.set_label(cbar_title, fontsize=15)
         # Change background color:
         axis.set_axis_bgcolor(bgcolor)
         # Show mask:
@@ -969,7 +895,7 @@ class VectorData(FieldData):
             Plotlimit for the vector field arrow length used to scale the colormap.
         cmap : string, optional
             String describing the colormap which is used (default is 'jet').
-        ar_dens: int (optional)
+        ar_dens: int, optional
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.
         mode: string, optional
@@ -1163,84 +1089,33 @@ class ScalarData(FieldData):
 
         """
         self._log.debug('Calling to_signal')
-        # Try importing HyperSpy:
-        if hs is None:
-            self._log.error('This method recquires the hyperspy package!')
-            return
-        # Create signal:
-        signal = hs.signals.BaseSignal(self.field)
-        # Set axes:
-        signal.axes_manager[0].name = 'x-axis'
-        signal.axes_manager[0].units = 'nm'
-        signal.axes_manager[0].scale = self.a
-        signal.axes_manager[1].name = 'y-axis'
-        signal.axes_manager[1].units = 'nm'
-        signal.axes_manager[1].scale = self.a
-        signal.axes_manager[2].name = 'z-axis'
-        signal.axes_manager[2].units = 'nm'
-        signal.axes_manager[2].scale = self.a
+        signal = super().to_signal()
         # Set metadata:
         signal.metadata.Signal.title = 'ScalarData'
         # Return signal:
         return signal
 
-    @classmethod
-    def from_signal(cls, signal):
-        """Convert a :class:`~hyperspy.signals.Signal` object to a :class:`~.ScalarData` object.
+    def save(self, filename, **kwargs):
+        """Saves the ScalarData in the specified format.
+
+        The function gets the format from the extension:
+            - hdf5 for HDF5.
+            - EMD Electron Microscopy Dataset format (also HDF5).
+            - npy or npz for numpy formats.
+
+        If no extension is provided, 'hdf5' is used. Most formats are
+        saved with the HyperSpy package (internally the fielddata is first
+        converted to a HyperSpy Signal.
+
+        Each format accepts a different set of parameters. For details
+        see the specific format documentation.
 
         Parameters
         ----------
-        signal: :class:`~hyperspy.signals.Signal`
-            The :class:`~hyperspy.signals.Signal` object which should be converted to ScalarData.
-
-        Returns
-        -------
-        mag_data: :class:`~.ScalarData`
-            A :class:`~.ScalarData` object containing the loaded data.
-
-        Notes
-        -----
-        This method recquires the hyperspy package!
+        filename : str, optional
+            Name of the file which the ScalarData is saved into. The extension
+            determines the saving procedure.
 
         """
-        cls._log.debug('Calling from_signal')
-        return cls(signal.axes_manager[0].scale, signal.data)
-
-    def save_to_hdf5(self, filename='scaldata.hdf5', *args, **kwargs):
-        """Save field data in a file with HyperSpys HDF5-format.
-
-        Parameters
-        ----------
-        filename : string, optional
-            The name of the HDF5-file in which to store the field data.
-            The default is 'scaldata.hdf5'.
-
-        Returns
-        -------
-        None
-
-        """
-        self._log.debug('Calling save_to_hdf5')
-        self.to_signal().save(filename)
-
-    @classmethod
-    def load_from_hdf5(cls, filename):
-        """Construct :class:`~.ScalarData` object from HyperSpys HDF5-file.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the HDF5-file from which to load the data. Standard format is '\*.hdf5'.
-
-        Returns
-        -------
-        mag_data: :class:`~.ScalarData`
-            A :class:`~.ScalarData` object containing the loaded data.
-
-        """
-        cls._log.debug('Calling load_from_hdf5')
-        if hs is None:
-            cls._log.error('This method recquires the hyperspy package!')
-            return
-        # Load data from file:
-        return ScalarData.from_signal(hs.load(filename))
+        from .file_io.io_scalardata import save_scalardata
+        save_scalardata(self, filename, **kwargs)

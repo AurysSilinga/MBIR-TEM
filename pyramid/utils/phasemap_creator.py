@@ -8,6 +8,8 @@
 # WARNING! All changes made in this file will be lost!
 """GUI for setting up PhasMaps from existing data in different formats."""
 
+import logging
+
 import os
 import sys
 
@@ -25,6 +27,9 @@ import numpy as np
 import hyperspy.api as hs
 
 import pyramid as pr
+
+__all__ = ['gui_phasemap_creator']
+_log = logging.getLogger(__name__)
 
 
 ui_location = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'phasemap_creator.ui')
@@ -59,7 +64,7 @@ class Main(QMainWindow, UI_MainWindow):
         self.phase_loaded = False
         self.mask_loaded = False
         self.dir = ''
-        self.phase_map = None
+        self.phasemap = None
 
     def addmpl(self):
         fig = Figure()
@@ -72,12 +77,12 @@ class Main(QMainWindow, UI_MainWindow):
 
     def update_phasemap(self):
         if self.phase_loaded:
-            self.phase_map.a = self.doubleSpinBox_a.value()
+            self.phasemap.a = self.doubleSpinBox_a.value()
             show_mask = self.checkBox_mask.isChecked()
             show_conf = self.checkBox_conf.isChecked()
             self.canvas.figure.axes[0].clear()
             self.canvas.figure.axes[0].hold(True)
-            self.phase_map.phase_plot('PhaseMap', axis=self.canvas.figure.axes[0],
+            self.phasemap.phase_plot('PhaseMap', axis=self.canvas.figure.axes[0],
                                       show_mask=show_mask, show_conf=show_conf, cbar=False)
             self.canvas.draw()
 
@@ -85,8 +90,8 @@ class Main(QMainWindow, UI_MainWindow):
         if self.mask_loaded:
             threshold = self.doubleSpinBox_thres.value()
             mask_img = Image.fromarray(self.raw_mask)
-            mask = np.asarray(mask_img.resize(list(reversed(self.phase_map.dim_uv))))
-            self.phase_map.mask = np.where(mask >= threshold, True, False)
+            mask = np.asarray(mask_img.resize(list(reversed(self.phasemap.dim_uv))))
+            self.phasemap.mask = np.where(mask >= threshold, True, False)
             self.update_phasemap()
 
     def load_phase(self):
@@ -94,12 +99,12 @@ class Main(QMainWindow, UI_MainWindow):
             self.phase_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Phase', self.dir)
             if self.phase_path.endswith('.txt'):
                 phase = np.genfromtxt(self.phase_path, delimiter=',')
-                self.phase_map = pr.PhaseMap(1., phase)
+                self.phasemap = pr.PhaseMap(1., phase)
             else:
-                self.phase_map = pr.PhaseMap.from_signal(hs.load(self.phase_path))
+                self.phasemap = pr.PhaseMap.from_signal(hs.load(self.phase_path))
         except ValueError:
             return  # Abort if no phase_path is selected!
-        self.doubleSpinBox_a.setValue(self.phase_map.a)
+        self.doubleSpinBox_a.setValue(self.phasemap.a)
         self.dir = os.path.join(os.path.dirname(self.phase_path))
         if not self.phase_loaded:
             self.addmpl()
@@ -151,8 +156,8 @@ class Main(QMainWindow, UI_MainWindow):
         except ValueError:
             return  # Abort if no conf_path is selected!
         confidence = confidence / confidence.max()
-        confidence = np.asarray(Image.fromarray(confidence).resize(self.phase_map.dim_uv))
-        self.phase_map.confidence = confidence
+        confidence = np.asarray(Image.fromarray(confidence).resize(self.phasemap.dim_uv))
+        self.phasemap.confidence = confidence
         self.update_phasemap()
 
     def export(self):
@@ -160,16 +165,17 @@ class Main(QMainWindow, UI_MainWindow):
             export_name = os.path.splitext(os.path.basename(self.phase_path))[0]
             export_default = os.path.join(self.dir, 'phasemap_gui_{}.hdf5'.format(export_name))
             export_path = QtGui.QFileDialog.getSaveFileName(self, 'Export PhaseMap',
-                                                            export_default,
-                                                            'HDF5 (*.hdf5)')
-            self.phase_map.to_signal().save(export_path, overwrite=True)
+                                                            export_default, 'HDF5 (*.hdf5)')
+            self.phasemap.to_signal().save(export_path, overwrite=True)
         except (ValueError, AttributeError):
-            return  # Abort if no export_path is selected or self.phase_map doesn't exist yet!
+            return  # Abort if no export_path is selected or self.phasemap doesn't exist yet!
 
 
 def gui_phasemap_creator():
+    """Call the GUI for phasemap creation."""
+    _log.debug('Calling gui_phasemap_creator')
     app = QtGui.QApplication(sys.argv)
     main = Main()
     main.show()
     app.exec()
-    return main.phase_map
+    return main.phasemap

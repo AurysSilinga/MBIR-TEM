@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Copyright 2016 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
 """Create simple magnetic distributions.

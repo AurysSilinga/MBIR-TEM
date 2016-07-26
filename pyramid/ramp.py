@@ -47,7 +47,7 @@ class Ramp(object):
 
     .. code-block:: python
 
-        phase_map -= ramp(i=0, dof_list=[0, 1, 2])
+        phasemap -= ramp(i=0, dof_list=[0, 1, 2])
 
 
     The optional parameter `dof_list` can be used to specify a list of degrees of freedom which

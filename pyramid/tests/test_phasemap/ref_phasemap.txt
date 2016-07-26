@@ -1,4 +1,4 @@
-C:\Users\Jan\Home\PhD Thesis\Pyramid\tests\test_phasemap\ref_phase_map
+PYRAMID-PHASEMAP: ref_phase_map
 grid spacing = 10.0 nm
 0.000000e+00	0.000000e+00	0.000000e+00	0.000000e+00
 0.000000e+00	1.000000e+00	1.000000e+00	0.000000e+00

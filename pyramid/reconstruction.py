@@ -37,7 +37,7 @@ def optimize_linear(costfunction, max_iter=None):
 
     Returns
     -------
-    mag_data : :class:`~pyramid.fielddata.VectorData`
+    magdata : :class:`~pyramid.fielddata.VectorData`
         The reconstructed magnetic distribution as a :class:`~.VectorData` object.
 
     """
@@ -70,7 +70,7 @@ def optimize_nonlin(costfunction, first_guess=None):
 
     Returns
     -------
-    mag_data : :class:`~pyramid.fielddata.VectorData`
+    magdata : :class:`~pyramid.fielddata.VectorData`
         The reconstructed magnetic distribution as a :class:`~.VectorData` object.
 
     """
@@ -129,7 +129,7 @@ def optimize_splitbregman(costfunction, weight, lam, mu):
 
     Returns
     -------
-    mag_data : :class:`~pyramid.fielddata.VectorData`
+    magdata : :class:`~pyramid.fielddata.VectorData`
         The reconstructed magnetic distribution as a :class:`~.VectorData` object.
 
     """

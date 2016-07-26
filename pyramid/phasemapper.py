@@ -120,15 +120,15 @@ class PhaseMapperRDFC(PhaseMapper):
         self._log.debug('Calling __str__')
         return 'PhaseMapperRDFC(kernel=%s)' % self.kernel
 
-    def __call__(self, mag_data):
-        assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
-        assert mag_data.a == self.kernel.a, 'Grid spacing has to match!'
-        assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
-        assert mag_data.dim[1:3] == self.kernel.dim_uv, 'Dimensions do not match!'
+    def __call__(self, magdata):
+        assert isinstance(magdata, VectorData), 'Only VectorData objects can be mapped!'
+        assert magdata.a == self.kernel.a, 'Grid spacing has to match!'
+        assert magdata.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
+        assert magdata.dim[1:3] == self.kernel.dim_uv, 'Dimensions do not match!'
         # Process input parameters:
-        self.u_mag[self.kernel.slice_mag] = mag_data.field[0, 0, ...]  # u-component
-        self.v_mag[self.kernel.slice_mag] = mag_data.field[1, 0, ...]  # v-component
-        return PhaseMap(mag_data.a, self._convolve())
+        self.u_mag[self.kernel.slice_mag] = magdata.field[0, 0, ...]  # u-component
+        self.v_mag[self.kernel.slice_mag] = magdata.field[1, 0, ...]  # v-component
+        return PhaseMap(magdata.a, self._convolve())
 
     def _convolve(self):
         # Fourier transform the projected magnetisation:
@@ -239,14 +239,14 @@ class PhaseMapperFDFC(PhaseMapper):
         return 'PhaseMapperFDFC(a=%s, dim_uv=%s, b_0=%s, padding=%s)' % \
                (self.a, self.dim_uv, self.b_0, self.padding)
 
-    def __call__(self, mag_data):
+    def __call__(self, magdata):
         self._log.debug('Calling __call__')
-        assert isinstance(mag_data, VectorData), 'Only VectorData objects can be mapped!'
-        assert mag_data.a == self.a, 'Grid spacing has to match!'
-        assert mag_data.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
-        assert mag_data.dim[1:3] == self.dim_uv, 'Dimensions do not match!'
+        assert isinstance(magdata, VectorData), 'Only VectorData objects can be mapped!'
+        assert magdata.a == self.a, 'Grid spacing has to match!'
+        assert magdata.dim[0] == 1, 'Magnetic distribution must be 2-dimensional!'
+        assert magdata.dim[1:3] == self.dim_uv, 'Dimensions do not match!'
         v_dim, u_dim = self.dim_uv
-        u_mag, v_mag = mag_data.field[0:2, 0, ...]
+        u_mag, v_mag = magdata.field[0:2, 0, ...]
         # Create zero padded matrices:
         u_pad = int(u_dim / 2 * self.padding)
         v_pad = int(v_dim / 2 * self.padding)
@@ -264,7 +264,7 @@ class PhaseMapperFDFC(PhaseMapper):
         # Transform to real space and revert padding:
         phase_pad = np.fft.irfft2(phase_fft)
         phase = phase_pad[v_pad:v_pad + v_dim, u_pad:u_pad + u_dim]
-        return PhaseMap(mag_data.a, phase)
+        return PhaseMap(magdata.a, phase)
 
     def jac_dot(self, vector):
         """Calculate the product of the Jacobi matrix with a given `vector`.

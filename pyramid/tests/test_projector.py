@@ -8,32 +8,32 @@ import numpy as np
 from numpy import pi
 from numpy.testing import assert_allclose
 
-from pyramid.fielddata import VectorData
 from pyramid.projector import XTiltProjector, YTiltProjector, SimpleProjector
+from pyramid import load_vectordata
 
 
 class TestCaseSimpleProjector(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
-        self.mag_data = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
-        self.proj_z = SimpleProjector(self.mag_data.dim, axis='z')
-        self.proj_y = SimpleProjector(self.mag_data.dim, axis='y')
-        self.proj_x = SimpleProjector(self.mag_data.dim, axis='x')
+        self.magdata = load_vectordata(os.path.join(self.path, 'ref_magdata.hdf5'))
+        self.proj_z = SimpleProjector(self.magdata.dim, axis='z')
+        self.proj_y = SimpleProjector(self.magdata.dim, axis='y')
+        self.proj_x = SimpleProjector(self.magdata.dim, axis='x')
 
     def tearDown(self):
         self.path = None
-        self.mag_data = None
+        self.magdata = None
         self.proj_z = None
         self.proj_y = None
         self.proj_x = None
 
     def test_SimpleProjector_call(self):
-        mag_proj_z = self.proj_z(self.mag_data)
-        mag_proj_y = self.proj_y(self.mag_data)
-        mag_proj_x = self.proj_x(self.mag_data)
-        mag_proj_z_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_z.hdf5'))
-        mag_proj_y_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y.hdf5'))
-        mag_proj_x_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x.hdf5'))
+        mag_proj_z = self.proj_z(self.magdata)
+        mag_proj_y = self.proj_y(self.magdata)
+        mag_proj_x = self.proj_x(self.magdata)
+        mag_proj_z_ref = load_vectordata(os.path.join(self.path, 'ref_mag_proj_z.hdf5'))
+        mag_proj_y_ref = load_vectordata(os.path.join(self.path, 'ref_mag_proj_y.hdf5'))
+        mag_proj_x_ref = load_vectordata(os.path.join(self.path, 'ref_mag_proj_x.hdf5'))
         assert_allclose(mag_proj_z.field, mag_proj_z_ref.field,
                         err_msg='Unexpected behaviour in SimpleProjector (z-axis)')
         assert_allclose(mag_proj_y.field, mag_proj_y_ref.field,
@@ -42,13 +42,13 @@ class TestCaseSimpleProjector(unittest.TestCase):
                         err_msg='Unexpected behaviour in SimpleProjector (x-axis)')
 
     def test_SimpleProjector_jac_dot(self):
-        mag_vec = self.mag_data.field_vec
+        mag_vec = self.magdata.field_vec
         mag_proj_z = self.proj_z.jac_dot(mag_vec).reshape((2,) + self.proj_z.dim_uv)
         mag_proj_y = self.proj_y.jac_dot(mag_vec).reshape((2,) + self.proj_y.dim_uv)
         mag_proj_x = self.proj_x.jac_dot(mag_vec).reshape((2,) + self.proj_x.dim_uv)
-        mag_proj_z_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_z.hdf5'))
-        mag_proj_y_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_y.hdf5'))
-        mag_proj_x_ref = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_proj_x.hdf5'))
+        mag_proj_z_ref = load_vectordata(os.path.join(self.path, 'ref_mag_proj_z.hdf5'))
+        mag_proj_y_ref = load_vectordata(os.path.join(self.path, 'ref_mag_proj_y.hdf5'))
+        mag_proj_x_ref = load_vectordata(os.path.join(self.path, 'ref_mag_proj_x.hdf5'))
         assert_allclose(mag_proj_z, mag_proj_z_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (z-axis)')
         assert_allclose(mag_proj_y, mag_proj_y_ref.field[:2, 0, ...],
@@ -92,27 +92,27 @@ class TestCaseSimpleProjector(unittest.TestCase):
 class TestCaseXTiltProjector(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
-        self.mag_data = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
-        self.proj_00 = XTiltProjector(self.mag_data.dim, tilt=0)
-        self.proj_45 = XTiltProjector(self.mag_data.dim, tilt=pi / 4)
-        self.proj_90 = XTiltProjector(self.mag_data.dim, tilt=pi / 2)
+        self.magdata = load_vectordata(os.path.join(self.path, 'ref_magdata.hdf5'))
+        self.proj_00 = XTiltProjector(self.magdata.dim, tilt=0)
+        self.proj_45 = XTiltProjector(self.magdata.dim, tilt=pi / 4)
+        self.proj_90 = XTiltProjector(self.magdata.dim, tilt=pi / 2)
 
     def tearDown(self):
         self.path = None
-        self.mag_data = None
+        self.magdata = None
         self.proj_00 = None
         self.proj_45 = None
         self.proj_90 = None
 
     def test_XTiltProjector_call(self):
-        mag_proj_00 = self.proj_00(self.mag_data)
-        mag_proj_45 = self.proj_45(self.mag_data)
-        mag_proj_90 = self.proj_90(self.mag_data)
-        mag_proj_00_ref = VectorData.load_from_hdf5(
+        mag_proj_00 = self.proj_00(self.magdata)
+        mag_proj_45 = self.proj_45(self.magdata)
+        mag_proj_90 = self.proj_90(self.magdata)
+        mag_proj_00_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_x00.hdf5'))
-        mag_proj_45_ref = VectorData.load_from_hdf5(
+        mag_proj_45_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_x45.hdf5'))
-        mag_proj_90_ref = VectorData.load_from_hdf5(
+        mag_proj_90_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_x90.hdf5'))
         assert_allclose(mag_proj_00.field, mag_proj_00_ref.field,
                         err_msg='Unexpected behaviour in XTiltProjector (0°)')
@@ -122,15 +122,15 @@ class TestCaseXTiltProjector(unittest.TestCase):
                         err_msg='Unexpected behaviour in XTiltProjector (90°)')
 
     def test_XTiltProjector_jac_dot(self):
-        mag_vec = self.mag_data.field_vec
+        mag_vec = self.magdata.field_vec
         mag_proj_00 = self.proj_00.jac_dot(mag_vec).reshape((2,) + self.proj_00.dim_uv)
         mag_proj_45 = self.proj_45.jac_dot(mag_vec).reshape((2,) + self.proj_45.dim_uv)
         mag_proj_90 = self.proj_90.jac_dot(mag_vec).reshape((2,) + self.proj_90.dim_uv)
-        mag_proj_00_ref = VectorData.load_from_hdf5(
+        mag_proj_00_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_x00.hdf5'))
-        mag_proj_45_ref = VectorData.load_from_hdf5(
+        mag_proj_45_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_x45.hdf5'))
-        mag_proj_90_ref = VectorData.load_from_hdf5(
+        mag_proj_90_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_x90.hdf5'))
         assert_allclose(mag_proj_00, mag_proj_00_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (0°)')
@@ -175,27 +175,27 @@ class TestCaseXTiltProjector(unittest.TestCase):
 class TestCaseYTiltProjector(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
-        self.mag_data = VectorData.load_from_hdf5(os.path.join(self.path, 'ref_mag_data.hdf5'))
-        self.proj_00 = YTiltProjector(self.mag_data.dim, tilt=0)
-        self.proj_45 = YTiltProjector(self.mag_data.dim, tilt=pi / 4)
-        self.proj_90 = YTiltProjector(self.mag_data.dim, tilt=pi / 2)
+        self.magdata = load_vectordata(os.path.join(self.path, 'ref_magdata.hdf5'))
+        self.proj_00 = YTiltProjector(self.magdata.dim, tilt=0)
+        self.proj_45 = YTiltProjector(self.magdata.dim, tilt=pi / 4)
+        self.proj_90 = YTiltProjector(self.magdata.dim, tilt=pi / 2)
 
     def tearDown(self):
         self.path = None
-        self.mag_data = None
+        self.magdata = None
         self.proj_00 = None
         self.proj_45 = None
         self.proj_90 = None
 
     def test_XTiltProjector_call(self):
-        mag_proj_00 = self.proj_00(self.mag_data)
-        mag_proj_45 = self.proj_45(self.mag_data)
-        mag_proj_90 = self.proj_90(self.mag_data)
-        mag_proj_00_ref = VectorData.load_from_hdf5(
+        mag_proj_00 = self.proj_00(self.magdata)
+        mag_proj_45 = self.proj_45(self.magdata)
+        mag_proj_90 = self.proj_90(self.magdata)
+        mag_proj_00_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_y00.hdf5'))
-        mag_proj_45_ref = VectorData.load_from_hdf5(
+        mag_proj_45_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_y45.hdf5'))
-        mag_proj_90_ref = VectorData.load_from_hdf5(
+        mag_proj_90_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_y90.hdf5'))
         assert_allclose(mag_proj_00.field, mag_proj_00_ref.field,
                         err_msg='Unexpected behaviour in XTiltProjector (0°)')
@@ -205,15 +205,15 @@ class TestCaseYTiltProjector(unittest.TestCase):
                         err_msg='Unexpected behaviour in XTiltProjector (90°)')
 
     def test_XTiltProjector_jac_dot(self):
-        mag_vec = self.mag_data.field_vec
+        mag_vec = self.magdata.field_vec
         mag_proj_00 = self.proj_00.jac_dot(mag_vec).reshape((2,) + self.proj_00.dim_uv)
         mag_proj_45 = self.proj_45.jac_dot(mag_vec).reshape((2,) + self.proj_45.dim_uv)
         mag_proj_90 = self.proj_90.jac_dot(mag_vec).reshape((2,) + self.proj_90.dim_uv)
-        mag_proj_00_ref = VectorData.load_from_hdf5(
+        mag_proj_00_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_y00.hdf5'))
-        mag_proj_45_ref = VectorData.load_from_hdf5(
+        mag_proj_45_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_y45.hdf5'))
-        mag_proj_90_ref = VectorData.load_from_hdf5(
+        mag_proj_90_ref = load_vectordata(
             os.path.join(self.path, 'ref_mag_proj_y90.hdf5'))
         assert_allclose(mag_proj_00, mag_proj_00_ref.field[:2, 0, ...],
                         err_msg='Inconsistency between __call__() and jac_dot()! (0°)')

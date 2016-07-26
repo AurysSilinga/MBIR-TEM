@@ -8,15 +8,14 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from pyramid.kernel import Kernel
-from pyramid.fielddata import VectorData, ScalarData
-from pyramid.phasemap import PhaseMap
 from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperFDFC, PhaseMapperMIP
+from pyramid import load_phasemap, load_vectordata, load_scalardata
 
 
 class TestCasePhaseMapperRDFC(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = VectorData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
+        self.mag_proj = load_vectordata(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperRDFC(Kernel(self.mag_proj.a, self.mag_proj.dim[1:]))
 
     def tearDown(self):
@@ -25,11 +24,11 @@ class TestCasePhaseMapperRDFC(unittest.TestCase):
         self.mapper = None
 
     def test_PhaseMapperRDFC_call(self):
-        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map.hdf5'))
-        phase_map = self.mapper(self.mag_proj)
-        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+        phase_ref = load_phasemap(os.path.join(self.path, 'phasemap.hdf5'))
+        phasemap = self.mapper(self.mag_proj)
+        assert_allclose(phasemap.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
-        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phasemap.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
 
     def test_PhaseMapperRDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
@@ -54,7 +53,7 @@ class TestCasePhaseMapperRDFC(unittest.TestCase):
 class TestCasePhaseMapperFDFCpad0(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = VectorData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
+        self.mag_proj = load_vectordata(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperFDFC(self.mag_proj.a, self.mag_proj.dim[1:], padding=0)
 
     def tearDown(self):
@@ -63,11 +62,11 @@ class TestCasePhaseMapperFDFCpad0(unittest.TestCase):
         self.mapper = None
 
     def test_PhaseMapperFDFC_call(self):
-        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map_fc.hdf5'))
-        phase_map = self.mapper(self.mag_proj)
-        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+        phase_ref = load_phasemap(os.path.join(self.path, 'phasemap_fc.hdf5'))
+        phasemap = self.mapper(self.mag_proj)
+        assert_allclose(phasemap.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
-        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phasemap.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
 
     def test_PhaseMapperFDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
@@ -88,7 +87,7 @@ class TestCasePhaseMapperFDFCpad0(unittest.TestCase):
 class TestCasePhaseMapperFDFCpad1(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = VectorData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
+        self.mag_proj = load_vectordata(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperFDFC(self.mag_proj.a, self.mag_proj.dim[1:], padding=1)
 
     def tearDown(self):
@@ -97,11 +96,11 @@ class TestCasePhaseMapperFDFCpad1(unittest.TestCase):
         self.mapper = None
 
     def test_PhaseMapperFDFC_call(self):
-        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map_fc_pad1.hdf5'))
-        phase_map = self.mapper(self.mag_proj)
-        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+        phase_ref = load_phasemap(os.path.join(self.path, 'phasemap_fc_pad1.hdf5'))
+        phasemap = self.mapper(self.mag_proj)
+        assert_allclose(phasemap.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
-        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phasemap.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
 
     def test_PhaseMapperFDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
@@ -122,7 +121,7 @@ class TestCasePhaseMapperFDFCpad1(unittest.TestCase):
 class TestCasePhaseMapperFDFCpad10(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.mag_proj = VectorData.load_from_hdf5(os.path.join(self.path, 'mag_proj.hdf5'))
+        self.mag_proj = load_vectordata(os.path.join(self.path, 'mag_proj.hdf5'))
         self.mapper = PhaseMapperFDFC(self.mag_proj.a, self.mag_proj.dim[1:], padding=200)
 
     def tearDown(self):
@@ -131,11 +130,11 @@ class TestCasePhaseMapperFDFCpad10(unittest.TestCase):
         self.mapper = None
 
     def test_PhaseMapperFDFC_call(self):
-        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map_fc_pad10.hdf5'))
-        phase_map = self.mapper(self.mag_proj)
-        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+        phase_ref = load_phasemap(os.path.join(self.path, 'phasemap_fc_pad10.hdf5'))
+        phasemap = self.mapper(self.mag_proj)
+        assert_allclose(phasemap.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
-        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phasemap.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
 
     def test_PhaseMapperFDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
@@ -156,7 +155,7 @@ class TestCasePhaseMapperFDFCpad10(unittest.TestCase):
 class TestCasePhaseMapperMIP(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
-        self.elec_proj = ScalarData.load_from_hdf5(os.path.join(self.path, 'elec_proj.hdf5'))
+        self.elec_proj = load_scalardata(os.path.join(self.path, 'elec_proj.hdf5'))
         self.mapper = PhaseMapperMIP(self.elec_proj.a, self.elec_proj.dim[1:])
 
     def tearDown(self):
@@ -165,11 +164,11 @@ class TestCasePhaseMapperMIP(unittest.TestCase):
         self.mapper = None
 
     def test_call(self):
-        phase_ref = PhaseMap.load_from_hdf5(os.path.join(self.path, 'phase_map_elec.hdf5'))
-        phase_map = self.mapper(self.elec_proj)
-        assert_allclose(phase_map.phase, phase_ref.phase, atol=1E-7,
+        phase_ref = load_phasemap(os.path.join(self.path, 'phasemap_elec.hdf5'))
+        phasemap = self.mapper(self.elec_proj)
+        assert_allclose(phasemap.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
-        assert_allclose(phase_map.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phasemap.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
 
     def test_jac_dot(self):
         self.assertRaises(NotImplementedError, self.mapper.jac_dot, None)

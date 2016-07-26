@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2014 by Forschungszentrum Juelich GmbH
+# Copyright 2016 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
 """Create phase maps for magnetic distributions with analytic solutions.
@@ -19,6 +19,7 @@ from pyramid.phasemap import PhaseMap
 
 __all__ = ['phase_mag_slab', 'phase_mag_slab', 'phase_mag_sphere', 'phase_mag_vortex']
 _log = logging.getLogger(__name__)
+
 
 PHI_0 = 2067.83  # magnetic flux in T*nm²
 
@@ -44,7 +45,7 @@ def phase_mag_slab(dim, a, phi, center, width, b_0=1):
 
     Returns
     -------
-    phase_map : :class:`~numpy.ndarray` (N=2)
+    phasemap : :class:`~numpy.ndarray` (N=2)
         The phase as a 2-dimensional array.
 
     """
@@ -103,7 +104,7 @@ def phase_mag_disc(dim, a, phi, center, radius, height, b_0=1):
 
     Returns
     -------
-    phase_map : :class:`~numpy.ndarray` (N=2)
+    phasemap : :class:`~numpy.ndarray` (N=2)
         The phase as a 2-dimensional array.
 
     """
@@ -152,7 +153,7 @@ def phase_mag_sphere(dim, a, phi, center, radius, b_0=1):
 
     Returns
     -------
-    phase_map : :class:`~numpy.ndarray` (N=2)
+    phasemap : :class:`~numpy.ndarray` (N=2)
         The phase as a 2-dimensional array.
 
     """
@@ -201,7 +202,7 @@ def phase_mag_vortex(dim, a, center, radius, height, b_0=1):
 
     Returns
     -------
-    phase_map : :class:`~numpy.ndarray` (N=2)
+    phasemap : :class:`~numpy.ndarray` (N=2)
         The phase as a 2-dimensional array.
 
     """
