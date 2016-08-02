@@ -44,10 +44,10 @@ fft
 """
 
 from . import analytic
-from . import magcreator
 from . import reconstruction
 from . import fft
 from . import fieldconverter
+from . import magcreator
 from . import utils
 from .costfunction import *
 from .dataset import *

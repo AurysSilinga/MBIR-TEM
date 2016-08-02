@@ -565,21 +565,27 @@ class PhaseMap(object):
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[unit]
         if limit is None:
-            limit = np.max(np.abs(phase))
+            if show_conf:
+                phase_trust = np.where(self.confidence > 0.9, phase, np.nan)
+                phase_min, phase_max = np.nanmin(phase_trust), np.nanmax(phase_trust)
+                phase_clip = np.clip(phase, phase_min, phase_max)
+                limit = np.max(np.abs(phase_clip))
+            else:
+                limit = np.max(np.abs(phase))
         # If no axis is specified, a new figure is created:
         if axis is None:
             fig = plt.figure(figsize=(7, 7))
             axis = fig.add_subplot(1, 1, 1)
         axis.set_aspect('equal')
         # Plot the phasemap:
-        im = axis.pcolormesh(phase, cmap=cmap, vmin=-limit, vmax=limit, norm=norm)
+        im = axis.imshow(phase, cmap=cmap, vmin=-limit, vmax=limit, norm=norm, origin='lower')
         if show_mask or show_conf:
             vv, uu = np.indices(self.dim_uv) + 0.5
             if show_mask and not np.all(self.mask):  # Plot mask if desired and not trivial!
                 axis.contour(uu, vv, self.mask, levels=[0.5], colors='k', linestyles='dotted')
             if show_conf and not np.all(self.confidence == 1.0):
-                colormap = TransparentColormap(0.2, 0.3, 0.2, [0.2, 0.])
-                axis.pcolormesh(self.confidence, cmap=colormap)
+                colormap = TransparentColormap(0.2, 0.3, 0.2, [0.75, 0.])
+                axis.imshow(self.confidence, cmap=colormap, origin='lower')
         # Set the axes ticks and labels:
         if self.dim_uv[0] >= self.dim_uv[1]:
             u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9

@@ -81,7 +81,7 @@ class DirectionalColormap(colors.LinearSegmentedColormap):
     HOLO_CMAP_INV = colors.LinearSegmentedColormap('my_colormap', CDICT_INV, 256)
 
     def __init__(self, inverted=False):
-        self._log.debug('Calling __create_directional_colormap')
+        self._log.debug('Calling __init__')
         cdict = self.CDICT_INV if inverted else self.CDICT
         super().__init__('directional_colormap', cdict, N=256)
         self._log.debug('Created ' + str(self))
@@ -242,9 +242,9 @@ class TransparentColormap(colors.LinearSegmentedColormap):
     _log = logging.getLogger(__name__ + '.TransparentColormap')
 
     def __init__(self, r=1., g=0., b=0., alpha_range=None):
+        self._log.debug('Calling __init__')
         if alpha_range is None:
             alpha_range = [0., 1.]
-        self._log.debug('Calling __create_directional_colormap')
         red = [(0., 0., r), (1., r, 1.)]
         green = [(0., 0., g), (1., g, 1.)]
         blue = [(0., 0., b), (1., b, 1.)]

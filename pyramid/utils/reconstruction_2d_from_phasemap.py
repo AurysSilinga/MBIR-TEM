@@ -78,7 +78,7 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
     if plot_results:
         if ar_dens is None:
             ar_dens = np.max(dim) // 128
-        magdata_rec.quiver_plot('Reconstructed Distribution', ar_dens=ar_dens)
+        magdata_rec.quiver_plot('Reconstructed Distribution', ar_dens=ar_dens, figsize=(15, 15))
         phasemap.combined_plot('Input Phase')
         phasemap -= fwd_model.ramp(index=0)
         phasemap.combined_plot('Input Phase (ramp corrected)')

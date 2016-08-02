@@ -37,8 +37,8 @@ except ImportError:
     _log.info('multiprocessing module not found. Using single core.')
 
 
-__all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom',  # analysis:ignore
-           'zeros', 'empty', 'configure_backend',
+__all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom',
+           'zeros', 'empty', 'ones', 'configure_backend',
            'fftn', 'ifftn', 'rfftn', 'irfftn', 'rfftn_adj', 'irfftn_adj']
 
 
@@ -164,8 +164,6 @@ def _irfftn_adj_numpy(a):
 # FFTW functions:
 
 def _fftn_fftw(a, s=None, axes=None):
-    if a.dtype not in (FLOAT, COMPLEX):
-        raise TypeError('Wrong input type!')
     fftw = PLANS.lookup_fftw('fftn', a, s, axes, NTHREADS)
     if fftw is None:
         fftw = pyfftw.builders.fftn(a, s, axes, threads=NTHREADS)
@@ -174,8 +172,6 @@ def _fftn_fftw(a, s=None, axes=None):
 
 
 def _ifftn_fftw(a, s=None, axes=None):
-    if a.dtype not in (FLOAT, COMPLEX):
-        raise TypeError('Wrong input type!')
     fftw = PLANS.lookup_fftw('ifftn', a, s, axes, NTHREADS)
     if fftw is None:
         fftw = pyfftw.builders.ifftn(a, s, axes, threads=NTHREADS)
@@ -184,8 +180,6 @@ def _ifftn_fftw(a, s=None, axes=None):
 
 
 def _rfftn_fftw(a, s=None, axes=None):
-    if a.dtype != FLOAT:
-        raise TypeError('Wrong input type!')
     fftw = PLANS.lookup_fftw('rfftn', a, s, axes, NTHREADS)
     if fftw is None:
         fftw = pyfftw.builders.rfftn(a, s, axes, threads=NTHREADS)
@@ -194,8 +188,6 @@ def _rfftn_fftw(a, s=None, axes=None):
 
 
 def _irfftn_fftw(a, s=None, axes=None):
-    if a.dtype != COMPLEX:
-        raise TypeError('Wrong input type!')
     fftw = PLANS.lookup_fftw('irfftn', a, s, axes, NTHREADS)
     if fftw is None:
         fftw = pyfftw.builders.irfftn(a, s, axes, threads=NTHREADS)

@@ -730,7 +730,7 @@ class VectorData(FieldData):
         from .file_io.io_vectordata import save_vectordata
         save_vectordata(self, filename, **kwargs)
 
-    def quiver_plot(self, title='Vector Field', axis=None, proj_axis='z',
+    def quiver_plot(self, title='Vector Field', axis=None, proj_axis='z', figsize=(8.5, 7),
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
                     scale=1., show_mask=True, bgcolor='black'):
         """Plot a slice of the vector field as a quiver plot.
@@ -832,7 +832,7 @@ class VectorData(FieldData):
         # If no axis is specified, a new figure is created:
         if axis is None:
             self._log.debug('axis is None')
-            fig = plt.figure(figsize=(8.5, 7))
+            fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
         axis.set_aspect('equal')
         # Take the logarithm of the arrows to clearly show directions (if specified):
