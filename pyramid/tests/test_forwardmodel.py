@@ -41,9 +41,9 @@ class TestCaseForwardModel(unittest.TestCase):
         n = self.fwd_model.n
         result = self.fwd_model(np.ones(n))
         hp = self.data.hook_points
-        assert_allclose(result[hp[0]:hp[1]], self.phasemap.phase.flatten(), atol=1E-7,
+        assert_allclose(result[hp[0]:hp[1]], self.phasemap.phase.ravel(), atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
-        assert_allclose(result[hp[1]:hp[2]], self.phasemap.phase.flatten(), atol=1E-7,
+        assert_allclose(result[hp[1]:hp[2]], self.phasemap.phase.ravel(), atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
 
     def test_jac_dot(self):

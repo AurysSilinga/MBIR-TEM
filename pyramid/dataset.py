@@ -213,7 +213,7 @@ class DataSet(object):
         self._log.debug('Calling set_Se_inv_diag_with_conf')
         if conf_list is None:  # if no confidence matrizes are given, extract from the phase maps!
             conf_list = [phasemap.confidence for phasemap in self.phasemaps]
-        cov_list = [sparse.diags(c.flatten().astype(np.float32), 0) for c in conf_list]
+        cov_list = [sparse.diags(c.ravel().astype(np.float32), 0) for c in conf_list]
         self.set_Se_inv_block_diag(cov_list)
 
     def set_3d_mask(self, mask_list=None):
@@ -263,10 +263,10 @@ class DataSet(object):
             from mayavi import mlab
             zz, yy, xx = np.indices(self.dim)
             ad = ar_dens
-            zz = zz[::ad, ::ad, ::ad].flatten()
-            yy = yy[::ad, ::ad, ::ad].flatten()
-            xx = xx[::ad, ::ad, ::ad].flatten()
-            mask_vec = self.mask[::ad, ::ad, ::ad].flatten().astype(dtype=np.int)
+            zz = zz[::ad, ::ad, ::ad].ravel()
+            yy = yy[::ad, ::ad, ::ad].ravel()
+            xx = xx[::ad, ::ad, ::ad].ravel()
+            mask_vec = self.mask[::ad, ::ad, ::ad].ravel().astype(dtype=np.int)
             mlab.figure(size=(750, 700))
             plot = mlab.points3d(xx, yy, zz, mask_vec, opacity=0.5,
                                  mode='cube', scale_factor=ar_dens)
@@ -306,8 +306,8 @@ class DataSet(object):
             phasemaps = self.create_phasemaps(magdata)
         else:
             phasemaps = self.phasemaps
-        [phasemap.phase_plot('{} ({})'.format(title, self.projectors[i].get_info()),
-                              cmap=cmap, limit=limit, norm=norm)
+        [phasemap.plot_phase('{} ({})'.format(title, self.projectors[i].get_info()),
+                             cmap=cmap, limit=limit, norm=norm)
          for (i, phasemap) in enumerate(phasemaps)]
 
     def combined_plots(self, magdata=None, title='Combined Plot', cmap='RdBu', limit=None,
@@ -353,6 +353,6 @@ class DataSet(object):
         else:
             phasemaps = self.phasemaps
         for (i, phasemap) in enumerate(phasemaps):
-            phasemap.combined_plot('{} ({})'.format(title, self.projectors[i].get_info()),
-                                    cmap, limit, norm, gain, interpolation, grad_encode)
+            phasemap.plot_combined('{} ({})'.format(title, self.projectors[i].get_info()),
+                                   cmap, limit, norm, gain, interpolation, grad_encode)
         plt.show()

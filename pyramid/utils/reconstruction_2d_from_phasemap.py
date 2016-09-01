@@ -8,6 +8,9 @@ import logging
 
 import numpy as np
 
+from matplotlib import cm
+from matplotlib.colors import BoundaryNorm
+
 from jutil.taketime import TakeTime
 
 from .. import reconstruction
@@ -77,11 +80,11 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
     # Plot stuff:
     if plot_results:
         if ar_dens is None:
-            ar_dens = np.max(dim) // 128
-        magdata_rec.quiver_plot('Reconstructed Distribution', ar_dens=ar_dens, figsize=(15, 15))
-        phasemap.combined_plot('Input Phase')
+            ar_dens = np.max([1, np.max(dim) // 128])
+        magdata_rec.plot_quiver('Reconstructed Distribution', ar_dens=ar_dens, figsize=(15, 15))
+        phasemap.plot_combined('Input Phase')
         phasemap -= fwd_model.ramp(index=0)
-        phasemap.combined_plot('Input Phase (ramp corrected)')
+        phasemap.plot_combined('Input Phase (ramp corrected)')
         phasemap_rec = pm(magdata_rec)
         title = 'Reconstructed Phase'
         if ramp_order is not None:
@@ -91,10 +94,11 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
             if ramp_order >= 1:
                 print('ramp:', ramp)
                 title += ', (Fitted Ramp: (u:{:.2g}, v:{:.2g}) [rad/nm]'.format(*ramp)
-        phasemap_rec.combined_plot(title)
-        difference = (phasemap_rec.phase - phasemap.phase).mean()
-        (phasemap_rec - phasemap).phase_plot('Difference (mean: {:.2g})'.format(difference))
+        phasemap_rec.plot_combined(title)
+        diff = (phasemap_rec - phasemap).phase
+        diff_name = 'Difference (mean: {:.2g})'.format(diff.mean())
+        (phasemap_rec - phasemap).plot_phase(diff_name, sigma_clip=3)
         if ramp_order is not None:
-            fwd_model.ramp(0).combined_plot('Fitted Ramp')
+            fwd_model.ramp(0).plot_combined('Fitted Ramp')
     # Return reconstructed magnetisation distribution and cost function:
     return magdata_rec, cost

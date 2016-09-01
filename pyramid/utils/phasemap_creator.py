@@ -82,8 +82,8 @@ class Main(QMainWindow, UI_MainWindow):
             show_conf = self.checkBox_conf.isChecked()
             self.canvas.figure.axes[0].clear()
             self.canvas.figure.axes[0].hold(True)
-            self.phasemap.phase_plot('PhaseMap', axis=self.canvas.figure.axes[0],
-                                      show_mask=show_mask, show_conf=show_conf, cbar=False)
+            self.phasemap.plot_phase('PhaseMap', axis=self.canvas.figure.axes[0],
+                                     show_mask=show_mask, show_conf=show_conf, cbar=False)
             self.canvas.draw()
 
     def update_mask(self):
@@ -97,11 +97,7 @@ class Main(QMainWindow, UI_MainWindow):
     def load_phase(self):
         try:
             self.phase_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Phase', self.dir)
-            if self.phase_path.endswith('.txt'):
-                phase = np.genfromtxt(self.phase_path, delimiter=',')
-                self.phasemap = pr.PhaseMap(1., phase)
-            else:
-                self.phasemap = pr.PhaseMap.from_signal(hs.load(self.phase_path))
+            self.phasemap = pr.file_io.io_phasemap._load(self.phase_path, as_phasemap=True)
         except ValueError:
             return  # Abort if no phase_path is selected!
         self.doubleSpinBox_a.setValue(self.phasemap.a)
@@ -125,10 +121,7 @@ class Main(QMainWindow, UI_MainWindow):
     def load_mask(self):
         try:
             mask_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Mask', self.dir)
-            if mask_path.endswith('.txt'):
-                self.raw_mask = np.genfromtxt(mask_path, delimiter=',')
-            else:
-                self.raw_mask = hs.load(mask_path).data
+            self.raw_mask = pr.file_io.io_phasemap._load(mask_path)
         except ValueError:
             return  # Abort if no mask_path is selected!
         mask_min = self.raw_mask.min()
@@ -149,14 +142,10 @@ class Main(QMainWindow, UI_MainWindow):
     def load_conf(self):
         try:
             conf_path = QtGui.QFileDialog.getOpenFileName(self, 'Load Confidence', self.dir)
-            if conf_path.endswith('.txt'):
-                confidence = np.genfromtxt(conf_path, delimiter=',')
-            else:
-                confidence = hs.load(conf_path).data
+            confidence = pr.file_io.io_phasemap._load(conf_path)
         except ValueError:
             return  # Abort if no conf_path is selected!
-        confidence = confidence / confidence.max()
-        confidence = np.asarray(Image.fromarray(confidence).resize(self.phasemap.dim_uv))
+        confidence /= confidence.max() + 1e-30
         self.phasemap.confidence = confidence
         self.update_phasemap()
 

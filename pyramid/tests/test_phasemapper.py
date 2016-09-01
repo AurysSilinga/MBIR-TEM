@@ -32,7 +32,7 @@ class TestCasePhaseMapperRDFC(unittest.TestCase):
 
     def test_PhaseMapperRDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
-        mag_proj_vec = self.mag_proj.field[:2, ...].flatten()
+        mag_proj_vec = self.mag_proj.field[:2, ...].ravel()
         phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.kernel.dim_uv)
         assert_allclose(phase, phase_jac, atol=1E-7,
                         err_msg='Inconsistency between __call__() and jac_dot()!')
@@ -70,7 +70,7 @@ class TestCasePhaseMapperFDFCpad0(unittest.TestCase):
 
     def test_PhaseMapperFDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
-        mag_proj_vec = self.mag_proj.field[:2, ...].flatten()
+        mag_proj_vec = self.mag_proj.field[:2, ...].ravel()
         phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.dim_uv)
         assert_allclose(phase, phase_jac, atol=1E-7,
                         err_msg='Inconsistency between __call__() and jac_dot()!')
@@ -104,7 +104,7 @@ class TestCasePhaseMapperFDFCpad1(unittest.TestCase):
 
     def test_PhaseMapperFDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
-        mag_proj_vec = self.mag_proj.field[:2, ...].flatten()
+        mag_proj_vec = self.mag_proj.field[:2, ...].ravel()
         phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.dim_uv)
         assert_allclose(phase, phase_jac, atol=1E-7,
                         err_msg='Inconsistency between __call__() and jac_dot()!')
@@ -138,7 +138,7 @@ class TestCasePhaseMapperFDFCpad10(unittest.TestCase):
 
     def test_PhaseMapperFDFC_jac_dot(self):
         phase = self.mapper(self.mag_proj).phase
-        mag_proj_vec = self.mag_proj.field[:2, ...].flatten()
+        mag_proj_vec = self.mag_proj.field[:2, ...].ravel()
         phase_jac = self.mapper.jac_dot(mag_proj_vec).reshape(self.mapper.dim_uv)
         assert_allclose(phase, phase_jac, atol=1E-7,
                         err_msg='Inconsistency between __call__() and jac_dot()!')

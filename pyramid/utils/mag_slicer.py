@@ -104,24 +104,24 @@ class Main(QMainWindow, UI_MainWindow):
             self.phasemapper = PhaseMapperRDFC(kernel)
             self.phasemap = self.phasemapper(self.projector(self.magdata))
             self.canvasPhase.figure.axes[0].clear()
-            self.phasemap.phase_plot(axis=self.canvasPhase.figure.axes[0], cbar=False)
+            self.phasemap.plot_phase(axis=self.canvasPhase.figure.axes[0], cbar=False)
             if self.checkBoxSmooth.isChecked():
                 interpolation = 'bilinear'
             else:
                 interpolation = 'none'
             self.canvasHolo.figure.axes[0].clear()
-            self.phasemap.holo_plot(axis=self.canvasHolo.figure.axes[0], gain=gain,
-                                     interpolation=interpolation)
+            self.phasemap.plot_holo(axis=self.canvasHolo.figure.axes[0], gain=gain,
+                                    interpolation=interpolation)
             self.canvasPhase.draw()
             self.canvasHolo.draw()
 
     def update_slice(self):
         if self.is_magdata_loaded:
             self.canvasMag.figure.axes[0].clear()
-            self.magdata.quiver_plot(axis=self.canvasMag.figure.axes[0], proj_axis=self.mode,
-                                      ax_slice=self.spinBoxSlice.value(),
-                                      log=self.checkBoxLog.isChecked(),
-                                      scaled=self.checkBoxScale.isChecked())
+            self.magdata.plot_quiver(axis=self.canvasMag.figure.axes[0], proj_axis=self.mode,
+                                     ax_slice=self.spinBoxSlice.value(),
+                                     log=self.checkBoxLog.isChecked(),
+                                     scaled=self.checkBoxScale.isChecked())
             self.canvasMag.draw()
 
     def load(self):

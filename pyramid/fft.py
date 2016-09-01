@@ -37,7 +37,7 @@ except ImportError:
     _log.info('multiprocessing module not found. Using single core.')
 
 
-__all__ = ['PLANS', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom',
+__all__ = ['plans', 'FLOAT', 'COMPLEX', 'dump_wisdom', 'load_wisdom',
            'zeros', 'empty', 'ones', 'configure_backend',
            'fftn', 'ifftn', 'rfftn', 'irfftn', 'rfftn_adj', 'irfftn_adj']
 
@@ -119,7 +119,7 @@ class FFTWCache(object):
         self.cache = dict()
 
 
-PLANS = FFTWCache()
+plans = FFTWCache()
 FLOAT = np.float32  # One convenient place to
 COMPLEX = np.complex64  # change from 32 to 64 bit
 
@@ -164,34 +164,34 @@ def _irfftn_adj_numpy(a):
 # FFTW functions:
 
 def _fftn_fftw(a, s=None, axes=None):
-    fftw = PLANS.lookup_fftw('fftn', a, s, axes, NTHREADS)
+    fftw = plans.lookup_fftw('fftn', a, s, axes, NTHREADS)
     if fftw is None:
         fftw = pyfftw.builders.fftn(a, s, axes, threads=NTHREADS)
-        PLANS.add_fftw('fftn', fftw, s, axes, NTHREADS)
+        plans.add_fftw('fftn', fftw, s, axes, NTHREADS)
     return fftw(a).copy()
 
 
 def _ifftn_fftw(a, s=None, axes=None):
-    fftw = PLANS.lookup_fftw('ifftn', a, s, axes, NTHREADS)
+    fftw = plans.lookup_fftw('ifftn', a, s, axes, NTHREADS)
     if fftw is None:
         fftw = pyfftw.builders.ifftn(a, s, axes, threads=NTHREADS)
-        PLANS.add_fftw('ifftn', fftw, s, axes, NTHREADS)
+        plans.add_fftw('ifftn', fftw, s, axes, NTHREADS)
     return fftw(a).copy()
 
 
 def _rfftn_fftw(a, s=None, axes=None):
-    fftw = PLANS.lookup_fftw('rfftn', a, s, axes, NTHREADS)
+    fftw = plans.lookup_fftw('rfftn', a, s, axes, NTHREADS)
     if fftw is None:
         fftw = pyfftw.builders.rfftn(a, s, axes, threads=NTHREADS)
-        PLANS.add_fftw('rfftn', fftw, s, axes, NTHREADS)
+        plans.add_fftw('rfftn', fftw, s, axes, NTHREADS)
     return fftw(a).copy()
 
 
 def _irfftn_fftw(a, s=None, axes=None):
-    fftw = PLANS.lookup_fftw('irfftn', a, s, axes, NTHREADS)
+    fftw = plans.lookup_fftw('irfftn', a, s, axes, NTHREADS)
     if fftw is None:
         fftw = pyfftw.builders.irfftn(a, s, axes, threads=NTHREADS)
-        PLANS.add_fftw('irfftn', fftw, s, axes, NTHREADS)
+        plans.add_fftw('irfftn', fftw, s, axes, NTHREADS)
     return fftw(a).copy()
 
 

@@ -118,7 +118,7 @@ class Diagnostics(object):
     def pos(self, pos):
         c, z, y, x = pos
         assert self.mask[z, y, x], 'Position is outside of the provided mask!'
-        mask_vec = self.mask.flatten()
+        mask_vec = self.mask.ravel()
         idx_3d = z * self.dim[1] * self.dim[2] + y * self.dim[2] + x
         row_idx = c * np.prod(mask_vec.sum()) + mask_vec[:idx_3d].sum()
         if row_idx != self.row_idx:

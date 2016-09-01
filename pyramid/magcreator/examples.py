@@ -23,7 +23,7 @@ __all__ = ['pyramid_logo', 'singularity', 'homog_pixel', 'homog_slab', 'homog_di
 _log = logging.getLogger(__name__)
 
 
-def pyramid_logo(a=1., dim=(1, 256, 256), phi=-np.pi / 2, theta=np.pi / 2):
+def pyramid_logo(a=1., dim=(1, 256, 256), phi=np.pi / 2, theta=np.pi / 2):
     """Create pyramid logo."""
     _log.debug('Calling pyramid_logo')
     mag_shape = np.zeros(dim)
@@ -44,7 +44,7 @@ def singularity(a=1., dim=(5, 5, 5), center=None):
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     zz, yy, xx = np.indices(dim)
     magnitude = np.array((xx - center[2], yy - center[1], zz - center[0])).astype(float)
-    magnitude /= np.sqrt((magnitude ** 2).sum(axis=0))
+    # magnitude /= np.sqrt((magnitude ** 2 + 1E-30).sum(axis=0))
     return VectorData(a, magnitude)
 
 

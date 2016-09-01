@@ -54,18 +54,30 @@ def load_phasemap(filename, mask=None, confidence=None, a=None, **kwargs):
 
     """
     _log.debug('Calling load_phasemap')
+    phasemap = _load(filename, as_phasemap=True, a=a, **kwargs)
+    if mask is not None:
+        filemask, kwargs_mask = _parse_add_param(mask)
+        phasemap.mask = _load(filemask, **kwargs_mask)
+    if confidence is not None:
+        fileconf, kwargs_conf = _parse_add_param(confidence)
+        phasemap.confidence = _load(fileconf, **kwargs_conf)
+    return phasemap
+
+
+def _load(filename, as_phasemap=False, a=1., **kwargs):
+    _log.debug('Calling _load')
     extension = os.path.splitext(filename)[1]
     # Load from txt-files:
     if extension == '.txt':
-        return _load_from_txt(filename, mask, confidence, a, **kwargs)
+        return _load_from_txt(filename, as_phasemap, a, **kwargs)
     # Load from npy-files:
     elif extension in ['.npy', '.npz']:
-        return _load_from_npy(filename, mask, confidence, a, **kwargs)
+        return _load_from_npy(filename, as_phasemap, a, **kwargs)
     # Load with HyperSpy:
     else:
         if extension == '':
             filename = '{}.hdf5'.format(filename)  # Default!
-        return _load_from_hs(filename, mask, confidence, a, **kwargs)
+        return _load_from_hs(filename, as_phasemap, a, **kwargs)
 
 
 def _parse_add_param(param):
@@ -76,63 +88,55 @@ def _parse_add_param(param):
     elif isinstance(param, (list, tuple)) and len(param) == 2:
         return param
     else:
-        raise ValueError('Parameter can be a string or a tuple/list of a string and a param!')
+        raise ValueError('Parameter can be a string or a tuple/list of a string and a dict!')
 
 
-def _load_from_txt(filename, mask, confidence, a, **kwargs):
+def _load_from_txt(filename, as_phasemap, a, **kwargs):
 
     def _load_arr(filename, **kwargs):
         with open(filename, 'r') as phase_file:
             if phase_file.readline().startswith('PYRAMID'):  # File has pyramid structure:
                 return np.loadtxt(filename, delimiter='\t', skiprows=2)
-            else:  # Try normal numpy function:
+            else:  # Try default args:
                 return np.loadtxt(filename, **kwargs)
 
-    if a is None:
-        a = 1.  # Default!
-        with open(filename, 'r') as phase_file:
-            header = phase_file.readline()
-            if header.startswith('PYRAMID'):  # File has pyramid structure:
-                a = float(phase_file.readline()[15:-4])
-    phasemap = PhaseMap(a, _load_arr(filename, **kwargs))
-    if mask is not None:
-        filemask, kwargs_mask = _parse_add_param(mask)
-        phasemap.mask = _load_arr(filemask, **kwargs_mask)
-    if confidence is not None:
-        fileconf, kwargs_conf = _parse_add_param(confidence)
-        phasemap.confidence = _load_arr(fileconf, **kwargs_conf)
-    return phasemap
+    result = _load_arr(filename, **kwargs)
+    if as_phasemap:
+        if a is None:
+            a = 1.  # Default!
+            with open(filename, 'r') as phase_file:
+                header = phase_file.readline()
+                if header.startswith('PYRAMID'):  # File has pyramid structure:
+                    a = float(phase_file.readline()[15:-4])
+        return PhaseMap(a, result)
+    else:
+        return result
 
 
-def _load_from_npy(filename, mask, confidence, a, **kwargs):
-    if a is None:
-        a = 1.  # Use default!
-    phasemap = PhaseMap(a, np.load(filename, **kwargs))
-    if mask is not None:
-        filemask, kwargs_mask = _parse_add_param(mask)
-        phasemap.mask = np.load(filemask, **kwargs_mask)
-    if confidence is not None:
-        fileconf, kwargs_conf = _parse_add_param(confidence)
-        phasemap.confidence = np.load(fileconf, **kwargs_conf)
-    return phasemap
+def _load_from_npy(filename, as_phasemap, a, **kwargs):
+
+    result = np.load(filename, **kwargs)
+    if as_phasemap:
+        if a is None:
+            a = 1.  # Use default!
+        return PhaseMap(a, result)
+    else:
+        return result
 
 
-def _load_from_hs(filename, mask, confidence, a, **kwargs):
+def _load_from_hs(filename, as_phasemap, a, **kwargs):
     try:
         import hyperspy.api as hs
     except ImportError:
         _log.error('This method recquires the hyperspy package!')
         return
     phasemap = PhaseMap.from_signal(hs.load(filename, **kwargs))
-    if a is not None:
-        phasemap.a = a
-    if mask is not None:
-        filemask, kwargs_mask = _parse_add_param(mask)
-        phasemap.mask = hs.load(filemask, **kwargs_mask).data
-    if confidence is not None:
-        fileconf, kwargs_conf = _parse_add_param(confidence)
-        phasemap.confidence = hs.load(fileconf, **kwargs_conf).data
-    return phasemap
+    if as_phasemap:
+        if a is not None:
+            phasemap.a = a
+        return phasemap
+    else:
+        return phasemap.phase
 
 
 def save_phasemap(phasemap, filename, save_mask, save_conf, pyramid_format, **kwargs):

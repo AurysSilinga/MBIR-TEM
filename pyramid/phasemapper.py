@@ -185,7 +185,7 @@ class PhaseMapperRDFC(PhaseMapper):
         v_phase_adj_fft = mag_adj_fft * -self.kernel.u_fft
         u_phase_adj = fft.rfftn_adj(u_phase_adj_fft)[self.kernel.slice_phase]
         v_phase_adj = fft.rfftn_adj(v_phase_adj_fft)[self.kernel.slice_phase]
-        result = np.concatenate((-u_phase_adj.flatten(), -v_phase_adj.flatten()))
+        result = np.concatenate((-u_phase_adj.ravel(), -v_phase_adj.ravel()))
         # TODO: Why minus?
         return result
 

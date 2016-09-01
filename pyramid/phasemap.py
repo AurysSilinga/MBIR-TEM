@@ -15,7 +15,7 @@ from matplotlib.ticker import MaxNLocator, FuncFormatter
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.ndimage.interpolation import zoom
 
-from .colormap import DirectionalColormap, TransparentColormap
+from . import colors
 
 __all__ = ['PhaseMap']
 
@@ -32,7 +32,7 @@ class PhaseMap(object):
     corresponding holographic contour map are provided. Holographic contour maps are created by
     taking the cosine of the (optionally amplified) phase and encoding the direction of the
     2-dimensional gradient via color. The directional encoding can be seen by using the
-    :func:`~.make_color_wheel` function. Use the :func:`~.combined_plot` function to plot the
+    :func:`~.make_color_wheel` function. Use the :func:`~.plot_combined` function to plot the
     phase map and the holographic contour map next to each other.
 
     Attributes
@@ -525,8 +525,9 @@ class PhaseMap(object):
         from .file_io.io_phasemap import save_phasemap
         save_phasemap(self, filename, save_mask, save_conf, pyramid_format, **kwargs)
 
-    def phase_plot(self, title='Phase Map', cbar_title=None, unit='rad', cmap='RdBu', limit=None,
-                   norm=None, axis=None, cbar=True, show_mask=True, show_conf=True):
+    def plot_phase(self, title='Phase Map', cbar_title=None, unit='rad', cmap='RdBu', limit=None,
+                   norm=None, axis=None, cbar=True, show_mask=True, show_conf=True,
+                   sigma_clip=None, interpolation='none'):
         """Display the phasemap as a colormesh.
 
         Parameters
@@ -555,37 +556,54 @@ class PhaseMap(object):
             A switch determining if the mask should be plotted or not. Default is True.
         show_conf : float, optional
             A switch determining if the confidence should be plotted or not. Default is True.
+        sigma_clip : int, optional
+            If this is not `None`, the values outside `sigma_clip` times the standard deviation
+            will be clipped for the calculation of the plotting `limit`.
+        interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
+            Defines the interpolation method for the holographic contour map.
+            No interpolation is used in the default case.
         Returns
         -------
         axis, cbar: :class:`~matplotlib.axes.AxesSubplot`
             The axis on which the graph is plotted and the colorbar.
 
         """
-        self._log.debug('Calling phase_plot')
+        self._log.debug('Calling plot_phase')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[unit]
+        # Calculate limit if necessary:
         if limit is None:
+            phase_l = phase
+            # Clip non-trustworthy regions for the limit calculation:
             if show_conf:
-                phase_trust = np.where(self.confidence > 0.9, phase, np.nan)
+                phase_trust = np.where(self.confidence > 0.9, phase_l, np.nan)
                 phase_min, phase_max = np.nanmin(phase_trust), np.nanmax(phase_trust)
-                phase_clip = np.clip(phase, phase_min, phase_max)
-                limit = np.max(np.abs(phase_clip))
-            else:
-                limit = np.max(np.abs(phase))
+                phase_l = np.clip(phase_l, phase_min, phase_max)
+            # Cut outlier beyond a certain sigma-margin:
+            if sigma_clip is not None:
+                outlier = np.abs(phase_l - np.mean(phase_l)) < sigma_clip * np.std(phase_l)
+                phase_sigma = np.where(outlier, phase_l, np.nan)
+                phase_min, phase_max = np.nanmin(phase_sigma), np.nanmax(phase_sigma)
+                phase_l = np.clip(phase_l, phase_min, phase_max)
+            # Calculate the limit:
+            limit = np.max(np.abs(phase_l))
         # If no axis is specified, a new figure is created:
         if axis is None:
             fig = plt.figure(figsize=(7, 7))
             axis = fig.add_subplot(1, 1, 1)
         axis.set_aspect('equal')
         # Plot the phasemap:
-        im = axis.imshow(phase, cmap=cmap, vmin=-limit, vmax=limit, norm=norm, origin='lower')
+        im = axis.imshow(phase, cmap=cmap, vmin=-limit, vmax=limit, interpolation=interpolation,
+                         norm=norm, origin='lower', extent=(0, self.dim_uv[1], 0, self.dim_uv[0]))
         if show_mask or show_conf:
             vv, uu = np.indices(self.dim_uv) + 0.5
-            if show_mask and not np.all(self.mask):  # Plot mask if desired and not trivial!
-                axis.contour(uu, vv, self.mask, levels=[0.5], colors='k', linestyles='dotted')
             if show_conf and not np.all(self.confidence == 1.0):
-                colormap = TransparentColormap(0.2, 0.3, 0.2, [0.75, 0.])
-                axis.imshow(self.confidence, cmap=colormap, origin='lower')
+                colormap = colors.transparent_cmap
+                axis.imshow(self.confidence, cmap=colormap, interpolation=interpolation,
+                            origin='lower', extent=(0, self.dim_uv[1], 0, self.dim_uv[0]))
+            if show_mask and not np.all(self.mask):  # Plot mask if desired and not trivial!
+                axis.contour(uu, vv, self.mask, levels=[0.5], colors='k', linestyles='dotted',
+                             linewidths=2)
         # Set the axes ticks and labels:
         if self.dim_uv[0] >= self.dim_uv[1]:
             u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9
@@ -601,7 +619,7 @@ class PhaseMap(object):
         axis.set_ylim(0, self.dim_uv[0])
         axis.set_xlabel('u-axis [nm]', fontsize=15)
         axis.set_ylabel('v-axis [nm]', fontsize=15)
-        # Add colorbar:
+        # # Add colorbar:
         if cbar:
             fig = plt.gcf()
             fig.subplots_adjust(right=0.8)
@@ -614,7 +632,7 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def phase3d_plot(self, title='Phase Map', unit='rad', cmap='RdBu'):
+    def plot_phase3d(self, title='Phase Map', unit='rad', cmap='RdBu'):
         """Display the phasemap as a 3D surface with contourplots.
 
         Parameters
@@ -633,7 +651,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         """
-        self._log.debug('Calling phase3d_plot')
+        self._log.debug('Calling plot_phase3d')
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[unit]
         # Create figure and axis:
@@ -652,7 +670,7 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def holo_plot(self, title=None, gain='auto', axis=None, grad_encode='bright',
+    def plot_holo(self, title=None, gain='auto', axis=None, hue_mode='triadic',
                   interpolation='none'):
         """Display the color coded holography image.
 
@@ -665,13 +683,11 @@ class PhaseMap(object):
             which means that the gain will be determined automatically to look pretty.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
-        grad_encode: {'bright', 'dark', 'color', 'none'}, optional
-            Encoding mode of the phase gradient. 'none' produces a black-white image, 'color' just
-            encodes the direction (without gradient strength), 'dark' modulates the gradient
-            strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
-            the gradient strength with color saturation.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method. No interpolation is used in the default case.
+        hue_mode : {'triadic', 'tetradic'}
+            Optional string for determining the hue scheme. Use either a triadic or tetradic
+            scheme (see the according colormaps for more information).
 
         Returns
         -------
@@ -679,7 +695,7 @@ class PhaseMap(object):
             The axis on which the graph is plotted.
 
         """
-        self._log.debug('Calling holo_plot')
+        self._log.debug('Calling plot_holo')
         # Calculate gain if 'auto' is selected:
         if gain == 'auto':
             gain = 4 * 2 * np.pi / (np.abs(self.phase).max() + 1E-30)
@@ -690,25 +706,11 @@ class PhaseMap(object):
         holo = np.cos(gain * self.phase)
         holo += 1  # Shift to positive values
         holo /= 2  # Rescale to [0, 1]
-        # Calculate the phase gradients, expressed by amplitude and angle:
-        phase_grad_x, phase_grad_y = np.gradient(self.phase, self.a, self.a)
-        angles = (1 - np.arctan2(phase_grad_y, phase_grad_x) / np.pi) / 2
-        phase_grad_amp = np.hypot(phase_grad_y, phase_grad_x)
-        saturations = np.sin(
-            phase_grad_amp / (phase_grad_amp.max() + 1E-30) * np.pi / 2)  # betw. 0 and 1
-        # Calculate color encoding:
-        if grad_encode == 'dark':
-            pass
-        elif grad_encode == 'bright':
-            saturations = 2 - saturations
-        elif grad_encode == 'color':
-            saturations = np.ones_like(saturations)
-        elif grad_encode == 'none':
-            saturations = 2 * np.ones_like(saturations)
-        else:
-            raise AssertionError('Gradient encoding not recognized!')
-        # Calculate colored holo image:
-        rgb = DirectionalColormap.rgb_from_colorind_and_saturation(angles, saturations)
+        # Calculate the phase gradients and calculate colors:
+        # B = rot(A)  --> B_x =  grad_y(A_z),   B_y = -grad_x(A_z); phi_m ~ -int(A_z)
+        # sign switch --> B_x = -grad_y(phi_m), B_y =  grad_x(phi_m)
+        grad_x, grad_y = np.gradient(self.phase, self.a, self.a)
+        rgb = colors.rgb_from_vector(grad_x, -grad_y, np.zeros_like(grad_x), mode=hue_mode)
         rgb = (holo.T * rgb.T).T.astype(np.uint8)
         holo_image = Image.fromarray(rgb)
         # If no axis is specified, a new figure is created:
@@ -734,10 +736,10 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def combined_plot(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
+    def plot_combined(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
                       cbar_title=None, unit='rad', cmap='RdBu', limit=None, norm=None, gain='auto',
-                      interpolation='none', grad_encode='bright', cbar=True, show_mask=True,
-                      show_conf=True):
+                      interpolation='none', cbar=True, show_mask=True, show_conf=True,
+                      hue_mode='triadic'):
         """Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -767,17 +769,15 @@ class PhaseMap(object):
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method for the holographic contour map.
             No interpolation is used in the default case.
-        grad_encode: {'bright', 'dark', 'color', 'none'}, optional
-            Encoding mode of the phase gradient. 'none' produces a black-white image, 'color' just
-            encodes the direction (without gradient strength), 'dark' modulates the gradient
-            strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
-            the gradient strength with color saturation.
         cbar : bool, optional
             A switch determining if the colorbar should be plotted or not. Default is True.
         show_mask : bool, optional
             A switch determining if the mask should be plotted or not. Default is True.
         show_conf : float, optional
             A switch determining if the confidence should be plotted or not. Default is True.
+        hue_mode : {'triadic', 'tetradic'}
+            Optional string for determining the hue scheme. Use either a triadic or tetradic
+            scheme (see the according colormaps for more information).
 
         Returns
         -------
@@ -785,18 +785,18 @@ class PhaseMap(object):
             The axes on which the graphs are plotted.
 
         """
-        self._log.debug('Calling combined_plot')
+        self._log.debug('Calling plot_combined')
         # Create combined plot and set title:
         fig = plt.figure(figsize=(15, 7))
         fig.suptitle(sup_title, fontsize=20)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-        self.holo_plot(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation,
-                       grad_encode=grad_encode)
+        self.plot_holo(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation,
+                       hue_mode=hue_mode)
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         fig.subplots_adjust(right=0.85)
-        self.phase_plot(title=phase_title, cbar_title=cbar_title, unit=unit, cmap=cmap,
+        self.plot_phase(title=phase_title, cbar_title=cbar_title, unit=unit, cmap=cmap,
                         limit=limit, norm=norm, axis=phase_axis, cbar=cbar,
                         show_mask=show_mask, show_conf=show_conf)
         # Return the plotting axes:

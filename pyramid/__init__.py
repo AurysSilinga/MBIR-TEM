@@ -48,6 +48,7 @@ from . import reconstruction
 from . import fft
 from . import fieldconverter
 from . import magcreator
+from . import colors
 from . import utils
 from .costfunction import *
 from .dataset import *
@@ -61,7 +62,6 @@ from .projector import *
 from .regularisator import *
 from .ramp import *
 from .quaternion import *
-from .colormap import *
 from .file_io import *
 from .version import version as __version__
 from .version import hg_revision as __hg_revision__
@@ -72,7 +72,7 @@ _log.info("Starting Pyramid V{} HG{}".format(__version__, __hg_revision__))
 del logging
 
 __all__ = ['analytic', 'magcreator', 'reconstruction', 'fft', 'fieldconverter',
-           'utils', 'load_phasemap', 'load_vectordata']
+           'colors', 'utils', 'load_phasemap', 'load_vectordata']
 __all__.extend(costfunction.__all__)
 __all__.extend(dataset.__all__)
 __all__.extend(diagnostics.__all__)
@@ -85,5 +85,4 @@ __all__.extend(projector.__all__)
 __all__.extend(regularisator.__all__)
 __all__.extend(ramp.__all__)
 __all__.extend(quaternion.__all__)
-__all__.extend(colormap.__all__)
 __all__.extend(file_io.__all__)

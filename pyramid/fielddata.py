@@ -10,12 +10,16 @@ import abc
 from numbers import Number
 
 import numpy as np
+
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
+
+from PIL import Image
+
 from scipy.ndimage.interpolation import zoom
 
 from . import fft
-from .colormap import DirectionalColormap
+from . import colors
 
 __all__ = ['VectorData', 'ScalarData']
 
@@ -635,29 +639,28 @@ class VectorData(FieldData):
             raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
         return VectorData(self.a, field_rot)
 
-    def get_slice(self, ax_slice=0, proj_axis='z', mode='complex'):
+    def get_slice(self, ax_slice=None, proj_axis='z'):
         """Extract a slice from the :class:`~.VectorData` object.
 
         Parameters
         ----------
         proj_axis : {'z', 'y', 'x'}, optional
             The axis, from which the slice is taken. The default is 'z'.
-        ax_slice : int, optional
-            The slice-index of the axis specified in `proj_axis`. Defaults to zero (first slice).
-        mode : {'complex', 'amplitude'}, optional
-            Determines if the 2D vector field is returned as complex values or if the amplitude
-            of the two components is calculated.
+        ax_slice : None or int, optional
+            The slice-index of the axis specified in `proj_axis`. Defaults to the center slice.
 
         Returns
         -------
-        mag_slice : :class:`~numpy.ndarray` (N=2)
-            The extracted vector field slice.
+        u_mag, v_mag : :class:`~numpy.ndarray` (N=2)
+            The extracted vector field components in plane perpendicular to the `proj_axis`.
 
         """
         self._log.debug('Calling get_slice')
         # Find slice:
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             'Axis has to be x, y or z (as string).'
+        if ax_slice is None:
+            ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
             self._log.debug('proj_axis == z')
             u_mag = np.copy(self.field[0][ax_slice, ...])  # x-component
@@ -672,13 +675,7 @@ class VectorData(FieldData):
             v_mag = np.swapaxes(np.copy(self.field[1][..., ax_slice]), 0, 1)  # y-component
         else:
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
-        # Create data field:
-        if mode == 'complex':
-            return u_mag + 1j * v_mag
-        elif mode == 'amplitude':
-            return np.hypot(u_mag, v_mag)
-        else:
-            raise ValueError('Given mode not understood!')
+        return u_mag, v_mag
 
     def to_signal(self):
         """Convert :class:`~.VectorData` data into a HyperSpy signal.
@@ -730,9 +727,8 @@ class VectorData(FieldData):
         from .file_io.io_vectordata import save_vectordata
         save_vectordata(self, filename, **kwargs)
 
-    def quiver_plot(self, title='Vector Field', axis=None, proj_axis='z', figsize=(8.5, 7),
-                    coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
-                    scale=1., show_mask=True, bgcolor='black'):
+    def plot_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(8.5, 7),
+                   ax_slice=None, show_mask=True, bgcolor='white', hue_mode='triadic'):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -743,8 +739,105 @@ class VectorData(FieldData):
             Axis on which the graph is plotted. Creates a new figure if none is specified.
         proj_axis : {'z', 'y', 'x'}, optional
             The axis, from which a slice is plotted. The default is 'z'.
-        coloring : string
-            Color coding mode of the arrows. Use 'angle' (default), 'amplitude' or 'uniform'.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
+        ax_slice : int, optional
+            The slice-index of the axis specified in `proj_axis`. Is set to the center of
+            `proj_axis` if not specified.
+        show_mask: boolean
+            Default is True. Shows the outlines of the mask slice if available.
+        bgcolor: {'black', 'white'}, optional
+            Determines the background color of the plot.
+        hue_mode : {'triadic', 'tetradic'}
+            Optional string for determining the hue scheme. Use either a triadic or tetradic
+            scheme (see the according colormaps for more information).
+
+        Returns
+        -------
+        axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted.
+
+        """
+        self._log.debug('Calling plot_field')
+        assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
+            'Axis has to be x, y or z (as string).'
+        if ax_slice is None:
+            ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
+        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
+        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
+            u_label = 'x [px]'
+            v_label = 'y [px]'
+            submask = self.get_mask()[ax_slice, ...]
+        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
+            u_label = 'x [px]'
+            v_label = 'z [px]'
+            submask = self.get_mask()[:, ax_slice, :]
+        elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
+            u_label = 'z [px]'
+            v_label = 'y [px]'
+            submask = self.get_mask()[..., ax_slice]
+        else:
+            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
+        # If no axis is specified, a new figure is created:
+        if axis is None:
+            self._log.debug('axis is None')
+            fig = plt.figure(figsize=figsize)
+            axis = fig.add_subplot(1, 1, 1)
+        axis.set_aspect('equal')
+        # Plot the field:
+        dim_uv = u_mag.shape
+        hue = np.arctan2(v_mag, u_mag) / (2 * np.pi)  # Hue according to angle!
+        hue[hue < 0] += 1  # Shift negative values!
+        luminance = 0.5 * submask  # Luminance according to mask!
+        if bgcolor == 'white':  # Invert luminance:
+            luminance = 1 - luminance
+        saturation = np.hypot(u_mag, v_mag)  # Saturation according to amplitude!
+        rgb = colors.rgb_from_hls(hue, luminance, saturation, mode=hue_mode)
+        axis.imshow(Image.fromarray(rgb), origin='lower', interpolation='none',
+                    extent=(0, dim_uv[1], 0, dim_uv[0]))
+        # Change background color:
+        axis.set_axis_bgcolor(bgcolor)
+        # Show mask:
+        if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
+            vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
+            mask_color = 'white' if bgcolor == 'black' else 'black'
+            print(bgcolor, mask_color)
+            axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
+                         linestyles='dotted', linewidths=2)
+        # Further plot formatting:
+        axis.set_xlim(0, dim_uv[1])
+        axis.set_ylim(0, dim_uv[0])
+        axis.set_title(title, fontsize=18)
+        axis.set_xlabel(u_label, fontsize=15)
+        axis.set_ylabel(v_label, fontsize=15)
+        axis.tick_params(axis='both', which='major', labelsize=14)
+        if dim_uv[0] >= dim_uv[1]:
+            u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
+        else:
+            u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+        # Return plotting axis:
+        return axis
+
+    def plot_quiver(self, title='Vector Field', axis=None, proj_axis='z', figsize=(8.5, 7),
+                    coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
+                    scale=1., show_mask=True, bgcolor='white', hue_mode='triadic'):
+        """Plot a slice of the vector field as a quiver plot.
+
+        Parameters
+        ----------
+        title : string, optional
+            The title for the plot.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        proj_axis : {'z', 'y', 'x'}, optional
+            The axis, from which a slice is plotted. The default is 'z'.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
+        coloring : {'angle', 'amplitude', 'uniform'}
+            Color coding mode of the arrows. Use 'full' (default), 'angle', 'amplitude' or
+            'uniform'.
         ar_dens: int, optional
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.
@@ -763,6 +856,9 @@ class VectorData(FieldData):
             Default is True. Shows the outlines of the mask slice if available.
         bgcolor: {'black', 'white'}, optional
             Determines the background color of the plot.
+        hue_mode : {'triadic', 'tetradic'}
+            Optional string for determining the hue scheme. Use either a triadic or tetradic
+            scheme (see the according colormaps for more information).
 
         Returns
         -------
@@ -770,36 +866,21 @@ class VectorData(FieldData):
             The axis on which the graph is plotted.
 
         """
-        self._log.debug('Calling quiver_plot')
+        self._log.debug('Calling plot_quiver')
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             'Axis has to be x, y or z (as string).'
+        if ax_slice is None:
+            ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
+        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
-            self._log.debug('proj_axis == z')
-            if ax_slice is None:
-                self._log.debug('ax_slice is None')
-                ax_slice = self.dim[0] // 2
-            u_mag = np.copy(self.field[0][ax_slice, ...])  # x-component
-            v_mag = np.copy(self.field[1][ax_slice, ...])  # y-component
             u_label = 'x [px]'
             v_label = 'y [px]'
             submask = self.get_mask()[ax_slice, ...]
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
-            self._log.debug('proj_axis == y')
-            if ax_slice is None:
-                self._log.debug('ax_slice is None')
-                ax_slice = self.dim[1] // 2
-            u_mag = np.copy(self.field[0][:, ax_slice, :])  # x-component
-            v_mag = np.copy(self.field[2][:, ax_slice, :])  # z-component
             u_label = 'x [px]'
             v_label = 'z [px]'
             submask = self.get_mask()[:, ax_slice, :]
         elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
-            self._log.debug('proj_axis == x')
-            if ax_slice is None:
-                self._log.debug('ax_slice is None')
-                ax_slice = self.dim[2] // 2
-            u_mag = np.swapaxes(np.copy(self.field[2][..., ax_slice]), 0, 1)  # z-component
-            v_mag = np.swapaxes(np.copy(self.field[1][..., ax_slice]), 0, 1)  # y-component
             u_label = 'z [px]'
             v_label = 'y [px]'
             submask = self.get_mask()[..., ax_slice]
@@ -817,16 +898,22 @@ class VectorData(FieldData):
         # Calculate the arrow colors:
         if coloring == 'angle':
             self._log.debug('Encoding angles')
-            colorinds = (1 + np.arctan2(v_mag, u_mag) / np.pi) / 2  # in-plane color index (0-1).
-            cmap = DirectionalColormap()
+            hue = np.arctan2(v_mag, u_mag) / (2 * np.pi)
+            hue[hue < 0] += 1
+            if hue_mode == 'triadic':
+                cmap = colors.hls_triadic_cmap
+            elif hue_mode == 'tetradic':
+                cmap = colors.hls_tetradic_cmap
+            else:
+                raise ValueError('Hue mode {} not understood!'.format(hue_mode))
         elif coloring == 'amplitude':
             self._log.debug('Encoding amplitude')
-            colorinds = amplitudes / amplitudes.max()
+            hue = amplitudes / amplitudes.max()
             cmap = 'jet'
         elif coloring == 'uniform':
             self._log.debug('No color encoding')
-            colorinds = np.zeros_like(u_mag)  # use black arrows!
-            cmap = 'gray'
+            hue = np.zeros_like(u_mag)  # use black arrows!
+            cmap = 'gray' if bgcolor == 'white' else 'Greys'
         else:
             raise AttributeError("Invalid coloring mode! Use 'angles', 'amplitude' or 'uniform'!")
         # If no axis is specified, a new figure is created:
@@ -849,9 +936,10 @@ class VectorData(FieldData):
         if scaled:
             u_mag /= amplitudes.max() + 1E-30
             v_mag /= amplitudes.max() + 1E-30
-        im = axis.quiver(uu, vv, u_mag, v_mag, colorinds, cmap=cmap, clim=(0, 1), angles=angles,
+        im = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1), angles=angles,
                          pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
-                         minlength=0.25, headwidth=6, headlength=7)
+                         minlength=0.05, width=1, headwidth=3, headlength=3, headaxislength=3,
+                         minshaft=2)
         if coloring == 'amplitude':
             fig = plt.gcf()
             fig.subplots_adjust(right=0.8)
@@ -866,7 +954,8 @@ class VectorData(FieldData):
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
             mask_color = 'white' if bgcolor == 'black' else 'black'
-            axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color, linestyles='dotted')
+            axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
+                         linestyles='dotted', linewidths=2)
         # Further plot formatting:
         axis.set_xlim(0, dim_uv[1])
         axis.set_ylim(0, dim_uv[0])
@@ -883,8 +972,8 @@ class VectorData(FieldData):
         # Return plotting axis:
         return axis
 
-    def quiver_plot3d(self, title='Vector Field', limit=None, cmap='jet',
-                      mode='2darrow', coloring='angle', ar_dens=1, opacity=1.0):
+    def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
+                      coloring='full', ar_dens=1, opacity=1.0, hue_mode='triadic'):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
         Parameters
@@ -901,10 +990,13 @@ class VectorData(FieldData):
         mode: string, optional
             Mode, determining the glyphs used in the 3D plot. Default is '2darrow', which
             corresponds to 2D arrows. For smaller amounts of arrows, 'arrow' (3D) is prettier.
-        coloring : {'angle', 'amplitude'}, optional
+        coloring : {'full', 'angle', 'amplitude'}, optional
             Color coding mode of the arrows. Use 'angle' (default) or 'amplitude'.
         opacity: float, optional
             Defines the opacity of the arrows. Default is 1.0 (completely opaque).
+        hue_mode : {'triadic', 'tetradic'}
+            Optional string for determining the hue scheme. Use either a triadic or tetradic
+            scheme (see the according colormaps for more information).
 
         Returns
         -------
@@ -921,24 +1013,27 @@ class VectorData(FieldData):
         ad = ar_dens
         # Create points and vector components as lists:
         zzz, yyy, xxx = (np.indices(dim) - a / 2).reshape((3,) + dim)
-        zzz = zzz[::ad, ::ad, ::ad].flatten()
-        yyy = yyy[::ad, ::ad, ::ad].flatten()
-        xxx = xxx[::ad, ::ad, ::ad].flatten()
-        x_mag = self.field[0][::ad, ::ad, ::ad].flatten()
-        y_mag = self.field[1][::ad, ::ad, ::ad].flatten()
-        z_mag = self.field[2][::ad, ::ad, ::ad].flatten()
+        zzz = zzz[::ad, ::ad, ::ad].ravel()
+        yyy = yyy[::ad, ::ad, ::ad].ravel()
+        xxx = xxx[::ad, ::ad, ::ad].ravel()
+        x_mag = self.field[0][::ad, ::ad, ::ad].ravel()
+        y_mag = self.field[1][::ad, ::ad, ::ad].ravel()
+        z_mag = self.field[2][::ad, ::ad, ::ad].ravel()
         # Plot them as vectors:
         mlab.figure(size=(750, 700))
-        if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation
+        if coloring in ('full', 'angle'):  # Encodes the full angle via colorwheel and saturation:
             self._log.debug('Encoding full 3D angles')
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
                                  scalars=np.arange(len(xxx)))
-            rgbs = DirectionalColormap.rgb_from_direction(x_mag, y_mag, z_mag)
+            h, l, s = colors.hls_from_vector(x_mag, y_mag, z_mag)
+            if coloring == 'angle':  # Encode just the angle and not the amplitude via saturation:
+                s = np.ones_like(s)
+            rgbs = colors.rgb_from_hls(h, l, s, mode=hue_mode)
             rgbas = np.hstack((rgbs, 255 * np.ones((len(xxx), 1)))).astype(np.uint8)
             vecs.glyph.color_mode = 'color_by_scalar'
             vecs.module_manager.scalar_lut_manager.lut.table = rgbas
             mlab.draw()
-        elif coloring == 'amplitude':  # Encodes the amplitude of the arrows with the jet colormap
+        elif coloring == 'amplitude':  # Encodes the amplitude of the arrows with the jet colormap:
             self._log.debug('Encoding amplitude')
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag,
                                  mode=mode, colormap=cmap, opacity=opacity)

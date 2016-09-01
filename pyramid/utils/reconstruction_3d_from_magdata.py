@@ -89,7 +89,7 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
     # Construct DataSet:
     dim = magdata.dim
     if ar_dens is None:
-        ar_dens = np.max(dim) // 64
+        ar_dens = np.max([1, np.max(dim) // 128])
     data = DataSet(magdata.a, magdata.dim, b_0)
     # Construct projectors:
     projectors = []
@@ -137,9 +137,9 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
     # Plot results:
     if plot_results:
         data.display_mask(ar_dens=ar_dens)
-        magdata.quiver_plot3d('Original Distribution', ar_dens=ar_dens)
-        magdata_rec.quiver_plot3d('Reconstructed Distribution (angle)', ar_dens=ar_dens)
-        magdata_rec.quiver_plot3d('Reconstructed Distribution (amplitude)',
-                                   ar_dens=ar_dens, coloring='amplitude')
+        magdata.plot_quiver3d('Original Distribution', ar_dens=ar_dens)
+        magdata_rec.plot_quiver3d('Reconstructed Distribution (angle)', ar_dens=ar_dens)
+        magdata_rec.plot_quiver3d('Reconstructed Distribution (amplitude)',
+                                  ar_dens=ar_dens, coloring='amplitude')
     # Return reconstructed magnetisation distribution and cost function:
     return magdata_rec, cost
