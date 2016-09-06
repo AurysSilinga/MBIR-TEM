@@ -8,9 +8,6 @@ import logging
 
 import numpy as np
 
-from matplotlib import cm
-from matplotlib.colors import BoundaryNorm
-
 from jutil.taketime import TakeTime
 
 from .. import reconstruction
@@ -80,8 +77,9 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
     # Plot stuff:
     if plot_results:
         if ar_dens is None:
-            ar_dens = np.max([1, np.max(dim) // 128])
-        magdata_rec.plot_quiver('Reconstructed Distribution', ar_dens=ar_dens, figsize=(15, 15))
+            ar_dens = np.max([1, np.max(dim) // 64])
+        axis = magdata_rec.plot_field('Reconstructed Distribution', figsize=(15, 15))
+        magdata_rec.plot_quiver(axis=axis, ar_dens=ar_dens, coloring='uniform')
         phasemap.plot_combined('Input Phase')
         phasemap -= fwd_model.ramp(index=0)
         phasemap.plot_combined('Input Phase (ramp corrected)')

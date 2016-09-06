@@ -792,6 +792,7 @@ class VectorData(FieldData):
         if bgcolor == 'white':  # Invert luminance:
             luminance = 1 - luminance
         saturation = np.hypot(u_mag, v_mag)  # Saturation according to amplitude!
+        saturation /= saturation.max()
         rgb = colors.rgb_from_hls(hue, luminance, saturation, mode=hue_mode)
         axis.imshow(Image.fromarray(rgb), origin='lower', interpolation='none',
                     extent=(0, dim_uv[1], 0, dim_uv[0]))
@@ -801,7 +802,6 @@ class VectorData(FieldData):
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
             mask_color = 'white' if bgcolor == 'black' else 'black'
-            print(bgcolor, mask_color)
             axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
                          linestyles='dotted', linewidths=2)
         # Further plot formatting:
@@ -938,8 +938,8 @@ class VectorData(FieldData):
             v_mag /= amplitudes.max() + 1E-30
         im = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1), angles=angles,
                          pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
-                         minlength=0.05, width=1, headwidth=3, headlength=3, headaxislength=3,
-                         minshaft=2)
+                         minlength=0.05, width=1*ar_dens, headlength=2, headaxislength=2,
+                         headwidth=2, minshaft=2)
         if coloring == 'amplitude':
             fig = plt.gcf()
             fig.subplots_adjust(right=0.8)
