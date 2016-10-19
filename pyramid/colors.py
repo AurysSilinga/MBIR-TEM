@@ -5,10 +5,7 @@
 """This module provides a custom :class:`~.HLSTriadicColormap` colormap class which has a few
 additional functions and can encode three-dimensional directions."""
 
-# TODO: ALL docstrings! Also plotting docstrings in PhaseMap and VectorData!
-
 import logging
-from numbers import Number
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -103,7 +100,7 @@ class HLSTetradicColormap(colors.LinearSegmentedColormap):
              'green': [(0.00, 0.0, 0.0),
                        (0.25, 0.0, 0.0),
                        (0.50, 1.0, 1.0),
-                       (0.75, 1.0, 01.0),
+                       (0.75, 1.0, 1.0),
                        (1.00, 0.0, 0.0)],
 
              'blue': [(0.00, 0.0, 0.0),

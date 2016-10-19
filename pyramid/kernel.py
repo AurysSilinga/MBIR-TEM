@@ -87,9 +87,9 @@ class Kernel(object):
         self.slice_mag = (slice(0, dim_uv[0]),  # Magnetization is padded on the far end!
                           slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
         # Calculate kernel (single pixel phase):
-        # [M_0] = [PHI_0 / µ_0] = Tm² / N/A² = N/Am * A²/N = A/m
-        #       --> This is the magnetization, not the magnetic moment (A/m * m³ = Am²)!
-        # [b_0] = [µ_0] * [M_0] = A/m * N/A² = N/Am = T
+        # [M_0] = A/m  --> This is the magnetization, not the magnetic moment (A/m * m³ = Am²)!
+        # [PHI_0 / µ_0] = Tm² / Tm/A = Am
+        # [b_0] = [M_0] * [µ_0] = A/m * N/A² = N/Am = T
         # [coeff] = [b_0 * a² / (2*PHI_0)] = T * m² / Tm² = 1  --> without unit (phase)!
         coeff = b_0 * a ** 2 / (2 * PHI_0)  # Minus is gone because of negative z-direction
         v_dim, u_dim = dim_uv
@@ -99,13 +99,13 @@ class Kernel(object):
         self.u = fft.empty(self.dim_kern, dtype=fft.FLOAT)
         self.v = fft.empty(self.dim_kern, dtype=fft.FLOAT)
         self.u[...] = coeff * self._get_elementary_phase(geometry, uu, vv, a)
-        self.v[...] = coeff * self._get_elementary_phase(geometry, vv, uu, a)
+        self.v[...] = coeff * -self._get_elementary_phase(geometry, vv, uu, a)
         # Include perturbed reference wave:
         if prw_vec is not None:
             uu += prw_vec[1]
             vv += prw_vec[0]
             self.u[...] -= coeff * self._get_elementary_phase(geometry, uu, vv, a)
-            self.v[...] -= coeff * self._get_elementary_phase(geometry, vv, uu, a)
+            self.v[...] -= coeff * -self._get_elementary_phase(geometry, vv, uu, a)
         # Calculate Fourier trafo of kernel components:
         self.u_fft = fft.rfftn(self.u, self.dim_pad)
         self.v_fft = fft.rfftn(self.v, self.dim_pad)
@@ -125,7 +125,7 @@ class Kernel(object):
         self._log.debug('Calling _get_elementary_phase')
         if geometry == 'disc':
             in_or_out = ~ np.logical_and(n == 0, m == 0)
-            return n / (n ** 2 + m ** 2 + 1E-30) * in_or_out
+            return m / (n ** 2 + m ** 2 + 1E-30) * in_or_out
         elif geometry == 'slab':
             def _F_a(n, m):
                 A = np.log(a ** 2 * (n ** 2 + m ** 2))

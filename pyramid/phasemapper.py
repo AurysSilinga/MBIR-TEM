@@ -11,13 +11,12 @@ import abc
 import logging
 
 import numpy as np
-from numpy import pi
 
 from . import fft
 from .fielddata import VectorData, ScalarData
 from .phasemap import PhaseMap
 
-__all__ = ['PhaseMapperRDFC', 'PhaseMapperFDFC', 'PhaseMapperMIP']
+__all__ = ['PhaseMapperRDFC', 'PhaseMapperFDFC', 'PhaseMapperMIP', 'PhaseMapperCharge']
 _log = logging.getLogger(__name__)
 
 PHI_0 = 2067.83  # magnetic flux in T*nm²
@@ -25,6 +24,7 @@ H_BAR = 6.626E-34  # Planck constant in J*s
 M_E = 9.109E-31  # electron mass in kg
 Q_E = 1.602E-19  # electron charge in C
 C = 2.998E8  # speed of light in m/s
+EPS_0 = 8.8542E-12  # electrical field constant
 
 
 class PhaseMapper(object, metaclass=abc.ABCMeta):
@@ -135,7 +135,7 @@ class PhaseMapperRDFC(PhaseMapper):
         self.u_mag_fft = fft.rfftn(self.u_mag)
         self.v_mag_fft = fft.rfftn(self.v_mag)
         # Convolve the magnetization with the kernel in Fourier space:
-        self.phase_fft = self.u_mag_fft * self.kernel.v_fft - self.v_mag_fft * self.kernel.u_fft
+        self.phase_fft = self.u_mag_fft * self.kernel.u_fft + self.v_mag_fft * self.kernel.v_fft
         # Return the result:
         return fft.irfftn(self.phase_fft)[self.kernel.slice_phase]
 
@@ -181,8 +181,8 @@ class PhaseMapperRDFC(PhaseMapper):
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
         self.mag_adj[self.kernel.slice_mag] = vector.reshape(self.kernel.dim_uv)
         mag_adj_fft = fft.irfftn_adj(self.mag_adj)
-        u_phase_adj_fft = mag_adj_fft * self.kernel.v_fft
-        v_phase_adj_fft = mag_adj_fft * -self.kernel.u_fft
+        u_phase_adj_fft = mag_adj_fft * self.kernel.u_fft
+        v_phase_adj_fft = mag_adj_fft * self.kernel.v_fft
         u_phase_adj = fft.rfftn_adj(u_phase_adj_fft)[self.kernel.slice_phase]
         v_phase_adj = fft.rfftn_adj(v_phase_adj_fft)[self.kernel.slice_phase]
         result = np.concatenate((-u_phase_adj.ravel(), -v_phase_adj.ravel()))
@@ -326,7 +326,7 @@ class PhaseMapperMIP(PhaseMapper):
     v_0 : float, optional
         The mean inner potential of the specimen in V. The default is 1.
     v_acc : float, optional
-        The acceleration voltage of the electron microscope in V. The default is 30000.
+        The acceleration voltage of the electron microscope in V. The default is 300000.
     threshold : float, optional
         Threshold for the recognition of the specimen location. The default is 0, which means that
         all voxels with non-zero magnetization will contribute. Should be above noise level.
@@ -350,7 +350,7 @@ class PhaseMapperMIP(PhaseMapper):
         self.n = self.m
         # Coefficient calculation:
         lam = H_BAR / np.sqrt(2 * M_E * Q_E * v_acc * (1 + Q_E * v_acc / (2 * M_E * C ** 2)))
-        C_e = 2 * pi * Q_E / lam * (Q_E * v_acc + M_E * C ** 2) / (
+        C_e = 2 * np.pi * Q_E / lam * (Q_E * v_acc + M_E * C ** 2) / (
             Q_E * v_acc * (Q_E * v_acc + 2 * M_E * C ** 2))
         self.coeff = v_0 * C_e * a * 1E-9
         self._log.debug('Created ' + str(self))
@@ -373,6 +373,108 @@ class PhaseMapperMIP(PhaseMapper):
         assert elec_data.dim[1:3] == self.dim_uv, 'Dimensions do not match!'
         phase = self.coeff * np.squeeze(elec_data.get_mask(self.threshold))
         return PhaseMap(elec_data.a, phase)
+
+    def jac_dot(self, vector):
+        """Calculate the product of the Jacobi matrix with a given `vector`.
+
+        Parameters
+        ----------
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vectorized form of the electrostatic field of every pixel (row-wise).
+
+        Returns
+        -------
+        result : :class:`~numpy.ndarray` (N=1)
+            Product of the Jacobi matrix (which is not explicitely calculated) with the vector.
+
+        """
+        raise NotImplementedError()  # TODO: Implement right!
+
+    def jac_T_dot(self, vector):
+        """Calculate the product of the transposed Jacobi matrix with a given `vector`.
+
+        Parameters
+        ----------
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vector with ``N**2`` entries which represents a matrix with dimensions like a scalar
+            phasemap.
+
+        Returns
+        -------
+        result : :class:`~numpy.ndarray` (N=1)
+            Product of the transposed Jacobi matrix (which is not explicitely calculated) with
+            the vector, which has ``N**2`` entries like an electrostatic projection.
+
+        """
+        raise NotImplementedError()  # TODO: Implement right!
+
+
+class PhaseMapperCharge(PhaseMapper):
+
+    """"""
+
+    def __init__(self, a, dim_uv, biprism_vec, v_acc=300000):
+        self._log.debug('Calling __init__')
+        self.a = a
+        self.dim_uv = dim_uv
+        self.biprism_vec = biprism_vec
+        self.v_acc = v_acc
+        lam = H_BAR / np.sqrt(2 * M_E * Q_E * v_acc * (1 + Q_E * v_acc / (2 * M_E * C ** 2)))
+        C_e = 2 * np.pi * Q_E / lam * (Q_E * v_acc + M_E * C ** 2) / (
+            Q_E * v_acc * (Q_E * v_acc + 2 * M_E * C ** 2))
+        self.coeff = C_e * Q_E / (4 * np.pi * EPS_0)
+
+        self._log.debug('Created ' + str(self))
+
+    def __repr__(self):
+        self._log.debug('Calling __repr__')
+        return '%s(a=%r, dim_uv=%r, v_acc=%r)' % \
+               (self.__class__, self.a, self.dim_uv, self.v_acc)
+
+    def __str__(self):
+        self._log.debug('Calling __str__')
+        return 'PhaseMapperCharge(a=%s, dim_uv=%s, v_acc=%s)' % \
+               (self.a, self.dim_uv, self.v_acc)
+
+    def __call__(self, elec_data):
+        """ phase_dipoles() is to caculate the phase from many electric dipoles.
+        field include the amount of charge in every grid, unit:electron.
+        The normal vector of the electrode is (a,b), and the distance to the origin is the norm
+        of (a,b). R is the sampling rate,pixel/nm."""
+        R = 1 / self.a
+        field = elec_data.field[0, ...]
+        bu, bv = self.biprism_vec  # biprism vector (orthogonal to biprism from origin)
+        bn = bu ** 2 + bv ** 2  # norm of the biprism vector
+        dim_v, dim_u = field.shape
+        # Find list of charge locations and charge values:
+        vq, uq = np.nonzero(field)
+        q = field[vq, uq]
+        # Calculate locations of image charges:
+        vm = (bu ** 2 - bv ** 2) / bn * vq - 2 * bu * bv / bn * uq + 2 * bv
+        um = (bv ** 2 - bu ** 2) / bn * uq - 2 * bu * bv / bn * vq + 2 * bu
+        # Calculate phase contribution for each charge:
+        phase = np.zeros((dim_v, dim_u))
+        for i in range(len(q)):
+            for u in range(dim_u):
+                for v in range(dim_v):
+                    rq = np.sqrt((u - uq[i]) ** 2 + (v - vq[i]) ** 2)  # charge distance
+                    rm = np.sqrt((u - um[i]) ** 2 + (v - vm[i]) ** 2)  # mirror distance
+                    # distance
+                    z1 = (R / 2) ** 2 - rq ** 2
+                    z2 = (R / 2) ** 2 - rm ** 2
+                    if z1 < 0 and z2 < 0:
+                        phase[v, u] += -q[i] * self.coeff * np.log((rq ** 2) / (rm ** 2))
+                    elif z1 >= 0 >= z2:
+                        z3 = np.sqrt(z1)
+                        phase[v, u] += (-q[i] * self.coeff *
+                                        np.log(((z3 + R / 2) ** 2) / (rm ** 2))
+                                        + 2 * q[i] * Q_E * z3 / 2 / np.pi / EPS_0 / R)
+                    else:
+                        z4 = np.sqrt(z2)
+                        phase[v, u] += (-q[i] * self.coeff *
+                                        np.log((rq ** 2) / ((z4 + R / 2) ** 2))
+                                        - 2 * q[i] * Q_E * z4 / 2 / np.pi / EPS_0 / R)
+        return PhaseMap(self.a, phase)
 
     def jac_dot(self, vector):
         """Calculate the product of the Jacobi matrix with a given `vector`.

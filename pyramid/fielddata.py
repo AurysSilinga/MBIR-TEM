@@ -437,7 +437,7 @@ class VectorData(FieldData):
                 self.field = np.pad(self.field, ((0, 0), (0, pz), (0, py), (0, px)),
                                     mode='constant')
             # Create coarser grid for the vector field:
-            shape_4d = (3, self.dim[0] / 2, 2, self.dim[1] / 2, 2, self.dim[2] / 2, 2)
+            shape_4d = (3, self.dim[0] // 2, 2, self.dim[1] // 2, 2, self.dim[2] // 2, 2)
             self.field = self.field.reshape(shape_4d).mean(axis=(6, 4, 2))
 
     def scale_up(self, n=1, order=0):
@@ -796,6 +796,137 @@ class VectorData(FieldData):
         rgb = colors.rgb_from_hls(hue, luminance, saturation, mode=hue_mode)
         axis.imshow(Image.fromarray(rgb), origin='lower', interpolation='none',
                     extent=(0, dim_uv[1], 0, dim_uv[0]))
+        # Change background color:
+        axis.set_axis_bgcolor(bgcolor)
+        # Show mask:
+        if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
+            vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
+            mask_color = 'white' if bgcolor == 'black' else 'black'
+            axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
+                         linestyles='dotted', linewidths=2)
+        # Further plot formatting:
+        axis.set_xlim(0, dim_uv[1])
+        axis.set_ylim(0, dim_uv[0])
+        axis.set_title(title, fontsize=18)
+        axis.set_xlabel(u_label, fontsize=15)
+        axis.set_ylabel(v_label, fontsize=15)
+        axis.tick_params(axis='both', which='major', labelsize=14)
+        if dim_uv[0] >= dim_uv[1]:
+            u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
+        else:
+            u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+        # Return plotting axis:
+        return axis
+
+    def plot_streamline(self, title='Vector Field', axis=None, proj_axis='z', figsize=(8.5, 7),
+                        coloring='angle', ax_slice=None, density=2, linewidth=2,
+                        show_mask=True, bgcolor='white', hue_mode='triadic'):
+        """Plot a slice of the vector field as a quiver plot.
+
+        Parameters
+        ----------
+        title : string, optional
+            The title for the plot.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        proj_axis : {'z', 'y', 'x'}, optional
+            The axis, from which a slice is plotted. The default is 'z'.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
+        coloring : {'angle', 'amplitude', 'uniform'}
+            Color coding mode of the arrows. Use 'full' (default), 'angle', 'amplitude' or
+            'uniform'.
+        ax_slice : int, optional
+            The slice-index of the axis specified in `proj_axis`. Is set to the center of
+            `proj_axis` if not specified.
+        density : float or 2-tuple, optional
+            Controls the closeness of streamlines. When density = 1, the domain is divided into a
+            30x30 grid—density linearly scales this grid. Each cebll in the grid can have, at most,
+            one traversing streamline. For different densities in each direction, use
+            [density_x, density_y].
+        linewidth : numeric or 2d array, optional
+            Vary linewidth when given a 2d array with the same shape as velocities.
+        show_mask: boolean
+            Default is True. Shows the outlines of the mask slice if available.
+        bgcolor: {'black', 'white'}, optional
+            Determines the background color of the plot.
+        hue_mode : {'triadic', 'tetradic'}
+            Optional string for determining the hue scheme. Use either a triadic or tetradic
+            scheme (see the according colormaps for more information).
+
+        Returns
+        -------
+        axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted.
+
+        """
+        self._log.debug('Calling plot_quiver')
+        assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
+            'Axis has to be x, y or z (as string).'
+        if ax_slice is None:
+            ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
+        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
+        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
+            u_label = 'x [px]'
+            v_label = 'y [px]'
+            submask = self.get_mask()[ax_slice, ...]
+        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
+            u_label = 'x [px]'
+            v_label = 'z [px]'
+            submask = self.get_mask()[:, ax_slice, :]
+        elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
+            u_label = 'z [px]'
+            v_label = 'y [px]'
+            submask = self.get_mask()[..., ax_slice]
+        else:
+            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
+        # Prepare quiver (select only used arrows if ar_dens is specified):
+        dim_uv = u_mag.shape
+        uu = np.arange(dim_uv[1]) + 0.5  # shift to center of pixel
+        vv = np.arange(dim_uv[0]) + 0.5  # shift to center of pixel
+        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
+        # v_mag = np.ma.array(v_mag, mask=submask)
+        amplitudes = np.hypot(u_mag, v_mag)
+        # Calculate the arrow colors:
+        if coloring == 'angle':
+            self._log.debug('Encoding angles')
+            color = np.arctan2(v_mag, u_mag) / (2 * np.pi)
+            color[color < 0] += 1
+            if hue_mode == 'triadic':
+                cmap = colors.hls_triadic_cmap
+            elif hue_mode == 'tetradic':
+                cmap = colors.hls_tetradic_cmap
+            else:
+                raise ValueError('Hue mode {} not understood!'.format(hue_mode))
+        elif coloring == 'amplitude':
+            self._log.debug('Encoding amplitude')
+            color = amplitudes / amplitudes.max()
+            cmap = 'jet'
+        elif coloring == 'uniform':
+            self._log.debug('No color encoding')
+            color = np.zeros_like(u_mag)  # use black arrows!
+            cmap = 'gray' if bgcolor == 'white' else 'Greys'
+        else:
+            raise AttributeError("Invalid coloring mode! Use 'angles', 'amplitude' or 'uniform'!")
+        # If no axis is specified, a new figure is created:
+        if axis is None:
+            self._log.debug('axis is None')
+            fig = plt.figure(figsize=figsize)
+            axis = fig.add_subplot(1, 1, 1)
+        axis.set_aspect('equal')
+        # Plot the streamlines:
+        im = plt.streamplot(uu, vv, u_mag, v_mag, density=density, linewidth=linewidth,
+                            color=color, cmap=cmap)
+        if coloring == 'amplitude':
+            fig = plt.gcf()
+            fig.subplots_adjust(right=0.8)
+            cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
+            cbar = fig.colorbar(im.lines, cax=cbar_ax)
+            cbar.ax.tick_params(labelsize=14)
+            cbar_title = u'amplitude'
+            cbar.set_label(cbar_title, fontsize=15)
         # Change background color:
         axis.set_axis_bgcolor(bgcolor)
         # Show mask:

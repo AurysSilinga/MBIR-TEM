@@ -67,7 +67,7 @@ class Ramp(object):
         self.order = order
         self.deg_of_freedom = (1 + 2 * self.order) if self.order is not None else 0
         self.param_cache = np.zeros((self.deg_of_freedom, self.data_set.count))
-        self.n = self.deg_of_freedom * self.data_set.count
+        self.n = self.deg_of_freedom * self.data_set.count  # 0 if order is None
 
     def __call__(self, index, dof_list=None):
         if self.order is None:  # Do nothing if order is None!

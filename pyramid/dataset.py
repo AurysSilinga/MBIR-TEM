@@ -42,10 +42,17 @@ class DataSet(object):
     Se_inv : :class:`~numpy.ndarray` (N=2), optional
         Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
         being the length of the targetvector y (vectorized phase map information).
-    phasemaps:
-        A list of all stored :class:`~.PhaseMap` objects.
     projectors: list of :class:`~.Projector`
         A list of all stored :class:`~.Projector` objects.
+    phasemaps: list of :class:`~.PhaseMap`
+        A list of all stored :class:`~.PhaseMap` objects.
+    phase_vec: :class:`~numpy.ndarray` (N=1)
+        The concatenaded, vectorized phase of all :class:`~.PhaseMap` objects.
+    count(self): int
+        Number of phase maps and projectors in the dataset.
+    hook_points(self): :class:`~numpy.ndarray` (N=1)
+        Hook points which determine the start of values of a phase map in the `phase_vec`.
+        The length is `count + 1`.
 
     """
 

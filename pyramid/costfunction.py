@@ -27,38 +27,38 @@ class Costfunction(object):
 
     Attributes
     ----------
-    regularisator : :class:`~.Regularisator`
-        Regularisator class that's responsible for the regularisation term.
-    y : :class:`~numpy.ndarray` (N=1)
-        Vector which lists all pixel values of all phase maps one after another.
     fwd_model : :class:`~.ForwardModel`
         The Forward model instance which should be used for the simulation of the phase maps which
         will be compared to `y`.
-    Se_inv : :class:`~numpy.ndarray` (N=2), optional
-        Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
-        being the length of the targetvector y (vectorized phase map information).
+    regularisator : :class:`~.Regularisator`, optional
+        Regularisator class that's responsible for the regularisation term. If `None` or none is
+        given, no regularisation will be used.
+    y : :class:`~numpy.ndarray` (N=1)
+        Vector which lists all pixel values of all phase maps one after another.
     m: int
         Size of the image space.
     n: int
         Size of the input space.
+    Se_inv : :class:`~numpy.ndarray` (N=2), optional
+        Inverted covariance matrix of the measurement errors. The matrix has size `m x m` with m
+        being the length of the targetvector y.
 
     """
 
     _log = logging.getLogger(__name__ + '.Costfunction')
 
-    def __init__(self, fwd_model, regularisator):
+    def __init__(self, fwd_model, regularisator=None):
         self._log.debug('Calling __init__')
         self.fwd_model = fwd_model
-        self.regularisator = regularisator
-        if self.regularisator is None:
+        if regularisator is None:
             self.regularisator = NoneRegularisator()
-        # Extract important information:
-        self.y = self.fwd_model.data_set.phase_vec
+        else:
+            self.regularisator = regularisator
+        # Extract information from fwd_model:
+        self.y = self.fwd_model.y
         self.n = self.fwd_model.n
         self.m = self.fwd_model.m
-        if self.fwd_model.data_set.Se_inv is None:
-            self.fwd_model.data_set.set_Se_inv_diag_with_conf()
-        self.Se_inv = self.fwd_model.data_set.Se_inv
+        self.Se_inv = self.fwd_model.Se_inv
         self._log.debug('Created ' + str(self))
 
     def __repr__(self):

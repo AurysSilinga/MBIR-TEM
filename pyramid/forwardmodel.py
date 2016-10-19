@@ -36,10 +36,15 @@ class ForwardModel(object):
         Polynomial order of the additional phase ramp which will be added to the phase maps.
         All ramp parameters have to be at the end of the input vector and are split automatically.
         Default is None (no ramps are added).
+    y : :class:`~numpy.ndarray` (N=1)
+        Vector which lists all pixel values of all phase maps one after another.
     m: int
         Size of the image space. Number of pixels of the 2-dimensional projected grid.
     n: int
         Size of the input space. Number of voxels of the 3-dimensional grid.
+    Se_inv : :class:`~numpy.ndarray` (N=2), optional
+        Inverted covariance matrix of the measurement errors. The matrix has size `m x m` with m
+        being the length of the targetvector y (vectorized phase map information).
 
     """
 
@@ -49,14 +54,20 @@ class ForwardModel(object):
         self._log.debug('Calling __init__')
         self.data_set = data_set
         self.ramp_order = ramp_order
+        # Extract information from data_set:
         self.phasemappers = self.data_set.phasemappers
-        self.ramp = Ramp(self.data_set, self.ramp_order)
-        self.m = self.data_set.m
+        self.y = self.data_set.phase_vec
         self.n = self.data_set.n
-        if self.ramp.n is not None:  # Additional parameters have to be fitted!
-            self.n += self.ramp.n
+        self.m = self.data_set.m
         self.shape = (self.m, self.n)
-        self.hook_points = data_set.hook_points
+        self.hook_points = self.data_set.hook_points
+        if self.data_set.Se_inv is None:
+            self.data_set.set_Se_inv_diag_with_conf()
+        self.Se_inv = self.data_set.Se_inv
+        # Create ramp and change n accordingly:
+        self.ramp = Ramp(self.data_set, self.ramp_order)
+        self.n += self.ramp.n  # ramp.n is 0 if ramp_order is None
+        # Create empty MagData object:
         self.magdata = VectorData(self.data_set.a, np.zeros((3,) + self.data_set.dim))
         self._log.debug('Creating ' + str(self))
 
