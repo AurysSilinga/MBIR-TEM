@@ -79,12 +79,12 @@ class Projector(object, metaclass=abc.ABCMeta):
 
     def __call__(self, field_data):
         if isinstance(field_data, VectorData):
-            field_empty = fft.zeros((3, 1) + self.dim_uv, dtype=fft.FLOAT)
+            field_empty = np.zeros((3, 1) + self.dim_uv, dtype=field_data.field.dtype)
             field_data_proj = VectorData(field_data.a, field_empty)
             field_proj = self.jac_dot(field_data.field_vec).reshape((2,) + self.dim_uv)
             field_data_proj.field[0:2, 0, ...] = field_proj
         elif isinstance(field_data, ScalarData):
-            field_empty = fft.zeros((1,) + self.dim_uv, dtype=fft.FLOAT)
+            field_empty = np.zeros((1,) + self.dim_uv, dtype=field_data.field.dtype)
             field_data_proj = ScalarData(field_data.a, field_empty)
             field_proj = self.jac_dot(field_data.field_vec).reshape(self.dim_uv)
             field_data_proj.field[0, ...] = field_proj
@@ -93,7 +93,7 @@ class Projector(object, metaclass=abc.ABCMeta):
         return field_data_proj
 
     def _vector_field_projection(self, vector):
-        result = fft.zeros(2 * self.size_2d, dtype=fft.FLOAT)
+        result = np.zeros(2 * self.size_2d, dtype=vector.dtype)
         # Go over all possible component projections (z, y, x) to (u, v):
         vec_x, vec_y, vec_z = np.split(vector, 3)
         vec_x_weighted = self.weight.dot(vec_x)
@@ -116,7 +116,7 @@ class Projector(object, metaclass=abc.ABCMeta):
         return result
 
     def _vector_field_projection_T(self, vector):
-        result = np.zeros(3 * self.size_3d, dtype=fft.FLOAT)
+        result = np.zeros(3 * self.size_3d)
         # Go over all possible component projections (u, v) to (z, y, x):
         vec_u, vec_v = np.split(vector, 2)
         vec_u_weighted = self.weight.T.dot(vec_u)

@@ -11,7 +11,8 @@ import logging
 
 import numpy as np
 
-from pyramid import fft
+from jutil import fft
+
 from pyramid.fielddata import VectorData
 
 __all__ = ['convert_M_to_A', 'convert_A_to_B', 'convert_M_to_B']
@@ -39,12 +40,10 @@ def convert_M_to_A(magdata, b_0=1.0):
     assert isinstance(magdata, VectorData), 'Only VectorData objects can be mapped!'
     dim = magdata.dim
     dim_kern = tuple(2 * np.array(dim) - 1)  # Dimensions of the kernel
-    if fft.BACKEND == 'pyfftw':
+    if fft.HAVE_FFTW:
         dim_pad = tuple(2 * np.array(dim))  # is at least even (not neccessary a power of 2)
-    elif fft.BACKEND == 'numpy':
-        dim_pad = tuple(2 ** np.ceil(np.log2(2 * np.array(dim))).astype(int))  # pow(2)
     else:
-        raise ValueError('Backend of the fft module is not correctly initiated!')
+        dim_pad = tuple(2 ** np.ceil(np.log2(2 * np.array(dim))).astype(int))  # pow(2)
     slice_B = (slice(dim[0] - 1, dim_kern[0]),  # Shift because kernel center
                slice(dim[1] - 1, dim_kern[1]),  # is not at (0, 0, 0)!
                slice(dim[2] - 1, dim_kern[2]))
@@ -57,9 +56,9 @@ def convert_M_to_A(magdata, b_0=1.0):
     xxx -= dim[2] - 1
     yyy -= dim[1] - 1
     zzz -= dim[0] - 1
-    k_x = fft.empty(dim_kern, dtype=fft.FLOAT)
-    k_y = fft.empty(dim_kern, dtype=fft.FLOAT)
-    k_z = fft.empty(dim_kern, dtype=fft.FLOAT)
+    k_x = np.empty(dim_kern, dtype=magdata.field.dtype)
+    k_y = np.empty(dim_kern, dtype=magdata.field.dtype)
+    k_z = np.empty(dim_kern, dtype=magdata.field.dtype)
     k_x[...] = coeff * xxx / np.abs(xxx ** 2 + yyy ** 2 + zzz ** 2 + 1E-30) ** 3
     k_y[...] = coeff * yyy / np.abs(xxx ** 2 + yyy ** 2 + zzz ** 2 + 1E-30) ** 3
     k_z[...] = coeff * zzz / np.abs(xxx ** 2 + yyy ** 2 + zzz ** 2 + 1E-30) ** 3
@@ -68,9 +67,9 @@ def convert_M_to_A(magdata, b_0=1.0):
     k_y_fft = fft.rfftn(k_y, dim_pad)
     k_z_fft = fft.rfftn(k_z, dim_pad)
     # Prepare magnetization:
-    x_mag = fft.zeros(dim_pad, dtype=fft.FLOAT)
-    y_mag = fft.zeros(dim_pad, dtype=fft.FLOAT)
-    z_mag = fft.zeros(dim_pad, dtype=fft.FLOAT)
+    x_mag = np.zeros(dim_pad, dtype=magdata.field.dtype)
+    y_mag = np.zeros(dim_pad, dtype=magdata.field.dtype)
+    z_mag = np.zeros(dim_pad, dtype=magdata.field.dtype)
     x_mag[slice_M] = magdata.field[0, ...]
     y_mag[slice_M] = magdata.field[1, ...]
     z_mag[slice_M] = magdata.field[2, ...]

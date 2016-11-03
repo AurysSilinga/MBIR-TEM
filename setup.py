@@ -143,7 +143,7 @@ setup(name=DISTNAME,
       packages=find_packages(exclude=['tests']),
       include_dirs=[numpy.get_include()],
       requires=['numpy', 'scipy', 'matplotlib', 'Pillow',
-                'mayavi', 'pyfftw', 'hyperspy', 'nose'],
+                'mayavi', 'pyfftw', 'hyperspy', 'nose', 'jutil'],
       test_suite='nose.collector',
       cmdclass={'build_ext': build_ext, 'build': build})
 print('-------------------------------------------------------------------------------\n')

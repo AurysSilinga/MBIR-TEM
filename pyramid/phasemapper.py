@@ -12,7 +12,8 @@ import logging
 
 import numpy as np
 
-from . import fft
+from jutil import fft
+
 from .fielddata import VectorData, ScalarData
 from .phasemap import PhaseMap
 
@@ -107,9 +108,9 @@ class PhaseMapperRDFC(PhaseMapper):
         self.kernel = kernel
         self.m = np.prod(kernel.dim_uv)
         self.n = 2 * self.m
-        self.u_mag = fft.zeros(kernel.dim_pad, dtype=fft.FLOAT)
-        self.v_mag = fft.zeros(kernel.dim_pad, dtype=fft.FLOAT)
-        self.mag_adj = fft.zeros(kernel.dim_pad, dtype=fft.FLOAT)
+        self.u_mag = np.zeros(kernel.dim_pad, dtype=kernel.u.dtype)
+        self.v_mag = np.zeros(kernel.dim_pad, dtype=kernel.u.dtype)
+        self.phase_adj = np.zeros(kernel.dim_pad, dtype=kernel.u.dtype)
         self._log.debug('Created ' + str(self))
 
     def __repr__(self):
@@ -179,14 +180,13 @@ class PhaseMapperRDFC(PhaseMapper):
         """
         assert len(vector) == self.m, \
             'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
-        self.mag_adj[self.kernel.slice_phase] = vector.reshape(self.kernel.dim_uv)
-        mag_adj_fft = fft.irfftn_adj(self.mag_adj)
-        u_phase_adj_fft = mag_adj_fft * np.conj(self.kernel.u_fft)
-        v_phase_adj_fft = mag_adj_fft * np.conj(self.kernel.v_fft)
-        u_phase_adj = fft.rfftn_adj(u_phase_adj_fft)[self.kernel.slice_mag]
-        v_phase_adj = fft.rfftn_adj(v_phase_adj_fft)[self.kernel.slice_mag]
-        result = np.concatenate((u_phase_adj.ravel(), v_phase_adj.ravel()))
-        # TODO: Why minus?
+        self.phase_adj[self.kernel.slice_phase] = vector.reshape(self.kernel.dim_uv)
+        phase_adj_fft = fft.irfft2_adj(self.phase_adj)
+        u_mag_adj_fft = phase_adj_fft * np.conj(self.kernel.u_fft)
+        v_mag_adj_fft = phase_adj_fft * np.conj(self.kernel.v_fft)
+        u_mag_adj = fft.rfft2_adj(u_mag_adj_fft)[self.kernel.slice_mag]
+        v_mag_adj = fft.rfft2_adj(v_mag_adj_fft)[self.kernel.slice_mag]
+        result = np.concatenate((u_mag_adj.ravel(), v_mag_adj.ravel()))
         return result
 
 

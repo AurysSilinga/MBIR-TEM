@@ -7,7 +7,8 @@ specified costfunction for a fixed magnetization distribution."""
 
 import logging
 
-from pyramid import fft
+from jutil import fft
+
 from pyramid.fielddata import VectorData
 from pyramid.phasemap import PhaseMap
 
@@ -64,7 +65,7 @@ class Diagnostics(object):
         the calculation of the gain and averaging kernel matrizes and which ideally contains the
         variance at position `row_idx` for the current component and position in 3D."""
         if not self._updated_cov_row:
-            e_i = fft.zeros(self.cost.n, dtype=fft.FLOAT)
+            e_i = np.zeros(self.cost.n, dtype=self.x_rec.dtype)
             e_i[self.row_idx] = 1
             row = 2 * jutil.cg.conj_grad_solve(self._A, e_i, P=self._P, max_iter=self.max_iter)
             self._std_row = np.asarray(row)
@@ -101,7 +102,7 @@ class Diagnostics(object):
         the solution is determined by the measurement (close to `1`) or by a priori information
         (close to `0`)."""
         if not self._updated_measure_contribution:
-            cache = self.fwd_model.jac_dot(self.x_rec, fft.ones(self.cost.n, fft.FLOAT))
+            cache = self.fwd_model.jac_dot(self.x_rec, np.ones(self.cost.n, self.x_rec.dtype))
             cache = self.fwd_model.jac_T_dot(self.x_rec, self.Se_inv.dot(cache))
             mc = 2 * jutil.cg.conj_grad_solve(self._A, cache, P=self._P, max_iter=self.max_iter)
             self._measure_contribution = mc
@@ -165,7 +166,7 @@ class Diagnostics(object):
         self._log.debug('Calling get_avg_kern_row')
         if pos is not None:
             self.pos = pos
-        magdata_avg_kern = VectorData(self.cost.data_set.a, fft.zeros((3,) + self.dim))
+        magdata_avg_kern = VectorData(self.cost.data_set.a, np.zeros((3,) + self.dim))
         magdata_avg_kern.set_vector(self.avrg_kern_row, mask=self.mask)
         return magdata_avg_kern
 

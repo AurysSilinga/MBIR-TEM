@@ -38,14 +38,11 @@ quaternion
     Class which is used for easy rotations in the Projector classes.
 colormap
     Class which implements a custom direction encoding colormap.
-fft
-    Class for custom FFT functions using numpy or FFTW.
 
 """
 
 from . import analytic
 from . import reconstruction
-from . import fft
 from . import fieldconverter
 from . import magcreator
 from . import colors
@@ -71,7 +68,7 @@ _log = logging.getLogger(__name__)
 _log.info("Starting Pyramid V{} HG{}".format(__version__, __hg_revision__))
 del logging
 
-__all__ = ['analytic', 'magcreator', 'reconstruction', 'fft', 'fieldconverter',
+__all__ = ['analytic', 'magcreator', 'reconstruction', 'fieldconverter',
            'colors', 'utils', 'load_phasemap', 'load_vectordata']
 __all__.extend(costfunction.__all__)
 __all__.extend(dataset.__all__)

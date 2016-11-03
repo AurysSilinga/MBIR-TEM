@@ -19,7 +19,8 @@ from PIL import Image
 
 from scipy.ndimage.interpolation import zoom
 
-from . import fft
+from jutil import fft
+
 from . import colors
 
 __all__ = ['VectorData', 'ScalarData']
@@ -79,7 +80,7 @@ class FieldData(object, metaclass=abc.ABCMeta):
         assert 3 <= len(field.shape) <= 4, 'Field has to be 3- or 4-dimensional (scalar / vector)!'
         if len(field.shape) == 4:
             assert field.shape[0] == 3, 'A vector field has to have exactly 3 components!'
-        self._field = np.asarray(field, dtype=fft.FLOAT)
+        self._field = field
 
     @property
     def field_amp(self):
@@ -97,7 +98,6 @@ class FieldData(object, metaclass=abc.ABCMeta):
 
     @field_vec.setter
     def field_vec(self, mag_vec):
-        mag_vec = np.asarray(mag_vec, dtype=fft.FLOAT)
         assert np.size(mag_vec) == np.prod(self.shape), \
             'Vector has to match field shape! {} {}'.format(mag_vec.shape, np.prod(self.shape))
         self.field = mag_vec.reshape((3,) + self.dim)
@@ -565,7 +565,6 @@ class VectorData(FieldData):
 
         """
         self._log.debug('Calling set_vector')
-        vector = np.asarray(vector, dtype=fft.FLOAT)
         assert np.size(vector) % 3 == 0, 'Vector has to contain all 3 components for every pixel!'
         count = np.size(vector) // 3
         if mask is not None:
@@ -1298,7 +1297,6 @@ class ScalarData(FieldData):
 
         """
         self._log.debug('Calling set_vector')
-        vector = np.asarray(vector, dtype=fft.FLOAT)
         if mask is not None:
             self.field[mask] = vector
         else:

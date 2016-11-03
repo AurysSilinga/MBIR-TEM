@@ -9,7 +9,7 @@ import logging
 
 import numpy as np
 
-from pyramid import fft
+from jutil import fft
 
 __all__ = ['Kernel', 'PHI_0']
 
@@ -64,12 +64,14 @@ class Kernel(object):
     prw_vec: tuple of 2 int, optional
         A two-component vector describing the displacement of the reference wave to include
         perturbation of this reference by the object itself (via fringing fields).
+    dtype: numpy dtype, optional
+        Data type of the kernel. Default is np.float32.
 
     """
 
     _log = logging.getLogger(__name__ + '.Kernel')
 
-    def __init__(self, a, dim_uv, b_0=1., prw_vec=None, geometry='disc'):
+    def __init__(self, a, dim_uv, b_0=1., prw_vec=None, geometry='disc', dtype=np.float32):
         self._log.debug('Calling __init__')
         # Set basic properties:
         self.dim_uv = dim_uv  # Dimensions of the FOV
@@ -77,9 +79,9 @@ class Kernel(object):
         self.a = a
         self.geometry = geometry
         # Set up FFT:
-        if fft.BACKEND == 'pyfftw':
+        if fft.HAVE_FFTW:
             self.dim_pad = tuple(2 * np.array(dim_uv))  # is at least even (not nec. power of 2)
-        elif fft.BACKEND == 'numpy':
+        else:
             self.dim_pad = tuple(2 ** np.ceil(np.log2(2 * np.array(dim_uv))).astype(int))  # pow(2)
         self.dim_fft = (self.dim_pad[0], self.dim_pad[1] // 2 + 1)  # last axis is real
         self.slice_phase = (slice(dim_uv[0] - 1, self.dim_kern[0]),  # Shift because kernel center
@@ -96,8 +98,8 @@ class Kernel(object):
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
         uu, vv = np.meshgrid(u, v)
-        self.u = fft.empty(self.dim_kern, dtype=fft.FLOAT)
-        self.v = fft.empty(self.dim_kern, dtype=fft.FLOAT)
+        self.u = np.empty(self.dim_kern, dtype=dtype)
+        self.v = np.empty(self.dim_kern, dtype=dtype)
         self.u[...] = coeff * self._get_elementary_phase(geometry, uu, vv, a)
         self.v[...] = coeff * -self._get_elementary_phase(geometry, vv, uu, a)
         # Include perturbed reference wave:
