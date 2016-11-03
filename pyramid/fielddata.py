@@ -13,6 +13,7 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
+from matplotlib.colors import ListedColormap
 
 from PIL import Image
 
@@ -966,9 +967,9 @@ class VectorData(FieldData):
             The axis, from which a slice is plotted. The default is 'z'.
         figsize : tuple of floats (N=2)
             Size of the plot figure.
-        coloring : {'angle', 'amplitude', 'uniform'}
-            Color coding mode of the arrows. Use 'full' (default), 'angle', 'amplitude' or
-            'uniform'.
+        coloring : {'angle', 'amplitude', 'uniform', matplotlib color}
+            Color coding mode of the arrows. Use 'full' (default), 'angle', 'amplitude', 'uniform'
+            (black or white, depending on `bgcolor`), or a matplotlib color keyword.
         ar_dens: int, optional
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.
@@ -1042,11 +1043,13 @@ class VectorData(FieldData):
             hue = amplitudes / amplitudes.max()
             cmap = 'jet'
         elif coloring == 'uniform':
-            self._log.debug('No color encoding')
+            self._log.debug('Automatic uniform color encoding')
             hue = np.zeros_like(u_mag)  # use black arrows!
             cmap = 'gray' if bgcolor == 'white' else 'Greys'
         else:
-            raise AttributeError("Invalid coloring mode! Use 'angles', 'amplitude' or 'uniform'!")
+            self._log.debug('Automatic uniform color encoding')
+            hue = np.zeros_like(u_mag)  # use black arrows!
+            cmap = ListedColormap([coloring])
         # If no axis is specified, a new figure is created:
         if axis is None:
             self._log.debug('axis is None')

@@ -146,7 +146,7 @@ def _rfftn_adj_numpy(a):
     n = 2 * (a.shape[-1] - 1)
     out_shape = a.shape[:-1] + (n,)
     out_arr = zeros(out_shape, dtype=a.dtype)
-    out_arr[:, :n] = a
+    out_arr[:, :a.shape[1]] = a
     return _ifftn_numpy(out_arr).real * np.prod(out_shape)
 
 

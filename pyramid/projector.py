@@ -384,7 +384,7 @@ class XTiltProjector(Projector):
             dim_uv = (max(dim_perp, dim_proj), dim_rot)  # x-y-plane
         dim_v, dim_u = dim_uv  # y, x
         assert dim_v >= dim_perp and dim_u >= dim_rot, 'Projected dimensions are too small!'
-        # Creating coordinate list of all voxels:
+        # Creating coordinate list of all voxels (for one slice):
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-y-plane
         # Calculate positions along the projected pixel coordinate system:
         center = (dim_proj / 2., dim_perp / 2.)
@@ -400,7 +400,7 @@ class XTiltProjector(Projector):
             impacts = self._get_impact(positions[i], r, dim_v)  # impact along projected y-axis
             voxel_index = voxel[0] * dim_rot * dim_perp + voxel[1] * dim_rot  # 0: z, 1: y
             for impact in impacts:
-                impact_index = impact * dim_u + int((dim_u - dim_rot) / 2)
+                impact_index = impact * dim_u + (dim_u - dim_rot) // 2
                 distance = np.abs(impact + 0.5 - positions[i])
                 delta = distance / r
                 col.append(voxel_index)
@@ -422,11 +422,9 @@ class XTiltProjector(Projector):
 
     @staticmethod
     def _get_position(points, center, tilt, size):
-        point_vecs = np.asarray(points) + 0.5 - np.asarray(
-            center)  # vectors pointing to points
+        point_vecs = np.asarray(points) + 0.5 - np.asarray(center)  # vectors pointing to points
         direc_vec = np.array((np.cos(tilt), -np.sin(tilt)))  # vector pointing along projection
-        distances = -np.cross(point_vecs, direc_vec)  # here (special case): divisor is one!
-        # minus because sign is derived of -sin(angle(point_vec, direc_vec)) neg between 0-180°
+        distances = np.cross(direc_vec, point_vecs)  # here (special case): divisor is one!
         distances += size / 2.  # Shift to the center of the projection
         return distances
 
@@ -501,7 +499,7 @@ class YTiltProjector(Projector):
             dim_uv = (dim_rot, max(dim_perp, dim_proj))  # x-y-plane
         dim_v, dim_u = dim_uv  # y, x
         assert dim_v >= dim_rot and dim_u >= dim_perp, 'Projected dimensions are too small!'
-        # Creating coordinate list of all voxels:
+        # Creating coordinate list of all voxels (for one slice):
         voxels = list(itertools.product(range(dim_proj), range(dim_perp)))  # z-x-plane
         # Calculate positions along the projected pixel coordinate system:
         center = (dim_proj / 2., dim_perp / 2.)
@@ -517,7 +515,7 @@ class YTiltProjector(Projector):
             impacts = self._get_impact(positions[i], r, dim_u)  # impact along projected x-axis
             voxel_index = voxel[0] * dim_perp * dim_rot + voxel[1]  # 0: z, 1: x
             for impact in impacts:
-                impact_index = impact + int((dim_v - dim_rot) / 2) * dim_u
+                impact_index = impact + (dim_v - dim_rot) // 2 * dim_u
                 distance = np.abs(impact + 0.5 - positions[i])
                 delta = distance / r
                 col.append(voxel_index)
@@ -539,11 +537,9 @@ class YTiltProjector(Projector):
 
     @staticmethod
     def _get_position(points, center, tilt, size):
-        point_vecs = np.asarray(points) + 0.5 - np.asarray(
-            center)  # vectors pointing to points
+        point_vecs = np.asarray(points) + 0.5 - np.asarray(center)  # vectors pointing to points
         direc_vec = np.array((np.cos(tilt), -np.sin(tilt)))  # vector pointing along projection
-        distances = -np.cross(point_vecs, direc_vec)  # here (special case): divisor is one!
-        # minus because sign is derived of -sin(angle(point_vec, direc_vec)) neg between 0-180°
+        distances = np.cross(direc_vec, point_vecs)  # here (special case): divisor is one!
         distances += size / 2.  # Shift to the center of the projection
         return distances
 
