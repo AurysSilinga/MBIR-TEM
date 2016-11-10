@@ -658,50 +658,6 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def plot_phase3d(self, title='Phase Map', unit='rad', cmap='RdBu'):
-        """Display the phasemap as a 3D surface with contourplots.
-
-        Parameters
-        ----------
-        title : string, optional
-            The title of the plot. The default is 'Phase Map'.
-        unit: {'rad', 'mrad', 'µrad'}, optional
-            The plotting unit of the phase map. The phase is scaled accordingly before plotting.
-        cmap : string, optional
-            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'RdBu'.
-
-        Returns
-        -------
-        axis: :class:`~matplotlib.axes.AxesSubplot`
-            The axis on which the graph is plotted.
-
-        """
-        self._log.debug('Calling plot_phase3d')
-        # Take units into consideration:
-        phase = self.phase * self.UNITDICT[unit]
-        # Create figure and axis:
-        fig = plt.figure()
-        axis = Axes3D(fig)
-        # Plot surface and contours:
-        vv, uu = np.indices(self.dim_uv)
-        axis.plot_surface(uu, vv, phase, rstride=4, cstride=4, alpha=0.7, cmap=cmap,
-                          linewidth=0, antialiased=False)
-        axis.contourf(uu, vv, phase, 15, zdir='z', offset=np.min(phase), cmap=cmap)
-        axis.set_title(title)
-        axis.view_init(45, -135)
-        axis.set_xlabel('u-axis [px]')
-        axis.set_ylabel('v-axis [px]')
-        axis.set_zlabel('phase shift [{}]'.format(unit))
-        if self.dim_uv[0] >= self.dim_uv[1]:
-            u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9
-        else:
-            u_bin, v_bin = 9, np.max((2, np.floor(9 * self.dim_uv[0] / self.dim_uv[1])))
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-        # Return plotting axis:
-        return axis
-
     def plot_holo(self, title=None, gain='auto', axis=None, hue_mode='triadic',
                   interpolation='none', figsize=(8, 8)):
         """Display the color coded holography image.
@@ -862,3 +818,48 @@ class PhaseMap(object):
 
         # Return the plotting axes:
         return phase_axis, holo_axis
+
+
+    def plot_phase3d(self, title='Phase Map', unit='rad', cmap='RdBu'):
+        """Display the phasemap as a 3D surface with contourplots.
+
+        Parameters
+        ----------
+        title : string, optional
+            The title of the plot. The default is 'Phase Map'.
+        unit: {'rad', 'mrad', 'µrad'}, optional
+            The plotting unit of the phase map. The phase is scaled accordingly before plotting.
+        cmap : string, optional
+            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
+            The default is 'RdBu'.
+
+        Returns
+        -------
+        axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted.
+
+        """
+        self._log.debug('Calling plot_phase3d')
+        # Take units into consideration:
+        phase = self.phase * self.UNITDICT[unit]
+        # Create figure and axis:
+        fig = plt.figure()
+        axis = Axes3D(fig)
+        # Plot surface and contours:
+        vv, uu = np.indices(self.dim_uv)
+        axis.plot_surface(uu, vv, phase, rstride=4, cstride=4, alpha=0.7, cmap=cmap,
+                          linewidth=0, antialiased=False)
+        axis.contourf(uu, vv, phase, 15, zdir='z', offset=np.min(phase), cmap=cmap)
+        axis.set_title(title)
+        axis.view_init(45, -135)
+        axis.set_xlabel('u-axis [px]')
+        axis.set_ylabel('v-axis [px]')
+        axis.set_zlabel('phase shift [{}]'.format(unit))
+        if self.dim_uv[0] >= self.dim_uv[1]:
+            u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9
+        else:
+            u_bin, v_bin = 9, np.max((2, np.floor(9 * self.dim_uv[0] / self.dim_uv[1])))
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+        # Return plotting axis:
+        return axis
