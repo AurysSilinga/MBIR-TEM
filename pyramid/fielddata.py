@@ -12,14 +12,12 @@ from numbers import Number
 import numpy as np
 
 from matplotlib import pyplot as plt
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, FuncFormatter
 from matplotlib.colors import ListedColormap
 
 from PIL import Image
 
 from scipy.ndimage.interpolation import zoom
-
-from jutil import fft
 
 from . import colors
 
@@ -727,7 +725,7 @@ class VectorData(FieldData):
         from .file_io.io_vectordata import save_vectordata
         save_vectordata(self, filename, **kwargs)
 
-    def plot_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(8.5, 7),
+    def plot_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
                    ax_slice=None, show_mask=True, bgcolor='white', hue_mode='triadic'):
         """Plot a slice of the vector field as a quiver plot.
 
@@ -765,16 +763,16 @@ class VectorData(FieldData):
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
         u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
-            u_label = 'x [px]'
-            v_label = 'y [px]'
+            u_label = 'x-axis [nm]'
+            v_label = 'y-axis [nm]'
             submask = self.get_mask()[ax_slice, ...]
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
-            u_label = 'x [px]'
-            v_label = 'z [px]'
+            u_label = 'x-axis [nm]'
+            v_label = 'z-axis [nm]'
             submask = self.get_mask()[:, ax_slice, :]
         elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
-            u_label = 'z [px]'
-            v_label = 'y [px]'
+            u_label = 'z-axis [nm]'
+            v_label = 'y-axis [nm]'
             submask = self.get_mask()[..., ax_slice]
         else:
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
@@ -817,10 +815,12 @@ class VectorData(FieldData):
             u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
         axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
         # Return plotting axis:
         return axis
 
-    def plot_streamline(self, title='Vector Field', axis=None, proj_axis='z', figsize=(8.5, 7),
+    def plot_streamline(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
                         coloring='angle', ax_slice=None, density=2, linewidth=2,
                         show_mask=True, bgcolor='white', hue_mode='triadic'):
         """Plot a slice of the vector field as a quiver plot.
@@ -869,16 +869,16 @@ class VectorData(FieldData):
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
         u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
-            u_label = 'x [px]'
-            v_label = 'y [px]'
+            u_label = 'x-axis [nm]'
+            v_label = 'y-axis [nm]'
             submask = self.get_mask()[ax_slice, ...]
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
-            u_label = 'x [px]'
-            v_label = 'z [px]'
+            u_label = 'x-axis [nm]'
+            v_label = 'z-axis [nm]'
             submask = self.get_mask()[:, ax_slice, :]
         elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
-            u_label = 'z [px]'
-            v_label = 'y [px]'
+            u_label = 'z-axis [nm]'
+            v_label = 'y-axis [nm]'
             submask = self.get_mask()[..., ax_slice]
         else:
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
@@ -948,10 +948,12 @@ class VectorData(FieldData):
             u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
         axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
         # Return plotting axis:
         return axis
 
-    def plot_quiver(self, title='Vector Field', axis=None, proj_axis='z', figsize=(8.5, 7),
+    def plot_quiver(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
                     scale=1., show_mask=True, bgcolor='white', hue_mode='triadic'):
         """Plot a slice of the vector field as a quiver plot.
@@ -1004,16 +1006,16 @@ class VectorData(FieldData):
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
         u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
-            u_label = 'x [px]'
-            v_label = 'y [px]'
+            u_label = 'x-axis [nm]'
+            v_label = 'y-axis [nm]'
             submask = self.get_mask()[ax_slice, ...]
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
-            u_label = 'x [px]'
-            v_label = 'z [px]'
+            u_label = 'x-axis [nm]'
+            v_label = 'z-axis [nm]'
             submask = self.get_mask()[:, ax_slice, :]
         elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
-            u_label = 'z [px]'
-            v_label = 'y [px]'
+            u_label = 'z-axis [nm]'
+            v_label = 'y-axis [nm]'
             submask = self.get_mask()[..., ax_slice]
         else:
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
@@ -1102,7 +1104,51 @@ class VectorData(FieldData):
             u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
         axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
         # Return plotting axis:
+        return axis
+
+    def plot_quiver_field(self, title='Vector Field', axis=None, proj_axis='z',
+                          figsize=(9, 8), ar_dens=1, ax_slice=None, show_mask=True,
+                          bgcolor='white', hue_mode='triadic'):
+        """Plot the vector field as a field plot with uniformly colored arrows overlayed.
+
+        Parameters
+        ----------
+        title : string, optional
+            The title for the plot.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        proj_axis : {'z', 'y', 'x'}, optional
+            The axis, from which a slice is plotted. The default is 'z'.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
+        ar_dens: int, optional
+            Number defining the arrow density which is plotted. A higher ar_dens number skips more
+            arrows (a number of 2 plots every second arrow). Default is 1.
+        ax_slice : int, optional
+            The slice-index of the axis specified in `proj_axis`. Is set to the center of
+            `proj_axis` if not specified.
+        show_mask: boolean
+            Default is True. Shows the outlines of the mask slice if available.
+        bgcolor: {'black', 'white'}, optional
+            Determines the background color of the plot.
+        hue_mode : {'triadic', 'tetradic'}
+            Optional string for determining the hue scheme. Use either a triadic or tetradic
+            scheme (see the according colormaps for more information).
+
+        Returns
+        -------
+        axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted.
+
+        """
+        axis = self.plot_field(title=title, axis=axis, proj_axis=proj_axis, figsize=figsize,
+                               ax_slice=ax_slice, show_mask=show_mask, bgcolor=bgcolor,
+                               hue_mode=hue_mode)
+        self.plot_quiver(axis=axis, proj_axis=proj_axis, figsize=figsize, coloring='uniform',
+                         ar_dens=ar_dens, ax_slice=ax_slice, show_mask=show_mask, bgcolor=bgcolor)
         return axis
 
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',

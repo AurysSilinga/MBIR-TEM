@@ -8,6 +8,9 @@ import logging
 
 import numpy as np
 
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+
 from jutil.taketime import TakeTime
 
 from .. import reconstruction
@@ -23,7 +26,7 @@ _log = logging.getLogger(__name__)
 
 
 def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ramp_order=1,
-                                    plot_results=False, ar_dens=None):
+                                    plot_results=False, ar_dens=None, verbose=True):
     """Convenience function for reconstructing a projected distribution from a single phasemap.
 
     Parameters
@@ -46,6 +49,9 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
     ar_dens: int, optional
         Number defining the arrow density which is plotted. A higher ar_dens number skips more
         arrows (a number of 2 plots every second arrow). Default is 1.
+    verbose: bool, optional
+        If set to True, information like a progressbar is displayed during reconstruction.
+        The default is False.
 
     Returns
     -------
@@ -64,7 +70,7 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
     cost = Costfunction(fwd_model, reg)
     # Reconstruct:
     with TakeTime('reconstruction time'):
-        magdata_rec = reconstruction.optimize_linear(cost, max_iter=max_iter)
+        magdata_rec = reconstruction.optimize_linear(cost, max_iter=max_iter, verbose=verbose)
         param_cache = cost.fwd_model.ramp.param_cache
     if ramp_order is None:
         offset, ramp = 0, (0, 0)
@@ -78,12 +84,16 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
     if plot_results:
         if ar_dens is None:
             ar_dens = np.max([1, np.max(dim) // 64])
-        axis = magdata_rec.plot_field('Reconstructed Distribution', figsize=(15, 15))
-        magdata_rec.plot_quiver(axis=axis, ar_dens=ar_dens, coloring='uniform')
-        phasemap.plot_combined('Input Phase')
-        phasemap -= fwd_model.ramp(index=0)
-        phasemap.plot_combined('Input Phase (ramp corrected)')
+        magdata_rec.plot_quiver_field('Reconstructed Distribution',
+                                      ar_dens=ar_dens, figsize=(16, 16))
         phasemap_rec = pm(magdata_rec)
+        gain = 4 * 2 * np.pi / (np.abs(phasemap_rec.phase).max() + 1E-30)
+        gain = round(gain, -int(np.floor(np.log10(abs(gain)))))
+        vmin = phasemap_rec.phase.min()
+        vmax = phasemap_rec.phase.max()
+        phasemap.plot_combined('Input Phase', gain=gain)
+        phasemap -= fwd_model.ramp(index=0)
+        phasemap.plot_combined('Input Phase (ramp corrected)', gain=gain, vmin=vmin, vmax=vmax)
         title = 'Reconstructed Phase'
         if ramp_order is not None:
             if ramp_order >= 0:
@@ -92,11 +102,12 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
             if ramp_order >= 1:
                 print('ramp:', ramp)
                 title += ', (Fitted Ramp: (u:{:.2g}, v:{:.2g}) [rad/nm]'.format(*ramp)
-        phasemap_rec.plot_combined(title)
+        phasemap_rec.plot_combined(title, gain=gain, vmin=vmin, vmax=vmax)
         diff = (phasemap_rec - phasemap).phase
-        diff_name = 'Difference (mean: {:.2g})'.format(diff.mean())
+        diff_name = 'Difference (RMS: {:.2g})'.format(np.sqrt(np.mean(diff) ** 2))
         (phasemap_rec - phasemap).plot_phase(diff_name, sigma_clip=3)
         if ramp_order is not None:
-            fwd_model.ramp(0).plot_combined('Fitted Ramp')
+            ramp = fwd_model.ramp(0)
+            ramp.plot_phase('Fitted Ramp')
     # Return reconstructed magnetisation distribution and cost function:
     return magdata_rec, cost

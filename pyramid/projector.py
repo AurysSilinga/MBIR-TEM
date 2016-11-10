@@ -258,7 +258,7 @@ class RotTiltProjector(Projector):
         # Calculate vectors to voxels relative to rotation center:
         voxel_vecs = (np.asarray(voxels) + 0.5 - np.asarray(center)).T
         # Create tilt, rotation and combined quaternion, careful: Quaternion(w,x,y,z), not (z,y,x):
-        quat_x = Quaternion.from_axisangle((0, 1, 0), tilt)  # Tilt around y-axis
+        quat_x = Quaternion.from_axisangle((1, 0, 0), tilt)  # Tilt around x-axis
         quat_z = Quaternion.from_axisangle((0, 0, 1), rotation)  # Rotate around z-axis
         quat = quat_x * quat_z  # Combined quaternion (first rotate around z, then tilt around x)
         # Calculate impact positions on the projected pixel coordinate grid (flip because quat.):

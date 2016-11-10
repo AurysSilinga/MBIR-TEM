@@ -10,6 +10,8 @@ import os
 
 import numpy as np
 
+from PIL import Image
+
 from ..phasemap import PhaseMap
 
 __all__ = ['load_phasemap']
@@ -73,6 +75,8 @@ def _load(filename, as_phasemap=False, a=1., **kwargs):
     # Load from npy-files:
     elif extension in ['.npy', '.npz']:
         return _load_from_npy(filename, as_phasemap, a, **kwargs)
+    elif extension in ['.jpeg', '.jpg', '.png', '.bmp']:
+        return _load_from_img(filename, as_phasemap, a, **kwargs)
     # Load with HyperSpy:
     else:
         if extension == '':
@@ -116,6 +120,17 @@ def _load_from_txt(filename, as_phasemap, a, **kwargs):
 def _load_from_npy(filename, as_phasemap, a, **kwargs):
 
     result = np.load(filename, **kwargs)
+    if as_phasemap:
+        if a is None:
+            a = 1.  # Use default!
+        return PhaseMap(a, result)
+    else:
+        return result
+
+
+def _load_from_img(filename, as_phasemap, a, **kwargs):
+
+    result = np.asarray(Image.open(filename, **kwargs).convert('L'))
     if as_phasemap:
         if a is None:
             a = 1.  # Use default!
