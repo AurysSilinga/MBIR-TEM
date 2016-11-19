@@ -712,8 +712,8 @@ class PhaseMap(object):
         grad_y_min, grad_y_max = np.nanmin(grad_y_sigma), np.nanmax(grad_y_sigma)
         grad_y = np.clip(grad_y, grad_y_min, grad_y_max)
         # Calculate colors:
-        rgb = colors.rgb_from_vector(grad_x, -grad_y,
-                                     np.zeros_like(grad_x), mode=hue_mode)
+        vector = np.asarray((grad_x, -grad_y, np.zeros_like(grad_x)))
+        rgb = colors.CMAP_ANGULAR_DEFAULT.rgb_from_vector(vector)
         rgb = (holo.T * rgb.T).T.astype(np.uint8)
         holo_image = Image.fromarray(rgb)
         # If no axis is specified, a new figure is created:
@@ -746,7 +746,7 @@ class PhaseMap(object):
     def plot_combined(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
                       cbar_title=None, unit='rad', cmap='RdBu', vmin=None, vmax=None,
                       symmetric=True,  norm=None, gain='auto', interpolation='none', cbar=True,
-                      show_mask=True, show_conf=True, hue_mode='triadic'):
+                      show_mask=True, show_conf=True):
         """Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -788,9 +788,6 @@ class PhaseMap(object):
             A switch determining if the mask should be plotted or not. Default is True.
         show_conf : float, optional
             A switch determining if the confidence should be plotted or not. Default is True.
-        hue_mode : {'triadic', 'tetradic'}
-            Optional string for determining the hue scheme. Use either a triadic or tetradic
-            scheme (see the according colormaps for more information).
 
         Returns
         -------
@@ -804,8 +801,7 @@ class PhaseMap(object):
         fig.suptitle(sup_title, fontsize=20)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-        self.plot_holo(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation,
-                       hue_mode=hue_mode)
+        self.plot_holo(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation)
         if cbar:  # Make space for colorbar without adding one, so that both plots have same size:
             divider = make_axes_locatable(holo_axis)
             cbar_ax = divider.append_axes('right', size='5%', pad=0.1)

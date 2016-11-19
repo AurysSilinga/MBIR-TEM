@@ -104,7 +104,7 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
                 title += ', (Fitted Ramp: (u:{:.2g}, v:{:.2g}) [rad/nm]'.format(*ramp)
         phasemap_rec.plot_combined(title, gain=gain, vmin=vmin, vmax=vmax)
         diff = (phasemap_rec - phasemap).phase
-        diff_name = 'Difference (RMS: {:.2g})'.format(np.sqrt(np.mean(diff) ** 2))
+        diff_name = 'Difference (RMS: {:.2g} rad)'.format(np.sqrt(np.mean(diff) ** 2))
         (phasemap_rec - phasemap).plot_phase(diff_name, sigma_clip=3)
         if ramp_order is not None:
             ramp = fwd_model.ramp(0)

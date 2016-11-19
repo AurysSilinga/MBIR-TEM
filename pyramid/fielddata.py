@@ -727,7 +727,7 @@ class VectorData(FieldData):
 
     def plot_quiver(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
-                    scale=1., show_mask=True, bgcolor='white', hue_mode='triadic'):
+                    scale=1., show_mask=True, bgcolor='white', cmap=None):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -759,11 +759,12 @@ class VectorData(FieldData):
             (no further scaling).
         show_mask: boolean
             Default is True. Shows the outlines of the mask slice if available.
-        bgcolor: {'black', 'white'}, optional
+        bgcolor: {'white', 'black'}, optional
             Determines the background color of the plot.
-        hue_mode : {'triadic', 'tetradic'}
-            Optional string for determining the hue scheme. Use either a triadic or tetradic
-            scheme (see the according colormaps for more information).
+        cmap : string, optional
+            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
+            If not set, an appropriate one is used. Note that a subclass of
+            :class:`~.colors.Colormap3D` should be used for angle encoding.
 
         Returns
         -------
@@ -801,28 +802,32 @@ class VectorData(FieldData):
         amplitudes = np.hypot(u_mag, v_mag)
         angles = np.angle(u_mag + 1j * v_mag, deg=True).tolist()
         # Calculate the arrow colors:
+        cmap_overwrite = cmap
         if coloring == 'angle':
             self._log.debug('Encoding angles')
-            hue = np.arctan2(v_mag, u_mag) / (2 * np.pi)
+            hue = np.asarray(np.arctan2(v_mag, u_mag) / (2 * np.pi))
             hue[hue < 0] += 1
-            if hue_mode == 'triadic':
-                cmap = colors.hls_triadic_cmap
-            elif hue_mode == 'tetradic':
-                cmap = colors.hls_tetradic_cmap
-            else:
-                raise ValueError('Hue mode {} not understood!'.format(hue_mode))
+            cmap = colors.CMAP_ANGULAR_DEFAULT
         elif coloring == 'amplitude':
             self._log.debug('Encoding amplitude')
             hue = amplitudes / amplitudes.max()
-            cmap = 'jet'
+            if bgcolor == 'white':
+                cmap = colors.cmaps['cubehelix_reverse']
+            else:
+                cmap = colors.cmaps['cubehelix_standard']
         elif coloring == 'uniform':
             self._log.debug('Automatic uniform color encoding')
-            hue = np.zeros_like(u_mag)  # use black arrows!
-            cmap = 'gray' if bgcolor == 'white' else 'Greys'
+            hue = amplitudes / amplitudes.max()
+            if bgcolor == 'white':
+                cmap = colors.cmaps['transparent_black']
+            else:
+                cmap = colors.cmaps['transparent_white']
         else:
-            self._log.debug('Automatic uniform color encoding')
-            hue = np.zeros_like(u_mag)  # use black arrows!
+            self._log.debug('Specified uniform color encoding')
+            hue = np.zeros_like(u_mag)
             cmap = ListedColormap([coloring])
+        if cmap_overwrite is not None:
+            cmap = cmap_overwrite
         # If no axis is specified, a new figure is created:
         if axis is None:
             self._log.debug('axis is None')
@@ -882,7 +887,7 @@ class VectorData(FieldData):
         return axis
 
     def plot_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
-                   ax_slice=None, show_mask=True, bgcolor='white', hue_mode='triadic'):
+                   ax_slice=None, show_mask=True, bgcolor='white'):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -902,9 +907,6 @@ class VectorData(FieldData):
             Default is True. Shows the outlines of the mask slice if available.
         bgcolor: {'black', 'white'}, optional
             Determines the background color of the plot.
-        hue_mode : {'triadic', 'tetradic'}
-            Optional string for determining the hue scheme. Use either a triadic or tetradic
-            scheme (see the according colormaps for more information).
 
         Returns
         -------
@@ -938,16 +940,14 @@ class VectorData(FieldData):
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
         axis.set_aspect('equal')
+        # Determine 'z'-component for luminance:
+        if bgcolor == 'white':
+            z_mag = np.logical_not(submask) * np.max(np.hypot(u_mag, v_mag))
+        else:
+            z_mag = np.logical_not(submask) * -np.max(np.hypot(u_mag, v_mag))
         # Plot the field:
         dim_uv = u_mag.shape
-        hue = np.arctan2(v_mag, u_mag) / (2 * np.pi)  # Hue according to angle!
-        hue[hue < 0] += 1  # Shift negative values!
-        luminance = 0.5 * submask  # Luminance according to mask!
-        if bgcolor == 'white':  # Invert luminance:
-            luminance = 1 - luminance
-        saturation = np.hypot(u_mag, v_mag)  # Saturation according to amplitude!
-        saturation /= saturation.max()
-        rgb = colors.rgb_from_hls(hue, luminance, saturation, mode=hue_mode)
+        rgb = colors.CMAP_ANGULAR_DEFAULT.rgb_from_vector(np.asarray((u_mag, v_mag, z_mag)))
         axis.imshow(Image.fromarray(rgb), origin='lower', interpolation='none',
                     extent=(0, dim_uv[1], 0, dim_uv[0]))
         # Change background color:
@@ -976,9 +976,8 @@ class VectorData(FieldData):
         # Return plotting axis:
         return axis
 
-    def plot_quiver_field(self, title='Vector Field', axis=None, proj_axis='z',
-                          figsize=(9, 8), ar_dens=1, ax_slice=None, show_mask=True,
-                          bgcolor='white', hue_mode='triadic'):
+    def plot_quiver_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
+                          ar_dens=1, ax_slice=None, show_mask=True,  bgcolor='white'):
         """Plot the vector field as a field plot with uniformly colored arrows overlayed.
 
         Parameters
@@ -1001,9 +1000,6 @@ class VectorData(FieldData):
             Default is True. Shows the outlines of the mask slice if available.
         bgcolor: {'black', 'white'}, optional
             Determines the background color of the plot.
-        hue_mode : {'triadic', 'tetradic'}
-            Optional string for determining the hue scheme. Use either a triadic or tetradic
-            scheme (see the according colormaps for more information).
 
         Returns
         -------
@@ -1012,15 +1008,15 @@ class VectorData(FieldData):
 
         """
         axis = self.plot_field(title=title, axis=axis, proj_axis=proj_axis, figsize=figsize,
-                               ax_slice=ax_slice, show_mask=show_mask, bgcolor=bgcolor,
-                               hue_mode=hue_mode)
+                               ax_slice=ax_slice, show_mask=show_mask, bgcolor=bgcolor)
         self.plot_quiver(axis=axis, proj_axis=proj_axis, figsize=figsize, coloring='uniform',
-                         ar_dens=ar_dens, ax_slice=ax_slice, show_mask=show_mask, bgcolor=bgcolor)
+                         ar_dens=ar_dens, ax_slice=ax_slice, show_mask=show_mask,
+                         bgcolor=bgcolor)
         return axis
 
     def plot_streamline(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
                         coloring='angle', ax_slice=None, density=2, linewidth=2,
-                        show_mask=True, bgcolor='white', hue_mode='triadic'):
+                        show_mask=True, bgcolor='white', cmap=None):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -1050,9 +1046,10 @@ class VectorData(FieldData):
             Default is True. Shows the outlines of the mask slice if available.
         bgcolor: {'black', 'white'}, optional
             Determines the background color of the plot.
-        hue_mode : {'triadic', 'tetradic'}
-            Optional string for determining the hue scheme. Use either a triadic or tetradic
-            scheme (see the according colormaps for more information).
+        cmap : string, optional
+            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
+            If not set, an appropriate one is used. Note that a subclass of
+            :class:`~.colors.Colormap3D` should be used for angle encoding.
 
         Returns
         -------
@@ -1088,26 +1085,32 @@ class VectorData(FieldData):
         # v_mag = np.ma.array(v_mag, mask=submask)
         amplitudes = np.hypot(u_mag, v_mag)
         # Calculate the arrow colors:
+        cmap_overwrite = cmap
         if coloring == 'angle':
             self._log.debug('Encoding angles')
-            color = np.arctan2(v_mag, u_mag) / (2 * np.pi)
-            color[color < 0] += 1
-            if hue_mode == 'triadic':
-                cmap = colors.hls_triadic_cmap
-            elif hue_mode == 'tetradic':
-                cmap = colors.hls_tetradic_cmap
-            else:
-                raise ValueError('Hue mode {} not understood!'.format(hue_mode))
+            hue = np.asarray(np.arctan2(v_mag, u_mag) / (2 * np.pi))
+            hue[hue < 0] += 1
+            cmap = colors.CMAP_ANGULAR_DEFAULT
         elif coloring == 'amplitude':
             self._log.debug('Encoding amplitude')
-            color = amplitudes / amplitudes.max()
-            cmap = 'jet'
+            hue = amplitudes / amplitudes.max()
+            if bgcolor == 'white':
+                cmap = colors.cmaps['cubehelix_reverse']
+            else:
+                cmap = colors.cmaps['cubehelix_standard']
         elif coloring == 'uniform':
-            self._log.debug('No color encoding')
-            color = np.zeros_like(u_mag)  # use black arrows!
-            cmap = 'gray' if bgcolor == 'white' else 'Greys'
+            self._log.debug('Automatic uniform color encoding')
+            hue = amplitudes / amplitudes.max()
+            if bgcolor == 'white':
+                cmap = colors.cmaps['transparent_black']
+            else:
+                cmap = colors.cmaps['transparent_white']
         else:
-            raise AttributeError("Invalid coloring mode! Use 'angles', 'amplitude' or 'uniform'!")
+            self._log.debug('Specified uniform color encoding')
+            hue = np.zeros_like(u_mag)
+            cmap = ListedColormap([coloring])
+        if cmap_overwrite is not None:
+            cmap = cmap_overwrite
         # If no axis is specified, a new figure is created:
         if axis is None:
             self._log.debug('axis is None')
@@ -1116,7 +1119,7 @@ class VectorData(FieldData):
         axis.set_aspect('equal')
         # Plot the streamlines:
         im = plt.streamplot(uu, vv, u_mag, v_mag, density=density, linewidth=linewidth,
-                            color=color, cmap=cmap)
+                            color=hue, cmap=cmap)
         if coloring == 'amplitude':
             fig = plt.gcf()
             fig.subplots_adjust(right=0.8)
@@ -1152,7 +1155,7 @@ class VectorData(FieldData):
         return axis
 
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
-                      coloring='full', ar_dens=1, opacity=1.0, hue_mode='triadic'):
+                      coloring='angle', ar_dens=1, opacity=1.0):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
         Parameters
@@ -1162,20 +1165,17 @@ class VectorData(FieldData):
         limit : float, optional
             Plotlimit for the vector field arrow length used to scale the colormap.
         cmap : string, optional
-            String describing the colormap which is used (default is 'jet').
+            String describing the colormap which is used for amplitude encoding (default is 'jet').
         ar_dens: int, optional
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.
         mode: string, optional
             Mode, determining the glyphs used in the 3D plot. Default is '2darrow', which
             corresponds to 2D arrows. For smaller amounts of arrows, 'arrow' (3D) is prettier.
-        coloring : {'full', 'angle', 'amplitude'}, optional
+        coloring : {'angle', 'amplitude'}, optional
             Color coding mode of the arrows. Use 'angle' (default) or 'amplitude'.
         opacity: float, optional
             Defines the opacity of the arrows. Default is 1.0 (completely opaque).
-        hue_mode : {'triadic', 'tetradic'}
-            Optional string for determining the hue scheme. Use either a triadic or tetradic
-            scheme (see the according colormaps for more information).
 
         Returns
         -------
@@ -1200,17 +1200,15 @@ class VectorData(FieldData):
         z_mag = self.field[2][::ad, ::ad, ::ad].ravel()
         # Plot them as vectors:
         mlab.figure(size=(750, 700))
-        if coloring in ('full', 'angle'):  # Encodes the full angle via colorwheel and saturation:
+        if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation:
             self._log.debug('Encoding full 3D angles')
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
                                  scalars=np.arange(len(xxx)))
-            h, l, s = colors.hls_from_vector(x_mag, y_mag, z_mag)
-            if coloring == 'angle':  # Encode just the angle and not the amplitude via saturation:
-                s = np.ones_like(s)
-            rgbs = colors.rgb_from_hls(h, l, s, mode=hue_mode)
-            rgbas = np.hstack((rgbs, 255 * np.ones((len(xxx), 1)))).astype(np.uint8)
+            vector = np.asarray((x_mag.ravel(), y_mag.ravel(), z_mag.ravel()))
+            rgb = colors.CMAP_ANGULAR_DEFAULT.rgb_from_vector(vector)
+            rgba = np.hstack((rgb, 255 * np.ones((len(xxx), 1), dtype=np.uint8)))
             vecs.glyph.color_mode = 'color_by_scalar'
-            vecs.module_manager.scalar_lut_manager.lut.table = rgbas
+            vecs.module_manager.scalar_lut_manager.lut.table = rgba
             mlab.draw()
         elif coloring == 'amplitude':  # Encodes the amplitude of the arrows with the jet colormap:
             self._log.debug('Encoding amplitude')
