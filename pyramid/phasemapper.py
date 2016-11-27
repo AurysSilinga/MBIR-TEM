@@ -459,7 +459,7 @@ class PhaseMapperCharge(PhaseMapper):
                 for v in range(dim_v):
                     rq = np.sqrt((u - uq[i]) ** 2 + (v - vq[i]) ** 2)  # charge distance
                     rm = np.sqrt((u - um[i]) ** 2 + (v - vm[i]) ** 2)  # mirror distance
-                    # distance
+                    # Distance:
                     z1 = (R / 2) ** 2 - rq ** 2
                     z2 = (R / 2) ** 2 - rm ** 2
                     if z1 < 0 and z2 < 0:

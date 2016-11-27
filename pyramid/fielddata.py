@@ -807,7 +807,7 @@ class VectorData(FieldData):
             self._log.debug('Encoding angles')
             hue = np.asarray(np.arctan2(v_mag, u_mag) / (2 * np.pi))
             hue[hue < 0] += 1
-            cmap = colors.CMAP_ANGULAR_DEFAULT
+            cmap = colors.CMAP_CIRCULAR_DEFAULT
         elif coloring == 'amplitude':
             self._log.debug('Encoding amplitude')
             hue = amplitudes / amplitudes.max()
@@ -947,7 +947,7 @@ class VectorData(FieldData):
             z_mag = np.logical_not(submask) * -np.max(np.hypot(u_mag, v_mag))
         # Plot the field:
         dim_uv = u_mag.shape
-        rgb = colors.CMAP_ANGULAR_DEFAULT.rgb_from_vector(np.asarray((u_mag, v_mag, z_mag)))
+        rgb = colors.CMAP_CIRCULAR_DEFAULT.rgb_from_vector(np.asarray((u_mag, v_mag, z_mag)))
         axis.imshow(Image.fromarray(rgb), origin='lower', interpolation='none',
                     extent=(0, dim_uv[1], 0, dim_uv[0]))
         # Change background color:
@@ -1205,7 +1205,7 @@ class VectorData(FieldData):
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
                                  scalars=np.arange(len(xxx)))
             vector = np.asarray((x_mag.ravel(), y_mag.ravel(), z_mag.ravel()))
-            rgb = colors.CMAP_ANGULAR_DEFAULT.rgb_from_vector(vector)
+            rgb = colors.CMAP_CIRCULAR_DEFAULT.rgb_from_vector(vector)
             rgba = np.hstack((rgb, 255 * np.ones((len(xxx), 1), dtype=np.uint8)))
             vecs.glyph.color_mode = 'color_by_scalar'
             vecs.module_manager.scalar_lut_manager.lut.table = rgba

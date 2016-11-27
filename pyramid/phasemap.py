@@ -713,7 +713,7 @@ class PhaseMap(object):
         grad_y = np.clip(grad_y, grad_y_min, grad_y_max)
         # Calculate colors:
         vector = np.asarray((grad_x, -grad_y, np.zeros_like(grad_x)))
-        rgb = colors.CMAP_ANGULAR_DEFAULT.rgb_from_vector(vector)
+        rgb = colors.CMAP_CIRCULAR_DEFAULT.rgb_from_vector(vector)
         rgb = (holo.T * rgb.T).T.astype(np.uint8)
         holo_image = Image.fromarray(rgb)
         # If no axis is specified, a new figure is created:
