@@ -502,11 +502,14 @@ class ColorspaceCIELab(object):  # TODO: Superclass?
         axis.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
 
-    def plot_colormap(self, cmap, N=256, L='auto', figsize=None, cbar_lim=None, brightness=True):
+    def plot_colormap(self, cmap, N=256, L='auto', figsize=None, cbar_lim=None, brightness=True,
+                      input_rec=None):
         self._log.debug('Calling plot_colormap')
         dim, ext = self.dim, self.extent
         # Calculate rgb values:
         rgb = cmap(np.linspace(0, 1, N))[None, :, :3]  # These are R'G'B' values!
+        if input_rec == 601:
+            rgb = RGBConverter('Rec601', 'Rec709')(rgb)
         # Convert to Lab space:
         Lab = np.squeeze(skcolor.rgb2lab(rgb))
         LL, aa, bb = Lab.T
@@ -635,11 +638,14 @@ class ColorspaceCIELuv(object):
         axis.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
 
-    def plot_colormap(self, cmap, N=256, L='auto', figsize=None, cbar_lim=None, brightness=True):
+    def plot_colormap(self, cmap, N=256, L='auto', figsize=None, cbar_lim=None, brightness=True,
+                      input_rec=None):
         self._log.debug('Calling plot_colormap')
         dim, ext = self.dim, self.extent
         # Calculate rgb values:
         rgb = cmap(np.linspace(0, 1, N))[None, :, :3]
+        if input_rec == 601:
+            rgb = RGBConverter('Rec601', 'Rec709')(rgb)
         # Convert to Lab space:
         Luv = np.squeeze(skcolor.rgb2luv(rgb))
         LL, uu, vv = Luv.T
@@ -769,11 +775,14 @@ class ColorspaceCIExyY(object):
         axis.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
 
-    def plot_colormap(self, cmap, N=256, Y='auto', figsize=None, cbar_lim=None, brightness=True):
+    def plot_colormap(self, cmap, N=256, Y='auto', figsize=None, cbar_lim=None, brightness=True,
+                      input_rec=None):
         self._log.debug('Calling plot_colormap')
         dim, ext = self.dim, self.extent
         # Calculate rgb values:
         rgb = cmap(np.linspace(0, 1, N))[None, :, :3]
+        if input_rec == 601:
+            rgb = RGBConverter('Rec601', 'Rec709')(rgb)
         # Convert to XYZ space:
         XYZ = np.squeeze(skcolor.rgb2xyz(rgb))
         XX, YY, ZZ = XYZ.T
@@ -905,11 +914,14 @@ class ColorspaceYPbPr(object):
         axis.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
         axis.yaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
 
-    def plot_colormap(self, cmap, N=256, Y='auto', figsize=None, cbar_lim=None, brightness=True):
+    def plot_colormap(self, cmap, N=256, Y='auto', figsize=None, cbar_lim=None, brightness=True,
+                      input_rec=None):
         self._log.debug('Calling plot_colormap')
         dim, ext = self.dim, self.extent
         # Calculate rgb values:
         rgb = cmap(np.linspace(0, 1, N))[None, :, :3]
+        if input_rec == 709:
+            rgb = RGBConverter('Rec709', 'Rec601')(rgb)
         rr, gg, bb = rgb.T
         # Convert to YPbPr space:
         k_r, k_g, k_b = 0.299, 0.587, 0.114  # Constants Rec.601!
@@ -1147,7 +1159,7 @@ def colormap_brightness_comparison(cmap, input_rec=None, figsize=(18, 8)):
 
 cmaps = {'cubehelix_standard': ColormapCubehelix(),
          'cubehelix_reverse': ColormapCubehelix(reverse=True),
-         'cubehelix_circular': ColormapCubehelix(start=0, rot=1,
+         'cubehelix_circular': ColormapCubehelix(start=1, rot=1,
                                                  minLight=0.5, maxLight=0.5, sat=2),
          'perception_circular': ColormapPerception(),
          'hls_circular': ColormapHLS(),

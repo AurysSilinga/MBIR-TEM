@@ -649,8 +649,9 @@ class VectorData(FieldData):
 
         Returns
         -------
-        u_mag, v_mag : :class:`~numpy.ndarray` (N=2)
-            The extracted vector field components in plane perpendicular to the `proj_axis`.
+        u_mag, v_mag, w_mag : :class:`~numpy.ndarray` (N=2)
+            The extracted vector field components in plane perpendicular to the `proj_axis` and
+            the perpendicular component.
 
         """
         self._log.debug('Calling get_slice')
@@ -663,17 +664,20 @@ class VectorData(FieldData):
             self._log.debug('proj_axis == z')
             u_mag = np.copy(self.field[0][ax_slice, ...])  # x-component
             v_mag = np.copy(self.field[1][ax_slice, ...])  # y-component
+            w_mag = np.copy(self.field[2][ax_slice, ...])  # z-component
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
             self._log.debug('proj_axis == y')
             u_mag = np.copy(self.field[0][:, ax_slice, :])  # x-component
             v_mag = np.copy(self.field[2][:, ax_slice, :])  # z-component
+            w_mag = np.copy(self.field[1][:, ax_slice, :])  # y-component
         elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
             self._log.debug('proj_axis == x')
             u_mag = np.swapaxes(np.copy(self.field[2][..., ax_slice]), 0, 1)  # z-component
             v_mag = np.swapaxes(np.copy(self.field[1][..., ax_slice]), 0, 1)  # y-component
+            w_mag = np.swapaxes(np.copy(self.field[0][..., ax_slice]), 0, 1)  # x-component
         else:
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
-        return u_mag, v_mag
+        return u_mag, v_mag, w_mag
 
     def to_signal(self):
         """Convert :class:`~.VectorData` data into a HyperSpy signal.
@@ -777,7 +781,7 @@ class VectorData(FieldData):
             'Axis has to be x, y or z (as string).'
         if ax_slice is None:
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
-        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
+        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)[:2]
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
             u_label = 'x-axis [nm]'
             v_label = 'y-axis [nm]'
@@ -887,7 +891,7 @@ class VectorData(FieldData):
         return axis
 
     def plot_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
-                   ax_slice=None, show_mask=True, bgcolor='white'):
+                   ax_slice=None, show_mask=True, bgcolor=None):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -919,7 +923,7 @@ class VectorData(FieldData):
             'Axis has to be x, y or z (as string).'
         if ax_slice is None:
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
-        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
+        u_mag, v_mag, w_mag = self.get_slice(ax_slice, proj_axis)
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
             u_label = 'x-axis [nm]'
             v_label = 'y-axis [nm]'
@@ -940,18 +944,20 @@ class VectorData(FieldData):
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
         axis.set_aspect('equal')
-        # Determine 'z'-component for luminance:
+        # Determine 'z'-component for luminance (keep as gray if None):
+        z_mag = w_mag
         if bgcolor == 'white':
-            z_mag = np.logical_not(submask) * np.max(np.hypot(u_mag, v_mag))
-        else:
-            z_mag = np.logical_not(submask) * -np.max(np.hypot(u_mag, v_mag))
+            z_mag = np.where(submask, z_mag, np.max(np.hypot(u_mag, v_mag)))
+        if bgcolor == 'black ':
+            z_mag = np.where(submask, z_mag, -np.max(np.hypot(u_mag, v_mag)))
         # Plot the field:
         dim_uv = u_mag.shape
         rgb = colors.CMAP_CIRCULAR_DEFAULT.rgb_from_vector(np.asarray((u_mag, v_mag, z_mag)))
         axis.imshow(Image.fromarray(rgb), origin='lower', interpolation='none',
                     extent=(0, dim_uv[1], 0, dim_uv[0]))
         # Change background color:
-        axis.set_axis_bgcolor(bgcolor)
+        if bgcolor is not None:
+            axis.set_axis_bgcolor(bgcolor)
         # Show mask:
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
@@ -1009,9 +1015,9 @@ class VectorData(FieldData):
         """
         axis = self.plot_field(title=title, axis=axis, proj_axis=proj_axis, figsize=figsize,
                                ax_slice=ax_slice, show_mask=show_mask, bgcolor=bgcolor)
-        self.plot_quiver(axis=axis, proj_axis=proj_axis, figsize=figsize, coloring='uniform',
-                         ar_dens=ar_dens, ax_slice=ax_slice, show_mask=show_mask,
-                         bgcolor=bgcolor)
+        self.plot_quiver(title=title, axis=axis, proj_axis=proj_axis, figsize=figsize,
+                         coloring='uniform', ar_dens=ar_dens, ax_slice=ax_slice,
+                         show_mask=show_mask, bgcolor=bgcolor)
         return axis
 
     def plot_streamline(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
@@ -1062,7 +1068,7 @@ class VectorData(FieldData):
             'Axis has to be x, y or z (as string).'
         if ax_slice is None:
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
-        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
+        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)[:2]
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
             u_label = 'x-axis [nm]'
             v_label = 'y-axis [nm]'
@@ -1081,7 +1087,7 @@ class VectorData(FieldData):
         dim_uv = u_mag.shape
         uu = np.arange(dim_uv[1]) + 0.5  # shift to center of pixel
         vv = np.arange(dim_uv[0]) + 0.5  # shift to center of pixel
-        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)
+        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)[:2]
         # v_mag = np.ma.array(v_mag, mask=submask)
         amplitudes = np.hypot(u_mag, v_mag)
         # Calculate the arrow colors:

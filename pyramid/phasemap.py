@@ -531,9 +531,10 @@ class PhaseMap(object):
         from .file_io.io_phasemap import save_phasemap
         save_phasemap(self, filename, save_mask, save_conf, pyramid_format, **kwargs)
 
-    def plot_phase(self, title='Phase Map', cbar_title=None, unit='rad', cmap='RdBu', vmin=None,
-                   vmax=None, symmetric=True, norm=None, axis=None, cbar=True, figsize=(9, 8),
-                   show_mask=True, show_conf=True, sigma_clip=None, interpolation='none'):
+    def plot_phase(self, title='Phase Map', cbar_title=None, unit='rad', cmap='Spectral',
+                   vmin=None, vmax=None, symmetric=True, norm=None, axis=None, cbar=True,
+                   figsize=(9, 8), show_mask=True, show_conf=True, sigma_clip=None,
+                   interpolation='none'):
         """Display the phasemap as a colormesh.
 
         Parameters
@@ -547,7 +548,7 @@ class PhaseMap(object):
         always in `rad`.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'RdBu'.
+            The default is 'Spectral'.
         vmin : float, optional
             Minimum value used for determining the plot limits. If not set, it will be
             determined by the minimum of the phase directly.
@@ -625,7 +626,7 @@ class PhaseMap(object):
         if show_mask or show_conf:
             vv, uu = np.indices(self.dim_uv) + 0.5
             if show_conf and not np.all(self.confidence == 1.0):
-                colormap = colors.transparent_cmap
+                colormap = colors.cmaps['transparent_confidence']
                 axis.imshow(self.confidence, cmap=colormap, interpolation=interpolation,
                             origin='lower', extent=(0, self.dim_uv[1], 0, self.dim_uv[0]))
             if show_mask and not np.all(self.mask):  # Plot mask if desired and not trivial!
@@ -658,8 +659,8 @@ class PhaseMap(object):
         # Return plotting axis:
         return axis
 
-    def plot_holo(self, title=None, gain='auto', axis=None, hue_mode='triadic',
-                  interpolation='none', figsize=(8, 8)):
+    def plot_holo(self, title=None, gain='auto', axis=None, cmap=None, interpolation='none',
+                  figsize=(8, 8)):
         """Display the color coded holography image.
 
         Parameters
@@ -671,9 +672,8 @@ class PhaseMap(object):
             which means that the gain will be determined automatically to look pretty.
         axis : :class:`~matplotlib.axes.AxesSubplot`, optional
             Axis on which the graph is plotted. Creates a new figure if none is specified.
-        hue_mode : {'triadic', 'tetradic'}
-            Optional string for determining the hue scheme. Use either a triadic or tetradic
-            scheme (see the according colormaps for more information).
+        cmap : string, optional
+            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method. No interpolation is used in the default case.
         figsize : tuple of floats (N=2)
@@ -712,8 +712,10 @@ class PhaseMap(object):
         grad_y_min, grad_y_max = np.nanmin(grad_y_sigma), np.nanmax(grad_y_sigma)
         grad_y = np.clip(grad_y, grad_y_min, grad_y_max)
         # Calculate colors:
+        if cmap is None:
+            cmap = colors.CMAP_CIRCULAR_DEFAULT
         vector = np.asarray((grad_x, -grad_y, np.zeros_like(grad_x)))
-        rgb = colors.CMAP_CIRCULAR_DEFAULT.rgb_from_vector(vector)
+        rgb = cmap.rgb_from_vector(vector)
         rgb = (holo.T * rgb.T).T.astype(np.uint8)
         holo_image = Image.fromarray(rgb)
         # If no axis is specified, a new figure is created:
@@ -744,7 +746,7 @@ class PhaseMap(object):
         return axis
 
     def plot_combined(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
-                      cbar_title=None, unit='rad', cmap='RdBu', vmin=None, vmax=None,
+                      cbar_title=None, unit='rad', cmap='Spectral', vmin=None, vmax=None,
                       symmetric=True,  norm=None, gain='auto', interpolation='none', cbar=True,
                       show_mask=True, show_conf=True):
         """Display the phase map and the resulting color coded holography image in one plot.
@@ -763,7 +765,7 @@ class PhaseMap(object):
             The plotting unit of the phase map. The phase is scaled accordingly before plotting.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'RdBu'.
+            The default is 'Spectral'.
         vmin : float, optional
             Minimum value used for determining the plot limits. If not set, it will be
             determined by the minimum of the phase directly.
@@ -816,7 +818,7 @@ class PhaseMap(object):
         return phase_axis, holo_axis
 
 
-    def plot_phase3d(self, title='Phase Map', unit='rad', cmap='RdBu'):
+    def plot_phase3d(self, title='Phase Map', unit='rad', cmap='Spectral'):
         """Display the phasemap as a 3D surface with contourplots.
 
         Parameters
@@ -827,7 +829,7 @@ class PhaseMap(object):
             The plotting unit of the phase map. The phase is scaled accordingly before plotting.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'RdBu'.
+            The default is 'Spectral'.
 
         Returns
         -------
