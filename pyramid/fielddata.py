@@ -220,7 +220,38 @@ class FieldData(object, metaclass=abc.ABCMeta):
         self._log.debug('Calling get_mask')
         return np.where(self.field_amp > threshold, True, False)
 
-    def contour_plot3d(self, title='Field Distribution', contours=10, opacity=0.25):
+    def plot_mask(self, title='Mask', threshold=0, **kwargs):
+        """Plot the mask as a 3D-contour plot.
+
+        Parameters
+        ----------
+        title: string, optional
+            The title for the plot.
+        threshold : float, optional
+            A pixel only gets masked, if it lies above this threshold . The default is 0.
+
+        Returns
+        -------
+        plot : :class:`mayavi.modules.vectors.Vectors`
+            The plot object.
+
+        """
+        self._log.debug('Calling plot_mask')
+        from mayavi import mlab
+        mlab.figure(size=(750, 700))
+        zzz, yyy, xxx = (np.indices(self.dim) + self.a / 2)
+        zzz, yyy, xxx = zzz.T, yyy.T, xxx.T
+        mask = self.get_mask(threshold=threshold).astype(int).T  # Transpose because of VTK order!
+        extent = np.ravel(list(zip((0, 0, 0), mask.shape)))
+        cont = mlab.contour3d(xxx, yyy, zzz, mask, contours=[1], **kwargs)
+        mlab.outline(cont, extent=extent)
+        mlab.axes(cont, extent=extent)
+        mlab.title(title, height=0.95, size=0.35)
+        mlab.orientation_axes()
+        cont.scene.isometric_view()
+        return cont
+
+    def plot_contour3d(self, title='Field Distribution', contours=10, opacity=0.25, **kwargs):
         """Plot the field as a 3D-contour plot.
 
         Parameters
@@ -237,18 +268,24 @@ class FieldData(object, metaclass=abc.ABCMeta):
         plot : :class:`mayavi.modules.vectors.Vectors`
             The plot object.
 
-
         """
-        self._log.debug('Calling quiver_plot3D')
+        self._log.debug('Calling plot_contour3d')
         from mayavi import mlab
-        # Plot them as vectors:
         mlab.figure(size=(750, 700))
-        plot = mlab.contour3d(self.field_amp, contours=contours, opacity=opacity)
-        mlab.outline(plot)
-        mlab.axes(plot)
+        zzz, yyy, xxx = (np.indices(self.dim) + self.a / 2)
+        zzz, yyy, xxx = zzz.T, yyy.T, xxx.T
+        field_amp = self.field_amp.T  # Transpose because of VTK order!
+        if not isinstance(contours, (list, tuple, np.ndarray)):  # Calculate the contours:
+            contours = list(np.linspace(field_amp.min(), field_amp.max(), contours))
+        extent = np.ravel(list(zip((0, 0, 0), field_amp.shape)))
+        cont = mlab.contour3d(xxx, yyy, zzz, field_amp, contours=contours,
+                              opacity=opacity, **kwargs)
+        mlab.outline(cont, extent=extent)
+        mlab.axes(cont, extent=extent)
         mlab.title(title, height=0.95, size=0.35)
         mlab.orientation_axes()
-        return plot
+        cont.scene.isometric_view()
+        return cont
 
     @abc.abstractmethod
     def scale_down(self, n):
@@ -1191,13 +1228,11 @@ class VectorData(FieldData):
         """
         self._log.debug('Calling quiver_plot3D')
         from mayavi import mlab
-        a = self.a
-        dim = self.dim
         if limit is None:
             limit = np.max(np.nan_to_num(self.field_amp))
         ad = ar_dens
         # Create points and vector components as lists:
-        zzz, yyy, xxx = (np.indices(dim) - a / 2).reshape((3,) + dim)
+        zzz, yyy, xxx = (np.indices(self.dim) + self.a / 2)
         zzz = zzz[::ad, ::ad, ::ad].ravel()
         yyy = yyy[::ad, ::ad, ::ad].ravel()
         xxx = xxx[::ad, ::ad, ::ad].ravel()
@@ -1208,6 +1243,7 @@ class VectorData(FieldData):
         mlab.figure(size=(750, 700))
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation:
             self._log.debug('Encoding full 3D angles')
+            extent = np.ravel(list(zip((0, 0, 0), (self.dim[2], self.dim[1], self.dim[0]))))
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
                                  scalars=np.arange(len(xxx)))
             vector = np.asarray((x_mag.ravel(), y_mag.ravel(), z_mag.ravel()))
@@ -1226,8 +1262,8 @@ class VectorData(FieldData):
             raise AttributeError('Coloring mode not supported!')
         vecs.glyph.glyph_source.glyph_position = 'center'
         vecs.module_manager.vector_lut_manager.data_range = np.array([0, limit])
-        mlab.outline(vecs)
-        mlab.axes(vecs)
+        mlab.outline(vecs, extent=extent)
+        mlab.axes(vecs, extent=extent)
         mlab.title(title, height=0.95, size=0.35)
         mlab.orientation_axes()
         return vecs

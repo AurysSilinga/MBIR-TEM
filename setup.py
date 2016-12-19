@@ -9,7 +9,6 @@ import sys
 from distutils.command.build import build
 
 import numpy
-from Cython.Distutils import build_ext
 from setuptools import setup, find_packages
 
 
@@ -20,7 +19,7 @@ MAINTAINER_EMAIL = 'j.caron@fz-juelich.de'
 URL = ''
 VERSION = '0.1.0-dev'
 PYTHON_VERSION = (2, 7)
-DEPENDENCIES = {'numpy': (1, 10), 'cython': (0, 23)}
+DEPENDENCIES = {'numpy': (1, 10)}
 LONG_DESCRIPTION = 'long description (TODO!)'  # TODO: Long description!
 
 
@@ -145,5 +144,5 @@ setup(name=DISTNAME,
       requires=['numpy', 'scipy', 'matplotlib', 'Pillow',
                 'mayavi', 'pyfftw', 'hyperspy', 'nose', 'jutil'],
       test_suite='nose.collector',
-      cmdclass={'build_ext': build_ext, 'build': build})
+      cmdclass={'build': build})
 print('-------------------------------------------------------------------------------\n')

@@ -145,7 +145,7 @@ class Main(QMainWindow, UI_MainWindow):
             confidence = pr.file_io.io_phasemap._load(conf_path)
         except ValueError:
             return  # Abort if no conf_path is selected!
-        confidence /= confidence.max() + 1e-30
+        confidence = confidence.astype(float) / confidence.max() + 1e-30
         self.phasemap.confidence = confidence
         self.update_phasemap()
 

@@ -12,6 +12,7 @@ from pyramid.kernel import Kernel
 from pyramid.phasemap import PhaseMap
 from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.projector import Projector
+from pyramid.fielddata import ScalarData
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -223,7 +224,7 @@ class DataSet(object):
         cov_list = [sparse.diags(c.ravel().astype(np.float32), 0) for c in conf_list]
         self.set_Se_inv_block_diag(cov_list)
 
-    def set_3d_mask(self, mask_list=None):
+    def set_3d_mask(self, mask_list=None, threshold=0.9):
         """Set the 3D mask from a list of 2D masks.
 
         Parameters
@@ -232,6 +233,11 @@ class DataSet(object):
             List of 2D masks, which represent the projections of the 3D mask. If not given this
             uses the mask matrizes of the phase maps. If just one phase map is present, the
             according mask is simply expanded to 3D and used directly.
+        threshold: float, optional
+            The threshold, describing the minimal number of 2D masks which have to extrude to the
+            point in 3D to be considered valid as containing magnetisation. `threshold` is a
+            relative number in the range of [0, 1]. The default is 0.9. Choosing a value of 1 is
+            the strictest possible setting (every 2D mask has to contain a 3D point to be valid).
 
         Returns
         -------
@@ -244,45 +250,27 @@ class DataSet(object):
         if len(mask_list) == 1:  # just one phasemap --> 3D mask equals 2D mask
             self.mask = np.expand_dims(mask_list[0], axis=0)  # z-dim is set to 1!
         else:  # 3D mask has to be constructed from 2D masks:
-            mask_3d_inv = np.zeros(self.dim)
+            mask_3d = np.zeros(self.dim)
             for i, projector in enumerate(self.projectors):
-                mask_2d_inv = np.logical_not(self.phasemaps[i].mask.reshape(-1))  # inv. 2D mask
-                # Add extrusion of inv. 2D mask:
-                mask_3d_inv += projector.weight.T.dot(mask_2d_inv).reshape(self.dim)
-            self.mask = np.where(mask_3d_inv == 0, True, False)
+                mask_2d = self.phasemaps[i].mask.reshape(-1)  # 2D mask
+                # Add extrusion of 2D mask:
+                mask_3d += projector.weight.T.dot(mask_2d).reshape(self.dim)
+            self.mask = np.where(mask_3d >= threshold * self.count, True, False)
 
-    def display_mask(self, ar_dens=1):
+    def plot_mask(self, **kwargs):
         """If it exists, display the 3D mask of the magnetization distribution.
-
-        Parameters
-        ----------
-        ar_dens: int (optional)
-            Number defining the cell density which is plotted. A higher ar_dens number skips more
-            arrows (a number of 2 plots every second arrow). Default is 1.
 
         Returns
         -------
             None
 
         """
-        self._log.debug('Calling display_mask')
+        self._log.debug('Calling plot_mask')
         if self.mask is not None:
-            from mayavi import mlab
-            zz, yy, xx = np.indices(self.dim)
-            ad = ar_dens
-            zz = zz[::ad, ::ad, ::ad].ravel()
-            yy = yy[::ad, ::ad, ::ad].ravel()
-            xx = xx[::ad, ::ad, ::ad].ravel()
-            mask_vec = self.mask[::ad, ::ad, ::ad].ravel().astype(dtype=np.int)
-            mlab.figure(size=(750, 700))
-            plot = mlab.points3d(xx, yy, zz, mask_vec, opacity=0.5,
-                                 mode='cube', scale_factor=ar_dens)
-            mlab.outline(plot)
-            mlab.axes(plot)
-            return plot
+            return ScalarData(self.a, self.mask).plot_mask(**kwargs)
 
-    def phase_plots(self, magdata=None, title='Phase Map',
-                    cmap='RdBu', limit=None, norm=None):
+    def plot_phasemaps(self, magdata=None, title='Phase Map',
+                       cmap='RdBu', limit=None, norm=None):
         """Display all phasemaps saved in the :class:`~.DataSet` as a colormesh.
 
         Parameters
@@ -308,7 +296,7 @@ class DataSet(object):
         None
 
         """
-        self._log.debug('Calling phase_plots')
+        self._log.debug('Calling plot_phasemaps')
         if magdata is not None:
             phasemaps = self.create_phasemaps(magdata)
         else:
@@ -317,8 +305,8 @@ class DataSet(object):
                              cmap=cmap, limit=limit, norm=norm)
          for (i, phasemap) in enumerate(phasemaps)]
 
-    def combined_plots(self, magdata=None, title='Combined Plot', cmap='RdBu', limit=None,
-                       norm=None, gain='auto', interpolation='none', grad_encode='bright'):
+    def plot_phasemaps_combined(self, magdata=None, title='Combined Plot', cmap='RdBu', limit=None,
+                                norm=None, gain='auto', interpolation='none'):
         """Display all phasemaps and the resulting color coded holography images.
 
         Parameters
@@ -343,23 +331,18 @@ class DataSet(object):
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method for the holographic contour map.
             No interpolation is used in the default case.
-        grad_encode: {'bright', 'dark', 'color', 'none'}, optional
-            Encoding mode of the phase gradient. 'none' produces a black-white image, 'color' just
-            encodes the direction (without gradient strength), 'dark' modulates the gradient
-            strength with a factor between 0 and 1 and 'bright' (which is the default) encodes
-            the gradient strength with color saturation.
 
         Returns
         -------
         None
 
         """
-        self._log.debug('Calling combined_plots')
+        self._log.debug('Calling plot_phasemaps_combined')
         if magdata is not None:
             phasemaps = self.create_phasemaps(magdata)
         else:
             phasemaps = self.phasemaps
         for (i, phasemap) in enumerate(phasemaps):
             phasemap.plot_combined('{} ({})'.format(title, self.projectors[i].get_info()),
-                                   cmap, limit, norm, gain, interpolation, grad_encode)
+                                   cmap, limit, norm, gain, interpolation)
         plt.show()

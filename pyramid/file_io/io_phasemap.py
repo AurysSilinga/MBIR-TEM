@@ -75,7 +75,7 @@ def _load(filename, as_phasemap=False, a=1., **kwargs):
     # Load from npy-files:
     elif extension in ['.npy', '.npz']:
         return _load_from_npy(filename, as_phasemap, a, **kwargs)
-    elif extension in ['.jpeg', '.jpg', '.png', '.bmp']:
+    elif extension in ['.jpeg', '.jpg', '.png', '.bmp', '.tif']:
         return _load_from_img(filename, as_phasemap, a, **kwargs)
     # Load with HyperSpy:
     else:

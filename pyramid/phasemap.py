@@ -19,7 +19,7 @@ from matplotlib.ticker import MaxNLocator, FuncFormatter
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from scipy.ndimage.interpolation import zoom
+from scipy import ndimage
 
 from . import colors
 
@@ -133,7 +133,7 @@ class PhaseMap(object):
     @property
     def phase_vec(self):
         """Vector containing the phase shift."""
-        return np.reshape(self.phase, -1)
+        return self.phase.ravel()
 
     @phase_vec.setter
     def phase_vec(self, phase_vec):
@@ -347,9 +347,9 @@ class PhaseMap(object):
         assert 5 > order >= 0 and isinstance(order, int), \
             'order must be a positive integer between 0 and 5!'
         self.a /= 2 ** n
-        self.phase = zoom(self.phase, zoom=2 ** n, order=order)
-        self.mask = zoom(self.mask, zoom=2 ** n, order=0)
-        self.confidence = zoom(self.confidence, zoom=2 ** n, order=order)
+        self.phase = ndimage.zoom(self.phase, zoom=2 ** n, order=order)
+        self.mask = ndimage.zoom(self.mask, zoom=2 ** n, order=0)
+        self.confidence = ndimage.zoom(self.confidence, zoom=2 ** n, order=order)
 
     def pad(self, pad_values, mode='constant', masked=False, **kwds):
         """Pad the current phase map with zeros for each individual axis.
@@ -423,6 +423,71 @@ class PhaseMap(object):
         self.phase = self.phase[cv[0]:cv[1], cv[2]:cv[3]]
         self.mask = self.mask[cv[0]:cv[1], cv[2]:cv[3]]
         self.confidence = self.confidence[cv[0]:cv[1], cv[2]:cv[3]]
+
+    def flip(self, axis='u'):
+        """Flip/mirror the phase map around the specified axis.
+
+        Parameters
+        ----------
+        axis: {'u', 'v'}, optional
+            The axis around which the phase map is flipped.
+
+        Returns
+        -------
+        phasemap_flip: :class:`~.PhaseMap`
+           A flipped copy of the :class:`~.PhaseMap` object.
+
+        """
+        self._log.debug('Calling flip')
+        if axis == 'u':
+            return PhaseMap(self.a, np.flipud(self.phase), np.flipud(self.mask),
+                            np.flipud(self.confidence))
+        if axis == 'v':
+            return PhaseMap(self.a, np.fliplr(self.phase), np.fliplr(self.mask),
+                            np.fliplr(self.confidence))
+        else:
+            raise ValueError("Wrong input! 'u', 'v' allowed!")
+
+    def rotate(self, angle):
+        """Rotate the phase map (right hand rotation).
+
+        Parameters
+        ----------
+        angle: float
+            The angle around which the phase map is rotated.
+
+        Returns
+        -------
+        phasemap_rot: :class:`~.PhaseMap`
+           A rotated copy of the :class:`~.PhaseMap` object.
+
+        """
+        self._log.debug('Calling rotate')
+        phase_rot = ndimage.rotate(self.phase, angle, reshape=False)
+        mask_rot = ndimage.rotate(self.mask, angle, reshape=False, order=0)
+        conf_rot = ndimage.rotate(self.confidence, angle, reshape=False)
+        return PhaseMap(self.a, phase_rot, mask_rot, conf_rot)
+
+    def shift(self, shift):
+        """Shift the phase map (subpixel accuracy).
+
+        Parameters
+        ----------
+        shift : float or sequence, optional
+            The shift along the axes. If a float, shift is the same for each axis.
+            If a sequence, shift should contain one value for each axis.
+
+        Returns
+        -------
+        phasemap_shift: :class:`~.PhaseMap`
+           A shifted copy of the :class:`~.PhaseMap` object.
+
+        """
+        self._log.debug('Calling shift')
+        phase_rot = ndimage.shift(self.phase, shift, mode='constant', cval=0)
+        mask_rot = ndimage.shift(self.mask, shift, mode='constant', cval=False, order=0)
+        conf_rot = ndimage.shift(self.confidence, shift, mode='constant', cval=0)
+        return PhaseMap(self.a, phase_rot, mask_rot, conf_rot)
 
     @classmethod
     def from_signal(cls, signal):
@@ -531,7 +596,7 @@ class PhaseMap(object):
         from .file_io.io_phasemap import save_phasemap
         save_phasemap(self, filename, save_mask, save_conf, pyramid_format, **kwargs)
 
-    def plot_phase(self, title='Phase Map', cbar_title=None, unit='rad', cmap='Spectral',
+    def plot_phase(self, title='Phase Map', cbar_title=None, unit='rad', cmap='RdBu',
                    vmin=None, vmax=None, symmetric=True, norm=None, axis=None, cbar=True,
                    figsize=(9, 8), show_mask=True, show_conf=True, sigma_clip=None,
                    interpolation='none'):
@@ -548,7 +613,7 @@ class PhaseMap(object):
         always in `rad`.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'Spectral'.
+            The default is 'RdBu'.
         vmin : float, optional
             Minimum value used for determining the plot limits. If not set, it will be
             determined by the minimum of the phase directly.
@@ -746,7 +811,7 @@ class PhaseMap(object):
         return axis
 
     def plot_combined(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
-                      cbar_title=None, unit='rad', cmap='Spectral', vmin=None, vmax=None,
+                      cbar_title=None, unit='rad', cmap='RdBu', vmin=None, vmax=None,
                       symmetric=True,  norm=None, gain='auto', interpolation='none', cbar=True,
                       show_mask=True, show_conf=True):
         """Display the phase map and the resulting color coded holography image in one plot.
@@ -765,7 +830,7 @@ class PhaseMap(object):
             The plotting unit of the phase map. The phase is scaled accordingly before plotting.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'Spectral'.
+            The default is 'RdBu'.
         vmin : float, optional
             Minimum value used for determining the plot limits. If not set, it will be
             determined by the minimum of the phase directly.
@@ -817,8 +882,86 @@ class PhaseMap(object):
         # Return the plotting axes:
         return phase_axis, holo_axis
 
+    def plot_phase_with_hist(self, sup_title='Combined Plot', phase_title='Phase Map',
+                             cbar_title=None, unit='rad', cmap='RdBu', vmin=None, vmax=None,
+                             symmetric=True,  norm=None, show_mask=True, show_conf=True,
+                             sigma_clip=None, interpolation='none', **kwargs):
+        """Display the phase map and a histogram of the phase values of all pixels.
 
-    def plot_phase3d(self, title='Phase Map', unit='rad', cmap='Spectral'):
+        Parameters
+        ----------
+        sup_title : string, optional
+            The super title of the plot. The default is 'Combined Plot'.
+        phase_title : string, optional
+            The title of the phase map.
+        cbar_title : string, optional
+            The title of the colorbar.
+        unit: {'rad', 'mrad', 'µrad'}, optional
+            The plotting unit of the phase map. The phase is scaled accordingly before plotting.
+        cmap : string, optional
+            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
+            The default is 'RdBu'.
+        vmin : float, optional
+            Minimum value used for determining the plot limits. If not set, it will be
+            determined by the minimum of the phase directly.
+        vmax : float, optional
+            Maximum value used for determining the plot limits. If not set, it will be
+            determined by the minimum of the phase directly.
+        symmetric : boolean, optional
+            If True (default), a zero symmetric colormap is assumed and a zero value (which
+            will always be present) will be set to the central color color of the colormap.
+        norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
+            Norm, which is used to determine the colors to encode the phase information.
+            If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
+        interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
+            Defines the interpolation method for the holographic contour map.
+            No interpolation is used in the default case.
+        show_mask : bool, optional
+            A switch determining if the mask should be plotted or not. Default is True.
+        show_conf : float, optional
+            A switch determining if the confidence should be plotted or not. Default is True.
+        sigma_clip : int, optional
+            If this is not `None`, the values outside `sigma_clip` times the standard deviation
+            will be clipped for the calculation of the plotting `limit`.
+        interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
+            Defines the interpolation method for the holographic contour map.
+            No interpolation is used in the default case.
+
+        Notes
+        -----
+        All additional `**kwargs` are given to the histogram function of matplotlib.
+
+        Returns
+        -------
+        phase_axis, holo_axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axes on which the graphs are plotted.
+
+        """
+        self._log.debug('Calling plot_combined')
+        # Create combined plot and set title:
+        fig = plt.figure(figsize=(19, 9))
+        fig.suptitle(sup_title, fontsize=20)
+        # Plot histogram:
+        hist_axis = fig.add_subplot(1, 2, 1)
+        vec = self.phase_vec * self.confidence.ravel()
+        hist_axis.hist(vec, bins='auto', histtype='stepfilled', color='g', **kwargs)
+        x0, x1 = hist_axis.get_xlim()
+        y0, y1 = hist_axis.get_ylim()
+        hist_axis.set(aspect=np.abs(x1 - x0) / np.abs(y1 - y0) * 0.94)  # Last value because cbar!
+        hist_axis.tick_params(axis='both', which='major', labelsize=14)
+        hist_axis.set_title('Phase Histogram', fontsize=18)
+        hist_axis.set_xlabel('phase [rad]', fontsize=15)
+        hist_axis.set_ylabel('count', fontsize=15)
+        # Plot phase map:
+        phase_axis = fig.add_subplot(1, 2, 2, aspect=1)
+        self.plot_phase(title=phase_title, cbar_title=cbar_title, unit=unit, cmap=cmap,
+                        vmin=vmin, vmax=vmax, symmetric=symmetric, norm=norm, axis=phase_axis,
+                        show_mask=show_mask, show_conf=show_conf,
+                        sigma_clip=sigma_clip, interpolation=interpolation)
+        # Return the plotting axes:
+        return phase_axis, hist_axis
+
+    def plot_phase3d(self, title='Phase Map', unit='rad', cmap='RdBu'):
         """Display the phasemap as a 3D surface with contourplots.
 
         Parameters
@@ -829,7 +972,7 @@ class PhaseMap(object):
             The plotting unit of the phase map. The phase is scaled accordingly before plotting.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'Spectral'.
+            The default is 'RdBu'.
 
         Returns
         -------

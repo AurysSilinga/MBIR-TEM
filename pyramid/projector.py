@@ -13,7 +13,6 @@ import numpy as np
 from numpy import pi
 from scipy.sparse import coo_matrix, csr_matrix
 
-import pyramid.fft as fft
 from pyramid.fielddata import VectorData, ScalarData
 from pyramid.quaternion import Quaternion
 

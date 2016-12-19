@@ -28,7 +28,7 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
                                    angles=np.linspace(-90, 90, num=19), dim_uv=None,
                                    axes=(True, True), noise=0, offset_max=0, ramp_max=0,
                                    use_internal_mask=True, plot_results=False, plot_input=False,
-                                   ar_dens=None, multicore=True, verbose=True):
+                                   ar_dens=None, multicore=False, verbose=True):
     """Convenience function for reconstructing a projected distribution from a single phasemap.
 
     Parameters
@@ -136,10 +136,10 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
     fwd_model.finalize()
     # Plot input:
     if plot_input:
-        data.phase_plots()
+        data.plot_phasemaps()
     # Plot results:
     if plot_results:
-        data.display_mask(ar_dens=ar_dens)
+        data.plot_mask(ar_dens=ar_dens)
         magdata.plot_quiver3d('Original Distribution', ar_dens=ar_dens)
         magdata_rec.plot_quiver3d('Reconstructed Distribution (angle)', ar_dens=ar_dens)
         magdata_rec.plot_quiver3d('Reconstructed Distribution (amplitude)',
