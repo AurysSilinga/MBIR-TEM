@@ -885,7 +885,7 @@ class PhaseMap(object):
     def plot_phase_with_hist(self, sup_title='Combined Plot', phase_title='Phase Map',
                              cbar_title=None, unit='rad', cmap='RdBu', vmin=None, vmax=None,
                              symmetric=True,  norm=None, show_mask=True, show_conf=True,
-                             sigma_clip=None, interpolation='none', **kwargs):
+                             sigma_clip=None, interpolation='none', bins='auto', **kwargs):
         """Display the phase map and a histogram of the phase values of all pixels.
 
         Parameters
@@ -943,8 +943,9 @@ class PhaseMap(object):
         fig.suptitle(sup_title, fontsize=20)
         # Plot histogram:
         hist_axis = fig.add_subplot(1, 2, 1)
-        vec = self.phase_vec * self.confidence.ravel()
-        hist_axis.hist(vec, bins='auto', histtype='stepfilled', color='g', **kwargs)
+        vec = self.phase_vec
+        vec *= np.where(self.confidence > 0.5, 1, 0).ravel()  # Discard low confidence points!
+        hist_axis.hist(vec, bins=bins, histtype='stepfilled', color='g', **kwargs)
         x0, x1 = hist_axis.get_xlim()
         y0, y1 = hist_axis.get_ylim()
         hist_axis.set(aspect=np.abs(x1 - x0) / np.abs(y1 - y0) * 0.94)  # Last value because cbar!
