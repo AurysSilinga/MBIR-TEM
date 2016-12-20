@@ -182,7 +182,10 @@ class FieldData(object, metaclass=abc.ABCMeta):
         self._log.debug('Calling __ifloordiv__')
         return self.__floordiv__(other)
 
-    def __array__(self, dtype=None):
+    def __getitem__(self, item):
+        return self.__class__(self.a, self.field[item])
+
+    def __array__(self, dtype=None):  # Used for numpy ufuncs, together with __array_wrap__!
         if dtype:
             return self.field.astype(dtype)
         else:
