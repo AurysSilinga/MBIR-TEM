@@ -7,5 +7,6 @@
 from .io_phasemap import load_phasemap
 from .io_vectordata import load_vectordata
 from .io_scalardata import load_scalardata
+from .io_projector import load_projector
 
-__all__ = ['load_phasemap', 'load_vectordata', 'load_scalardata']
+__all__ = ['load_phasemap', 'load_vectordata', 'load_scalardata', 'load_projector']

@@ -5,9 +5,10 @@
 """This module provides the abstract base class :class:`~.Projector` and concrete subclasses for
 projections of vector and scalar fields."""
 
-import abc
 import itertools
 import logging
+
+from tqdm import tqdm
 
 import numpy as np
 from numpy import pi
@@ -19,8 +20,8 @@ from pyramid.quaternion import Quaternion
 __all__ = ['RotTiltProjector', 'XTiltProjector', 'YTiltProjector', 'SimpleProjector']
 
 
-class Projector(object, metaclass=abc.ABCMeta):
-    """Abstract base class representing a projection function.
+class Projector(object):
+    """Base class representing a projection function.
 
     The :class:`~.Projector` class represents a projection function for a 3-dimensional
     vector- or scalar field onto a 2-dimensional grid. :class:`~.Projector` is an abstract base
@@ -50,12 +51,18 @@ class Projector(object, metaclass=abc.ABCMeta):
         Size of the image space.
     n: int
         Size of the input space.
+    sparsity : float
+        Measures the sparsity of the weighting (not the complete one!), 1 means completely sparse!
 
     """
 
     _log = logging.getLogger(__name__ + '.Projector')
 
-    @abc.abstractmethod
+    @property
+    def sparsity(self):
+        """The sparsity of the projector weight matrix."""
+        return 1. - len(self.weight.data) / np.prod(self.weight.shape)
+
     def __init__(self, dim, dim_uv, weight, coeff):
         self._log.debug('Calling __init__')
         self.dim = dim
@@ -193,7 +200,21 @@ class Projector(object, metaclass=abc.ABCMeta):
             raise AssertionError('Vector size has to be suited either for '
                                  'vector- or scalar-field-projection!')
 
-    @abc.abstractmethod
+    def save(self, filename, overwrite=True):
+        """Saves the projector as an HDF5 file.
+
+        Parameters
+        ----------
+        filename: str
+            Name of the file which the phasemap is saved into. The extension
+            determines the saving procedure.
+        overwrite: bool, optional
+            If True (default), an existing file will be overwritten, if False, this
+            (silently!) does nothing.
+        """
+        from .file_io.io_projector import save_projector
+        save_projector(self, filename, overwrite)
+
     def get_info(self, verbose):
         """Get specific information about the projector as a string.
 
@@ -209,7 +230,7 @@ class Projector(object, metaclass=abc.ABCMeta):
             Information about the projector as a string, e.g. for the use in plot titles.
 
         """
-        raise NotImplementedError()
+        return 'Base projector'
 
 
 class RotTiltProjector(Projector):
@@ -233,14 +254,12 @@ class RotTiltProjector(Projector):
         Number of subpixels along one axis. This is used to create the lookup table which uses
         a discrete subgrid to estimate the impact point of a voxel onto a pixel and the weight on
         all surrounding pixels. Default is 11 (odd numbers provide a symmetric center).
-    sparsity : float
-        Measures the sparsity of the weighting (not the complete one!), 1 means completely sparse!
 
     """
 
     _log = logging.getLogger(__name__ + '.RotTiltProjector')
 
-    def __init__(self, dim, rotation, tilt, dim_uv=None, subcount=11):
+    def __init__(self, dim, rotation, tilt, dim_uv=None, subcount=11, verbose=False):
         self._log.debug('Calling __init__')
         self.rotation = rotation
         self.tilt = tilt
@@ -273,7 +292,8 @@ class RotTiltProjector(Projector):
         # Create 4D lookup table (1&2: which neighbour weight?, 3&4: which subpixel is hit?)
         weight_lookup = self._create_weight_lookup(subcount, R)
         # Go over all voxels:
-        for i, voxel in enumerate(voxels):
+        disable = not verbose
+        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False)):
             column_index = voxel[0] * dim_y * dim_x + voxel[1] * dim_x + voxel[2]
             remainder, impact = np.modf(impacts[:, i])  # split index of impact and remainder!
             sub_pixel = (remainder * subcount).astype(dtype=np.int)  # sub_pixel inside impact px.
@@ -293,7 +313,6 @@ class RotTiltProjector(Projector):
                         data.append(weight)
         # Calculate weight matrix and coefficients for jacobi matrix:
         shape = (np.prod(dim_uv), np.prod(dim))
-        self.sparsity = 1. - len(data) / np.prod(shape, dtype=np.float)
         weights = csr_matrix(coo_matrix((data, (rows, columns)), shape=shape))
         # Calculate coefficients by rotating unity matrix (unit vectors, (x,y,z)):
         coeff = quat.matrix[:2, :].dot(np.eye(3))
@@ -373,7 +392,7 @@ class XTiltProjector(Projector):
 
     _log = logging.getLogger(__name__ + '.XTiltProjector')
 
-    def __init__(self, dim, tilt, dim_uv=None):
+    def __init__(self, dim, tilt, dim_uv=None, verbose=False):
         self._log.debug('Calling __init__')
         self.tilt = tilt
         # Set starting variables:
@@ -394,8 +413,9 @@ class XTiltProjector(Projector):
         row = []
         col = []
         data = []
-        # one slice:
-        for i, voxel in enumerate(voxels):
+        # One slice:
+        disable = not verbose
+        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False, desc='first slice')):
             impacts = self._get_impact(positions[i], r, dim_v)  # impact along projected y-axis
             voxel_index = voxel[0] * dim_rot * dim_perp + voxel[1] * dim_rot  # 0: z, 1: y
             for impact in impacts:
@@ -408,12 +428,11 @@ class XTiltProjector(Projector):
         # All other slices (along x):
         columns = col
         rows = row
-        for s in np.arange(1, dim_rot):
+        for s in tqdm(np.arange(1, dim_rot), disable=disable, leave=False, desc='other slices'):
             columns = np.hstack((np.array(columns), np.array(col) + s))
             rows = np.hstack((np.array(rows), np.array(row) + s))
         # Calculate weight matrix and coefficients for jacobi matrix:
         shape = (np.prod(dim_uv), np.prod(dim))
-        self.sparsity = 1. - len(data) / np.prod(shape, dtype=np.float)
         weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=shape))
         coeff = [[1, 0, 0], [0, np.cos(tilt), np.sin(tilt)]]
         super().__init__(dim, dim_uv, weight, coeff)
@@ -488,7 +507,7 @@ class YTiltProjector(Projector):
 
     _log = logging.getLogger(__name__ + '.YTiltProjector')
 
-    def __init__(self, dim, tilt, dim_uv=None):
+    def __init__(self, dim, tilt, dim_uv=None, verbose=False):
         self._log.debug('Calling __init__')
         self.tilt = tilt
         # Set starting variables:
@@ -509,8 +528,9 @@ class YTiltProjector(Projector):
         row = []
         col = []
         data = []
-        # one slice:
-        for i, voxel in enumerate(voxels):
+        # One slice:
+        disable = not verbose
+        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False)):
             impacts = self._get_impact(positions[i], r, dim_u)  # impact along projected x-axis
             voxel_index = voxel[0] * dim_perp * dim_rot + voxel[1]  # 0: z, 1: x
             for impact in impacts:
@@ -528,7 +548,6 @@ class YTiltProjector(Projector):
             rows = np.hstack((np.array(rows), np.array(row) + s * dim_u))
         # Calculate weight matrix and coefficients for jacobi matrix:
         shape = (np.prod(dim_uv), np.prod(dim))
-        self.sparsity = 1. - len(data) / np.prod(shape, dtype=np.float)
         weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=shape))
         coeff = [[np.cos(tilt), 0, np.sin(tilt)], [0, 1, 0]]
         super().__init__(dim, dim_uv, weight, coeff)
@@ -607,7 +626,7 @@ class SimpleProjector(Projector):
 
     # coordinate switch for 'x': u, v --> z, y (not y, z!)!
 
-    def __init__(self, dim, axis='z', dim_uv=None):
+    def __init__(self, dim, axis='z', dim_uv=None, verbose=False):
         self._log.debug('Calling __init__')
         assert axis in {'z', 'y', 'x'}, 'Projection axis has to be x, y or z (given as a string)!'
         self.axis = axis
@@ -655,7 +674,6 @@ class SimpleProjector(Projector):
         assert dim_uv[0] >= dim_v and dim_uv[1] >= dim_u, 'Projected dimensions are too small!'
         # Create weight-matrix:
         shape = (np.prod(dim_uv), np.prod(dim))
-        self.sparsity = 1. - len(data) / np.prod(shape, dtype=np.float)
         weight = csr_matrix((data, indices, indptr), shape=shape)
         super().__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created ' + str(self))
