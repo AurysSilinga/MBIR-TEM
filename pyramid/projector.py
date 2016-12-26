@@ -426,14 +426,29 @@ class XTiltProjector(Projector):
                 row.append(impact_index)
                 data.append(self._get_weight(delta, rho))
         # All other slices (along x):
-        columns = col
-        rows = row
-        for s in tqdm(np.arange(1, dim_rot), disable=disable, leave=False, desc='other slices'):
-            columns = np.hstack((np.array(columns), np.array(col) + s))
-            rows = np.hstack((np.array(rows), np.array(row) + s))
+        data = np.tile(data, dim_rot)
+        columns = np.tile(col, dim_rot)
+        rows = np.tile(row, dim_rot)
+        addition = np.repeat(np.arange(dim_rot), len(row))
+        columns += addition
+        rows += addition
+
+        # columns = []
+        # rows = []
+        # for s in tqdm(np.arange(dim_rot), disable=disable, leave=False, desc='other slices'):
+        #     columns.extend(np.asarray(col) + s)
+        #     rows.extend(np.array(row) + s)
+
+        # columns = col
+        # rows = row
+        # for s in tqdm(np.arange(1, dim_rot), disable=disable, leave=False, desc='other slices'):
+            # columns = np.hstack((np.array(columns), np.array(col) + s))
+            # rows = np.hstack((np.array(rows), np.array(row) + s))
+
+
         # Calculate weight matrix and coefficients for jacobi matrix:
         shape = (np.prod(dim_uv), np.prod(dim))
-        weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=shape))
+        weight = csr_matrix(coo_matrix((data, (rows, columns)), shape=shape))
         coeff = [[1, 0, 0], [0, np.cos(tilt), np.sin(tilt)]]
         super().__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created ' + str(self))
@@ -541,14 +556,15 @@ class YTiltProjector(Projector):
                 row.append(impact_index)
                 data.append(self._get_weight(delta, rho))
         # All other slices (along y):
-        columns = col
-        rows = row
-        for s in np.arange(1, dim_rot):
-            columns = np.hstack((np.array(columns), np.array(col) + s * dim_perp))
-            rows = np.hstack((np.array(rows), np.array(row) + s * dim_u))
+        data = np.tile(data, dim_rot)
+        columns = np.tile(col, dim_rot)
+        rows = np.tile(row, dim_rot)
+        addition = np.repeat(np.arange(dim_rot), len(row))
+        columns += addition * dim_perp
+        rows += addition * dim_u
         # Calculate weight matrix and coefficients for jacobi matrix:
         shape = (np.prod(dim_uv), np.prod(dim))
-        weight = csr_matrix(coo_matrix((np.tile(data, dim_rot), (rows, columns)), shape=shape))
+        weight = csr_matrix(coo_matrix((data, (rows, columns)), shape=shape))
         coeff = [[np.cos(tilt), 0, np.sin(tilt)], [0, 1, 0]]
         super().__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created ' + str(self))
