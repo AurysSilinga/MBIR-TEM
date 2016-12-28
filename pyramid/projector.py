@@ -65,8 +65,8 @@ class Projector(object):
 
     def __init__(self, dim, dim_uv, weight, coeff):
         self._log.debug('Calling __init__')
-        self.dim = dim
-        self.dim_uv = dim_uv
+        self.dim = tuple(dim)
+        self.dim_uv = tuple(dim_uv)
         self.weight = weight
         self.coeff = coeff
         self.size_2d, self.size_3d = weight.shape
@@ -206,8 +206,7 @@ class Projector(object):
         Parameters
         ----------
         filename: str
-            Name of the file which the phasemap is saved into. The extension
-            determines the saving procedure.
+            Name of the file which the phasemap is saved into. HDF5 files are supported.
         overwrite: bool, optional
             If True (default), an existing file will be overwritten, if False, this
             (silently!) does nothing.

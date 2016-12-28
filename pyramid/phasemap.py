@@ -126,7 +126,7 @@ class PhaseMap(object):
     @phase.setter
     def phase(self, phase):
         assert isinstance(phase, np.ndarray), 'Phase has to be a numpy array!'
-        assert len(phase.shape) == 2, 'Phase has to be 2-dimensional!'
+        assert len(phase.shape) == 2, 'Phase has to be 2-dimensional, not {}!'.format(phase.shape)
         self._phase = phase.astype(dtype=np.float32)
         self._dim_uv = phase.shape
 

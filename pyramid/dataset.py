@@ -119,6 +119,7 @@ class DataSet(object):
         return {kernel.dim_uv: PhaseMapperRDFC(kernel) for kernel in kernel_list}
 
     def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None):
+        dim = tuple(dim)
         self._log.debug('Calling __init__')
         assert isinstance(dim, tuple) and len(dim) == 3, \
             'Dimension has to be a tuple of length 3!'
@@ -257,6 +258,20 @@ class DataSet(object):
                 mask_3d += projector.weight.T.dot(mask_2d).reshape(self.dim)
             self.mask = np.where(mask_3d >= threshold * self.count, True, False)
 
+    def save(self, filename, overwrite=True):
+        """Saves the dataset as a collection of HDF5 files.
+
+        Parameters
+        ----------
+        filename: str
+            Base name of the files which the dataset is saved into. HDF5 files are supported.
+        overwrite: bool, optional
+            If True (default), an existing file will be overwritten, if False, this
+            (silently!) does nothing.
+        """
+        from .file_io.io_dataset import save_dataset
+        save_dataset(self, filename, overwrite)
+
     def plot_mask(self, **kwargs):
         """If it exists, display the 3D mask of the magnetization distribution.
 
@@ -269,8 +284,7 @@ class DataSet(object):
         if self.mask is not None:
             return ScalarData(self.a, self.mask).plot_mask(**kwargs)
 
-    def plot_phasemaps(self, magdata=None, title='Phase Map',
-                       cmap='RdBu', limit=None, norm=None):
+    def plot_phasemaps(self, magdata=None, title='Phase Map', **kwargs):
         """Display all phasemaps saved in the :class:`~.DataSet` as a colormesh.
 
         Parameters
@@ -281,15 +295,6 @@ class DataSet(object):
         title : string, optional
             The main part of the title of the plots. The default is 'Phase Map'. Additional
             projector info is appended to this.
-        cmap : string, optional
-            The :class:`~matplotlib.colors.Colormap` which is used for the plots as a string.
-            The default is 'RdBu'.
-        limit : float, optional
-            Plotlimit for the phase in both negative and positive direction (symmetric around 0).
-            If not specified, the maximum amplitude of the phase is used.
-        norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
-            Norm, which is used to determine the colors to encode the phase information.
-            If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
 
         Returns
         -------
@@ -301,8 +306,7 @@ class DataSet(object):
             phasemaps = self.create_phasemaps(magdata)
         else:
             phasemaps = self.phasemaps
-        [phasemap.plot_phase('{} ({})'.format(title, self.projectors[i].get_info()),
-                             cmap=cmap, limit=limit, norm=norm)
+        [phasemap.plot_phase('{} ({})'.format(title, self.projectors[i].get_info()), **kwargs)
          for (i, phasemap) in enumerate(phasemaps)]
 
     def plot_phasemaps_combined(self, magdata=None, title='Combined Plot', cmap='RdBu', limit=None,

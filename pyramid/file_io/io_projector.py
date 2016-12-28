@@ -2,7 +2,7 @@
 # Copyright 2016 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
-"""IO functionality for FieldData objects."""
+"""IO functionality for Projector objects."""
 
 import logging
 
@@ -26,7 +26,7 @@ def save_projector(projector, filename, overwrite=True):
     name, extension = os.path.splitext(filename)
     assert extension in ['.hdf5', ''], 'For now only HDF5 format is supported!'
     filename = name + '.hdf5'  # In case no extension is provided, set to HDF5!
-    if not os.path.isfile(filename) or overwrite:  # Write if file does not exist of if forced:
+    if not os.path.isfile(filename) or overwrite:  # Write if file does not exist or if forced:
         with h5py.File(filename, 'w') as f:
             class_name = projector.__class__.__name__
             f.attrs['class'] = class_name
@@ -74,7 +74,7 @@ def load_projector(filename):
         indices = f.get('indices')
         weight = csr_matrix((data, indices, indptr), shape=(size_2d, size_3d))
         # Retrieve coefficients:
-        coeff = f.get('coeff')
+        coeff = np.copy(f.get('coeff'))
         # Construct projector:
         result = projector.Projector(dim, dim_uv, weight, coeff)
         # Specify projector type:
