@@ -13,6 +13,7 @@ from pyramid.phasemap import PhaseMap
 from pyramid.phasemapper import PhaseMapperRDFC
 from pyramid.projector import Projector
 from pyramid.fielddata import ScalarData
+from pyramid.ramp import Ramp
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -112,11 +113,24 @@ class DataSet(object):
         return result
 
     @property
+    def phasemaps(self):
+        """List of all PhaseMaps in the DataSet."""
+        return self._phasemaps
+
+    @property
+    def projectors(self):
+        """List of all Projectors in the DataSet."""
+        return self._projectors
+
+    @property
     def phasemappers(self):
-        """List of phase mappers, created on demand with the projectors in mind."""
-        dim_uv_set = set([p.dim_uv for p in self.projectors])
-        kernel_list = [Kernel(self.a, dim_uv) for dim_uv in dim_uv_set]
-        return {kernel.dim_uv: PhaseMapperRDFC(kernel) for kernel in kernel_list}
+        """List of all PhaseMappers in the DataSet."""
+        return self._phasemappers
+
+    @property
+    def phasemapper_dict(self):
+        """Dictionary of all PhaseMappers in the DataSet."""
+        return self._phasemapper_dict
 
     def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None):
         dim = tuple(dim)
@@ -128,8 +142,10 @@ class DataSet(object):
         self.b_0 = b_0
         self.mask = mask
         self.Se_inv = Se_inv
-        self.phasemaps = []
-        self.projectors = []
+        self._phasemaps = []
+        self._projectors = []
+        self._phasemappers = []
+        self._phasemapper_dict = {}
         self._log.debug('Created: ' + str(self))
 
     def __repr__(self):
@@ -141,7 +157,33 @@ class DataSet(object):
         self._log.debug('Calling __str__')
         return 'DataSet(a=%s, dim=%s, b_0=%s)' % (self.a, self.dim, self.b_0)
 
-    def append(self, phasemap, projector):
+    def _append_single(self, phasemap, projector, phasemapper=None):
+        self._log.debug('Calling _append')
+        assert isinstance(phasemap, PhaseMap) and isinstance(projector, Projector), \
+            'Argument has to be a tuple of a PhaseMap and a Projector object!'
+        dim_uv = projector.dim_uv
+        assert projector.dim == self.dim, '3D dimensions must match!'
+        assert phasemap.dim_uv == dim_uv, 'Projection dimensions (dim_uv) must match!'
+        assert phasemap.a == self.a, 'Grid spacing must match!'
+        # Create lookup key:
+        if phasemapper is not None:
+            key = dim_uv  # Create standard phasemapper, dim_uv is enough for identification!
+        else:
+            key = (dim_uv, str(phasemapper))  # Include string representation for identification!
+        # Retrieve existing, use given or create new phasemapper:
+        if key in self.phasemapper_dict:  # Retrieve existing phasemapper:
+            phasemapper = self.phasemapper_dict[key]
+        elif phasemapper is not None:  # Use given one (do nothing):
+            pass
+        else:  # Create new standard (RDFC) phasemapper:
+            phasemapper = PhaseMapperRDFC(Kernel(self.a, dim_uv, self.b_0))
+            self._phasemapper_dict[key] = phasemapper
+        # Append everything to the lists (just contain pointers to objects!):
+        self._phasemaps.append(phasemap)
+        self._projectors.append(projector)
+        self._phasemappers.append(phasemapper)
+
+    def append(self, phasemap, projector, phasemapper=None):
         """Appends a data pair of phase map and projection infos to the data collection.`
 
         Parameters
@@ -150,6 +192,8 @@ class DataSet(object):
             A :class:`~.PhaseMap` object which should be added to the data collection.
         projector: :class:`~.Projector`
             A :class:`~.Projector` object which should be added to the data collection.
+        phasemapper: :class:`~.PhaseMapper`, optional
+            An optional :class:`~.PhaseMapper` object which should be added.
 
         Returns
         -------
@@ -157,14 +201,21 @@ class DataSet(object):
 
         """
         self._log.debug('Calling append')
-        assert isinstance(phasemap, PhaseMap) and isinstance(projector, Projector), \
-            'Argument has to be a tuple of a PhaseMap and a Projector object!'
-        assert projector.dim == self.dim, '3D dimensions must match!'
-        assert phasemap.dim_uv == projector.dim_uv, 'Projection dimensions (dim_uv) must match!'
-        self.phasemaps.append(phasemap)
-        self.projectors.append(projector)
+        if type(phasemap) is not list:
+            phasemap = [phasemap]
+        if type(projector) is not list:
+            projector = [projector]
+        if type(phasemapper) is not list:
+            phasemapper = [phasemapper] * len(phasemap)
+        assert len(phasemap) == len(projector),\
+            ('Phasemaps and projectors must have same' +
+             'length(phasemaps: {}, projectors: {})!'.format(len(phasemap), len(projector)))
+        for i in range(len(phasemap)):
+            self._append_single(phasemap[i], projector[i], phasemapper[i])
+        # Reset the Se_inv matrix from phasemaps confidence matrices:
+        self.set_Se_inv_diag_with_conf()
 
-    def create_phasemaps(self, magdata):
+    def create_phasemaps(self, magdata, difference=True, ramp=None):
         """Create a list of phasemaps with the projectors in the dataset for a given
         :class:`~.VectorData` object.
 
@@ -181,9 +232,14 @@ class DataSet(object):
         """
         self._log.debug('Calling create_phasemaps')
         phasemaps = []
-        for projector in self.projectors:
+        for i, projector in enumerate(self.projectors):
             mag_proj = projector(magdata)
-            phasemap = self.phasemappers[projector.dim_uv](mag_proj)
+            phasemap = self.phasemappers[i](mag_proj)
+            if difference:
+                phasemap -= self.phasemaps[i]
+            if ramp is not None:
+                assert type(ramp) == Ramp, 'correct_ramp has to be a Ramp object!'
+                phasemap += ramp(index=i)
             phasemap.mask = mag_proj.get_mask()[0, ...]
             phasemaps.append(phasemap)
         return phasemaps
@@ -284,7 +340,8 @@ class DataSet(object):
         if self.mask is not None:
             return ScalarData(self.a, self.mask).plot_mask(**kwargs)
 
-    def plot_phasemaps(self, magdata=None, title='Phase Map', **kwargs):
+    def plot_phasemaps(self, magdata=None, title='Phase Map', difference=False, ramp=None,
+                       **kwargs):
         """Display all phasemaps saved in the :class:`~.DataSet` as a colormesh.
 
         Parameters
@@ -303,14 +360,14 @@ class DataSet(object):
         """
         self._log.debug('Calling plot_phasemaps')
         if magdata is not None:
-            phasemaps = self.create_phasemaps(magdata)
+            phasemaps = self.create_phasemaps(magdata, difference=difference, ramp=ramp)
         else:
             phasemaps = self.phasemaps
         [phasemap.plot_phase('{} ({})'.format(title, self.projectors[i].get_info()), **kwargs)
          for (i, phasemap) in enumerate(phasemaps)]
 
-    def plot_phasemaps_combined(self, magdata=None, title='Combined Plot', cmap='RdBu', limit=None,
-                                norm=None, gain='auto', interpolation='none'):
+    def plot_phasemaps_combined(self, magdata=None, title='Combined Plot', difference=False,
+                                ramp=None, **kwargs):
         """Display all phasemaps and the resulting color coded holography images.
 
         Parameters
@@ -323,18 +380,6 @@ class DataSet(object):
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             The default is 'RdBu'.
-        limit : float, optional
-            Plotlimit for the phase in both negative and positive direction (symmetric around 0).
-            If not specified, the maximum amplitude of the phase is used.
-        norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
-            Norm, which is used to determine the colors to encode the phase information.
-            If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
-        gain : float, optional
-            The gain factor for determining the number of contour lines in the holographic
-            contour map. The default is 1.
-        interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
-            Defines the interpolation method for the holographic contour map.
-            No interpolation is used in the default case.
 
         Returns
         -------
@@ -343,10 +388,10 @@ class DataSet(object):
         """
         self._log.debug('Calling plot_phasemaps_combined')
         if magdata is not None:
-            phasemaps = self.create_phasemaps(magdata)
+            phasemaps = self.create_phasemaps(magdata, difference=difference, ramp=ramp)
         else:
             phasemaps = self.phasemaps
         for (i, phasemap) in enumerate(phasemaps):
             phasemap.plot_combined('{} ({})'.format(title, self.projectors[i].get_info()),
-                                   cmap, limit, norm, gain, interpolation)
+                                   **kwargs)
         plt.show()

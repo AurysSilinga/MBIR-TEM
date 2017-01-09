@@ -108,7 +108,6 @@ class Costfunction(object):
             Jacobi vector which represents the cost derivative of all voxels of the magnetization.
 
         """
-        print(self.fwd_model.ramp.n)
         assert len(x) == self.n, 'Length of input {} does not match n={}'.format(len(x), self.n)
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model(x) - self.y))
                 + self.regularisator.jac(x))

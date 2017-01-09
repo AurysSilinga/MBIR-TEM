@@ -61,8 +61,6 @@ class ForwardModel(object):
         self.m = self.data_set.m
         self.shape = (self.m, self.n)
         self.hook_points = self.data_set.hook_points
-        if self.data_set.Se_inv is None:
-            self.data_set.set_Se_inv_diag_with_conf()
         self.Se_inv = self.data_set.Se_inv
         # Create ramp and change n accordingly:
         self.ramp = Ramp(self.data_set, self.ramp_order)
@@ -89,7 +87,7 @@ class ForwardModel(object):
         result = np.zeros(self.m)
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
-            mapper = self.phasemappers[projector.dim_uv]
+            mapper = self.phasemappers[i]
             phasemap = mapper(projector(self.magdata))
             phasemap += self.ramp(i)  # add ramp!
             result[hp[i]:hp[i + 1]] = phasemap.phase_vec
@@ -126,7 +124,7 @@ class ForwardModel(object):
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
             mag_vec = self.magdata.field_vec
-            mapper = self.phasemappers[projector.dim_uv]
+            mapper = self.phasemappers[i]
             res = mapper.jac_dot(projector.jac_dot(mag_vec))
             res += self.ramp.jac_dot(i)  # add ramp!
             result[hp[i]:hp[i + 1]] = res
@@ -155,7 +153,7 @@ class ForwardModel(object):
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
             sub_vec = vector[hp[i]:hp[i + 1]]
-            mapper = self.phasemappers[projector.dim_uv]
+            mapper = self.phasemappers[i]
             proj_T_result += projector.jac_T_dot(mapper.jac_T_dot(sub_vec))
         self.magdata.field_vec = proj_T_result
         result = self.magdata.get_vector(self.data_set.mask)

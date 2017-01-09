@@ -22,6 +22,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import ndimage
 
 from . import colors
+from .scalebars import add_scalebar
 
 __all__ = ['PhaseMap']
 
@@ -602,7 +603,7 @@ class PhaseMap(object):
     def plot_phase(self, title='Phase Map', cbar_title=None, unit='rad', cmap='RdBu',
                    vmin=None, vmax=None, symmetric=True, norm=None, axis=None, cbar=True,
                    figsize=(9, 8), show_mask=True, show_conf=True, sigma_clip=None,
-                   interpolation='none'):
+                   interpolation='none', scalebar=True):
         """Display the phasemap as a colormesh.
 
         Parameters
@@ -700,21 +701,24 @@ class PhaseMap(object):
             if show_mask and not np.all(self.mask):  # Plot mask if desired and not trivial!
                 axis.contour(uu, vv, self.mask, levels=[0.5], colors='k', linestyles='dotted',
                              linewidths=2)
-        # Set the axes ticks and labels:
-        if self.dim_uv[0] >= self.dim_uv[1]:
-            u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9
-        else:
-            u_bin, v_bin = 9, np.max((2, np.floor(9 * self.dim_uv[0] / self.dim_uv[1])))
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-        axis.tick_params(axis='both', which='major', labelsize=14)
-        axis.set_title(title, fontsize=18)
+        # Further plot formatting:
         axis.set_xlim(0, self.dim_uv[1])
         axis.set_ylim(0, self.dim_uv[0])
-        axis.set_xlabel('u-axis [nm]', fontsize=15)
-        axis.set_ylabel('v-axis [nm]', fontsize=15)
+        axis.set_title(title, fontsize=18)
+        if scalebar:
+            add_scalebar(axis, sampling=self.a)
+        else:  # Set the axes ticks and labels:
+            axis.set_xlabel('u-axis [nm]', fontsize=15)
+            axis.set_ylabel('v-axis [nm]', fontsize=15)
+            if self.dim_uv[0] >= self.dim_uv[1]:
+                u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9
+            else:
+                u_bin, v_bin = 9, np.max((2, np.floor(9 * self.dim_uv[0] / self.dim_uv[1])))
+            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.tick_params(axis='both', which='major', labelsize=14)
         # # Add colorbar:
         if cbar:
             divider = make_axes_locatable(axis)
@@ -728,7 +732,7 @@ class PhaseMap(object):
         return axis
 
     def plot_holo(self, title=None, gain='auto', axis=None, cmap=None, interpolation='none',
-                  figsize=(8, 8)):
+                  figsize=(8, 8), scalebar=True):
         """Display the color coded holography image.
 
         Parameters
@@ -795,28 +799,30 @@ class PhaseMap(object):
         axis.imshow(holo_image, origin='lower', interpolation=interpolation,
                     extent=(0, self.dim_uv[1], 0, self.dim_uv[0]))
         # Set the title and the axes labels:
-        # Set the axes ticks and labels:
-        if self.dim_uv[0] >= self.dim_uv[1]:
-            u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9
-        else:
-            u_bin, v_bin = 9, np.max((2, np.floor(9 * self.dim_uv[0] / self.dim_uv[1])))
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-        axis.tick_params(axis='both', which='major', labelsize=14)
-        axis.set_title(title, fontsize=18)
         axis.set_xlim(0, self.dim_uv[1])
         axis.set_ylim(0, self.dim_uv[0])
-        axis.set_xlabel('u-axis [nm]', fontsize=15)
-        axis.set_ylabel('v-axis [nm]', fontsize=15)
+        axis.set_title(title, fontsize=18)
+        if scalebar:
+            add_scalebar(axis, sampling=self.a)
+        else:  # Set the axes ticks and labels:
+            axis.set_xlabel('u-axis [nm]', fontsize=15)
+            axis.set_ylabel('v-axis [nm]', fontsize=15)
+            if self.dim_uv[0] >= self.dim_uv[1]:
+                u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9
+            else:
+                u_bin, v_bin = 9, np.max((2, np.floor(9 * self.dim_uv[0] / self.dim_uv[1])))
+            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.tick_params(axis='both', which='major', labelsize=14)
         # Return plotting axis:
         return axis
 
     def plot_combined(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
                       cbar_title=None, unit='rad', cmap='RdBu', vmin=None, vmax=None,
                       symmetric=True,  norm=None, gain='auto', interpolation='none', cbar=True,
-                      show_mask=True, show_conf=True):
+                      show_mask=True, show_conf=True, scalebar=True):
         """Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -871,7 +877,8 @@ class PhaseMap(object):
         fig.suptitle(sup_title, fontsize=20)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-        self.plot_holo(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation)
+        self.plot_holo(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation,
+                       scalebar=scalebar)
         if cbar:  # Make space for colorbar without adding one, so that both plots have same size:
             divider = make_axes_locatable(holo_axis)
             cbar_ax = divider.append_axes('right', size='5%', pad=0.1)
@@ -880,7 +887,7 @@ class PhaseMap(object):
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         self.plot_phase(title=phase_title, cbar_title=cbar_title, unit=unit, cmap=cmap,
                         vmin=vmin, vmax=vmax, symmetric=symmetric, norm=norm, axis=phase_axis,
-                        cbar=cbar, show_mask=show_mask, show_conf=show_conf)
+                        cbar=cbar, show_mask=show_mask, show_conf=show_conf, scalebar=scalebar)
 
         # Return the plotting axes:
         return phase_axis, holo_axis
@@ -888,7 +895,8 @@ class PhaseMap(object):
     def plot_phase_with_hist(self, sup_title='Combined Plot', phase_title='Phase Map',
                              cbar_title=None, unit='rad', cmap='RdBu', vmin=None, vmax=None,
                              symmetric=True,  norm=None, show_mask=True, show_conf=True,
-                             sigma_clip=None, interpolation='none', bins='auto', **kwargs):
+                             sigma_clip=None, interpolation='none', bins='auto',
+                             scalebar=True, **kwargs):
         """Display the phase map and a histogram of the phase values of all pixels.
 
         Parameters
@@ -960,7 +968,7 @@ class PhaseMap(object):
         phase_axis = fig.add_subplot(1, 2, 2, aspect=1)
         self.plot_phase(title=phase_title, cbar_title=cbar_title, unit=unit, cmap=cmap,
                         vmin=vmin, vmax=vmax, symmetric=symmetric, norm=norm, axis=phase_axis,
-                        show_mask=show_mask, show_conf=show_conf,
+                        show_mask=show_mask, show_conf=show_conf, scalebar=scalebar,
                         sigma_clip=sigma_clip, interpolation=interpolation)
         # Return the plotting axes:
         return phase_axis, hist_axis

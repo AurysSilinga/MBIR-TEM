@@ -61,13 +61,16 @@ class Ramp(object):
     """
 
     def __init__(self, data_set, order=None):
-        self.data_set = data_set
         assert order is None or (isinstance(order, int) and order >= 0), \
             'Order has to be None or a positive integer!'
         self.order = order
+        self.a = data_set.a
+        self.count = data_set.count
+        self.dimensions = [projector.dim_uv for projector in data_set.projectors]
+        self.hook_points = data_set.hook_points
         self.deg_of_freedom = (1 + 2 * self.order) if self.order is not None else 0
-        self.param_cache = np.zeros((self.deg_of_freedom, self.data_set.count))
-        self.n = self.deg_of_freedom * self.data_set.count  # 0 if order is None
+        self.param_cache = np.zeros((self.deg_of_freedom, self.count))
+        self.n = self.deg_of_freedom * self.count  # 0 if order is None
 
     def __call__(self, index, dof_list=None):
         if self.order is None:  # Do nothing if order is None!
@@ -75,14 +78,14 @@ class Ramp(object):
         else:
             if dof_list is None:  # if no specific list is supplied!
                 dof_list = range(self.deg_of_freedom)  # use all available degrees of freedom
-            dim_uv = self.data_set.projectors[index].dim_uv
+            dim_uv = self.dimensions[index]
             phase_ramp = np.zeros(dim_uv)
             # Iterate over all degrees of freedom:
             for dof in dof_list:
                 # Add the contribution of the current degree of freedom:
                 phase_ramp += (self.param_cache[dof][index] *
-                               self.create_poly_mesh(self.data_set.a, dof, dim_uv))
-            return PhaseMap(self.data_set.a, phase_ramp, mask=np.zeros(dim_uv, dtype=np.bool))
+                               self.create_poly_mesh(self.a, dof, dim_uv))
+            return PhaseMap(self.a, phase_ramp, mask=np.zeros(dim_uv, dtype=np.bool))
 
     def jac_dot(self, index):
         """Calculate the product of the Jacobi matrix .
@@ -102,13 +105,13 @@ class Ramp(object):
         if self.order is None:  # Do nothing if order is None!
             return 0
         else:
-            dim_uv = self.data_set.projectors[index].dim_uv
+            dim_uv = self.dimensions[index]
             phase_ramp = np.zeros(dim_uv)
             # Iterate over all degrees of freedom:
             for dof in range(self.deg_of_freedom):
                 # Add the contribution of the current degree of freedom:
                 phase_ramp += (self.param_cache[dof][index] *
-                               self.create_poly_mesh(self.data_set.a, dof, dim_uv))
+                               self.create_poly_mesh(self.a, dof, dim_uv))
             return np.ravel(phase_ramp)
 
     def jac_T_dot(self, vector):
@@ -126,13 +129,13 @@ class Ramp(object):
 
         """
         result = []
-        hp = self.data_set.hook_points
+        hp = self.hook_points
         # Iterate over all degrees of freedom:
         for dof in range(self.deg_of_freedom):
             # Iterate over all projectors:
-            for i, projector in enumerate(self.data_set.projectors):
+            for i, dim_uv in enumerate(self.dimensions):
                 sub_vec = vector[hp[i]:hp[i + 1]]
-                poly_mesh = self.create_poly_mesh(self.data_set.a, dof, projector.dim_uv)
+                poly_mesh = self.create_poly_mesh(self.a, dof, dim_uv)
                 # Transposed ramp parameters: summed product of the vector with the poly-mesh:
                 result.append(np.sum(sub_vec * np.ravel(poly_mesh)))
         return result
@@ -161,7 +164,7 @@ class Ramp(object):
         if self.order is not None:  # Do nothing if order is None!
             # Split off ramp parameters and fill cache:
             x, ramp_params = np.split(x, [-self.n])
-            self.param_cache = ramp_params.reshape((self.deg_of_freedom, self.data_set.count))
+            self.param_cache = ramp_params.reshape((self.deg_of_freedom, self.count))
         return x
 
     @classmethod

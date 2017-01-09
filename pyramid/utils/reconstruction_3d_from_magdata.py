@@ -10,8 +10,6 @@ import numpy as np
 
 import multiprocessing as mp
 
-from jutil.taketime import TakeTime
-
 from .. import reconstruction
 from ..dataset import DataSet
 from ..projector import XTiltProjector, YTiltProjector
@@ -19,6 +17,8 @@ from ..ramp import Ramp
 from ..regularisator import FirstOrderRegularisator
 from ..forwardmodel import ForwardModel, DistributedForwardModel
 from ..costfunction import Costfunction
+from ..phasemapper import PhaseMapperRDFC
+from ..kernel import Kernel
 
 __all__ = ['reconstruction_3d_from_magdata']
 _log = logging.getLogger(__name__)
@@ -103,9 +103,13 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
             projectors.append(XTiltProjector(magdata.dim, angle_rad, dim_uv))
         if axes[1]:
             projectors.append(YTiltProjector(magdata.dim, angle_rad, dim_uv))
-    data.projectors = projectors
-    data.phasemaps = data.create_phasemaps(magdata)
-    # Add projectors and construct according phase maps:
+    # Add pairs of projectors and according phasemaps to the DataSet:
+    for projector in projectors:
+        mag_proj = projector(magdata)
+        phasemap = PhaseMapperRDFC(Kernel(magdata.a, projector.dim_uv, b_0))(mag_proj)
+        phasemap.mask = mag_proj.get_mask()[0, ...]
+        data.append(phasemap, projector)
+    # Add offset and ramp if necessary:
     for i, phasemap in enumerate(data.phasemaps):
         offset = np.random.uniform(-offset_max, offset_max)
         ramp_u = np.random.uniform(-ramp_max, ramp_max)
@@ -130,8 +134,7 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
     reg = FirstOrderRegularisator(data.mask, lam, add_params=fwd_model.ramp.n)
     cost = Costfunction(fwd_model, reg)
     # Reconstruct and save:
-    with TakeTime('reconstruction time'):
-        magdata_rec = reconstruction.optimize_linear(cost, max_iter=max_iter, verbose=verbose)
+    magdata_rec = reconstruction.optimize_linear(cost, max_iter=max_iter, verbose=verbose)
     # Finalize ForwardModel (returns workers if multicore):
     fwd_model.finalize()
     # Plot input:

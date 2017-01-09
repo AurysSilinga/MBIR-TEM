@@ -63,7 +63,7 @@ class Kernel(object):
         size `dim_pad` for the projected magnetization distribution.
     prw_vec: tuple of 2 int, optional
         A two-component vector describing the displacement of the reference wave to include
-        perturbation of this reference by the object itself (via fringing fields).
+        perturbation of this reference by the object itself (via fringing fields), (y, x).
     dtype: numpy dtype, optional
         Data type of the kernel. Default is np.float32.
 
@@ -74,6 +74,8 @@ class Kernel(object):
     def __init__(self, a, dim_uv, b_0=1., prw_vec=None, geometry='disc', dtype=np.float32):
         self._log.debug('Calling __init__')
         # Set basic properties:
+        self.b_0 = b_0
+        self.prw_vec = prw_vec
         self.dim_uv = dim_uv  # Dimensions of the FOV
         self.dim_kern = tuple(2 * np.array(dim_uv) - 1)  # Dimensions of the kernel
         self.a = a
@@ -115,13 +117,13 @@ class Kernel(object):
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
-        return '%s(a=%r, dim_uv=%r, geometry=%r)' % \
-               (self.__class__, self.a, self.dim_uv, self.geometry)
+        return '%s(a=%r, dim_uv=%r, b_0=%r, prw_vec=%r, geometry=%r)' % \
+               (self.__class__, self.a, self.dim_uv, self.b_0, self.prw_vec, self.geometry)
 
     def __str__(self):
         self._log.debug('Calling __str__')
-        return 'Kernel(a=%s, dim_uv=%s, geometry=%s)' % \
-               (self.a, self.dim_uv, self.geometry)
+        return 'Kernel(a=%s, dim_uv=%s, b_0=%s, prw_vec=%s, geometry=%s)' % \
+               (self.a, self.dim_uv, self.b_0, self.prw_vec, self.geometry)
 
     def _get_elementary_phase(self, geometry, n, m, a):
         self._log.debug('Calling _get_elementary_phase')
@@ -134,8 +136,8 @@ class Kernel(object):
                 B = np.arctan(n / m)
                 return n * A - 2 * n + 2 * m * B
 
-            return 0.5 * (_F_a(m - 0.5, n - 0.5) - _F_a(m + 0.5, n - 0.5) -
-                          _F_a(m - 0.5, n + 0.5) + _F_a(m + 0.5, n + 0.5))
+            return 0.5 * (_F_a(n - 0.5, m - 0.5) - _F_a(n + 0.5, m - 0.5) -
+                          _F_a(n - 0.5, m + 0.5) + _F_a(n + 0.5, m + 0.5))
 
     def print_info(self):
         """Print information about the kernel.
@@ -146,11 +148,13 @@ class Kernel(object):
 
         """
         self._log.debug('Calling log_info')
-        print('Shape of the FOV   :', self.dim_uv)
-        print('Shape of the Kernel:', self.dim_kern)
-        print('Zero-padded shape  :', self.dim_pad)
-        print('Shape of the FFT   :', self.dim_fft)
-        print('Slice for the phase:', self.slice_phase)
-        print('Slice for the magn.:', self.slice_mag)
-        print('Grid spacing: {} nm'.format(self.a))
-        print('Geometry:', self.geometry)
+        print('Shape of the FOV    :', self.dim_uv)
+        print('Shape of the Kernel :', self.dim_kern)
+        print('Zero-padded shape   :', self.dim_pad)
+        print('Shape of the FFT    :', self.dim_fft)
+        print('Slice for the phase :', self.slice_phase)
+        print('Slice for the magn. :', self.slice_mag)
+        print('Saturation Induction:', self.b_0)
+        print('Grid spacing        : {} nm'.format(self.a))
+        print('Geometry            :', self.geometry)
+        print('PRW vector          : {} T'.format(self.prw_vec))

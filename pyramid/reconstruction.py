@@ -51,6 +51,7 @@ def optimize_linear(costfunction, mag_0=None, ramp_0=None, max_iter=None, verbos
 
     """
     import jutil.cg as jcg
+    from jutil.taketime import TakeTime
     _log.debug('Calling optimize_linear')
     _log.info('Cost before optimization: {:.3e}'.format(costfunction(np.zeros(costfunction.n))))
     data_set = costfunction.fwd_model.data_set
@@ -65,7 +66,8 @@ def optimize_linear(costfunction, mag_0=None, ramp_0=None, max_iter=None, verbos
         ramp_vec = np.zeros_like(costfunction.fwd_model.ramp.n)
     x_0[data_set.n:] = ramp_vec
     # Minimize:
-    x_opt = jcg.conj_grad_minimize(costfunction, x_0=x_0, max_iter=max_iter, verbose=verbose).x
+    with TakeTime('reconstruction time'):
+        x_opt = jcg.conj_grad_minimize(costfunction, x_0=x_0, max_iter=max_iter, verbose=verbose).x
     _log.info('Cost after optimization: {:.3e}'.format(costfunction(x_opt)))
     # Cut ramp parameters if necessary (this also saves the final parameters in the ramp class!):
     x_opt = costfunction.fwd_model.ramp.extract_ramp_params(x_opt)

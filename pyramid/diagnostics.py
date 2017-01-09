@@ -7,8 +7,6 @@ specified costfunction for a fixed magnetization distribution."""
 
 import logging
 
-from jutil import fft
-
 from pyramid.fielddata import VectorData
 from pyramid.phasemap import PhaseMap
 
@@ -17,7 +15,7 @@ import numpy as np
 
 import jutil
 
-__all__ = ['Diagnostics']
+__all__ = ['Diagnostics', 'get_vector_field_errors']
 
 
 class Diagnostics(object):
@@ -261,3 +259,20 @@ class Diagnostics(object):
             gain = self.gain_row[hp[i]:hp[i + 1]].reshape(projector.dim_uv)
             gain_map_list.append(PhaseMap(self.cost.data_set.a, gain))
         return gain_map_list
+
+
+def get_vector_field_errors(vector_data, vector_data_ref):
+    """After Kemp et. al.: Analysis of noise-induced errors in vector-field electron tomography"""
+    v, vr = vector_data.field, vector_data_ref.field
+    va, vra = vector_data.field_amp, vector_data_ref.field_amp
+    volume = np.prod(vector_data.dim)
+    # Total error:
+    amp_sum_sqr = np.nansum((v - vr)**2)
+    rms_tot = np.sqrt(amp_sum_sqr / np.nansum(vra**2))
+    # Directional error:
+    scal_prod = np.clip(np.nansum(vr * v, axis=0) / (vra * va), -1, 1)  # arccos float pt. inacc.!
+    rms_dir = np.sqrt(np.nansum(np.arccos(scal_prod)**2) / volume) / np.pi
+    # Magnitude error:
+    rms_mag = np.sqrt(np.nansum((va - vra)**2) / np.nansum(vra**2))
+    # Return results as tuple:
+    return rms_tot, rms_dir, rms_mag

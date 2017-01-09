@@ -20,6 +20,7 @@ from PIL import Image
 from scipy.ndimage.interpolation import zoom
 
 from . import colors
+from .scalebars import add_scalebar
 
 __all__ = ['VectorData', 'ScalarData']
 
@@ -771,7 +772,7 @@ class VectorData(FieldData):
 
     def plot_quiver(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
-                    scale=1., show_mask=True, bgcolor='white', cmap=None):
+                    scale=1., show_mask=True, bgcolor='white', cmap=None, scalebar=True):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -916,22 +917,25 @@ class VectorData(FieldData):
         axis.set_xlim(0, dim_uv[1])
         axis.set_ylim(0, dim_uv[0])
         axis.set_title(title, fontsize=18)
-        axis.set_xlabel(u_label, fontsize=15)
-        axis.set_ylabel(v_label, fontsize=15)
-        axis.tick_params(axis='both', which='major', labelsize=14)
-        if dim_uv[0] >= dim_uv[1]:
-            u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
+        if scalebar:
+            add_scalebar(axis, sampling=self.a)
         else:
-            u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.set_xlabel(u_label, fontsize=15)
+            axis.set_ylabel(v_label, fontsize=15)
+            axis.tick_params(axis='both', which='major', labelsize=14)
+            if dim_uv[0] >= dim_uv[1]:
+                u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
+            else:
+                u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
+            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
         # Return plotting axis:
         return axis
 
     def plot_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
-                   ax_slice=None, show_mask=True, bgcolor=None):
+                   ax_slice=None, show_mask=True, bgcolor=None, scalebar=True):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -1008,22 +1012,26 @@ class VectorData(FieldData):
         axis.set_xlim(0, dim_uv[1])
         axis.set_ylim(0, dim_uv[0])
         axis.set_title(title, fontsize=18)
-        axis.set_xlabel(u_label, fontsize=15)
-        axis.set_ylabel(v_label, fontsize=15)
-        axis.tick_params(axis='both', which='major', labelsize=14)
-        if dim_uv[0] >= dim_uv[1]:
-            u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
+        if scalebar:
+            add_scalebar(axis, sampling=self.a)
         else:
-            u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.set_xlabel(u_label, fontsize=15)
+            axis.set_ylabel(v_label, fontsize=15)
+            axis.tick_params(axis='both', which='major', labelsize=14)
+            if dim_uv[0] >= dim_uv[1]:
+                u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
+            else:
+                u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
+            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
         # Return plotting axis:
         return axis
 
     def plot_quiver_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
-                          ar_dens=1, ax_slice=None, show_mask=True,  bgcolor='white'):
+                          ar_dens=1, ax_slice=None, show_mask=True,  bgcolor='white',
+                          scalebar=True):
         """Plot the vector field as a field plot with uniformly colored arrows overlayed.
 
         Parameters
@@ -1054,15 +1062,16 @@ class VectorData(FieldData):
 
         """
         axis = self.plot_field(title=title, axis=axis, proj_axis=proj_axis, figsize=figsize,
-                               ax_slice=ax_slice, show_mask=show_mask, bgcolor=bgcolor)
+                               ax_slice=ax_slice, show_mask=show_mask, bgcolor=bgcolor,
+                               scalebar=False)
         self.plot_quiver(title=title, axis=axis, proj_axis=proj_axis, figsize=figsize,
                          coloring='uniform', ar_dens=ar_dens, ax_slice=ax_slice,
-                         show_mask=show_mask, bgcolor=bgcolor)
+                         show_mask=show_mask, bgcolor=bgcolor, scalebar=scalebar)
         return axis
 
     def plot_streamline(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
                         coloring='angle', ax_slice=None, density=2, linewidth=2,
-                        show_mask=True, bgcolor='white', cmap=None):
+                        show_mask=True, bgcolor='white', cmap=None, scalebar=True):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -1186,17 +1195,20 @@ class VectorData(FieldData):
         axis.set_xlim(0, dim_uv[1])
         axis.set_ylim(0, dim_uv[0])
         axis.set_title(title, fontsize=18)
-        axis.set_xlabel(u_label, fontsize=15)
-        axis.set_ylabel(v_label, fontsize=15)
-        axis.tick_params(axis='both', which='major', labelsize=14)
-        if dim_uv[0] >= dim_uv[1]:
-            u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
+        if scalebar:
+            add_scalebar(axis, sampling=self.a)
         else:
-            u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.set_xlabel(u_label, fontsize=15)
+            axis.set_ylabel(v_label, fontsize=15)
+            axis.tick_params(axis='both', which='major', labelsize=14)
+            if dim_uv[0] >= dim_uv[1]:
+                u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
+            else:
+                u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
+            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
         # Return plotting axis:
         return axis
 
@@ -1244,9 +1256,9 @@ class VectorData(FieldData):
         z_mag = self.field[2][::ad, ::ad, ::ad].ravel()
         # Plot them as vectors:
         mlab.figure(size=(750, 700))
+        extent = np.ravel(list(zip((0, 0, 0), (self.dim[2], self.dim[1], self.dim[0]))))
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation:
             self._log.debug('Encoding full 3D angles')
-            extent = np.ravel(list(zip((0, 0, 0), (self.dim[2], self.dim[1], self.dim[0]))))
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
                                  scalars=np.arange(len(xxx)))
             vector = np.asarray((x_mag.ravel(), y_mag.ravel(), z_mag.ravel()))

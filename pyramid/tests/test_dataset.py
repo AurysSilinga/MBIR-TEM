@@ -39,11 +39,12 @@ class TestCaseDataSet(unittest.TestCase):
         assert self.data.projectors[0] == self.projector, 'Projector not correctly assigned!'
 
     def test_create_phasemaps(self):
-        self.data.projectors = [self.projector]
+        self.data.append(PhaseMap(self.a, np.zeros(self.projector.dim_uv)), self.projector)
         magdata = VectorData(self.a, np.ones((3,) + self.dim))
-        self.data.phasemaps = self.data.create_phasemaps(magdata)
+        phasemaps = self.data.create_phasemaps(magdata)
+        phase_vec = phasemaps[0].phase_vec
         phase_vec_ref = np.load(os.path.join(self.path, 'phase_vec_ref.npy'))
-        assert_allclose(self.data.phase_vec, phase_vec_ref, atol=1E-6,
+        assert_allclose(phase_vec, phase_vec_ref, atol=1E-6,
                         err_msg='Unexpected behaviour in create_phasemaps()!')
 
     def test_set_Se_inv_block_diag(self):

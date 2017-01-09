@@ -69,7 +69,8 @@ _log.info("Starting Pyramid V{} HG{}".format(__version__, __hg_revision__))
 del logging
 
 __all__ = ['analytic', 'magcreator', 'reconstruction', 'fieldconverter',
-           'colors', 'utils', 'load_phasemap', 'load_vectordata']
+           'load_phasemap', 'load_vectordata', 'load_scalardata', 'load_projector', 'load_dataset',
+           'colors', 'utils']
 __all__.extend(costfunction.__all__)
 __all__.extend(dataset.__all__)
 __all__.extend(diagnostics.__all__)

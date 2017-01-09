@@ -8,8 +8,6 @@ import logging
 
 import numpy as np
 
-from jutil.taketime import TakeTime
-
 from .. import reconstruction
 from ..dataset import DataSet
 from ..projector import SimpleProjector
@@ -66,9 +64,8 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
     reg = FirstOrderRegularisator(data.mask, lam, add_params=fwd_model.ramp.n)
     cost = Costfunction(fwd_model, reg)
     # Reconstruct:
-    with TakeTime('reconstruction time'):
-        magdata_rec = reconstruction.optimize_linear(cost, max_iter=max_iter, verbose=verbose)
-        param_cache = cost.fwd_model.ramp.param_cache
+    magdata_rec = reconstruction.optimize_linear(cost, max_iter=max_iter, verbose=verbose)
+    param_cache = cost.fwd_model.ramp.param_cache
     if ramp_order is None:
         offset, ramp = 0, (0, 0)
     elif ramp_order >= 1:

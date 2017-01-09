@@ -21,7 +21,8 @@ import logging
 import numpy as np
 from numpy import pi
 
-__all__ = ['create_mag_dist_homog', 'create_mag_dist_vortex']
+__all__ = ['create_mag_dist_homog', 'create_mag_dist_vortex', 'create_mag_dist_source',
+           'create_mag_dist_smooth_vortex']
 _log = logging.getLogger(__name__)
 
 
@@ -99,8 +100,8 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z'):
         phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=0)
         phi = np.tile(phi, (dim[0], 1, 1))
         z_mag = np.zeros(dim)
-        y_mag = -np.ones(dim) * np.sin(phi) * mag_shape * sign
-        x_mag = -np.ones(dim) * np.cos(phi) * mag_shape * sign
+        y_mag = np.ones(dim) * -np.sin(phi) * mag_shape * sign
+        x_mag = np.ones(dim) * -np.cos(phi) * mag_shape * sign
     elif axis in ('y', '-y'):
         if len(center) == 3:  # if a 3D-center is given, just take the x and z components
             center = (center[0], center[2])
@@ -120,8 +121,164 @@ def create_mag_dist_vortex(mag_shape, center=None, axis='z'):
         uu, vv = np.meshgrid(u, v)
         phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=2)
         phi = np.tile(phi, (1, 1, dim[2]))
-        z_mag = -np.ones(dim) * np.sin(phi) * mag_shape * sign
-        y_mag = -np.ones(dim) * np.cos(phi) * mag_shape * sign
+        z_mag = np.ones(dim) * -np.sin(phi) * mag_shape * sign
+        y_mag = np.ones(dim) * -np.cos(phi) * mag_shape * sign
+        x_mag = np.zeros(dim)
+    else:
+        raise ValueError('{} is not a valid argument (use x, -x, y, -y, z or -z)'.format(axis))
+    return np.array([x_mag, y_mag, z_mag])
+
+
+def create_mag_dist_smooth_vortex(mag_shape, center=None, vort_r=None, axis='z'):
+    """Create a 3-dimensional magnetic distribution of a homogeneous magnetized object.
+
+    Parameters
+    ----------
+    mag_shape : :class:`~numpy.ndarray` (N=3)
+        The magnetic shapes (see :mod:`.~shapes`` for examples).
+    center : tuple (N=2 or N=3), optional
+        The vortex center, given in 2D `(v, u)` or 3D `(z, y, x)`, where the perpendicular axis
+        is is discarded. Is set to the center of the field of view if not specified. The vortex
+        center has to be between two pixels.
+    axis :  {'z', '-z', 'y', '-y', 'x', '-x'}, optional
+        The orientation of the vortex axis. The default is 'z'. Negative values invert the vortex
+        orientation.
+
+    Returns
+    -------
+    amplitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3)
+        The magnetic distribution as a tuple of the 3 components in
+        `x`-, `y`- and `z`-direction on the 3-dimensional grid.
+
+    Notes
+    -----
+        To avoid singularities, the vortex center should lie between the pixel centers (which
+        reside at coordinates with _.5 at the end), i.e. integer values should be used as center
+        coordinates (e.g. coordinate 1 lies between the first and the second pixel).
+
+    """
+
+    def core(r):
+        """Function describing the smooth vortex core."""
+        return 1 - 2/np.pi * np.arcsin(np.tanh(np.pi*r/vort_r))
+
+    _log.debug('Calling create_mag_dist_vortex')
+    dim = mag_shape.shape
+    assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
+    assert center is None or len(center) in {2, 3}, \
+        'Vortex center has to be defined in 3D or 2D or not at all!'
+    if center is None:
+        center = (dim[1] / 2, dim[2] / 2)
+    sign = -1 if '-' in axis else 1
+    if axis in ('z', '-z'):
+        if len(center) == 3:  # if a 3D-center is given, just take the x and y components
+            center = (center[1], center[2])
+        u = np.linspace(-center[1], dim[2] - 1 - center[1], dim[2]) + 0.5  # pixel center!
+        v = np.linspace(-center[0], dim[1] - 1 - center[0], dim[1]) + 0.5  # pixel center!
+        uu, vv = np.meshgrid(u, v)
+        rr = np.hypot(uu, vv)[None, :, :]
+        phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=0)
+        phi = np.tile(phi, (dim[0], 1, 1))
+        z_mag = np.ones(dim) * mag_shape * sign * core(rr)
+        y_mag = np.ones(dim) * -np.sin(phi) * mag_shape * sign * np.sqrt(1 - core(rr))
+        x_mag = np.ones(dim) * -np.cos(phi) * mag_shape * sign * np.sqrt(1 - core(rr))
+    elif axis in ('y', '-y'):
+        if len(center) == 3:  # if a 3D-center is given, just take the x and z components
+            center = (center[0], center[2])
+        u = np.linspace(-center[1], dim[2] - 1 - center[1], dim[2]) + 0.5  # pixel center!
+        v = np.linspace(-center[0], dim[0] - 1 - center[0], dim[0]) + 0.5  # pixel center!
+        uu, vv = np.meshgrid(u, v)
+        rr = np.hypot(uu, vv)[:, None, :]
+        phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=1)
+        phi = np.tile(phi, (1, dim[1], 1))
+        z_mag = np.ones(dim) * np.sin(phi) * mag_shape * sign * np.sqrt(1 - core(rr))
+        y_mag = np.ones(dim) * mag_shape * sign * core(rr)
+        x_mag = np.ones(dim) * np.cos(phi) * mag_shape * sign * np.sqrt(1 - core(rr))
+    elif axis in ('x', '-x'):
+        if len(center) == 3:  # if a 3D-center is given, just take the z and y components
+            center = (center[0], center[1])
+        u = np.linspace(-center[1], dim[1] - 1 - center[1], dim[1]) + 0.5  # pixel center!
+        v = np.linspace(-center[0], dim[0] - 1 - center[0], dim[0]) + 0.5  # pixel center!
+        uu, vv = np.meshgrid(u, v)
+        rr = np.hypot(uu, vv)[:, :, None]
+        phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=2)
+        phi = np.tile(phi, (1, 1, dim[2]))
+        z_mag = np.ones(dim) * -np.sin(phi) * mag_shape * sign * np.sqrt(1 - core(rr))
+        y_mag = np.ones(dim) * -np.cos(phi) * mag_shape * sign * np.sqrt(1 - core(rr))
+        x_mag = np.ones(dim) * mag_shape * sign * core(rr)
+    else:
+        raise ValueError('{} is not a valid argument (use x, -x, y, -y, z or -z)'.format(axis))
+    return np.array([x_mag, y_mag, z_mag])
+
+
+def create_mag_dist_source(mag_shape, center=None, axis='z'):
+    """Create a 3-dimensional magnetic distribution of a homogeneous magnetized object.
+
+    Parameters
+    ----------
+    mag_shape : :class:`~numpy.ndarray` (N=3)
+        The magnetic shapes (see :mod:`.~shapes`` for examples).
+    center : tuple (N=2 or N=3), optional
+        The source center, given in 2D `(v, u)` or 3D `(z, y, x)`, where the perpendicular axis
+        is is discarded. Is set to the center of the field of view if not specified.
+        The source center has to be between two pixels.
+    axis :  {'z', '-z', 'y', '-y', 'x', '-x'}, optional
+        The orientation of the source axis. The default is 'z'. Negative values invert the source
+        to a sink.
+
+    Returns
+    -------
+    amplitude : tuple (N=3) of :class:`~numpy.ndarray` (N=3)
+        The magnetic distribution as a tuple of the 3 components in
+        `x`-, `y`- and `z`-direction on the 3-dimensional grid.
+
+    Notes
+    -----
+        To avoid singularities, the source center should lie between the pixel centers (which
+        reside at coordinates with _.5 at the end), i.e. integer values should be used as center
+        coordinates (e.g. coordinate 1 lies between the first and the second pixel).
+
+    """
+    _log.debug('Calling create_mag_dist_vortex')
+    dim = mag_shape.shape
+    assert len(dim) == 3, 'Magnetic shapes must describe 3-dimensional distributions!'
+    assert center is None or len(center) in {2, 3}, \
+        'Vortex center has to be defined in 3D or 2D or not at all!'
+    if center is None:
+        center = (dim[1] / 2, dim[2] / 2)
+    sign = -1 if '-' in axis else 1
+    if axis in ('z', '-z'):
+        if len(center) == 3:  # if a 3D-center is given, just take the x and y components
+            center = (center[1], center[2])
+        u = np.linspace(-center[1], dim[2] - 1 - center[1], dim[2]) + 0.5  # pixel center!
+        v = np.linspace(-center[0], dim[1] - 1 - center[0], dim[1]) + 0.5  # pixel center!
+        uu, vv = np.meshgrid(u, v)
+        phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=0)
+        phi = np.tile(phi, (dim[0], 1, 1))
+        z_mag = np.zeros(dim)
+        y_mag = np.ones(dim) * np.cos(phi) * mag_shape * sign
+        x_mag = np.ones(dim) * -np.sin(phi) * mag_shape * sign
+    elif axis in ('y', '-y'):
+        if len(center) == 3:  # if a 3D-center is given, just take the x and z components
+            center = (center[0], center[2])
+        u = np.linspace(-center[1], dim[2] - 1 - center[1], dim[2]) + 0.5  # pixel center!
+        v = np.linspace(-center[0], dim[0] - 1 - center[0], dim[0]) + 0.5  # pixel center!
+        uu, vv = np.meshgrid(u, v)
+        phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=1)
+        phi = np.tile(phi, (1, dim[1], 1))
+        z_mag = np.ones(dim) * np.cos(phi) * mag_shape * sign
+        y_mag = np.zeros(dim)
+        x_mag = np.ones(dim) * -np.sin(phi) * mag_shape * sign
+    elif axis in ('x', '-x'):
+        if len(center) == 3:  # if a 3D-center is given, just take the z and y components
+            center = (center[0], center[1])
+        u = np.linspace(-center[1], dim[1] - 1 - center[1], dim[1]) + 0.5  # pixel center!
+        v = np.linspace(-center[0], dim[0] - 1 - center[0], dim[0]) + 0.5  # pixel center!
+        uu, vv = np.meshgrid(u, v)
+        phi = np.expand_dims(np.arctan2(vv, uu) - pi / 2, axis=2)
+        phi = np.tile(phi, (1, 1, dim[2]))
+        z_mag = np.ones(dim) * np.cos(phi) * mag_shape * sign
+        y_mag = np.ones(dim) * -np.sin(phi) * mag_shape * sign
         x_mag = np.zeros(dim)
     else:
         raise ValueError('{} is not a valid argument (use x, -x, y, -y, z or -z)'.format(axis))

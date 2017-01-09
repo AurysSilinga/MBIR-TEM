@@ -8,7 +8,13 @@ projections of vector and scalar fields."""
 import itertools
 import logging
 
-from tqdm import tqdm
+try:
+    if type(get_ipython()).__name__ == 'ZMQInteractiveShell':  # IPython Notebook!
+        from tqdm import tqdm_notebook as tqdm
+    else:  # IPython, but not a Notebook (e.g. terminal)
+        from tqdm import tqdm
+except NameError:
+    from tqdm import tqdm
 
 import numpy as np
 from numpy import pi
@@ -292,7 +298,8 @@ class RotTiltProjector(Projector):
         weight_lookup = self._create_weight_lookup(subcount, R)
         # Go over all voxels:
         disable = not verbose
-        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False)):
+        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False,
+                                       desc='Set up projector')):
             column_index = voxel[0] * dim_y * dim_x + voxel[1] * dim_x + voxel[2]
             remainder, impact = np.modf(impacts[:, i])  # split index of impact and remainder!
             sub_pixel = (remainder * subcount).astype(dtype=np.int)  # sub_pixel inside impact px.
@@ -414,7 +421,8 @@ class XTiltProjector(Projector):
         data = []
         # One slice:
         disable = not verbose
-        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False, desc='first slice')):
+        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False,
+                                       desc='Set up projector')):
             impacts = self._get_impact(positions[i], r, dim_v)  # impact along projected y-axis
             voxel_index = voxel[0] * dim_rot * dim_perp + voxel[1] * dim_rot  # 0: z, 1: y
             for impact in impacts:
@@ -431,20 +439,6 @@ class XTiltProjector(Projector):
         addition = np.repeat(np.arange(dim_rot), len(row))
         columns += addition
         rows += addition
-
-        # columns = []
-        # rows = []
-        # for s in tqdm(np.arange(dim_rot), disable=disable, leave=False, desc='other slices'):
-        #     columns.extend(np.asarray(col) + s)
-        #     rows.extend(np.array(row) + s)
-
-        # columns = col
-        # rows = row
-        # for s in tqdm(np.arange(1, dim_rot), disable=disable, leave=False, desc='other slices'):
-            # columns = np.hstack((np.array(columns), np.array(col) + s))
-            # rows = np.hstack((np.array(rows), np.array(row) + s))
-
-
         # Calculate weight matrix and coefficients for jacobi matrix:
         shape = (np.prod(dim_uv), np.prod(dim))
         weight = csr_matrix(coo_matrix((data, (rows, columns)), shape=shape))
@@ -544,7 +538,8 @@ class YTiltProjector(Projector):
         data = []
         # One slice:
         disable = not verbose
-        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False)):
+        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False,
+                                       desc='Set up projector')):
             impacts = self._get_impact(positions[i], r, dim_u)  # impact along projected x-axis
             voxel_index = voxel[0] * dim_perp * dim_rot + voxel[1]  # 0: z, 1: x
             for impact in impacts:

@@ -26,9 +26,10 @@ def save_dataset(dataset, filename, overwrite=True):
     path, filename = os.path.split(filename)
     name, extension = os.path.splitext(filename)
     assert extension in ['.hdf5', ''], 'For now only HDF5 format is supported!'
-    filename = name + '.hdf5'  # In case no extension is provided, set to HDF5!
+    if name.startswith('dataset_'):
+        name = name.split('dataset_')[1]
     # Header file:
-    header_name = os.path.join(path, 'dataset_{}'.format(filename))
+    header_name = os.path.join(path, 'dataset_{}.hdf5'.format(name))
     if not os.path.isfile(header_name) or overwrite:  # Write if file does not exist or if forced:
         with h5py.File(header_name, 'w') as f:
             f.attrs['a'] = dataset.a
@@ -74,9 +75,8 @@ def load_dataset(filename):
     assert extension in ['.hdf5', ''], 'For now only HDF5 format is supported!'
     if name.startswith('dataset_'):
         name = name.split('dataset_')[1]
-    filename = name + '.hdf5'  # In case no extension is provided, set to HDF5!
     # Header file:
-    header_name = os.path.join(path, 'dataset_{}'.format(filename))
+    header_name = os.path.join(path, 'dataset_{}.hdf5'.format(name))
     with h5py.File(header_name, 'r') as f:
         a = f.attrs.get('a')
         dim = f.attrs.get('dim')
@@ -93,7 +93,6 @@ def load_dataset(filename):
                 projector = load_projector(os.path.join(path, f))
                 projectors.append((int(i), projector))
     projectors = [p[1] for p in sorted(projectors, key=lambda x: x[0])]
-    dataset.projectors = projectors
     # PhaseMaps:
     phasemaps = []
     for f in os.listdir(path):
@@ -103,6 +102,6 @@ def load_dataset(filename):
                 phasemap = load_phasemap(os.path.join(path, f))
                 phasemaps.append((int(i), phasemap))
     phasemaps = [p[1] for p in sorted(phasemaps, key=lambda x: x[0])]
-    dataset.phasemaps = phasemaps
+    dataset.append(phasemaps, projectors)
     # Return DataSet:
     return dataset

@@ -19,7 +19,8 @@ __all__ = ['pyramid_logo', 'singularity', 'homog_pixel', 'homog_slab', 'homog_di
            'homog_sphere', 'homog_filament', 'homog_alternating_filament',
            'homog_array_sphere_disc_slab', 'homog_random_pixels', 'homog_random_slabs',
            'vortex_slab', 'vortex_disc', 'vortex_alternating_discs', 'vortex_sphere',
-           'vortex_horseshoe', 'core_shell_disc', 'core_shell_sphere']
+           'vortex_horseshoe', 'smooth_vortex_disc', 'source_disc',
+           'core_shell_disc', 'core_shell_sphere']
 _log = logging.getLogger(__name__)
 
 
@@ -42,13 +43,16 @@ def singularity(a=1., dim=(5, 5, 5), center=None):
     _log.debug('Calling singularity')
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
-    zz, yy, xx = np.indices(dim)
-    magnitude = np.array((xx - center[2], yy - center[1], zz - center[0])).astype(float)
-    # magnitude /= np.sqrt((magnitude ** 2 + 1E-30).sum(axis=0))
+    x = np.linspace(-center[2], dim[2] - 1 - center[2], dim[2]) + 0.5  # pixel center!
+    y = np.linspace(-center[1], dim[1] - 1 - center[1], dim[1]) + 0.5  # pixel center!
+    z = np.linspace(-center[0], dim[0] - 1 - center[0], dim[0]) + 0.5  # pixel center!
+    yy, zz, xx = np.meshgrid(x, y, z)  # What's up with this strange order???
+    magnitude = np.array((xx, yy, zz)).astype(float)
+    magnitude /= np.sqrt((magnitude ** 2 + 1E-30).sum(axis=0))  # Normalise!
     return VectorData(a, magnitude)
 
 
-def homog_pixel(a=1., dim=(1, 9, 9), pixel=None, phi=np.pi / 4, theta=np.pi / 2):
+def homog_pixel(a=1., dim=(1, 9, 9), pixel=None, phi=np.pi/4, theta=np.pi/2):
     """Create single magnetised slab."""
     _log.debug('Calling homog_pixel')
     if pixel is None:
@@ -57,13 +61,13 @@ def homog_pixel(a=1., dim=(1, 9, 9), pixel=None, phi=np.pi / 4, theta=np.pi / 2)
     return VectorData(a, mc.create_mag_dist_homog(mag_shape, phi, theta))
 
 
-def homog_slab(a=1., dim=(32, 32, 32), center=None, width=None, phi=np.pi / 4, theta=np.pi / 4):
+def homog_slab(a=1., dim=(32, 32, 32), center=None, width=None, phi=np.pi/4, theta=np.pi/4):
     """Create homogeneous slab magnetisation distribution."""
     _log.debug('Calling homog_slab')
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if width is None:
-        width = (dim[0] // 8, dim[1] // 2, dim[2] // 4)
+        width = (np.max((dim[0] // 8, 1)), np.max((dim[1] // 2, 1)), np.max((dim[2] // 4, 1)))
     mag_shape = shapes.slab(dim, center, width)
     return VectorData(a, mc.create_mag_dist_homog(mag_shape, phi, theta))
 
@@ -77,12 +81,12 @@ def homog_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None,
     if radius is None:
         radius = dim[2] // 4
     if height is None:
-        height = dim[0] // 2
+        height = np.max((dim[0] // 2, 1))
     mag_shape = shapes.disc(dim, center, radius, height)
     return VectorData(a, mc.create_mag_dist_homog(mag_shape, phi, theta))
 
 
-def homog_sphere(a=1., dim=(32, 32, 32), center=None, radius=None, phi=np.pi / 4, theta=np.pi / 4):
+def homog_sphere(a=1., dim=(32, 32, 32), center=None, radius=None, phi=np.pi/4, theta=np.pi/4):
     """Create homogeneous sphere magnetisation distribution."""
     _log.debug('Calling homog_sphere')
     if center is None:
@@ -93,7 +97,7 @@ def homog_sphere(a=1., dim=(32, 32, 32), center=None, radius=None, phi=np.pi / 4
     return VectorData(a, mc.create_mag_dist_homog(mag_shape, phi, theta))
 
 
-def homog_filament(a=1., dim=(1, 21, 21), pos=None, phi=np.pi / 2, theta=np.pi / 2):
+def homog_filament(a=1., dim=(1, 21, 21), pos=None, phi=np.pi / 2, theta=np.pi/2):
     """Create magnetisation distribution of a single magnetised filaments."""
     _log.debug('Calling homog_filament')
     if pos is None:
@@ -102,7 +106,7 @@ def homog_filament(a=1., dim=(1, 21, 21), pos=None, phi=np.pi / 2, theta=np.pi /
     return VectorData(a, mc.create_mag_dist_homog(mag_shape, phi, theta))
 
 
-def homog_alternating_filament(a=1., dim=(1, 21, 21), spacing=5, phi=np.pi / 2, theta=np.pi / 2):
+def homog_alternating_filament(a=1., dim=(1, 21, 21), spacing=5, phi=np.pi/2, theta=np.pi/2):
     """Create magnetisation distribution of alternating filaments."""
     _log.debug('Calling homog_alternating_filament')
     count = int((dim[1] - 1) / spacing) + 1
@@ -164,7 +168,7 @@ def vortex_slab(a=1., dim=(32, 32, 32), center=None, width=None, axis='z'):
     if center is None:
         center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
     if width is None:
-        width = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
+        width = (np.max((dim[0] // 2, 1)), np.max((dim[1] // 2, 1)), np.max((dim[2] // 2, 1)))
     mag_shape = shapes.slab(dim, center, width)
     magnitude = mc.create_mag_dist_vortex(mag_shape, center, axis)
     return VectorData(a, magnitude)
@@ -178,7 +182,7 @@ def vortex_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None, a
     if radius is None:
         radius = dim[2] // 4
     if height is None:
-        height = dim[0] // 2
+        height = np.max((dim[0] // 2, 1))
     mag_shape = shapes.disc(dim, center, radius, height, axis)
     magnitude = mc.create_mag_dist_vortex(mag_shape, center, axis)
     return VectorData(a, magnitude)
@@ -200,7 +204,7 @@ def vortex_alternating_discs(a=1., dim=(80, 32, 32), count=8):
     return magdata
 
 
-def vortex_sphere(a=1., dim=(32, 32, 32), center=None, radius=None, axis = 'z'):
+def vortex_sphere(a=1., dim=(32, 32, 32), center=None, radius=None, axis='z'):
     """Create vortex sphere magnetisation distribution."""
     _log.debug('Calling vortex_sphere')
     if center is None:
@@ -223,12 +227,43 @@ def vortex_horseshoe(a=1., dim=(16, 64, 64), center=None, radius_core=None,
     if radius_shell is None:
         radius_shell = dim[1] // 4
     if height is None:
-        height = dim[0] // 2
+        height = np.max((dim[0] // 2, 1))
     mag_shape_core = shapes.disc(dim, center, radius_core, height)
     mag_shape_outer = shapes.disc(dim, center, radius_shell, height)
     mag_shape_horseshoe = np.logical_xor(mag_shape_outer, mag_shape_core)
     mag_shape_horseshoe[:, dim[1] // 2:, :] = False
     return VectorData(a, mc.create_mag_dist_vortex(mag_shape_horseshoe))
+
+
+def smooth_vortex_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None, axis='z',
+                       vortex_radius=None):
+    """Create smooth vortex disc magnetisation distribution."""
+    _log.debug('Calling vortex_disc')
+    if center is None:
+        center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
+    if radius is None:
+        radius = dim[2] // 4
+    if height is None:
+        height = np.max((dim[0] // 2, 1))
+    if vortex_radius is None:
+        vortex_radius = radius // 2
+    mag_shape = shapes.disc(dim, center, radius, height, axis)
+    magnitude = mc.create_mag_dist_smooth_vortex(mag_shape, center, vortex_radius, axis)
+    return VectorData(a, magnitude)
+
+
+def source_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None, axis='z'):
+    """Create source disc magnetisation distribution."""
+    _log.debug('Calling vortex_disc')
+    if center is None:
+        center = (dim[0] // 2, dim[1] // 2, dim[2] // 2)
+    if radius is None:
+        radius = dim[2] // 4
+    if height is None:
+        height = np.max((dim[0] // 2, 1))
+    mag_shape = shapes.disc(dim, center, radius, height, axis)
+    magnitude = mc.create_mag_dist_source(mag_shape, center, axis)
+    return VectorData(a, magnitude)
 
 
 def core_shell_disc(a=1., dim=(32, 32, 32), center=None, radius_core=None,
@@ -242,7 +277,7 @@ def core_shell_disc(a=1., dim=(32, 32, 32), center=None, radius_core=None,
     if radius_shell is None:
         radius_shell = dim[1] // 4
     if height is None:
-        height = dim[0] // 2
+        height = np.max((dim[0] // 2, 1))
     mag_shape_core = shapes.disc(dim, center, radius_core, height)
     mag_shape_outer = shapes.disc(dim, center, radius_shell, height)
     mag_shape_shell = np.logical_xor(mag_shape_outer, mag_shape_core)
