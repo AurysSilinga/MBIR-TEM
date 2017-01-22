@@ -62,7 +62,10 @@ class PhaseMap(object):
 
     UNITDICT = {u'rad': 1E0,
                 u'mrad': 1E3,
-                u'µrad': 1E6}
+                u'µrad': 1E6,
+                u'1/rad': 1E0,
+                u'1/mrad': 1E-3,
+                u'1/µrad': 1E-6}
 
     CDICT = {'red': [(0.00, 1.0, 0.0),
                      (0.25, 1.0, 1.0),
@@ -600,7 +603,7 @@ class PhaseMap(object):
         from .file_io.io_phasemap import save_phasemap
         save_phasemap(self, filename, save_mask, save_conf, pyramid_format, **kwargs)
 
-    def plot_phase(self, title='Phase Map', cbar_title=None, unit='rad', cmap='RdBu',
+    def plot_phase(self, title=None, cbar_title=None, unit='rad', cmap='RdBu',
                    vmin=None, vmax=None, symmetric=True, norm=None, axis=None, cbar=True,
                    figsize=(9, 8), show_mask=True, show_conf=True, sigma_clip=None,
                    interpolation='none', scalebar=True):
@@ -612,8 +615,9 @@ class PhaseMap(object):
             The title of the plot. The default is 'Phase Map'.
         cbar_title : string, optional
             The title of the colorbar.
-        unit: {'rad', 'mrad', 'µrad'}, optional
+        unit: {'rad', 'mrad', 'µrad', '1/rad', '1/mrad', '1/µrad'}, optional
             The plotting unit of the phase map. The phase is scaled accordingly before plotting.
+            Inverse radians should be used for gain maps!
         always in `rad`.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
@@ -653,6 +657,7 @@ class PhaseMap(object):
 
         """
         self._log.debug('Calling plot_phase')
+        a = self.a
         # Take units into consideration:
         phase = self.phase * self.UNITDICT[unit]
         # Calculate limits if necessary (not necessary if both limits are already set):
@@ -704,9 +709,14 @@ class PhaseMap(object):
         # Further plot formatting:
         axis.set_xlim(0, self.dim_uv[1])
         axis.set_ylim(0, self.dim_uv[0])
+        if title is None:
+            if unit.startswith('1/'):
+                title = 'Gain Map'
+            else:
+                title = 'Phase Map'
         axis.set_title(title, fontsize=18)
         if scalebar:
-            add_scalebar(axis, sampling=self.a)
+            add_scalebar(axis, sampling=a)
         else:  # Set the axes ticks and labels:
             axis.set_xlabel('u-axis [nm]', fontsize=15)
             axis.set_ylabel('v-axis [nm]', fontsize=15)
@@ -716,8 +726,8 @@ class PhaseMap(object):
                 u_bin, v_bin = 9, np.max((2, np.floor(9 * self.dim_uv[0] / self.dim_uv[1])))
             axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
             axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
+            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
             axis.tick_params(axis='both', which='major', labelsize=14)
         # # Add colorbar:
         if cbar:
@@ -726,7 +736,11 @@ class PhaseMap(object):
             cbar = plt.colorbar(im, cax=cbar_ax)
             cbar.ax.tick_params(labelsize=14)
             if cbar_title is None:
-                cbar_title = u'phase shift [{}]'.format(unit)
+                if unit.startswith('1/'):
+                    cbar_name = 'gain'
+                else:
+                    cbar_name = 'phase'
+                cbar_title = u'{} [{}]'.format(cbar_name, unit)
             cbar.set_label(cbar_title, fontsize=15)
         # Return plotting axis:
         return axis

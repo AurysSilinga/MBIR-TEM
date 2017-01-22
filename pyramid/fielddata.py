@@ -14,6 +14,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 from matplotlib.colors import ListedColormap
+from matplotlib import patheffects
 
 from PIL import Image
 
@@ -711,7 +712,7 @@ class VectorData(FieldData):
             u_mag = np.copy(self.field[0][:, ax_slice, :])  # x-component
             v_mag = np.copy(self.field[2][:, ax_slice, :])  # z-component
             w_mag = np.copy(self.field[1][:, ax_slice, :])  # y-component
-        elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
+        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
             self._log.debug('proj_axis == x')
             u_mag = np.swapaxes(np.copy(self.field[2][..., ax_slice]), 0, 1)  # z-component
             v_mag = np.swapaxes(np.copy(self.field[1][..., ax_slice]), 0, 1)  # y-component
@@ -772,7 +773,7 @@ class VectorData(FieldData):
 
     def plot_quiver(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
                     coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
-                    scale=1., show_mask=True, bgcolor='white', cmap=None, scalebar=True):
+                    scale=1., show_mask=True, bgcolor='white', cmap=None, scalebar=True, b_0=None):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -831,7 +832,7 @@ class VectorData(FieldData):
             u_label = 'x-axis [nm]'
             v_label = 'z-axis [nm]'
             submask = self.get_mask()[:, ax_slice, :]
-        elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
+        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
             u_label = 'z-axis [nm]'
             v_label = 'y-axis [nm]'
             submask = self.get_mask()[..., ax_slice]
@@ -893,15 +894,15 @@ class VectorData(FieldData):
         if scaled:
             u_mag /= amplitudes.max() + 1E-30
             v_mag /= amplitudes.max() + 1E-30
-        im = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1), angles=angles,
-                         pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
-                         minlength=0.05, width=1*ar_dens, headlength=2, headaxislength=2,
-                         headwidth=2, minshaft=2)
+        quiv = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1), angles=angles,
+                           pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
+                           minlength=0.05, width=1*ar_dens, headlength=2, headaxislength=2,
+                           headwidth=2, minshaft=2)
         if coloring == 'amplitude':
             fig = plt.gcf()
             fig.subplots_adjust(right=0.8)
             cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
-            cbar = fig.colorbar(im, cax=cbar_ax)
+            cbar = fig.colorbar(quiv, cax=cbar_ax)
             cbar.ax.tick_params(labelsize=14)
             cbar_title = u'amplitude'
             cbar.set_label(cbar_title, fontsize=15)
@@ -917,8 +918,9 @@ class VectorData(FieldData):
         axis.set_xlim(0, dim_uv[1])
         axis.set_ylim(0, dim_uv[0])
         axis.set_title(title, fontsize=18)
+        a = self.a
         if scalebar:
-            add_scalebar(axis, sampling=self.a)
+            add_scalebar(axis, sampling=a)
         else:
             axis.set_xlabel(u_label, fontsize=15)
             axis.set_ylabel(v_label, fontsize=15)
@@ -929,8 +931,19 @@ class VectorData(FieldData):
                 u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
             axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
             axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
+            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
+        # Plot quiverkey if B_0 is specified):
+        if b_0 and not log:  # The angles needed for log would break the quiverkey!
+            label = '{:.3g} T'.format(amplitudes.max() * b_0)
+            quiv.angles = 'uv'  # With a list of angles, the quiverkey would break!
+            qk = plt.quiverkey(Q=quiv, X=0.88, Y=0.065, U=1, label=label, labelpos='W',
+                               coordinates='axes', edgecolor='k', labelcolor='w',
+                               fontproperties={'size': 18}, facecolor='w', linewidth=0.5,
+                               clip_box=axis.bbox, clip_on=True)
+            qk._init()  # Necessary, because qk.vector is created here!
+            qk.vector.set_path_effects([patheffects.withStroke(linewidth=2, foreground='k')])
+            qk.text.set_path_effects([patheffects.withStroke(linewidth=2, foreground='k')])
         # Return plotting axis:
         return axis
 
@@ -963,6 +976,7 @@ class VectorData(FieldData):
 
         """
         self._log.debug('Calling plot_field')
+        a = self.a
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             'Axis has to be x, y or z (as string).'
         if ax_slice is None:
@@ -976,7 +990,7 @@ class VectorData(FieldData):
             u_label = 'x-axis [nm]'
             v_label = 'z-axis [nm]'
             submask = self.get_mask()[:, ax_slice, :]
-        elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
+        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
             u_label = 'z-axis [nm]'
             v_label = 'y-axis [nm]'
             submask = self.get_mask()[..., ax_slice]
@@ -1013,7 +1027,7 @@ class VectorData(FieldData):
         axis.set_ylim(0, dim_uv[0])
         axis.set_title(title, fontsize=18)
         if scalebar:
-            add_scalebar(axis, sampling=self.a)
+            add_scalebar(axis, sampling=a)
         else:
             axis.set_xlabel(u_label, fontsize=15)
             axis.set_ylabel(v_label, fontsize=15)
@@ -1024,14 +1038,14 @@ class VectorData(FieldData):
                 u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
             axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
             axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
+            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
         # Return plotting axis:
         return axis
 
     def plot_quiver_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
                           ar_dens=1, ax_slice=None, show_mask=True,  bgcolor='white',
-                          scalebar=True):
+                          scalebar=True, **kwargs):
         """Plot the vector field as a field plot with uniformly colored arrows overlayed.
 
         Parameters
@@ -1066,7 +1080,7 @@ class VectorData(FieldData):
                                scalebar=False)
         self.plot_quiver(title=title, axis=axis, proj_axis=proj_axis, figsize=figsize,
                          coloring='uniform', ar_dens=ar_dens, ax_slice=ax_slice,
-                         show_mask=show_mask, bgcolor=bgcolor, scalebar=scalebar)
+                         show_mask=show_mask, bgcolor=bgcolor, scalebar=scalebar, **kwargs)
         return axis
 
     def plot_streamline(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
@@ -1126,7 +1140,7 @@ class VectorData(FieldData):
             u_label = 'x-axis [nm]'
             v_label = 'z-axis [nm]'
             submask = self.get_mask()[:, ax_slice, :]
-        elif proj_axis == 'x':  # Slice of the yz-plane with x = ax_slice
+        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
             u_label = 'z-axis [nm]'
             v_label = 'y-axis [nm]'
             submask = self.get_mask()[..., ax_slice]

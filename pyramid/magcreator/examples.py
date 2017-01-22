@@ -38,7 +38,7 @@ def pyramid_logo(a=1., dim=(1, 256, 256), phi=np.pi / 2, theta=np.pi / 2):
     return VectorData(a, mc.create_mag_dist_homog(mag_shape, phi, theta))
 
 
-def singularity(a=1., dim=(5, 5, 5), center=None):
+def singularity(a=1., dim=(8, 8, 8), center=None):
     """Create magnetic singularity."""
     _log.debug('Calling singularity')
     if center is None:

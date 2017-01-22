@@ -11,6 +11,9 @@ from pyramid.fielddata import VectorData
 from pyramid.phasemap import PhaseMap
 
 import matplotlib.pyplot as plt
+from matplotlib import patches
+from matplotlib import patheffects
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 
 import jutil
@@ -61,11 +64,14 @@ class Diagnostics(object):
     def cov_row(self):
         """Row of the covariance matrix (``S_a^-1+F'(x_f)^T S_e^-1 F'(x_f)``) which is needed for
         the calculation of the gain and averaging kernel matrizes and which ideally contains the
-        variance at position `row_idx` for the current component and position in 3D."""
+        variance at position `row_idx` for the current component and position in 3D.
+        Note that the covariance matrix of the solution is symmetric (like all covariance
+        matrices and thusly this property could also be called cov_col for column."""
         if not self._updated_cov_row:
             e_i = np.zeros(self.cost.n, dtype=self.x_rec.dtype)
             e_i[self.row_idx] = 1
-            row = 2 * jutil.cg.conj_grad_solve(self._A, e_i, P=self._P, max_iter=self.max_iter)
+            row = 2 * jutil.cg.conj_grad_solve(self._A, e_i, P=self._P, max_iter=self.max_iter,
+                                               verbose=self.verbose)
             self._std_row = np.asarray(row)
             self._updated_cov_row = True
         return self._std_row
@@ -128,15 +134,19 @@ class Diagnostics(object):
             self._updated_avrg_kern_row = False
             self._updated_measure_contribution = False
 
-    def __init__(self, x_rec, cost, max_iter=1000):
+    def __init__(self, magdata, cost, max_iter=1000, verbose=False):
         self._log.debug('Calling __init__')
-        self.x_rec = x_rec
+        self.magdata = magdata
         self.cost = cost
         self.max_iter = max_iter
+        self.verbose = verbose
         self.fwd_model = cost.fwd_model
         self.Se_inv = cost.Se_inv
-        self.dim = cost.data_set.dim
-        self.mask = cost.data_set.mask
+        self.dim = cost.fwd_model.data_set.dim
+        self.mask = cost.fwd_model.data_set.mask
+        self.x_rec = np.empty(cost.n)
+        self.x_rec[:self.fwd_model.data_set.n] = self.magdata.get_vector(mask=self.mask)
+        self.x_rec[self.fwd_model.data_set.n:] = self.fwd_model.ramp.param_cache.ravel()
         self.row_idx = None
         self.pos = (0,) + tuple(np.array(np.where(self.mask))[:, 0])  # first True mask entry
         self._updated_cov_row = False
@@ -147,7 +157,7 @@ class Diagnostics(object):
         self._P = jutil.preconditioner.CostFunctionPreconditioner(self.cost, self.x_rec)
         self._log.debug('Creating ' + str(self))
 
-    def get_avg_kern_row(self, pos=None):
+    def get_avg_kern_field(self, pos=None):
         """Get the averaging kernel matrix row represented as a 3D magnetization distribution.
 
         Parameters
@@ -161,14 +171,15 @@ class Diagnostics(object):
             Averaging kernel matrix row represented as a 3D magnetization distribution
 
         """
-        self._log.debug('Calling get_avg_kern_row')
+        self._log.debug('Calling get_avg_kern_field')
         if pos is not None:
             self.pos = pos
-        magdata_avg_kern = VectorData(self.cost.data_set.a, np.zeros((3,) + self.dim))
-        magdata_avg_kern.set_vector(self.avrg_kern_row, mask=self.mask)
+        magdata_avg_kern = VectorData(self.cost.fwd_model.data_set.a, np.zeros((3,) + self.dim))
+        vector = self.avrg_kern_row[:-self.fwd_model.ramp.n]  # Only take vector field, not ramp!
+        magdata_avg_kern.set_vector(vector, mask=self.mask)
         return magdata_avg_kern
 
-    def calculate_averaging(self, pos=None):
+    def calculate_fwhm(self, pos=None, plot=False):
         """Calculate and plot the averaging pixel number at a specified position for x, y or z.
 
         Parameters
@@ -178,59 +189,102 @@ class Diagnostics(object):
 
         Returns
         -------
-        px_avrg: float
-            The number of pixels over which is approximately averaged. The inverse is the FWHM.
-        (x, y, z): tuple of floats
-            The field of the averaging kernel summed along two axes (the remaining are x, y, z,
-            respectively).
+        fwhm: float
+            The FWHM in x, y and z direction. The inverse corresponds to the number of pixels over
+            which is approximately averaged.
+        lr: 3 tuples of 2 floats
+            The left and right borders in x, y and z direction from which the FWHM is calculated.
+            Given in pixel coordinates and relative to the current position!
+        cxyz_dat: 4 lists of floats
+            The slices through the current position in the 4D volume (including the component),
+            which were used for FWHM calculations.
 
         Notes
         -----
-        Uses the :func:`~.get_avg_kern_row` function
+        Uses the :func:`~.get_avg_kern_field` function
 
         """
-        self._log.debug('Calling calculate_averaging')
-        magdata_avg_kern = self.get_avg_kern_row(pos)
-        mag_x, mag_y, mag_z = magdata_avg_kern.field
-        x = mag_x.sum(axis=(0, 1))
-        y = mag_y.sum(axis=(0, 2))
-        z = mag_z.sum(axis=(1, 2))
-        # Plot helpful stuff:
-        plt.figure()
-        plt.axhline(y=0, ls='-', color='k')
-        plt.axhline(y=1, ls='-', color='k')
-        plt.plot(x, label='x', color='r', marker='o')
-        plt.plot(y, label='y', color='g', marker='o')
-        plt.plot(z, label='z', color='b', marker='o')
-        c = self.pos[0]  # x, y or z component
-        data = [x, y, z][c]
-        col = ['r', 'g', 'b'][c]
-        i_m = np.argmax(data)  # Index of the maximum
-        plt.axhline(y=data[i_m], ls='-', color=col)
-        plt.axhline(y=data[i_m] / 2, ls='--', color=col)
-        # Left side:
-        l = i_m
-        for i in np.arange(i_m - 1, -1, -1):
-            if data[i] < data[i_m] / 2:
-                # Linear interpolation between i and i + 1 to find left fractional index position:
-                l = (data[i_m] / 2 - data[i]) / (data[i + 1] - data[i]) + i
-                break
-        # Right side:
-        r = i_m
-        for i in np.arange(i_m + 1, data.size):
-            if data[i] < data[i_m] / 2:
-                # Linear interpolation between i and i - 1 to find right fractional index position:
-                r = (data[i_m] / 2 - data[i - 1]) / (data[i] - data[i - 1]) + i - 1
-                break
-        # Calculate FWHM:
-        fwhm = r - l
-        px_avrg = 1 / fwhm
-        plt.vlines(x=[l, r], ymin=0, ymax=data[i_m] / 2, linestyles=':', color=col)
-        # Add legend:
-        plt.legend()
-        return px_avrg, (x, y, z)
+        self._log.debug('Calling calculate_fwhm')
+        a = self.magdata.a
+        magdata_avg_kern = self.get_avg_kern_field(pos)
+        x = np.arange(0, self.dim[2]) - self.pos[3]
+        y = np.arange(0, self.dim[1]) - self.pos[2]
+        z = np.arange(0, self.dim[0]) - self.pos[1]
+        c_dat = magdata_avg_kern.field[:, self.pos[1], self.pos[2], self.pos[3]] * 100  # in %
+        x_dat = magdata_avg_kern.field[self.pos[0], self.pos[1], self.pos[2], :] * 100  # in %
+        y_dat = magdata_avg_kern.field[self.pos[0], self.pos[1], :, self.pos[3]] * 100  # in %
+        z_dat = magdata_avg_kern.field[self.pos[0], :, self.pos[2], self.pos[3]] * 100  # in %
 
-    def get_gain_row_maps(self, pos=None):
+        def _calc_lr(c):
+            data = [x_dat, y_dat, z_dat][c]
+            i_m = np.argmax(data)  # Index of the maximum
+            # Left side:
+            l = i_m
+            for i in np.arange(i_m - 1, -1, -1):
+                if data[i] < data[i_m] / 2:
+                    # Linear interpolation between i and i + 1 to find left fractional index pos:
+                    l = (data[i_m] / 2 - data[i]) / (data[i + 1] - data[i]) + i
+                    break
+            # Right side:
+            r = i_m
+            for i in np.arange(i_m + 1, data.size):
+                if data[i] < data[i_m] / 2:
+                    # Linear interpolation between i and i - 1 to find right fractional index pos:
+                    r = (data[i_m] / 2 - data[i - 1]) / (data[i] - data[i - 1]) + i - 1
+                    break
+            # Transform from index to coordinates:
+            l = (l - self.pos[3-c])
+            r = (r - self.pos[3-c])
+            return l, r
+
+        # Calculate FWHM:
+        lx, rx = _calc_lr(0)
+        ly, ry = _calc_lr(1)
+        lz, rz = _calc_lr(2)
+        fwhm_x = (rx - lx) * a
+        fwhm_y = (ry - ly) * a
+        fwhm_z = (rz - lz) * a
+        # Plot helpful stuff:
+        if plot:
+            fig, axis = plt.subplots(1, 1)
+            axis.axvline(x=0, ls='-', color='k', linewidth=2)
+            axis.axhline(y=0, ls='-', color='k', linewidth=2)
+            axis.axhline(y=x_dat.max(), ls='-', color='k', linewidth=2)
+            axis.axhline(y=x_dat.max() / 2, ls='--', color='k', linewidth=2)
+            axis.vlines(x=[lx, rx], ymin=0, ymax=x_dat.max() / 2, linestyles='--',
+                        color='r', linewidth=2, alpha=0.5)
+            axis.vlines(x=[ly, ry], ymin=0, ymax=y_dat.max() / 2, linestyles='--',
+                        color='g', linewidth=2, alpha=0.5)
+            axis.vlines(x=[lz, rz], ymin=0, ymax=z_dat.max() / 2, linestyles='--',
+                        color='b', linewidth=2, alpha=0.5)
+            l = []
+            l.extend(axis.plot(x, x_dat, label='x-dim.', color='r', marker='o', linewidth=2))
+            l.extend(axis.plot(y, y_dat, label='y-dim.', color='g', marker='o', linewidth=2))
+            l.extend(axis.plot(z, z_dat, label='z-dim.', color='b', marker='o', linewidth=2))
+            cx = axis.scatter(0, c_dat[0], marker='o', s=200, edgecolor='r', label='x-comp.',
+                              facecolor='r', alpha=0.75)
+            cy = axis.scatter(0, c_dat[1], marker='d', s=200, edgecolor='g', label='y-comp.',
+                              facecolor='g', alpha=0.75)
+            cz = axis.scatter(0, c_dat[2], marker='*', s=200, edgecolor='b', label='z-comp.',
+                              facecolor='b', alpha=0.75)
+            lim_min = np.min(np.concatenate((x, y, z))) - 0.5
+            lim_max = np.max(np.concatenate((x, y, z))) + 0.5
+            axis.set_xlim(lim_min, lim_max)
+            axis.set_title('Avrg. kern. FWHM', fontsize=18)
+            axis.set_xlabel('x/y/z-slice [nm]', fontsize=15)
+            axis.set_ylabel('information content [%]', fontsize=15)
+            axis.tick_params(axis='both', which='major', labelsize=14)
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
+            comp_legend = axis.legend([cx, cy, cz], [c.get_label() for c in [cx, cy, cz]], loc=2,
+                                      scatterpoints=1, prop={'size': 14})
+            axis.legend(l, [i.get_label() for i in l], loc=1, numpoints=1, prop={'size': 14})
+            axis.add_artist(comp_legend)
+        fwhm = fwhm_x, fwhm_y, fwhm_z
+        lr = (lx, rx), (ly, ry), (lz, rz)
+        cxyz_dat = c_dat, x_dat, y_dat, z_dat
+        return fwhm, lr, cxyz_dat
+
+    def get_gain_maps(self, pos=None):
         """Get the gain matrix row represented as a list of 2D (inverse) phase maps.
 
         Parameters
@@ -250,15 +304,71 @@ class Diagnostics(object):
         maps (1/rad instead of rad).
 
         """
-        self._log.debug('Calling get_gain_row_maps')
+        self._log.debug('Calling get_gain_maps')
         if pos is not None:
             self.pos = pos
-        hp = self.cost.data_set.hook_points
+        hp = self.cost.fwd_model.data_set.hook_points
         gain_map_list = []
-        for i, projector in enumerate(self.cost.data_set.projectors):
+        for i, projector in enumerate(self.cost.fwd_model.data_set.projectors):
             gain = self.gain_row[hp[i]:hp[i + 1]].reshape(projector.dim_uv)
-            gain_map_list.append(PhaseMap(self.cost.data_set.a, gain))
+            gain_map_list.append(PhaseMap(self.cost.fwd_model.data_set.a, gain))
         return gain_map_list
+
+    def plot_position(self, **kwargs):
+        proj_axis = kwargs.get('proj_axis', 'z')
+        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
+            pos_2d = (self.pos[2], self.pos[3])
+            ax_slice = self.pos[1]
+        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
+            pos_2d = (self.pos[1], self.pos[3])
+            ax_slice = self.pos[2]
+        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
+            pos_2d = (self.pos[2], self.pos[1])
+            ax_slice = self.pos[3]
+        title = kwargs.get('title')
+        if title is None:
+            comp = {0: 'x', 1: 'y', 2: 'z'}[self.pos[0]]
+            title = 'Diagnostics of {}-component, position: {}'.format(comp, self.pos[1:])
+        # Plots:
+        axis = self.magdata.plot_quiver_field(title=title, ax_slice=ax_slice, **kwargs)
+        rect = axis.add_patch(patches.Rectangle((pos_2d[1], pos_2d[0]), 1, 1, fill=False,
+                                                edgecolor='w', linewidth=2, alpha=0.5))
+        rect.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
+
+    def plot_position3d(self, **kwargs):
+        pass
+
+    def plot_avg_kern_field(self, pos=None, mode='ellipse', **kwargs):
+        a = self.magdata.a
+        avg_kern_field = self.get_avg_kern_field(pos)
+        fwhms, lr = self.calculate_fwhm(pos)[:2]
+        proj_axis = kwargs.get('proj_axis', 'z')
+        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
+            pos_2d = (self.pos[2], self.pos[3])
+            ax_slice = self.pos[1]
+            width, height = fwhms[0] / a, fwhms[1] / a
+        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
+            pos_2d = (self.pos[1], self.pos[3])
+            ax_slice = self.pos[2]
+            width, height = fwhms[0] / a, fwhms[2] / a
+        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
+            pos_2d = (self.pos[2], self.pos[1])
+            ax_slice = self.pos[3]
+            width, height = fwhms[2] / a, fwhms[1] / a
+        title = kwargs.get('title')
+        if title is None:
+            comp = {0: 'x', 1: 'y', 2: 'z'}[self.pos[0]]
+            title = 'Avrg. kern. of {}-component, position: {}'.format(comp, self.pos[1:])
+        # Plots:
+        axis = avg_kern_field.plot_quiver_field(title=title, ax_slice=ax_slice, **kwargs)
+        xy = (pos_2d[1], pos_2d[0])
+        rect = axis.add_patch(patches.Rectangle(xy, 1, 1, fill=False, edgecolor='w',
+                                                linewidth=2, alpha=0.5))
+        rect.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
+        xy = (xy[0] + 0.5, xy[1] + 0.5)
+        artist = axis.add_patch(patches.Ellipse(xy, width, height, fill=False, edgecolor='w',
+                                                linewidth=2, alpha=0.5))
+        artist.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
 
 
 def get_vector_field_errors(vector_data, vector_data_ref):
