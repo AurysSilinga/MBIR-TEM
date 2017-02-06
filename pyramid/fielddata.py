@@ -12,7 +12,6 @@ from numbers import Number
 import numpy as np
 
 from matplotlib import pyplot as plt
-from matplotlib.ticker import MaxNLocator, FuncFormatter
 from matplotlib.colors import ListedColormap
 from matplotlib import patheffects
 
@@ -21,7 +20,7 @@ from PIL import Image
 from scipy.ndimage.interpolation import zoom
 
 from . import colors
-from .scalebars import add_scalebar
+from . import plottools
 
 __all__ = ['VectorData', 'ScalarData']
 
@@ -409,6 +408,7 @@ class FieldData(object, metaclass=abc.ABCMeta):
         """
         self._log.debug('Calling to_signal')
         try:  # Try importing HyperSpy:
+            # noinspection PyUnresolvedReferences
             import hyperspy.api as hs
         except ImportError:
             self._log.error('This method recquires the hyperspy package!')
@@ -429,12 +429,13 @@ class FieldData(object, metaclass=abc.ABCMeta):
 
 
 class VectorData(FieldData):
+
     """Class for storing vector ield data.
 
     Represents 3-dimensional vector field distributions with 3 components which are stored as a
     3-dimensional numpy array in `field`, but which can also be accessed as a vector via
     `field_vec`. :class:`~.VectorData` objects support negation, arithmetic operators
-    (``+``, ``-``, ``*``) and their augmented counterparts (``+=``, ``-=``, ``*=``), with numbers
+    (``+``, ``-``, ``*``) and their augmented counterparts (``+=``, ``-=``, ``*=``), withnumbers
     and other :class:`~.VectorData` objects, if their dimensions and grid spacings match. It is
     possible to load data from HDF5 or LLG (.txt) files or to save the data in these formats.
     Plotting methods are also provided.
@@ -691,7 +692,7 @@ class VectorData(FieldData):
 
         Returns
         -------
-        u_mag, v_mag, w_mag : :class:`~numpy.ndarray` (N=2)
+        u_mag, v_mag, w_mag, submask : :class:`~numpy.ndarray` (N=2)
             The extracted vector field components in plane perpendicular to the `proj_axis` and
             the perpendicular component.
 
@@ -771,30 +772,17 @@ class VectorData(FieldData):
         from .file_io.io_vectordata import save_vectordata
         save_vectordata(self, filename, **kwargs)
 
-    def plot_quiver(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
-                    coloring='angle', ar_dens=1, ax_slice=None, log=False, scaled=True,
-                    scale=1., show_mask=True, bgcolor='white', cmap=None, scalebar=True, b_0=None):
+    def plot_quiver(self, ar_dens=1, log=False, scaled=True, scale=1., b_0=None,  # Only used here!
+                    coloring='angle', cmap=None,  # Used here and plot_streamlines!
+                    proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
+                    figsize=None, **kwargs):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
         ----------
-        title : string, optional
-            The title for the plot.
-        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
-            Axis on which the graph is plotted. Creates a new figure if none is specified.
-        proj_axis : {'z', 'y', 'x'}, optional
-            The axis, from which a slice is plotted. The default is 'z'.
-        figsize : tuple of floats (N=2)
-            Size of the plot figure.
-        coloring : {'angle', 'amplitude', 'uniform', matplotlib color}
-            Color coding mode of the arrows. Use 'full' (default), 'angle', 'amplitude', 'uniform'
-            (black or white, depending on `bgcolor`), or a matplotlib color keyword.
         ar_dens: int, optional
             Number defining the arrow density which is plotted. A higher ar_dens number skips more
             arrows (a number of 2 plots every second arrow). Default is 1.
-        ax_slice : int, optional
-            The slice-index of the axis specified in `proj_axis`. Is set to the center of
-            `proj_axis` if not specified.
         log : boolean, optional
             The loratihm of the arrow length is plotted instead. This is helpful if only the
              direction of the arrows is important and the amplitude varies a lot. Default is False.
@@ -803,41 +791,51 @@ class VectorData(FieldData):
         scale: float, optional
             Additional multiplicative factor scaling the arrow length. Default is 1
             (no further scaling).
-        show_mask: boolean
-            Default is True. Shows the outlines of the mask slice if available.
-        bgcolor: {'white', 'black'}, optional
-            Determines the background color of the plot.
+        b_0 : float, optional
+            Saturation induction (saturation magnetisation times the vacuum permeability).
+            If this is specified, a quiverkey is used to indicate the length of the longest arrow.
+        coloring : {'angle', 'amplitude', 'uniform', matplotlib color}
+            Color coding mode of the arrows. Use 'full' (default), 'angle', 'amplitude', 'uniform'
+            (black or white, depending on `bgcolor`), or a matplotlib color keyword.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             If not set, an appropriate one is used. Note that a subclass of
             :class:`~.colors.Colormap3D` should be used for angle encoding.
+        proj_axis : {'z', 'y', 'x'}, optional
+            The axis, from which a slice is plotted. The default is 'z'.
+        ax_slice : int, optional
+            The slice-index of the axis specified in `proj_axis`. Is set to the center of
+            `proj_axis` if not specified.
+        show_mask: boolean
+            Default is True. Shows the outlines of the mask slice if available.
+        bgcolor: {'white', 'black'}, optional
+            Determines the background color of the plot.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
 
         Returns
         -------
         axis: :class:`~matplotlib.axes.AxesSubplot`
             The axis on which the graph is plotted.
 
+        Notes
+        -----
+        Uses :func:`~.plottools.format_axis` at the end. According keywords can also be given here.
+
         """
         self._log.debug('Calling plot_quiver')
+        a = self.a
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             'Axis has to be x, y or z (as string).'
         if ax_slice is None:
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
+        # Extract slice and mask:
         u_mag, v_mag = self.get_slice(ax_slice, proj_axis)[:2]
-        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
-            u_label = 'x-axis [nm]'
-            v_label = 'y-axis [nm]'
-            submask = self.get_mask()[ax_slice, ...]
-        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
-            u_label = 'x-axis [nm]'
-            v_label = 'z-axis [nm]'
-            submask = self.get_mask()[:, ax_slice, :]
-        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
-            u_label = 'z-axis [nm]'
-            v_label = 'y-axis [nm]'
-            submask = self.get_mask()[..., ax_slice]
-        else:
-            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
+        submask = np.where(np.hypot(u_mag, v_mag) > 0, True, False)
         # Prepare quiver (select only used arrows if ar_dens is specified):
         dim_uv = u_mag.shape
         vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
@@ -848,6 +846,8 @@ class VectorData(FieldData):
         amplitudes = np.hypot(u_mag, v_mag)
         angles = np.angle(u_mag + 1j * v_mag, deg=True).tolist()
         # Calculate the arrow colors:
+        if bgcolor is None:
+            bgcolor = 'white'  # Default!
         cmap_overwrite = cmap
         if coloring == 'angle':
             self._log.debug('Encoding angles')
@@ -879,6 +879,9 @@ class VectorData(FieldData):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
+            tight = True
+        else:
+            tight = False
         axis.set_aspect('equal')
         # Take the logarithm of the arrows to clearly show directions (if specified):
         if log and np.any(amplitudes):  # If the slice is empty, skip!
@@ -894,18 +897,18 @@ class VectorData(FieldData):
         if scaled:
             u_mag /= amplitudes.max() + 1E-30
             v_mag /= amplitudes.max() + 1E-30
+        # Plot quiver:
         quiv = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1), angles=angles,
                            pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
                            minlength=0.05, width=1*ar_dens, headlength=2, headaxislength=2,
                            headwidth=2, minshaft=2)
+        axis.set_xlim(0, dim_uv[1])
+        axis.set_ylim(0, dim_uv[0])
+        # Determine colormap if necessary:
         if coloring == 'amplitude':
-            fig = plt.gcf()
-            fig.subplots_adjust(right=0.8)
-            cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
-            cbar = fig.colorbar(quiv, cax=cbar_ax)
-            cbar.ax.tick_params(labelsize=14)
-            cbar_title = u'amplitude'
-            cbar.set_label(cbar_title, fontsize=15)
+            cbar_mappable, cbar_label = quiv, 'amplitude'
+        else:
+            cbar_mappable, cbar_label = None, None
         # Change background color:
         axis.set_axis_bgcolor(bgcolor)
         # Show mask:
@@ -914,99 +917,83 @@ class VectorData(FieldData):
             mask_color = 'white' if bgcolor == 'black' else 'black'
             axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
                          linestyles='dotted', linewidths=2)
-        # Further plot formatting:
-        axis.set_xlim(0, dim_uv[1])
-        axis.set_ylim(0, dim_uv[0])
-        axis.set_title(title, fontsize=18)
-        a = self.a
-        if scalebar:
-            add_scalebar(axis, sampling=a)
-        else:
-            axis.set_xlabel(u_label, fontsize=15)
-            axis.set_ylabel(v_label, fontsize=15)
-            axis.tick_params(axis='both', which='major', labelsize=14)
-            if dim_uv[0] >= dim_uv[1]:
-                u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
-            else:
-                u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
-            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
-            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
         # Plot quiverkey if B_0 is specified):
         if b_0 and not log:  # The angles needed for log would break the quiverkey!
             label = '{:.3g} T'.format(amplitudes.max() * b_0)
             quiv.angles = 'uv'  # With a list of angles, the quiverkey would break!
+            stroke = plottools.STROKE_DEFAULT
+            txtcolor = 'w' if stroke == 'k' else 'k'
+            edgecolor = stroke if stroke is not None else 'none'
+            fontsize = kwargs.get('fontsize', None)
+            if fontsize is None:
+                fontsize = plottools.FONTSIZE_DEFAULT
             qk = plt.quiverkey(Q=quiv, X=0.88, Y=0.065, U=1, label=label, labelpos='W',
-                               coordinates='axes', edgecolor='k', labelcolor='w',
-                               fontproperties={'size': 18}, facecolor='w', linewidth=0.5,
-                               clip_box=axis.bbox, clip_on=True)
-            qk._init()  # Necessary, because qk.vector is created here!
-            qk.vector.set_path_effects([patheffects.withStroke(linewidth=2, foreground='k')])
-            qk.text.set_path_effects([patheffects.withStroke(linewidth=2, foreground='k')])
-        # Return plotting axis:
-        return axis
+                               coordinates='axes', facecolor=txtcolor, edgecolor=edgecolor,
+                               labelcolor=txtcolor, linewidth=0.5,
+                               clip_box=axis.bbox, clip_on=True,
+                               fontproperties={'size': kwargs.get('fontsize', fontsize)})
+            if stroke is not None:
+                qk.text.set_path_effects(
+                    [patheffects.withStroke(linewidth=2, foreground=stroke)])
+        # Return formatted axis:
+        return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,
+                                     cbar_label=cbar_label, tight_layout=tight, **kwargs)
 
-    def plot_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
-                   ax_slice=None, show_mask=True, bgcolor=None, scalebar=True):
-        """Plot a slice of the vector field as a quiver plot.
+    def plot_field(self, proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
+                   figsize=None, **kwargs):
+        """Plot a slice of the vector field as a color field imshow plot.
 
         Parameters
         ----------
-        title : string, optional
-            The title for the plot.
-        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
-            Axis on which the graph is plotted. Creates a new figure if none is specified.
         proj_axis : {'z', 'y', 'x'}, optional
             The axis, from which a slice is plotted. The default is 'z'.
-        figsize : tuple of floats (N=2)
-            Size of the plot figure.
         ax_slice : int, optional
             The slice-index of the axis specified in `proj_axis`. Is set to the center of
             `proj_axis` if not specified.
         show_mask: boolean
             Default is True. Shows the outlines of the mask slice if available.
-        bgcolor: {'black', 'white'}, optional
+        bgcolor: {'white', 'black'}, optional
             Determines the background color of the plot.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
 
         Returns
         -------
         axis: :class:`~matplotlib.axes.AxesSubplot`
             The axis on which the graph is plotted.
 
+        Notes
+        -----
+        Uses :func:`~.plottools.format_axis` at the end. According keywords can also be given here.
+
         """
         self._log.debug('Calling plot_field')
         a = self.a
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             'Axis has to be x, y or z (as string).'
         if ax_slice is None:
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
+        # Extract slice and mask:
         u_mag, v_mag, w_mag = self.get_slice(ax_slice, proj_axis)
-        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
-            u_label = 'x-axis [nm]'
-            v_label = 'y-axis [nm]'
-            submask = self.get_mask()[ax_slice, ...]
-        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
-            u_label = 'x-axis [nm]'
-            v_label = 'z-axis [nm]'
-            submask = self.get_mask()[:, ax_slice, :]
-        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
-            u_label = 'z-axis [nm]'
-            v_label = 'y-axis [nm]'
-            submask = self.get_mask()[..., ax_slice]
-        else:
-            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
+        submask = np.where(np.hypot(u_mag, v_mag) > 0, True, False)
         # If no axis is specified, a new figure is created:
         if axis is None:
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
+            tight = True
+        else:
+            tight = False
         axis.set_aspect('equal')
         # Determine 'z'-component for luminance (keep as gray if None):
         z_mag = w_mag
         if bgcolor == 'white':
             z_mag = np.where(submask, z_mag, np.max(np.hypot(u_mag, v_mag)))
-        if bgcolor == 'black ':
+        if bgcolor == 'black':
             z_mag = np.where(submask, z_mag, -np.max(np.hypot(u_mag, v_mag)))
         # Plot the field:
         dim_uv = u_mag.shape
@@ -1022,52 +1009,15 @@ class VectorData(FieldData):
             mask_color = 'white' if bgcolor == 'black' else 'black'
             axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
                          linestyles='dotted', linewidths=2)
-        # Further plot formatting:
-        axis.set_xlim(0, dim_uv[1])
-        axis.set_ylim(0, dim_uv[0])
-        axis.set_title(title, fontsize=18)
-        if scalebar:
-            add_scalebar(axis, sampling=a)
-        else:
-            axis.set_xlabel(u_label, fontsize=15)
-            axis.set_ylabel(v_label, fontsize=15)
-            axis.tick_params(axis='both', which='major', labelsize=14)
-            if dim_uv[0] >= dim_uv[1]:
-                u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
-            else:
-                u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
-            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
-            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
-        # Return plotting axis:
-        return axis
+        # Return formatted axis:
+        return plottools.format_axis(axis, sampling=a, tight_layout=tight, **kwargs)
 
-    def plot_quiver_field(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
-                          ar_dens=1, ax_slice=None, show_mask=True,  bgcolor='white',
-                          scalebar=True, **kwargs):
+    def plot_quiver_field(self, **kwargs):
         """Plot the vector field as a field plot with uniformly colored arrows overlayed.
 
         Parameters
         ----------
-        title : string, optional
-            The title for the plot.
-        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
-            Axis on which the graph is plotted. Creates a new figure if none is specified.
-        proj_axis : {'z', 'y', 'x'}, optional
-            The axis, from which a slice is plotted. The default is 'z'.
-        figsize : tuple of floats (N=2)
-            Size of the plot figure.
-        ar_dens: int, optional
-            Number defining the arrow density which is plotted. A higher ar_dens number skips more
-            arrows (a number of 2 plots every second arrow). Default is 1.
-        ax_slice : int, optional
-            The slice-index of the axis specified in `proj_axis`. Is set to the center of
-            `proj_axis` if not specified.
-        show_mask: boolean
-            Default is True. Shows the outlines of the mask slice if available.
-        bgcolor: {'black', 'white'}, optional
-            Determines the background color of the plot.
+        See :func:`~.plot_quiver` and :func:`~.plot_quiver` for parameters!
 
         Returns
         -------
@@ -1075,35 +1025,25 @@ class VectorData(FieldData):
             The axis on which the graph is plotted.
 
         """
-        axis = self.plot_field(title=title, axis=axis, proj_axis=proj_axis, figsize=figsize,
-                               ax_slice=ax_slice, show_mask=show_mask, bgcolor=bgcolor,
-                               scalebar=False)
-        self.plot_quiver(title=title, axis=axis, proj_axis=proj_axis, figsize=figsize,
-                         coloring='uniform', ar_dens=ar_dens, ax_slice=ax_slice,
-                         show_mask=show_mask, bgcolor=bgcolor, scalebar=scalebar, **kwargs)
+        # Extract parameters:
+        show_mask = kwargs.pop('show_mask', True)  # Only needed once!
+        axis = kwargs.pop('axis', None)
+        # Set default bgcolor to white (only for combined plot), only if bgcolor was not specified:
+        kwargs.setdefault('bgcolor', 'white')
+        # Plot field first (with mask and axis formatting), then quiver:
+        axis = self.plot_field(axis=axis, show_mask=show_mask, **kwargs)
+        self.plot_quiver(coloring='uniform', show_mask=False, axis=axis,
+                         format_axis=False, **kwargs)
+        # Return plotting axis:
         return axis
 
-    def plot_streamline(self, title='Vector Field', axis=None, proj_axis='z', figsize=(9, 8),
-                        coloring='angle', ax_slice=None, density=2, linewidth=2,
-                        show_mask=True, bgcolor='white', cmap=None, scalebar=True):
+    def plot_streamline(self, density=2, linewidth=2, coloring='angle', cmap=None,
+                        proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
+                        figsize=None, **kwargs):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
         ----------
-        title : string, optional
-            The title for the plot.
-        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
-            Axis on which the graph is plotted. Creates a new figure if none is specified.
-        proj_axis : {'z', 'y', 'x'}, optional
-            The axis, from which a slice is plotted. The default is 'z'.
-        figsize : tuple of floats (N=2)
-            Size of the plot figure.
-        coloring : {'angle', 'amplitude', 'uniform'}
-            Color coding mode of the arrows. Use 'full' (default), 'angle', 'amplitude' or
-            'uniform'.
-        ax_slice : int, optional
-            The slice-index of the axis specified in `proj_axis`. Is set to the center of
-            `proj_axis` if not specified.
         density : float or 2-tuple, optional
             Controls the closeness of streamlines. When density = 1, the domain is divided into a
             30x30 grid—density linearly scales this grid. Each cebll in the grid can have, at most,
@@ -1111,42 +1051,48 @@ class VectorData(FieldData):
             [density_x, density_y].
         linewidth : numeric or 2d array, optional
             Vary linewidth when given a 2d array with the same shape as velocities.
-        show_mask: boolean
-            Default is True. Shows the outlines of the mask slice if available.
-        bgcolor: {'black', 'white'}, optional
-            Determines the background color of the plot.
+        coloring : {'angle', 'amplitude', 'uniform'}
+            Color coding mode of the arrows. Use 'full' (default), 'angle', 'amplitude' or
+            'uniform'.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
             If not set, an appropriate one is used. Note that a subclass of
             :class:`~.colors.Colormap3D` should be used for angle encoding.
+        proj_axis : {'z', 'y', 'x'}, optional
+            The axis, from which a slice is plotted. The default is 'z'.
+        ax_slice : int, optional
+            The slice-index of the axis specified in `proj_axis`. Is set to the center of
+            `proj_axis` if not specified.
+        show_mask: boolean
+            Default is True. Shows the outlines of the mask slice if available.
+        bgcolor: {'white', 'black'}, optional
+            Determines the background color of the plot.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
 
         Returns
         -------
         axis: :class:`~matplotlib.axes.AxesSubplot`
             The axis on which the graph is plotted.
 
+        Notes
+        -----
+        Uses :func:`~.plottools.format_axis` at the end. According keywords can also be given here.
+
         """
         self._log.debug('Calling plot_quiver')
+        a = self.a
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             'Axis has to be x, y or z (as string).'
         if ax_slice is None:
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
         u_mag, v_mag = self.get_slice(ax_slice, proj_axis)[:2]
-        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
-            u_label = 'x-axis [nm]'
-            v_label = 'y-axis [nm]'
-            submask = self.get_mask()[ax_slice, ...]
-        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
-            u_label = 'x-axis [nm]'
-            v_label = 'z-axis [nm]'
-            submask = self.get_mask()[:, ax_slice, :]
-        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
-            u_label = 'z-axis [nm]'
-            v_label = 'y-axis [nm]'
-            submask = self.get_mask()[..., ax_slice]
-        else:
-            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
-        # Prepare quiver (select only used arrows if ar_dens is specified):
+        submask = np.where(np.hypot(u_mag, v_mag) > 0, True, False)
+        # Prepare streamlines:
         dim_uv = u_mag.shape
         uu = np.arange(dim_uv[1]) + 0.5  # shift to center of pixel
         vv = np.arange(dim_uv[0]) + 0.5  # shift to center of pixel
@@ -1154,12 +1100,14 @@ class VectorData(FieldData):
         # v_mag = np.ma.array(v_mag, mask=submask)
         amplitudes = np.hypot(u_mag, v_mag)
         # Calculate the arrow colors:
+        if bgcolor is None:
+            bgcolor = 'white'  # Default!
         cmap_overwrite = cmap
         if coloring == 'angle':
             self._log.debug('Encoding angles')
             hue = np.asarray(np.arctan2(v_mag, u_mag) / (2 * np.pi))
             hue[hue < 0] += 1
-            cmap = colors.CMAP_ANGULAR_DEFAULT
+            cmap = colors.CMAP_CIRCULAR_DEFAULT
         elif coloring == 'amplitude':
             self._log.debug('Encoding amplitude')
             hue = amplitudes / amplitudes.max()
@@ -1185,18 +1133,18 @@ class VectorData(FieldData):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
+            tight = True
+        else:
+            tight = False
         axis.set_aspect('equal')
         # Plot the streamlines:
         im = plt.streamplot(uu, vv, u_mag, v_mag, density=density, linewidth=linewidth,
                             color=hue, cmap=cmap)
+        # Determine colormap if necessary:
         if coloring == 'amplitude':
-            fig = plt.gcf()
-            fig.subplots_adjust(right=0.8)
-            cbar_ax = fig.add_axes([0.82, 0.15, 0.02, 0.7])
-            cbar = fig.colorbar(im.lines, cax=cbar_ax)
-            cbar.ax.tick_params(labelsize=14)
-            cbar_title = u'amplitude'
-            cbar.set_label(cbar_title, fontsize=15)
+            cbar_mappable, cbar_label = im, 'amplitude'
+        else:
+            cbar_mappable, cbar_label = None, None
         # Change background color:
         axis.set_axis_bgcolor(bgcolor)
         # Show mask:
@@ -1205,26 +1153,9 @@ class VectorData(FieldData):
             mask_color = 'white' if bgcolor == 'black' else 'black'
             axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
                          linestyles='dotted', linewidths=2)
-        # Further plot formatting:
-        axis.set_xlim(0, dim_uv[1])
-        axis.set_ylim(0, dim_uv[0])
-        axis.set_title(title, fontsize=18)
-        if scalebar:
-            add_scalebar(axis, sampling=self.a)
-        else:
-            axis.set_xlabel(u_label, fontsize=15)
-            axis.set_ylabel(v_label, fontsize=15)
-            axis.tick_params(axis='both', which='major', labelsize=14)
-            if dim_uv[0] >= dim_uv[1]:
-                u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
-            else:
-                u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
-            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-        # Return plotting axis:
-        return axis
+        # Return formatted axis:
+        return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,
+                                     cbar_label=cbar_label, tight_layout=tight, **kwargs)
 
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0):

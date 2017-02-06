@@ -66,7 +66,7 @@ class Diagnostics(object):
         the calculation of the gain and averaging kernel matrizes and which ideally contains the
         variance at position `row_idx` for the current component and position in 3D.
         Note that the covariance matrix of the solution is symmetric (like all covariance
-        matrices and thusly this property could also be called cov_col for column."""
+        matrices) and thusly this property could also be called cov_col for column."""
         if not self._updated_cov_row:
             e_i = np.zeros(self.cost.n, dtype=self.x_rec.dtype)
             e_i[self.row_idx] = 1
@@ -157,7 +157,7 @@ class Diagnostics(object):
         self._P = jutil.preconditioner.CostFunctionPreconditioner(self.cost, self.x_rec)
         self._log.debug('Creating ' + str(self))
 
-    def get_avg_kern_field(self, pos=None):
+    def get_avrg_kern_field(self, pos=None):
         """Get the averaging kernel matrix row represented as a 3D magnetization distribution.
 
         Parameters
@@ -167,17 +167,17 @@ class Diagnostics(object):
 
         Returns
         -------
-        magdata_avg_kern: :class:`~pyramid.fielddata.VectorData`
+        magdata_avrg_kern: :class:`~pyramid.fielddata.VectorData`
             Averaging kernel matrix row represented as a 3D magnetization distribution
 
         """
-        self._log.debug('Calling get_avg_kern_field')
+        self._log.debug('Calling get_avrg_kern_field')
         if pos is not None:
             self.pos = pos
-        magdata_avg_kern = VectorData(self.cost.fwd_model.data_set.a, np.zeros((3,) + self.dim))
+        magdata_avrg_kern = VectorData(self.cost.fwd_model.data_set.a, np.zeros((3,) + self.dim))
         vector = self.avrg_kern_row[:-self.fwd_model.ramp.n]  # Only take vector field, not ramp!
-        magdata_avg_kern.set_vector(vector, mask=self.mask)
-        return magdata_avg_kern
+        magdata_avrg_kern.set_vector(vector, mask=self.mask)
+        return magdata_avrg_kern
 
     def calculate_fwhm(self, pos=None, plot=False):
         """Calculate and plot the averaging pixel number at a specified position for x, y or z.
@@ -186,34 +186,40 @@ class Diagnostics(object):
         ----------
         pos: tuple (N=4)
             Position in 3D plus component `(c, z, y, x)`
+        plot : bool, optional
+            If True, a FWHM linescan plot is shown. Default is False.
 
         Returns
         -------
-        fwhm: float
+        fwhm : float
             The FWHM in x, y and z direction. The inverse corresponds to the number of pixels over
             which is approximately averaged.
-        lr: 3 tuples of 2 floats
+        lr : 3 tuples of 2 floats
             The left and right borders in x, y and z direction from which the FWHM is calculated.
             Given in pixel coordinates and relative to the current position!
-        cxyz_dat: 4 lists of floats
+        cxyz_dat : 4 lists of floats
             The slices through the current position in the 4D volume (including the component),
-            which were used for FWHM calculations.
+            which were used for FWHM calculations. Denotes information content in %!
 
         Notes
         -----
-        Uses the :func:`~.get_avg_kern_field` function
+        Uses the :func:`~.get_avrg_kern_field` function
 
         """
         self._log.debug('Calling calculate_fwhm')
         a = self.magdata.a
-        magdata_avg_kern = self.get_avg_kern_field(pos)
+        magdata_avrg_kern = self.get_avrg_kern_field(pos)
         x = np.arange(0, self.dim[2]) - self.pos[3]
         y = np.arange(0, self.dim[1]) - self.pos[2]
         z = np.arange(0, self.dim[0]) - self.pos[1]
-        c_dat = magdata_avg_kern.field[:, self.pos[1], self.pos[2], self.pos[3]] * 100  # in %
-        x_dat = magdata_avg_kern.field[self.pos[0], self.pos[1], self.pos[2], :] * 100  # in %
-        y_dat = magdata_avg_kern.field[self.pos[0], self.pos[1], :, self.pos[3]] * 100  # in %
-        z_dat = magdata_avg_kern.field[self.pos[0], :, self.pos[2], self.pos[3]] * 100  # in %
+        c_dat = magdata_avrg_kern.field[:, self.pos[1], self.pos[2], self.pos[3]]
+        x_dat = magdata_avrg_kern.field[self.pos[0], self.pos[1], self.pos[2], :]
+        y_dat = magdata_avrg_kern.field[self.pos[0], self.pos[1], :, self.pos[3]]
+        z_dat = magdata_avrg_kern.field[self.pos[0], :, self.pos[2], self.pos[3]]
+        c_dat = np.asarray(c_dat * 100)  # in %
+        x_dat = np.asarray(x_dat * 100)  # in %
+        y_dat = np.asarray(y_dat * 100)  # in %
+        z_dat = np.asarray(z_dat * 100)  # in %
 
         def _calc_lr(c):
             data = [x_dat, y_dat, z_dat][c]
@@ -325,12 +331,14 @@ class Diagnostics(object):
         elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
             pos_2d = (self.pos[2], self.pos[1])
             ax_slice = self.pos[3]
-        title = kwargs.get('title')
-        if title is None:
+        else:
+            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
+        note = kwargs.pop('note', None)
+        if note is None:
             comp = {0: 'x', 1: 'y', 2: 'z'}[self.pos[0]]
-            title = 'Diagnostics of {}-component, position: {}'.format(comp, self.pos[1:])
+            note = '{}-comp., pos.: {}'.format(comp, self.pos[1:])
         # Plots:
-        axis = self.magdata.plot_quiver_field(title=title, ax_slice=ax_slice, **kwargs)
+        axis = self.magdata.plot_quiver_field(note=note, ax_slice=ax_slice, **kwargs)
         rect = axis.add_patch(patches.Rectangle((pos_2d[1], pos_2d[0]), 1, 1, fill=False,
                                                 edgecolor='w', linewidth=2, alpha=0.5))
         rect.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
@@ -338,9 +346,9 @@ class Diagnostics(object):
     def plot_position3d(self, **kwargs):
         pass
 
-    def plot_avg_kern_field(self, pos=None, mode='ellipse', **kwargs):
+    def plot_avrg_kern_field(self, pos=None, **kwargs):
         a = self.magdata.a
-        avg_kern_field = self.get_avg_kern_field(pos)
+        avrg_kern_field = self.get_avrg_kern_field(pos)
         fwhms, lr = self.calculate_fwhm(pos)[:2]
         proj_axis = kwargs.get('proj_axis', 'z')
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
@@ -355,12 +363,14 @@ class Diagnostics(object):
             pos_2d = (self.pos[2], self.pos[1])
             ax_slice = self.pos[3]
             width, height = fwhms[2] / a, fwhms[1] / a
-        title = kwargs.get('title')
-        if title is None:
+        else:
+            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
+        note = kwargs.pop('note', None)
+        if note is None:
             comp = {0: 'x', 1: 'y', 2: 'z'}[self.pos[0]]
-            title = 'Avrg. kern. of {}-component, position: {}'.format(comp, self.pos[1:])
+            note = '{}-comp., pos.: {}'.format(comp, self.pos[1:])
         # Plots:
-        axis = avg_kern_field.plot_quiver_field(title=title, ax_slice=ax_slice, **kwargs)
+        axis = avrg_kern_field.plot_quiver_field(note=note, ax_slice=ax_slice, **kwargs)
         xy = (pos_2d[1], pos_2d[0])
         rect = axis.add_patch(patches.Rectangle(xy, 1, 1, fill=False, edgecolor='w',
                                                 linewidth=2, alpha=0.5))

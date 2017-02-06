@@ -46,6 +46,7 @@ from . import reconstruction
 from . import fieldconverter
 from . import magcreator
 from . import colors
+from . import plottools
 from . import utils
 from .costfunction import *
 from .dataset import *

@@ -15,3 +15,4 @@ Pyramid.egg-info*
 logfile.log
 .idea*
 version.py
+docs/.build

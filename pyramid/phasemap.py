@@ -12,17 +12,19 @@ import numpy as np
 
 from PIL import Image
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.ticker import MaxNLocator, FuncFormatter
+from matplotlib.ticker import MaxNLocator
 
 from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from scipy import ndimage
 
+import warnings
+
 from . import colors
-from .scalebars import add_scalebar
+from . import plottools
 
 __all__ = ['PhaseMap']
 
@@ -63,48 +65,11 @@ class PhaseMap(object):
     UNITDICT = {u'rad': 1E0,
                 u'mrad': 1E3,
                 u'µrad': 1E6,
+                u'nrad': 1E9,
                 u'1/rad': 1E0,
                 u'1/mrad': 1E-3,
-                u'1/µrad': 1E-6}
-
-    CDICT = {'red': [(0.00, 1.0, 0.0),
-                     (0.25, 1.0, 1.0),
-                     (0.50, 1.0, 1.0),
-                     (0.75, 0.0, 0.0),
-                     (1.00, 0.0, 1.0)],
-
-             'green': [(0.00, 0.0, 0.0),
-                       (0.25, 0.0, 0.0),
-                       (0.50, 1.0, 1.0),
-                       (0.75, 1.0, 1.0),
-                       (1.00, 0.0, 1.0)],
-
-             'blue': [(0.00, 1.0, 1.0),
-                      (0.25, 0.0, 0.0),
-                      (0.50, 0.0, 0.0),
-                      (0.75, 0.0, 0.0),
-                      (1.00, 1.0, 1.0)]}
-
-    CDICT_INV = {'red': [(0.00, 0.0, 1.0),
-                         (0.25, 0.0, 0.0),
-                         (0.50, 0.0, 0.0),
-                         (0.75, 1.0, 1.0),
-                         (1.00, 1.0, 0.0)],
-
-                 'green': [(0.00, 1.0, 1.0),
-                           (0.25, 1.0, 1.0),
-                           (0.50, 0.0, 0.0),
-                           (0.75, 0.0, 0.0),
-                           (1.00, 1.0, 0.0)],
-
-                 'blue': [(0.00, 0.0, 0.0),
-                          (0.25, 1.0, 1.0),
-                          (0.50, 1.0, 1.0),
-                          (0.75, 1.0, 1.0),
-                          (1.00, 0.0, 0.0)]}
-
-    HOLO_CMAP = LinearSegmentedColormap('my_colormap', CDICT, 256)
-    HOLO_CMAP_INV = LinearSegmentedColormap('my_colormap', CDICT_INV, 256)
+                u'1/µrad': 1E-6,
+                u'1/nrad': 1E-9}
 
     @property
     def a(self):
@@ -543,6 +508,7 @@ class PhaseMap(object):
         """
         self._log.debug('Calling to_signal')
         try:  # Try importing HyperSpy:
+            # noinspection PyUnresolvedReferences
             import hyperspy.api as hs
         except ImportError:
             self._log.error('This method recquires the hyperspy package!')
@@ -561,7 +527,7 @@ class PhaseMap(object):
         signal.metadata.Signal.unit = 'rad'
         signal.metadata.Signal.mask = self.mask
         signal.metadata.Signal.confidence = self.confidence
-        # Create and return EMD:
+        # Create and return signal:
         return signal
 
     def save(self, filename, save_mask=False, save_conf=False, pyramid_format=True, **kwargs):
@@ -603,63 +569,75 @@ class PhaseMap(object):
         from .file_io.io_phasemap import save_phasemap
         save_phasemap(self, filename, save_mask, save_conf, pyramid_format, **kwargs)
 
-    def plot_phase(self, title=None, cbar_title=None, unit='rad', cmap='RdBu',
-                   vmin=None, vmax=None, symmetric=True, norm=None, axis=None, cbar=True,
-                   figsize=(9, 8), show_mask=True, show_conf=True, sigma_clip=None,
-                   interpolation='none', scalebar=True):
+    def plot_phase(self, unit='auto', vmin=None, vmax=None, sigma_clip=None, symmetric=True,
+                   show_mask=True, show_conf=True, norm=None, cbar=True,  # specific to plot_phase!
+                   cmap=None, interpolation='none', axis=None, figsize=None, **kwargs):
         """Display the phasemap as a colormesh.
 
         Parameters
         ----------
-        title : string, optional
-            The title of the plot. The default is 'Phase Map'.
-        cbar_title : string, optional
-            The title of the colorbar.
         unit: {'rad', 'mrad', 'µrad', '1/rad', '1/mrad', '1/µrad'}, optional
             The plotting unit of the phase map. The phase is scaled accordingly before plotting.
             Inverse radians should be used for gain maps!
-        always in `rad`.
-        cmap : string, optional
-            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'RdBu'.
         vmin : float, optional
             Minimum value used for determining the plot limits. If not set, it will be
             determined by the minimum of the phase directly.
         vmax : float, optional
             Maximum value used for determining the plot limits. If not set, it will be
             determined by the minimum of the phase directly.
+        sigma_clip : int, optional
+            If this is not `None`, the values outside `sigma_clip` times the standard deviation
+            will be clipped for the calculation of the plotting `limit`.
         symmetric : boolean, optional
             If True (default), a zero symmetric colormap is assumed and a zero value (which
             will always be present) will be set to the central color color of the colormap.
-        norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
-            Norm, which is used to determine the colors to encode the phase information.
-            If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
-        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
-            Axis on which the graph is plotted. Creates a new figure if none is specified.
-        cbar : bool, optional
-            A switch determining if the colorbar should be plotted or not. Default is True.
-        figsize : tuple of floats (N=2)
-            Size of the plot figure.
         show_mask : bool, optional
             A switch determining if the mask should be plotted or not. Default is True.
         show_conf : float, optional
             A switch determining if the confidence should be plotted or not. Default is True.
-        sigma_clip : int, optional
-            If this is not `None`, the values outside `sigma_clip` times the standard deviation
-            will be clipped for the calculation of the plotting `limit`.
+        norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
+            Norm, which is used to determine the colors to encode the phase information.
+        cbar : bool, optional
+            If True (default), a colorbar will be plotted.
+        cmap : string, optional
+            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
             Defines the interpolation method for the holographic contour map.
             No interpolation is used in the default case.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
+
         Returns
         -------
         axis, cbar: :class:`~matplotlib.axes.AxesSubplot`
-            The axis on which the graph is plotted and the colorbar.
+            The axis on which the graph is plotted.
+
+        Notes
+        -----
+        Uses :func:`~.plottools.format_axis` at the end. According keywords can also be given here.
 
         """
         self._log.debug('Calling plot_phase')
         a = self.a
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         # Take units into consideration:
+        if unit == 'auto':  # Try to automatically determine unit (recommended):
+            for key, value in self.UNITDICT.items():
+                if not key.startswith('1/'):
+                    order = np.floor(np.log10(np.abs(self.phase).max() * value))
+                    if -1 <= order < 2:
+                        unit = key
+            if unit == 'auto':   # No fitting unit was found:
+                unit = 'rad'
+        # Scale phase and make last check if order is okay:
         phase = self.phase * self.UNITDICT[unit]
+        order = np.floor(np.log10(np.abs(phase).max()))
+        if order > 2 or order < -6:  # Display would look bad
+            unit = '{} x 1E{:g}'.format(unit, order)
+            phase /= 10 ** order
         # Calculate limits if necessary (not necessary if both limits are already set):
         if vmin is None and vmax is None:
             phase_l = phase
@@ -681,9 +659,11 @@ class PhaseMap(object):
                 vmax = np.max(phase_l)
         # Configure colormap, to fix white to zero if colormap is symmetric:
         if symmetric:
-            if isinstance(cmap, str):  # Get colormap if given as string:
+            if cmap is None:
+                cmap = plt.get_cmap('RdBu')
+            elif isinstance(cmap, str):  # Get colormap if given as string:
                 cmap = plt.get_cmap(cmap)
-            vmin, vmax = np.min([vmin, 0]), np.max([0, vmax])  # Make sure zero is present!
+            vmin, vmax = np.min([vmin, -0]), np.max([0, vmax])  # Ensure zero is present!
             limit = np.max(np.abs([vmin, vmax]))
             start = (vmin + limit) / (2 * limit)
             end = (vmax + limit) / (2 * limit)
@@ -693,6 +673,9 @@ class PhaseMap(object):
         if axis is None:
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
+            tight = True
+        else:
+            tight = False
         axis.set_aspect('equal')
         # Plot the phasemap:
         im = axis.imshow(phase, cmap=cmap, vmin=vmin, vmax=vmax, interpolation=interpolation,
@@ -706,62 +689,40 @@ class PhaseMap(object):
             if show_mask and not np.all(self.mask):  # Plot mask if desired and not trivial!
                 axis.contour(uu, vv, self.mask, levels=[0.5], colors='k', linestyles='dotted',
                              linewidths=2)
-        # Further plot formatting:
-        axis.set_xlim(0, self.dim_uv[1])
-        axis.set_ylim(0, self.dim_uv[0])
-        if title is None:
-            if unit.startswith('1/'):
-                title = 'Gain Map'
-            else:
-                title = 'Phase Map'
-        axis.set_title(title, fontsize=18)
-        if scalebar:
-            add_scalebar(axis, sampling=a)
-        else:  # Set the axes ticks and labels:
-            axis.set_xlabel('u-axis [nm]', fontsize=15)
-            axis.set_ylabel('v-axis [nm]', fontsize=15)
-            if self.dim_uv[0] >= self.dim_uv[1]:
-                u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9
-            else:
-                u_bin, v_bin = 9, np.max((2, np.floor(9 * self.dim_uv[0] / self.dim_uv[1])))
-            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
-            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
-            axis.tick_params(axis='both', which='major', labelsize=14)
-        # # Add colorbar:
+        # Determine colorbar title:
+        cbar_label = kwargs.pop('cbar_label', None)
+        cbar_mappable = None
         if cbar:
-            divider = make_axes_locatable(axis)
-            cbar_ax = divider.append_axes('right', size='5%', pad=0.1)
-            cbar = plt.colorbar(im, cax=cbar_ax)
-            cbar.ax.tick_params(labelsize=14)
-            if cbar_title is None:
+            cbar_mappable = im
+            if cbar_label is None:
                 if unit.startswith('1/'):
                     cbar_name = 'gain'
                 else:
                     cbar_name = 'phase'
-                cbar_title = u'{} [{}]'.format(cbar_name, unit)
-            cbar.set_label(cbar_title, fontsize=15)
-        # Return plotting axis:
-        return axis
+                if mpl.rcParams['text.usetex'] and 'µ' in unit:  # Make sure µ works in latex:
+                    mpl.rc('text.latex', preamble=r'\usepackage{txfonts},\usepackage{lmodern}')
+                    unit = unit.replace('µ', '$\muup$')  # Upright µ!
+                cbar_label = u'{} [{}]'.format(cbar_name, unit)
+        # Return formatted axis:
+        return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,
+                                     cbar_label=cbar_label, tight_layout=tight, **kwargs)
 
-    def plot_holo(self, title=None, gain='auto', axis=None, cmap=None, interpolation='none',
-                  figsize=(8, 8), scalebar=True):
+    def plot_holo(self, gain='auto',  # specific to plot_holo!
+                  cmap=None, interpolation='none', axis=None, figsize=None, **kwargs):
         """Display the color coded holography image.
 
         Parameters
         ----------
-        title : string, optional
-            The title of the plot. The default is 'Contour Map (gain: %g)' % gain.
         gain : float or 'auto', optional
             The gain factor for determining the number of contour lines. The default is 'auto',
             which means that the gain will be determined automatically to look pretty.
-        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
-            Axis on which the graph is plotted. Creates a new figure if none is specified.
         cmap : string, optional
             The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
         interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
-            Defines the interpolation method. No interpolation is used in the default case.
+            Defines the interpolation method for the holographic contour map.
+            No interpolation is used in the default case.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
         figsize : tuple of floats (N=2)
             Size of the plot figure.
 
@@ -770,15 +731,19 @@ class PhaseMap(object):
         axis: :class:`~matplotlib.axes.AxesSubplot`
             The axis on which the graph is plotted.
 
+        Notes
+        -----
+        Uses :func:`~.plottools.format_axis` at the end. According keywords can also be given here.
+
         """
         self._log.debug('Calling plot_holo')
+        a = self.a
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         # Calculate gain if 'auto' is selected:
         if gain == 'auto':
             gain = 4 * 2 * np.pi / (np.abs(self.phase).max() + 1E-30)
             gain = round(gain, -int(np.floor(np.log10(abs(gain)))))
-        # Set title if not set:
-        if title is None:
-            title = 'Holographic contour Map (gain: {:g})'.format(gain)
         # Calculate the holography image intensity:
         holo = np.cos(gain * self.phase)
         holo += 1  # Shift to positive values
@@ -808,182 +773,123 @@ class PhaseMap(object):
         if axis is None:
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
+            tight = True
+        else:
+            tight = False
         axis.set_aspect('equal')
         # Plot the image and set axes:
         axis.imshow(holo_image, origin='lower', interpolation=interpolation,
                     extent=(0, self.dim_uv[1], 0, self.dim_uv[0]))
-        # Set the title and the axes labels:
-        axis.set_xlim(0, self.dim_uv[1])
-        axis.set_ylim(0, self.dim_uv[0])
-        axis.set_title(title, fontsize=18)
-        if scalebar:
-            add_scalebar(axis, sampling=self.a)
-        else:  # Set the axes ticks and labels:
-            axis.set_xlabel('u-axis [nm]', fontsize=15)
-            axis.set_ylabel('v-axis [nm]', fontsize=15)
-            if self.dim_uv[0] >= self.dim_uv[1]:
-                u_bin, v_bin = np.max((2, np.floor(9 * self.dim_uv[1] / self.dim_uv[0]))), 9
-            else:
-                u_bin, v_bin = 9, np.max((2, np.floor(9 * self.dim_uv[0] / self.dim_uv[1])))
-            axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-            axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-            axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a)))
-            axis.tick_params(axis='both', which='major', labelsize=14)
-        # Return plotting axis:
-        return axis
+        note = kwargs.pop('note', None)
+        if note is None:
+            note = 'gain: {:g}'.format(gain)
+        stroke = kwargs.pop('stroke', 'k')  # Default for holo is white with black outline!
+        return plottools.format_axis(axis, sampling=a, note=note, tight_layout=tight,
+                                     stroke=stroke, **kwargs)
 
-    def plot_combined(self, sup_title='Combined Plot', phase_title='Phase Map', holo_title=None,
-                      cbar_title=None, unit='rad', cmap='RdBu', vmin=None, vmax=None,
-                      symmetric=True,  norm=None, gain='auto', interpolation='none', cbar=True,
-                      show_mask=True, show_conf=True, scalebar=True):
+    def plot_combined(self, title='', phase_title='', holo_title='', figsize=None, **kwargs):
         """Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
         ----------
-        sup_title : string, optional
+        title : string, optional
             The super title of the plot. The default is 'Combined Plot'.
         phase_title : string, optional
             The title of the phase map.
         holo_title : string, optional
             The title of the holographic contour map
-        cbar_title : string, optional
-            The title of the colorbar.
-        unit: {'rad', 'mrad', 'µrad'}, optional
-            The plotting unit of the phase map. The phase is scaled accordingly before plotting.
-        cmap : string, optional
-            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'RdBu'.
-        vmin : float, optional
-            Minimum value used for determining the plot limits. If not set, it will be
-            determined by the minimum of the phase directly.
-        vmax : float, optional
-            Maximum value used for determining the plot limits. If not set, it will be
-            determined by the minimum of the phase directly.
-        symmetric : boolean, optional
-            If True (default), a zero symmetric colormap is assumed and a zero value (which
-            will always be present) will be set to the central color color of the colormap.
-        norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
-            Norm, which is used to determine the colors to encode the phase information.
-            If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
-        gain : float or 'auto', optional
-            The gain factor for determining the number of contour lines. The default is 'auto',
-            which means that the gain will be determined automatically to look pretty.
-        interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
-            Defines the interpolation method for the holographic contour map.
-            No interpolation is used in the default case.
-        cbar : bool, optional
-            A switch determining if the colorbar should be plotted or not. Default is True.
-        show_mask : bool, optional
-            A switch determining if the mask should be plotted or not. Default is True.
-        show_conf : float, optional
-            A switch determining if the confidence should be plotted or not. Default is True.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
 
         Returns
         -------
         phase_axis, holo_axis: :class:`~matplotlib.axes.AxesSubplot`
             The axes on which the graphs are plotted.
 
+        Notes
+        -----
+        Uses :func:`~.plottools.format_axis` at the end. According keywords can also be given here.
+
         """
         self._log.debug('Calling plot_combined')
         # Create combined plot and set title:
-        fig = plt.figure(figsize=(19, 9))
-        fig.suptitle(sup_title, fontsize=20)
+        if figsize is None:
+            figsize = (plottools.FIGSIZE_DEFAULT[0]*2 + 1, plottools.FIGSIZE_DEFAULT[1])
+        fig = plt.figure(figsize=figsize)
+        fig.suptitle(title, fontsize=20)
+        # Only phase is annotated, holo will show gain:
+        note = kwargs.pop('note', None)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-        self.plot_holo(title=holo_title, gain=gain, axis=holo_axis, interpolation=interpolation,
-                       scalebar=scalebar)
-        if cbar:  # Make space for colorbar without adding one, so that both plots have same size:
-            divider = make_axes_locatable(holo_axis)
-            cbar_ax = divider.append_axes('right', size='5%', pad=0.1)
-            cbar_ax.axis('off')
+        self.plot_holo(axis=holo_axis, title=holo_title, note=None, **kwargs)
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
-        self.plot_phase(title=phase_title, cbar_title=cbar_title, unit=unit, cmap=cmap,
-                        vmin=vmin, vmax=vmax, symmetric=symmetric, norm=norm, axis=phase_axis,
-                        cbar=cbar, show_mask=show_mask, show_conf=show_conf, scalebar=scalebar)
-
+        self.plot_phase(axis=phase_axis, title=phase_title, note=note, **kwargs)
+        # Tighten layout if axis was created here:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            plt.tight_layout()
         # Return the plotting axes:
         return phase_axis, holo_axis
 
-    def plot_phase_with_hist(self, sup_title='Combined Plot', phase_title='Phase Map',
-                             cbar_title=None, unit='rad', cmap='RdBu', vmin=None, vmax=None,
-                             symmetric=True,  norm=None, show_mask=True, show_conf=True,
-                             sigma_clip=None, interpolation='none', bins='auto',
-                             scalebar=True, **kwargs):
+    def plot_phase_with_hist(self, bins='auto', unit='rad',
+                             title='', phase_title='', hist_title='', figsize=None, **kwargs):
         """Display the phase map and a histogram of the phase values of all pixels.
 
         Parameters
         ----------
-        sup_title : string, optional
+        bins : int or sequence of scalars or str, optional
+            Bin argument that goes to the matplotlib.hist function (more documentation there).
+            The default is 'auto', which tries to pick something nice.
+        unit: {'rad', 'mrad', 'µrad', '1/rad', '1/mrad', '1/µrad'}, optional
+            The plotting unit of the phase map. The phase is scaled accordingly before plotting.
+            Inverse radians should be used for gain maps!
+        title : string, optional
             The super title of the plot. The default is 'Combined Plot'.
         phase_title : string, optional
             The title of the phase map.
-        cbar_title : string, optional
-            The title of the colorbar.
-        unit: {'rad', 'mrad', 'µrad'}, optional
-            The plotting unit of the phase map. The phase is scaled accordingly before plotting.
-        cmap : string, optional
-            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'RdBu'.
-        vmin : float, optional
-            Minimum value used for determining the plot limits. If not set, it will be
-            determined by the minimum of the phase directly.
-        vmax : float, optional
-            Maximum value used for determining the plot limits. If not set, it will be
-            determined by the minimum of the phase directly.
-        symmetric : boolean, optional
-            If True (default), a zero symmetric colormap is assumed and a zero value (which
-            will always be present) will be set to the central color color of the colormap.
-        norm : :class:`~matplotlib.colors.Normalize` or subclass, optional
-            Norm, which is used to determine the colors to encode the phase information.
-            If not specified, :class:`~matplotlib.colors.Normalize` is automatically used.
-        interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
-            Defines the interpolation method for the holographic contour map.
-            No interpolation is used in the default case.
-        show_mask : bool, optional
-            A switch determining if the mask should be plotted or not. Default is True.
-        show_conf : float, optional
-            A switch determining if the confidence should be plotted or not. Default is True.
-        sigma_clip : int, optional
-            If this is not `None`, the values outside `sigma_clip` times the standard deviation
-            will be clipped for the calculation of the plotting `limit`.
-        interpolation : {'none, 'bilinear', 'cubic', 'nearest'}, optional
-            Defines the interpolation method for the holographic contour map.
-            No interpolation is used in the default case.
-
-        Notes
-        -----
-        All additional `**kwargs` are given to the histogram function of matplotlib.
+        hist_title : string, optional
+            The title of the histogram.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
 
         Returns
         -------
         phase_axis, holo_axis: :class:`~matplotlib.axes.AxesSubplot`
             The axes on which the graphs are plotted.
 
+        Notes
+        -----
+        Uses :func:`~.plottools.format_axis` at the end. According keywords can also be given here.
+
         """
-        self._log.debug('Calling plot_combined')
+        self._log.debug('Calling plot_phase_with_hist')
         # Create combined plot and set title:
-        fig = plt.figure(figsize=(19, 9))
-        fig.suptitle(sup_title, fontsize=20)
+        if figsize is None:
+            figsize = (plottools.FIGSIZE_DEFAULT[0]*2 + 1, plottools.FIGSIZE_DEFAULT[1])
+        fig = plt.figure(figsize=figsize)
+        fig.suptitle(title, fontsize=20)
         # Plot histogram:
         hist_axis = fig.add_subplot(1, 2, 1)
-        vec = self.phase_vec
+        vec = self.phase_vec * self.UNITDICT[unit]  # Take units into consideration:
         vec *= np.where(self.confidence > 0.5, 1, 0).ravel()  # Discard low confidence points!
-        hist_axis.hist(vec, bins=bins, histtype='stepfilled', color='g', **kwargs)
+        hist_axis.hist(vec, bins=bins, histtype='stepfilled', color='g')
+        # Format histogram:
         x0, x1 = hist_axis.get_xlim()
         y0, y1 = hist_axis.get_ylim()
         hist_axis.set(aspect=np.abs(x1 - x0) / np.abs(y1 - y0) * 0.94)  # Last value because cbar!
-        hist_axis.tick_params(axis='both', which='major', labelsize=14)
-        hist_axis.set_title('Phase Histogram', fontsize=18)
-        hist_axis.set_xlabel('phase [rad]', fontsize=15)
-        hist_axis.set_ylabel('count', fontsize=15)
+        fontsize = kwargs.get('fontsize', 16)
+        hist_axis.tick_params(axis='both', which='major', labelsize=fontsize)
+        hist_axis.set_title(hist_title, fontsize=fontsize)
+        hist_axis.set_xlabel('phase [{}]'.format(unit), fontsize=fontsize)
+        hist_axis.set_ylabel('count', fontsize=fontsize)
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect=1)
-        self.plot_phase(title=phase_title, cbar_title=cbar_title, unit=unit, cmap=cmap,
-                        vmin=vmin, vmax=vmax, symmetric=symmetric, norm=norm, axis=phase_axis,
-                        show_mask=show_mask, show_conf=show_conf, scalebar=scalebar,
-                        sigma_clip=sigma_clip, interpolation=interpolation)
+        self.plot_phase(unit=unit, axis=phase_axis, title=phase_title, **kwargs)
+        # Tighten layout:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            plt.tight_layout()
         # Return the plotting axes:
         return phase_axis, hist_axis
 

@@ -20,22 +20,20 @@ from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib import gridspec
+from matplotlib.patches import Circle
 
 import numpy as np
 from PIL import Image
 from matplotlib import colors
 
-
 from skimage import color as skcolor
-
-
 
 import colorsys
 
 import abc
 
 __all__ = ['Colormap3D', 'ColormapCubehelix', 'ColormapPerception', 'ColormapHLS',
-           'ColormapClassic', 'ColormapTransparent', 'cmaps', 'CMAP_ANGULAR_DEFAULT',
+           'ColormapClassic', 'ColormapTransparent', 'cmaps', 'CMAP_CIRCULAR_DEFAULT',
            'ColorspaceCIELab', 'ColorspaceCIELuv', 'ColorspaceCIExyY', 'ColorspaceYPbPr',
            'interpolate_color', 'rgb_to_brightness', 'colormap_brightness_comparison']
 _log = logging.getLogger(__name__)
@@ -99,7 +97,21 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         # Return RGB:
         return np.asarray(255 * np.stack((r, g, b), axis=-1), dtype=np.uint8)
 
-    def plot_colorwheel(self, figsize=(4, 4)):
+    def make_colorwheel(self, size=512, alpha=1):
+        self._log.debug('Calling make_colorwheel')
+        # Construct the colorwheel:
+        yy, xx = (np.indices((size, size)) - size/2 + 0.5)
+        rr = np.hypot(xx, yy)
+        xx = np.where(rr <= size/2-2, xx, 0)
+        yy = np.where(rr <= size/2-2, yy, 0)
+        zz = np.where(rr <= size/2-2, 0, -1)  # color inside, black outside
+        aa = np.where(rr >= size/2-2, 255*alpha, 255).astype(dtype=np.uint8)
+        rgba = np.dstack((self.rgb_from_vector(np.asarray((xx, yy, zz))), aa))
+        # Create color wheel:
+        return Image.fromarray(rgba)
+
+    def plot_colorwheel(self, axis=None, size=512, alpha=1, arrows=False, figsize=(4, 4),
+                        **kwargs):
         """Display a color wheel to illustrate the color coding of vector gradient directions.
 
         Parameters
@@ -114,19 +126,25 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         """
         self._log.debug('Calling plot_colorwheel')
         # Construct the colorwheel:
-        yy, xx = (np.indices((512, 512)) - 256) / 256
-        rr = np.hypot(xx, yy)
-        xx = np.where(rr <= 1, xx, 0)
-        yy = np.where(rr <= 1, yy, 0)
-        zz = np.where(rr <= 1, 0, -1)
-        # Create color wheel:
-        color_wheel = Image.fromarray(self.rgb_from_vector(np.asarray((xx, yy, zz))))
+        color_wheel = self.make_colorwheel(size=size, alpha=alpha)
         # Plot the color wheel:
-        fig = plt.figure(figsize=figsize)
-        axis = fig.add_subplot(1, 1, 1, aspect='equal')
-        axis.imshow(color_wheel, origin='lower')
-        plt.tick_params(axis='both', which='both', labelleft='off', labelbottom='off',
-                        left='off', right='off', top='off', bottom='off')
+        if axis is None:
+            fig = plt.figure(figsize=figsize)
+            axis = fig.add_subplot(1, 1, 1, aspect='equal')
+        axis.imshow(color_wheel, origin='lower', **kwargs)
+        axis.add_artist(Circle(xy=(size / 2, size / 2), radius=size/2-2, linewidth=2,
+                               edgecolor='k', facecolor='none'))
+        if arrows:
+            plt.tick_params(axis='both', which='both', labelleft='off', labelbottom='off',
+                            left='off', right='off', top='off', bottom='off')
+            axis.arrow(size/2, size/2, 0, 0.15*size, head_width=9, head_length=20,
+                       fc='k', ec='k', lw=1, width=2)
+            axis.arrow(size/2, size/2, 0, -0.15*size, head_width=9, head_length=20,
+                       fc='k', ec='k', lw=1, width=2)
+            axis.arrow(size/2, size/2, 0.15*size, 0, head_width=9, head_length=20,
+                       fc='k', ec='k', lw=1, width=2)
+            axis.arrow(size/2, size/2, -0.15*size, 0, head_width=9, head_length=20,
+                       fc='k', ec='k', lw=1, width=2)
         # Return axis:
         return axis
 

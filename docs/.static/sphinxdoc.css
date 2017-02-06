@@ -139,7 +139,7 @@ p {
 }
 
 a {
-    color: #CA7900;
+    color: #000000; /*!!! MAKE LINKS ORANGE AGAIN:			#CA7900;*/
     text-decoration: none;
 }
 
@@ -148,7 +148,7 @@ a:hover {
 }
 
 div.body a {
-    text-decoration: underline;
+    text-decoration: none; /*!!! UNDERLINE LINKS AGAIN:		underline;*/
 }
 
 h1 {

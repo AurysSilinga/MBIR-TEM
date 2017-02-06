@@ -78,16 +78,16 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
     if plot_results:
         if ar_dens is None:
             ar_dens = np.max([1, np.max(dim) // 64])
-        magdata_rec.plot_quiver_field('Reconstructed Distribution',
+        magdata_rec.plot_quiver_field(note='Reconstructed Distribution',
                                       ar_dens=ar_dens, figsize=(16, 16))
         phasemap_rec = pm(magdata_rec)
         gain = 4 * 2 * np.pi / (np.abs(phasemap_rec.phase).max() + 1E-30)
         gain = round(gain, -int(np.floor(np.log10(abs(gain)))))
         vmin = phasemap_rec.phase.min()
         vmax = phasemap_rec.phase.max()
-        phasemap.plot_combined('Input Phase', gain=gain)
+        phasemap.plot_combined(note='Input Phase', gain=gain)
         phasemap -= fwd_model.ramp(index=0)
-        phasemap.plot_combined('Input Phase (ramp corrected)', gain=gain, vmin=vmin, vmax=vmax)
+        phasemap.plot_combined(note='Input Phase (ramp corrected)', gain=gain, vmin=vmin, vmax=vmax)
         title = 'Reconstructed Phase'
         if ramp_order is not None:
             if ramp_order >= 0:
@@ -96,12 +96,12 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
             if ramp_order >= 1:
                 print('ramp:', ramp)
                 title += ', (Fitted Ramp: (u:{:.2g}, v:{:.2g}) [rad/nm]'.format(*ramp)
-        phasemap_rec.plot_combined(title, gain=gain, vmin=vmin, vmax=vmax)
+        phasemap_rec.plot_combined(note=title, gain=gain, vmin=vmin, vmax=vmax)
         diff = (phasemap_rec - phasemap)
         diff_name = 'Difference (RMS: {:.2g} rad)'.format(np.sqrt(np.mean(diff.phase) ** 2))
-        diff.plot_phase_with_hist(diff_name, sigma_clip=3)
+        diff.plot_phase_with_hist(note=diff_name, sigma_clip=3)
         if ramp_order is not None:
             ramp = fwd_model.ramp(0)
-            ramp.plot_phase('Fitted Ramp')
+            ramp.plot_phase(note='Fitted Ramp')
     # Return reconstructed magnetisation distribution and cost function:
     return magdata_rec, cost
