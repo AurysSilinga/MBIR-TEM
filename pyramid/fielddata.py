@@ -6,6 +6,10 @@
 
 import logging
 
+import os
+
+import tempfile
+
 import abc
 from numbers import Number
 
@@ -1158,7 +1162,8 @@ class VectorData(FieldData):
                                      cbar_label=cbar_label, tight_layout=tight, **kwargs)
 
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
-                      coloring='angle', ar_dens=1, opacity=1.0):
+                      coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
+                      figsize=None):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
         Parameters
@@ -1200,12 +1205,14 @@ class VectorData(FieldData):
         y_mag = self.field[1][::ad, ::ad, ::ad].ravel()
         z_mag = self.field[2][::ad, ::ad, ::ad].ravel()
         # Plot them as vectors:
-        mlab.figure(size=(750, 700))
+        if figsize is None:
+            figsize = (750, 700)
+        mlab.figure(size=figsize, bgcolor=(0.5, 0.5, 0.5), fgcolor=(0., 0., 0.))
         extent = np.ravel(list(zip((0, 0, 0), (self.dim[2], self.dim[1], self.dim[0]))))
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation:
             self._log.debug('Encoding full 3D angles')
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
-                                 scalars=np.arange(len(xxx)))
+                                 scalars=np.arange(len(xxx)), line_width=2)
             vector = np.asarray((x_mag.ravel(), y_mag.ravel(), z_mag.ravel()))
             rgb = colors.CMAP_CIRCULAR_DEFAULT.rgb_from_vector(vector)
             rgba = np.hstack((rgb, 255 * np.ones((len(xxx), 1), dtype=np.uint8)))
@@ -1215,18 +1222,59 @@ class VectorData(FieldData):
         elif coloring == 'amplitude':  # Encodes the amplitude of the arrows with the jet colormap:
             self._log.debug('Encoding amplitude')
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag,
-                                 mode=mode, colormap=cmap, opacity=opacity)
+                                 mode=mode, colormap=cmap, opacity=opacity, line_width=2)
             mlab.colorbar(label_fmt='%.2f')
             mlab.colorbar(orientation='vertical')
         else:
             raise AttributeError('Coloring mode not supported!')
         vecs.glyph.glyph_source.glyph_position = 'center'
         vecs.module_manager.vector_lut_manager.data_range = np.array([0, limit])
-        mlab.outline(vecs, extent=extent)
-        mlab.axes(vecs, extent=extent)
-        mlab.title(title, height=0.95, size=0.35)
-        mlab.orientation_axes()
+        if grid:
+            mlab.outline(vecs, extent=extent)
+        if labels:
+            mlab.axes(vecs, extent=extent)
+            mlab.title(title, height=0.95, size=0.35)
+            mlab.orientation_axes()
         return vecs
+
+    def plot_quiver3d_to_2d(self, dim_uv=None, axis=None, figsize=None, azimuth=45,
+                            elevation=60, distance=420, high_res=False, quiv_kwargs=None,
+                            **kwargs):
+        from mayavi import mlab
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
+        if axis is None:
+            self._log.debug('axis is None')
+            fig = plt.figure(figsize=figsize)
+            axis = fig.add_subplot(1, 1, 1)
+            axis.set_axis_bgcolor('gray')
+        kwargs.setdefault('labels', 'False')
+        if quiv_kwargs is None:
+            quiv_kwargs = {}
+        mlab.options.offscreen(True)
+        self.plot_quiver3d(figsize=(800, 800), **quiv_kwargs)
+        mlab.view(azimuth=azimuth, elevation=elevation, distance=distance)
+        if high_res:  # Use temp files:
+            tmpdir = tempfile.mkdtemp()
+            temp_path = os.path.join(tmpdir, 'temp.png')
+            try:
+                mlab.savefig(temp_path, size=(2000, 2000))
+                imgmap = np.asarray(Image.open(temp_path))
+            except Exception as e:
+                raise e
+            finally:
+                os.remove(temp_path)
+                os.rmdir(tmpdir)
+        else:  # Use screenshot (returns array WITH alpha!):
+            imgmap = mlab.screenshot(mode='rgba', antialiased=True)
+        mlab.close(mlab.gcf())
+        mlab.options.offscreen(False)
+        if dim_uv is None:
+            dim_uv = self.dim[1:]
+        axis.imshow(imgmap, extent=[0, dim_uv[0], 0, dim_uv[1]], origin='upper')
+        kwargs.setdefault('scalebar', False)
+        kwargs.setdefault('hideaxes', True)
+        return plottools.format_axis(axis, **kwargs)
 
 
 class ScalarData(FieldData):

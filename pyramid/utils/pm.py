@@ -7,14 +7,14 @@
 import logging
 
 from ..kernel import Kernel
-from ..phasemapper import PhaseMapperRDFC
+from ..phasemapper import PhaseMapperRDFC, PhaseMapperFDFC
 from ..projector import RotTiltProjector, XTiltProjector, YTiltProjector, SimpleProjector
 
 __all__ = ['pm']
 _log = logging.getLogger(__name__)
 
 
-def pm(magdata, mode='z', b_0=1, **kwargs):
+def pm(magdata, mode='z', b_0=1, mapper='RDFC', **kwargs):
     """Convenience function for fast magnetic phase mapping.
 
     Parameters
@@ -51,7 +51,13 @@ def pm(magdata, mode='z', b_0=1, **kwargs):
     # Project:
     mag_proj = projector(magdata)
     # Set up phasemapper and map phase:
-    phasemapper = PhaseMapperRDFC(Kernel(magdata.a, projector.dim_uv, b_0=b_0))
+    if mapper == 'RDFC':
+        phasemapper = PhaseMapperRDFC(Kernel(magdata.a, projector.dim_uv, b_0=b_0))
+    elif mapper == 'FDFC':
+        padding = kwargs.get('padding', 0)
+        phasemapper = PhaseMapperFDFC(magdata.a, projector.dim_uv, b_0=b_0, padding=padding)
+    else:
+        raise ValueError("Invalid mapper (use 'RDFC' or 'FDFC'")
     phasemap = phasemapper(mag_proj)
     # Get mask from magdata:
     phasemap.mask = mag_proj.get_mask()[0, ...]

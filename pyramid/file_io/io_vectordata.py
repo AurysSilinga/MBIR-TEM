@@ -73,30 +73,32 @@ def _load_from_llg(filename, a):
 
 def _load_from_ovf(filename, a):
     _log.debug('Calling load_from_ovf')
-    with open(filename, 'r') as mag_file:
-        assert mag_file.readline().startswith('# OOMMF')  # Make sure file has .ovf-format!
+    with open(filename, 'rb') as mag_file:
+        assert mag_file.readline().startswith(b'# OOMMF')  # Make sure file has .ovf-format!
         read_header, read_data = False, False
         header = {}
         x_mag, y_mag, z_mag = [], [], []
+        data_mode = ''
         for line in mag_file:
             # Read in additional info:
             if not read_header and not read_data:
-                if line.startswith('# Segment count'):
+                if line.startswith(b'# Segment count'):
                     assert int(line.split()[3]) == 1, 'Only one vector field can be read at time!'
-                elif line.startswith('# Begin: Header'):
+                elif line.startswith(b'# Begin: Header'):
                     read_header = True
-                elif line.startswith('# Begin: Data'):
+                elif line.startswith(b'# Begin: Data'):
                     read_data = True
-                    data_mode = line.split()[3]
-                    assert data_mode in ['text', 'Text'], \
+                    data_mode = ' '.join(line.decode('utf-8').split()[3:])
+                    assert data_mode in ['text', 'Text', 'Binary 4', 'Binary 8'], \
                         'Data mode {} is currently not supported by this reader!'.format(data_mode)
                     assert header.get('meshtype') == 'rectangular', \
                         'Only rectangular grids can be currently read!'
             # Read in header:
             elif read_header:  # Read header:
-                if line.startswith('# End: Header'):  # Header is done:
+                if line.startswith(b'# End: Header'):  # Header is done:
                     read_header = False
                     continue
+                line = line.decode('utf-8')  # Decode to use strings here!
                 line_list = line.split()
                 if '##' in line_list:  # Strip trailing comments:
                     del line_list[line_list.index('##'):]
@@ -108,14 +110,30 @@ def _load_from_ovf(filename, a):
                 elif key == 'Desc':  # Can go over several lines:
                     header['Desc'] = ' '.join([header['Desc'], value])
             # Read in data:
+            # TODO: Make it work for both text and binary! Put into HyperSpy?
+            # TODO: http://math.nist.gov/oommf/doc/userguide11b2/userguide/vectorfieldformat.html
             elif read_data:  # Currently in a data block:
-                if line.startswith('# End: Data'):  # Header is done:
-                    read_data = False
-                else:
-                    x, y, z = [float(i) for i in line.split()]
-                    x_mag.append(x)
-                    y_mag.append(y)
-                    z_mag.append(z)
+                if data_mode in ['text', 'Text']:  # Read data as text:
+                    if line.startswith(b'# End: Data'):  # Header is done:
+                        read_data = False
+                    else:
+                        x, y, z = [float(i) for i in line.split()]
+                        x_mag.append(x)
+                        y_mag.append(y)
+                        z_mag.append(z)
+                elif 'Binary' in data_mode:
+                    count = int(data_mode.split()[-1])
+                    dtype = '>f{}'.format(count)
+                    dim = (int(header['znodes']), int(header['ynodes']), int(header['xnodes']))
+                    test = np.fromfile(mag_file, dtype='<f4', count=count*2+1)
+                    if count == 4:  # Binary 4:
+                        assert test == '123456789.0', 'Wrong test bytes!'
+                    if count == 8:  # Binary 4:
+                        assert test == '123456789012345.0', 'Wrong test bytes!'
+                    data = np.fromfile(mag_file, dtype=dtype, count=3*np.prod(dim))
+                    data.reshape((3,) + dim)
+                    x_mag, y_mag, z_mag = data
+                    read_data = False  # Stop reading data and search for new Segments (if any).
         # Format after reading:
         dim = (int(header['znodes']), int(header['ynodes']), int(header['xnodes']))
         x_mag = np.asarray(x_mag).reshape(dim)

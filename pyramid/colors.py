@@ -97,7 +97,7 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         # Return RGB:
         return np.asarray(255 * np.stack((r, g, b), axis=-1), dtype=np.uint8)
 
-    def make_colorwheel(self, size=512, alpha=1):
+    def make_colorwheel(self, size=256, alpha=1):
         self._log.debug('Calling make_colorwheel')
         # Construct the colorwheel:
         yy, xx = (np.indices((size, size)) - size/2 + 0.5)
@@ -132,7 +132,7 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1, aspect='equal')
         axis.imshow(color_wheel, origin='lower', **kwargs)
-        axis.add_artist(Circle(xy=(size / 2, size / 2), radius=size/2-2, linewidth=2,
+        axis.add_artist(Circle(xy=(size/2-0.5, size/2-0.5), radius=size/2-2, linewidth=2,
                                edgecolor='k', facecolor='none'))
         if arrows:
             plt.tick_params(axis='both', which='both', labelleft='off', labelbottom='off',
@@ -146,6 +146,8 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
             axis.arrow(size/2, size/2, -0.15*size, 0, head_width=9, head_length=20,
                        fc='k', ec='k', lw=1, width=2)
         # Return axis:
+        axis.xaxis.set_visible(False)
+        axis.yaxis.set_visible(False)
         return axis
 
 
