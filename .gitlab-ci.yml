@@ -1,0 +1,2 @@
+test:
+  script: python setup.py test
