@@ -12,8 +12,6 @@ Contents:
    :maxdepth: 4
 
    pyramid.rst
-   
-  
 
 
 Indices and tables

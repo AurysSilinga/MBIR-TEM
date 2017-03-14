@@ -38,9 +38,14 @@ def pretty_plots(figsize=None, fontsize=None, stroke=None):
     if figsize is not None:
         global FIGSIZE_DEFAULT
         FIGSIZE_DEFAULT = figsize
+    mpl.rcParams['figure.figsize'] = FIGSIZE_DEFAULT
     if fontsize is not None:
         global FONTSIZE_DEFAULT
         FONTSIZE_DEFAULT = fontsize
+    mpl.rcParams['xtick.labelsize'] = FONTSIZE_DEFAULT
+    mpl.rcParams['ytick.labelsize'] = FONTSIZE_DEFAULT
+    mpl.rcParams['axes.labelsize'] = FONTSIZE_DEFAULT
+    mpl.rcParams['legend.fontsize'] = FONTSIZE_DEFAULT
     global STROKE_DEFAULT
     STROKE_DEFAULT = stroke
 

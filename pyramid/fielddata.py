@@ -902,6 +902,7 @@ class VectorData(FieldData):
             u_mag /= amplitudes.max() + 1E-30
             v_mag /= amplitudes.max() + 1E-30
         # Plot quiver:
+        # TODO: quiver does not work with matplotlib 2.0! FIX!
         quiv = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1), angles=angles,
                            pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
                            minlength=0.05, width=1*ar_dens, headlength=2, headaxislength=2,
@@ -1163,7 +1164,7 @@ class VectorData(FieldData):
 
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
-                      figsize=None):
+                      orientation=True, figsize=None):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
         Parameters
@@ -1234,12 +1235,16 @@ class VectorData(FieldData):
         if labels:
             mlab.axes(vecs, extent=extent)
             mlab.title(title, height=0.95, size=0.35)
-            mlab.orientation_axes()
+        if orientation:
+            oa = mlab.orientation_axes()
+            oa.marker.set_viewport(0, 0, 0.4, 0.4)
+            mlab.draw()
+        engine = mlab.get_engine()
+        scene = engine.scenes[0]
+        scene.scene.isometric_view()
         return vecs
 
-    def plot_quiver3d_to_2d(self, dim_uv=None, axis=None, figsize=None, azimuth=45,
-                            elevation=60, distance=420, high_res=False, quiv_kwargs=None,
-                            **kwargs):
+    def plot_quiver3d_to_2d(self, dim_uv=None, axis=None, figsize=None, high_res=False, **kwargs):
         from mayavi import mlab
         if figsize is None:
             figsize = plottools.FIGSIZE_DEFAULT
@@ -1249,11 +1254,7 @@ class VectorData(FieldData):
             axis = fig.add_subplot(1, 1, 1)
             axis.set_axis_bgcolor('gray')
         kwargs.setdefault('labels', 'False')
-        if quiv_kwargs is None:
-            quiv_kwargs = {}
-        mlab.options.offscreen(True)
-        self.plot_quiver3d(figsize=(800, 800), **quiv_kwargs)
-        mlab.view(azimuth=azimuth, elevation=elevation, distance=distance)
+        self.plot_quiver3d(figsize=(800, 800), **kwargs)
         if high_res:  # Use temp files:
             tmpdir = tempfile.mkdtemp()
             temp_path = os.path.join(tmpdir, 'temp.png')
@@ -1268,13 +1269,12 @@ class VectorData(FieldData):
         else:  # Use screenshot (returns array WITH alpha!):
             imgmap = mlab.screenshot(mode='rgba', antialiased=True)
         mlab.close(mlab.gcf())
-        mlab.options.offscreen(False)
         if dim_uv is None:
             dim_uv = self.dim[1:]
         axis.imshow(imgmap, extent=[0, dim_uv[0], 0, dim_uv[1]], origin='upper')
         kwargs.setdefault('scalebar', False)
         kwargs.setdefault('hideaxes', True)
-        return plottools.format_axis(axis, **kwargs)
+        return plottools.format_axis(axis, hideaxes=True, scalebar=False)
 
 
 class ScalarData(FieldData):
@@ -1325,7 +1325,7 @@ class ScalarData(FieldData):
             if pz != 0 or py != 0 or px != 0:
                 self.field = np.pad(self.field, ((0, pz), (0, py), (0, px)), mode='constant')
             # Create coarser grid for the field:
-            shape_4d = (self.dim[0] / 2, 2, self.dim[1] / 2, 2, self.dim[2] / 2, 2)
+            shape_4d = (self.dim[0] // 2, 2, self.dim[1] // 2, 2, self.dim[2] // 2, 2)
             self.field = self.field.reshape(shape_4d).mean(axis=(5, 3, 1))
 
     def scale_up(self, n=1, order=0):
@@ -1395,6 +1395,37 @@ class ScalarData(FieldData):
             self.field[mask] = vector
         else:
             self.field_vec = vector
+
+    def rot90(self, axis='x'):
+        """Rotate the scalar field 90° around the specified axis (right hand rotation).
+
+        Parameters
+        ----------
+        axis: {'x', 'y', 'z'}, optional
+            The axis around which the vector field is rotated.
+
+        Returns
+        -------
+        scalardata_rot: :class:`~.ScalarData`
+           A rotated copy of the :class:`~.ScalarData` object.
+
+        """
+        self._log.debug('Calling rot90')
+        if axis == 'x':
+            field_rot = np.zeros((self.dim[1], self.dim[0], self.dim[2]))
+            for i in range(self.dim[2]):
+                field_rot[:, :, i] = np.rot90(self.field[:, :, i])
+        elif axis == 'y':
+            field_rot = np.zeros((self.dim[2], self.dim[1], self.dim[0]))
+            for i in range(self.dim[1]):
+                field_rot[:, i, :] = np.rot90(self.field[:, i, :])
+        elif axis == 'z':
+            field_rot = np.zeros((self.dim[0], self.dim[2], self.dim[1]))
+            for i in range(self.dim[0]):
+                field_rot[i, :, :] = np.rot90(self.field[i, :, :])
+        else:
+            raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
+        return ScalarData(self.a, field_rot)
 
     def to_signal(self):
         """Convert :class:`~.ScalarData` data into a HyperSpy signal.
