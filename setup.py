@@ -20,7 +20,7 @@ URL = ''
 VERSION = '0.1.0-dev'
 PYTHON_VERSION = (2, 7)
 DEPENDENCIES = {'numpy': (1, 10)}
-LONG_DESCRIPTION = 'long description (TODO!)'  # TODO: Long description!
+LONG_DESCRIPTION = 'long description (TODO!)'  # TODO: Long description!!!
 
 
 def get_package_version(package):
