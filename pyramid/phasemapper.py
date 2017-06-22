@@ -411,7 +411,7 @@ class PhaseMapperMIP(PhaseMapper):
 
 class PhaseMapperCharge(PhaseMapper):
 
-    """"""
+"""""" #This part will be updated.
 
     def __init__(self, a, dim_uv, biprism_vec, v_acc=300000):
         self._log.debug('Calling __init__')
