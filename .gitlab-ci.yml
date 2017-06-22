@@ -2,7 +2,7 @@ image: "python:3.5"
 
 before_script:
   - python --version
-  - pip install hyperspy
+  - pip install hyperspy tqdm cmocean nose
 
 stages:
   - test
