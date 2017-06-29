@@ -411,13 +411,13 @@ class PhaseMapperMIP(PhaseMapper):
 
 class PhaseMapperCharge(PhaseMapper):
 
-"""""" #This part will be updated.
+    """"""
 
-    def __init__(self, a, dim_uv, biprism_vec, v_acc=300000):
+    def __init__(self, a, dim_uv, electrode_vec, v_acc=300000):
         self._log.debug('Calling __init__')
         self.a = a
         self.dim_uv = dim_uv
-        self.biprism_vec = biprism_vec
+        self.electrode_vec = electrode_vec
         self.v_acc = v_acc
         lam = H_BAR / np.sqrt(2 * M_E * Q_E * v_acc * (1 + Q_E * v_acc / (2 * M_E * C ** 2)))
         C_e = 2 * np.pi * Q_E / lam * (Q_E * v_acc + M_E * C ** 2) / (
@@ -437,43 +437,76 @@ class PhaseMapperCharge(PhaseMapper):
                (self.a, self.dim_uv, self.v_acc)
 
     def __call__(self, elec_data):
-        """ phase_dipoles() is to caculate the phase from many electric dipoles.
-        field include the amount of charge in every grid, unit:electron.
-        The normal vector of the electrode is (a,b), and the distance to the origin is the norm
-        of (a,b). R is the sampling rate,pixel/nm."""
-        R = 1 / self.a
+        """ phase_dipoles() is to calculate the phase from many electric dipoles. The model used to avoid singularity is
+        the homogeneously-distributed charged metallic sphere.
+        The elec_data includes the amount of charge in every grid, unit:electron.
+        The electrode_vec is the  normal vector of the electrode, (elec_a,elec_b), and the distance to the origin is
+        the norm of (elec_a,elec_b).
+        R_sam is the sampling rate,pixel/nm."""
+
+        R_sam = 1 / self.a
+        R = R_sam / 2  # The radius of the charged sphere
         field = elec_data.field[0, ...]
-        bu, bv = self.biprism_vec  # biprism vector (orthogonal to biprism from origin)
-        bn = bu ** 2 + bv ** 2  # norm of the biprism vector
+        elec_a, elec_b = self.electrode_vec  # electrode vector (orthogonal to the electrode from origin)
+        elec_n = elec_a ** 2 + elec_b ** 2
+
         dim_v, dim_u = field.shape
+        v, u = np.meshgrid(dim_v, dim_u)
         # Find list of charge locations and charge values:
         vq, uq = np.nonzero(field)
         q = field[vq, uq]
         # Calculate locations of image charges:
-        vm = (bu ** 2 - bv ** 2) / bn * vq - 2 * bu * bv / bn * uq + 2 * bv
-        um = (bv ** 2 - bu ** 2) / bn * uq - 2 * bu * bv / bn * vq + 2 * bu
+        # vm = (bu ** 2 - bv ** 2) / bn * vq - 2 * bu * bv / bn * uq + 2 * bv
+        # um = (bv ** 2 - bu ** 2) / bn * uq - 2 * bu * bv / bn * vq + 2 * bu
+        um = (elec_b ** 2 - elec_a ** 2) / elec_n * uq - 2 * elec_a * elec_b / elec_n * vq + 2 * elec_a
+        vm = (elec_a ** 2 - elec_b ** 2) / elec_n * vq - 2 * elec_a * elec_b / elec_n * uq + 2 * elec_b
         # Calculate phase contribution for each charge:
         phase = np.zeros((dim_v, dim_u))
+
         for i in range(len(q)):
-            for u in range(dim_u):
-                for v in range(dim_v):
-                    rq = np.sqrt((u - uq[i]) ** 2 + (v - vq[i]) ** 2)  # charge distance
-                    rm = np.sqrt((u - um[i]) ** 2 + (v - vm[i]) ** 2)  # mirror distance
-                    # Distance:
-                    z1 = (R / 2) ** 2 - rq ** 2
-                    z2 = (R / 2) ** 2 - rm ** 2
-                    if z1 < 0 and z2 < 0:
-                        phase[v, u] += -q[i] * self.coeff * np.log((rq ** 2) / (rm ** 2))
-                    elif z1 >= 0 >= z2:
-                        z3 = np.sqrt(z1)
-                        phase[v, u] += (-q[i] * self.coeff *
-                                        np.log(((z3 + R / 2) ** 2) / (rm ** 2))
-                                        + 2 * q[i] * Q_E * z3 / 2 / np.pi / EPS_0 / R)
-                    else:
-                        z4 = np.sqrt(z2)
-                        phase[v, u] += (-q[i] * self.coeff *
-                                        np.log((rq ** 2) / ((z4 + R / 2) ** 2))
-                                        - 2 * q[i] * Q_E * z4 / 2 / np.pi / EPS_0 / R)
+
+            # The projected distance from the charges or image charges
+
+            r1 = np.sqrt((u - uq[i]) ** 2 + (v - vq[i]) ** 2)
+
+            r2 = np.sqrt((u - um[i]) ** 2 + (v - vm[i]) ** 2)
+
+            # The square height when  the path come across the sphere
+
+            z1 = R ** 2 - r1 ** 2
+
+            z2 = R ** 2 - r2 ** 2
+
+            # Phase calculation in 3 different cases
+
+            # case 1 totally out of the sphere
+
+            case1 = ((z1 < 0) & (z2 < 0))
+
+            phase[case1] += - q[i] * self.coeff * np.log((r1[case1] ** 2) / (r2[case1] ** 2))
+
+            # case 2: inside the charge sphere
+
+            case2 = ((z1 >= 0) & (z2 <= 0))
+
+            # The height when the path come across the charge sphere
+
+            z3 = np.sqrt(z1)
+
+            phase[case2] += q[i] * self.coeff * (- np.log((z3[case2] + R) ** 2 / r2[case2] ** 2) +
+                             (2 * z3[case2] / R + 2 * z3[case2] ** 3 / 3 / R ** 3))
+
+            # case 3 : inside the image charge sphere
+
+            case3 = np.logical_not(case1 | case2)
+
+            # The height whe the path comes across the image charge sphere
+
+            z4 = np.sqrt(z2)
+
+            phase[case3] += q[i] * self.coeff * (np.log((z4[case3] + R) ** 2 / r1[case3] ** 2) -
+                             (2 * z4[case3] / R + 2 * z4[case3] ** 3 / 3 / R ** 3))
+
         return PhaseMap(self.a, phase)
 
     def jac_dot(self, vector):
