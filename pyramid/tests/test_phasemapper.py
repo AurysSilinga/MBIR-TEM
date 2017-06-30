@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from pyramid.kernel import Kernel
-from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperFDFC, PhaseMapperMIP
+from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperFDFC, PhaseMapperMIP, PhaseMapperCharge
 from pyramid import load_phasemap, load_vectordata, load_scalardata
 
 
@@ -169,6 +169,31 @@ class TestCasePhaseMapperMIP(unittest.TestCase):
         assert_allclose(phasemap.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
         assert_allclose(phasemap.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
+
+    def test_jac_dot(self):
+        self.assertRaises(NotImplementedError, self.mapper.jac_dot, None)
+
+    def test_jac_T_dot(self):
+        self.assertRaises(NotImplementedError, self.mapper.jac_T_dot, None)
+
+
+class TestCasePhaseMapperCharge(unittest.TestCase):
+    def setUp(self):
+        self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
+        self.Charge_proj = load_scalardata(os.path.join(self.path, 'Charge_proj.hdf5'))
+        self.mapper = PhaseMapperCharge(self.Charge_proj.a, self.Charge_proj.dim[1:])
+
+    def tearDown(self):
+        self.path = None
+        self.Charge_proj = None
+        self.mapper = None
+
+    def test_call(self):
+        Charge_phase_ref = load_phasemap(os.path.join(self.path, 'Charge_phase_ref.hdf5'))
+        phasemap = self.mapper(self.Charge_proj)
+        assert_allclose(phasemap.phase, Charge_phase_ref.phase, atol=1E-7,
+                        err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phasemap.a, Charge_phase_ref.a, err_msg='Unexpected behavior in __call__()!')
 
     def test_jac_dot(self):
         self.assertRaises(NotImplementedError, self.mapper.jac_dot, None)
