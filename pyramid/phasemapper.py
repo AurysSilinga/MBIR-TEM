@@ -437,7 +437,7 @@ class PhaseMapperCharge(PhaseMapper):
                (self.a, self.dim_uv, self.v_acc)
 
     def __call__(self, elec_data):
-        """ phase_dipoles() is to calculate the phase from many electric dipoles. The model used to avoid singularity is
+        """ This is to calculate the phase from many electric dipoles. The model used to avoid singularity is
         the homogeneously-distributed charged metallic sphere.
         The elec_data includes the amount of charge in every grid, unit:electron.
         The electrode_vec is the  normal vector of the electrode, (elec_a,elec_b), and the distance to the origin is
@@ -451,7 +451,10 @@ class PhaseMapperCharge(PhaseMapper):
         elec_n = elec_a ** 2 + elec_b ** 2
 
         dim_v, dim_u = field.shape
-        v, u = np.meshgrid(dim_v, dim_u)
+
+        u_cor = range(0, dim_u, 1)
+        v_cor = range(0, dim_v, 1)
+        v, u = np.meshgrid(v_cor, u_cor)
         # Find list of charge locations and charge values:
         vq, uq = np.nonzero(field)
         q = field[vq, uq]
