@@ -2,4 +2,8 @@
 
 desktop.ini
 
+*.pyc
+
 .DS_Store
+
+
