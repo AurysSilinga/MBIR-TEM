@@ -247,6 +247,8 @@ class Diagnostics(object):
         lx, rx = _calc_lr(0)
         ly, ry = _calc_lr(1)
         lz, rz = _calc_lr(2)
+
+        # TODO: Test if FWHM is really calculated with a in mind... didn't seem so...
         fwhm_x = (rx - lx) * a
         fwhm_y = (ry - ly) * a
         fwhm_z = (rz - lz) * a
@@ -379,6 +381,87 @@ class Diagnostics(object):
         artist = axis.add_patch(patches.Ellipse(xy, width, height, fill=False, edgecolor='w',
                                                 linewidth=2, alpha=0.5))
         artist.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
+
+
+    def plot_avrg_kern_field3d(self, pos=None, mask=True, ellipsoid=True, **kwargs):
+        avrg_kern_field = self.get_avrg_kern_field(pos)
+        avrg_kern_field.plot_mask(color=(1, 1, 1), opacity=0.15, labels=False, grid=False,
+                                  orientation=False)
+        avrg_kern_field.plot_quiver3d(**kwargs, new_fig=False)
+        fwhm = self.calculate_fwhm()[0]
+        from mayavi.sources.api import ParametricSurface
+        from mayavi.modules.api import Surface
+        from mayavi import mlab
+        engine = mlab.get_engine()
+        scene = engine.scenes[0]
+        scene.scene.disable_render = True  # for speed  # TODO: EVERYWHERE WITH MAYAVI!
+        # TODO: from enthought.mayavi import mlab
+        # TODO: f = mlab.figure() # returns the current scene
+        # TODO: engine = mlab.get_engine() # returns the running mayavi engine
+        source = ParametricSurface()
+        source.function = 'ellipsoid'
+        engine.add_source(source)
+        surface = Surface()
+        source.add_module(surface)
+
+        actor = surface.actor  # mayavi actor, actor.actor is tvtk actor
+        # actor.property.ambient = 1 # defaults to 0 for some reason, ah don't need it, turn off scalar visibility instead
+        actor.property.opacity = 0.5
+        actor.property.color = (0, 0, 0)
+        actor.mapper.scalar_visibility = False  # don't colour ellipses by their scalar indices into colour map
+        actor.property.backface_culling = True  # gets rid of rendering artifact when opacity is < 1
+        # actor.property.frontface_culling = True
+        actor.actor.orientation = [0, 0, 0]  # in degrees
+        actor.actor.origin = (0, 0, 0)
+        actor.actor.position = (self.pos[1]+0.5, self.pos[2]+0.5, self.pos[3]+0.5)
+        a = self.magdata.a
+        actor.actor.scale = [0.5*fwhm[0]/a, 0.5*fwhm[1]/a, 0.5*fwhm[2]/a]
+
+        #surface.append(surface)
+
+
+        scene.scene.disable_render = False  # now turn it on  # TODO: EVERYWHERE WITH MAYAVI!
+
+
+    def plot_avrg_kern_field_3d_to_2d(self, dim_uv=None, axis=None, figsize=None, high_res=False,
+                                      **kwargs):
+        # TODO: 3d_to_2d into plottools and make available for all 3D plots if possible!
+        import tempfile
+        from PIL import Image
+        import os
+        from . import plottools
+        from mayavi import mlab
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
+        if axis is None:
+            self._log.debug('axis is None')
+            fig = plt.figure(figsize=figsize)
+            axis = fig.add_subplot(1, 1, 1)
+            axis.set_axis_bgcolor('gray')
+        kwargs.setdefault('labels', 'False')
+        #avrg_kern_field = self.get_avrg_kern_field()
+        #avrg_kern_field.plot_quiver3d(**kwargs)
+        self.plot_avrg_kern_field3d(**kwargs)
+        if high_res:  # Use temp files:
+            tmpdir = tempfile.mkdtemp()
+            temp_path = os.path.join(tmpdir, 'temp.png')
+            try:
+                mlab.savefig(temp_path, size=(2000, 2000))
+                imgmap = np.asarray(Image.open(temp_path))
+            except Exception as e:
+                raise e
+            finally:
+                os.remove(temp_path)
+                os.rmdir(tmpdir)
+        else:  # Use screenshot (returns array WITH alpha!):
+            imgmap = mlab.screenshot(mode='rgba', antialiased=True)
+        mlab.close(mlab.gcf())
+        if dim_uv is None:
+            dim_uv = self.dim[1:]
+        axis.imshow(imgmap, extent=[0, dim_uv[0], 0, dim_uv[1]], origin='upper')
+        kwargs.setdefault('scalebar', False)
+        kwargs.setdefault('hideaxes', True)
+        return plottools.format_axis(axis, hideaxes=True, scalebar=False)
 
 
 def get_vector_field_errors(vector_data, vector_data_ref):

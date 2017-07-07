@@ -2,6 +2,9 @@
 # Copyright 2014 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
+
+# TODO: Own small package? Use viscm (with colorspacious)?
+# TODO: Also add cmoceaon "phase" colormap? Make optional (try importing, fall back to RdBu!)
 """This module provides a number of custom colormaps, which also have capabilities for 3D plotting.
 If this is the case, the :class:`~.Colormap3D` colormap class is a parent class. In `cmaps`, a
 number of specialised colormaps is available for convenience. If the default for circular colormaps
@@ -15,7 +18,7 @@ import logging
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter as FuncForm
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, IndexLocator, FixedLocator
 
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import ImageGrid
@@ -31,6 +34,9 @@ from skimage import color as skcolor
 import colorsys
 
 import abc
+
+from . import plottools
+
 
 __all__ = ['Colormap3D', 'ColormapCubehelix', 'ColormapPerception', 'ColormapHLS',
            'ColormapClassic', 'ColormapTransparent', 'cmaps', 'CMAP_CIRCULAR_DEFAULT',
@@ -65,7 +71,7 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         ----------
         vector: tuple (N=3) or :class:`~numpy.ndarray`
             Vector containing the x, y and z component, or a numpy array encompassing the
-            components as three lists.z-coordinate of the desired direction to encode.
+            components as three lists.
 
         Returns
         -------
@@ -83,7 +89,7 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         # Calculate color deterministics:
         hue = phi / (2 * np.pi)
         lum = 1 - theta / np.pi
-        sat = r / r.max()
+        sat = r / (r.max() + 1E-30)
         # Calculate RGB from hue with colormap:
         rgba = np.asarray(self(hue))
         r, g, b = rgba[..., 0], rgba[..., 1], rgba[..., 2]
@@ -97,7 +103,8 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         # Return RGB:
         return np.asarray(255 * np.stack((r, g, b), axis=-1), dtype=np.uint8)
 
-    def make_colorwheel(self, size=256, alpha=1):
+    def make_colorwheel(self, size=256, alpha=1, bgcolor=None):
+        # TODO: Strange arrows are not straight...
         self._log.debug('Calling make_colorwheel')
         # Construct the colorwheel:
         yy, xx = (np.indices((size, size)) - size/2 + 0.5)
@@ -107,11 +114,20 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         zz = np.where(rr <= size/2-2, 0, -1)  # color inside, black outside
         aa = np.where(rr >= size/2-2, 255*alpha, 255).astype(dtype=np.uint8)
         rgba = np.dstack((self.rgb_from_vector(np.asarray((xx, yy, zz))), aa))
+        if bgcolor:
+            if bgcolor == 'w':  # TODO: Matplotlib get color tuples from string?
+                bgcolor = (1, 1, 1)
+            if len(bgcolor) == 3 and not isinstance(bgcolor, str):  # Only you have tuple!
+                r, g, b = rgba[..., 0], rgba[..., 1], rgba[..., 2]
+                r = np.where(rr <= size / 2 - 2, r, 255*bgcolor[0]).astype(dtype=np.uint8)
+                g = np.where(rr <= size / 2 - 2, g, 255*bgcolor[1]).astype(dtype=np.uint8)
+                b = np.where(rr <= size / 2 - 2, b, 255*bgcolor[2]).astype(dtype=np.uint8)
+                rgba[..., 0], rgba[..., 1], rgba[..., 2] = r, g, b
         # Create color wheel:
         return Image.fromarray(rgba)
 
-    def plot_colorwheel(self, axis=None, size=512, alpha=1, arrows=False, figsize=(4, 4),
-                        **kwargs):
+    def plot_colorwheel(self, axis=None, size=512, alpha=1, arrows=False, greyscale=False,
+                        figsize=(4, 4), bgcolor=None, **kwargs):
         """Display a color wheel to illustrate the color coding of vector gradient directions.
 
         Parameters
@@ -126,7 +142,9 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         """
         self._log.debug('Calling plot_colorwheel')
         # Construct the colorwheel:
-        color_wheel = self.make_colorwheel(size=size, alpha=alpha)
+        color_wheel = self.make_colorwheel(size=size, alpha=alpha, bgcolor=bgcolor)
+        if greyscale:
+            color_wheel = color_wheel.convert('L')
         # Plot the color wheel:
         if axis is None:
             fig = plt.figure(figsize=figsize)
@@ -148,6 +166,12 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         # Return axis:
         axis.xaxis.set_visible(False)
         axis.yaxis.set_visible(False)
+        for tic in axis.xaxis.get_major_ticks():
+            tic.tick1On = tic.tick2On = False
+            tic.label1On = tic.label2On = False
+        for tic in axis.yaxis.get_major_ticks():
+            tic.tick1On = tic.tick2On = False
+            tic.label1On = tic.label2On = False
         return axis
 
 
@@ -281,7 +305,7 @@ class ColormapCubehelix(colors.LinearSegmentedColormap, Colormap3D):
         super().__init__('cubehelix', cdict, N=256)
         self._log.debug('Created ' + str(self))
 
-    def plot_helix(self, figsize=(8, 8)):
+    def plot_helix(self, figsize=None, **kwargs):
         """Display the RGB and luminance plots for the chosen cubehelix.
 
         Parameters
@@ -295,6 +319,8 @@ class ColormapCubehelix(colors.LinearSegmentedColormap, Colormap3D):
 
         """
         self._log.debug('Calling plot_helix')
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         plt.figure(figsize=figsize)
         gs = gridspec.GridSpec(2, 1, height_ratios=[8, 1])
         # Main plot:
@@ -306,8 +332,10 @@ class ColormapCubehelix(colors.LinearSegmentedColormap, Colormap3D):
         axis.set_xlim(0, self.nlev)
         axis.set_ylim(0, 1)
         axis.set_title('Cubehelix', fontsize=18)
-        axis.set_xlabel('color index', fontsize=15)
-        axis.set_ylabel('lightness / rgb', fontsize=15)
+        axis.set_xlabel('Color index', fontsize=15)
+        axis.set_ylabel('Brightness / RGB', fontsize=15)
+        axis.xaxis.set_major_locator(FixedLocator(locs=np.linspace(0, self.nlev, 5)))
+        axis.yaxis.set_major_locator(FixedLocator(locs=[0, 0.5, 1]))
         # Colorbar horizontal:
         caxis = plt.subplot(gs[1], sharex=axis)
         rgb = self(np.linspace(0, 1, 256))[None, ...]
@@ -317,6 +345,7 @@ class ColormapCubehelix(colors.LinearSegmentedColormap, Colormap3D):
         caxis.imshow(im)
         plt.tick_params(axis='both', which='both', labelleft='off', labelbottom='off',
                         left='off', right='off', top='on', bottom='on')
+        return plottools.format_axis(axis, scalebar=False, keep_labels=True, **kwargs)
 
 
 class ColormapPerception(colors.LinearSegmentedColormap, Colormap3D):
@@ -478,8 +507,10 @@ class ColorspaceCIELab(object):  # TODO: Superclass?
         self.clip = clip
         self._log.debug('Created ' + str(self))
 
-    def plot(self, L=53.4, axis=None, figsize=(8, 8)):
+    def plot(self, L=53.4, axis=None, figsize=None, **kwargs):
         self._log.debug('Calling plot')
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         dim, ext = self.dim, self.extent
         # Create Lab colorspace:
         a = np.linspace(ext[0], ext[1], dim[1])
@@ -515,12 +546,13 @@ class ColorspaceCIELab(object):  # TODO: Superclass?
         axis.set_xlabel('a', fontsize=15)
         axis.set_ylabel('b', fontsize=15)
         axis.set_title('CIELab (L = {:g})'.format(L), fontsize=18)
+        axis.xaxis.set_major_locator(FixedLocator(np.linspace(0, dim[1], 5)))
+        axis.yaxis.set_major_locator(FixedLocator(np.linspace(0, dim[0], 5)))
         fx = FuncForm(lambda x, pos: '{:.3g}'.format(x / dim[1] * (ext[1] - ext[0]) + ext[0]))
         axis.xaxis.set_major_formatter(fx)
         fy = FuncForm(lambda y, pos: '{:.3g}'.format(y / dim[0] * (ext[3] - ext[2]) + ext[2]))
         axis.yaxis.set_major_formatter(fy)
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
+        plottools.format_axis(axis, scalebar=False, keep_labels=True, **kwargs)
 
     def plot_colormap(self, cmap, N=256, L='auto', figsize=None, cbar_lim=None, brightness=True,
                       input_rec=None):
@@ -614,8 +646,10 @@ class ColorspaceCIELuv(object):
         self.clip = clip
         self._log.debug('Created ' + str(self))
 
-    def plot(self, L=53.4, axis=None, figsize=(8, 8)):
+    def plot(self, L=53.4, axis=None, figsize=None, **kwargs):
         self._log.debug('Calling plot')
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         dim, ext = self.dim, self.extent
         # Create Lab colorspace:
         u = np.linspace(ext[0], ext[1], dim[1])
@@ -651,12 +685,13 @@ class ColorspaceCIELuv(object):
         axis.set_xlabel('u', fontsize=15)
         axis.set_ylabel('v', fontsize=15)
         axis.set_title('CIELuv (L = {:g})'.format(L), fontsize=18)
+        axis.xaxis.set_major_locator(FixedLocator(np.linspace(0, dim[1], 5)))
+        axis.yaxis.set_major_locator(FixedLocator(np.linspace(0, dim[0], 5)))
         fx = FuncForm(lambda x, pos: '{:.3g}'.format(x / dim[1] * (ext[1] - ext[0]) + ext[0]))
         axis.xaxis.set_major_formatter(fx)
         fy = FuncForm(lambda y, pos: '{:.3g}'.format(y / dim[0] * (ext[3] - ext[2]) + ext[2]))
         axis.yaxis.set_major_formatter(fy)
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
+        plottools.format_axis(axis, scalebar=False, keep_labels=True, **kwargs)
 
     def plot_colormap(self, cmap, N=256, L='auto', figsize=None, cbar_lim=None, brightness=True,
                       input_rec=None):
@@ -750,8 +785,10 @@ class ColorspaceCIExyY(object):
         self.clip = clip
         self._log.debug('Created ' + str(self))
 
-    def plot(self, Y=0.214, axis=None, figsize=(8, 8)):
+    def plot(self, Y=0.214, axis=None, figsize=None, **kwargs):
         self._log.debug('Calling plot')
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         dim, ext = self.dim, self.extent
         # Create Lab colorspace:
         x = np.linspace(ext[0], ext[1], dim[1])
@@ -788,12 +825,13 @@ class ColorspaceCIExyY(object):
         axis.set_xlabel('x', fontsize=15)
         axis.set_ylabel('y', fontsize=15)
         axis.set_title('CIExyY (Y = {:g})'.format(Y), fontsize=18)
+        axis.xaxis.set_major_locator(FixedLocator(np.linspace(0, dim[1], 5)))
+        axis.yaxis.set_major_locator(FixedLocator(np.linspace(0, dim[0], 5)))
         fx = FuncForm(lambda x, pos: '{:.3g}'.format(x / dim[1] * (ext[1] - ext[0]) + ext[0]))
         axis.xaxis.set_major_formatter(fx)
         fy = FuncForm(lambda y, pos: '{:.3g}'.format(y / dim[0] * (ext[3] - ext[2]) + ext[2]))
         axis.yaxis.set_major_formatter(fy)
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
+        plottools.format_axis(axis, scalebar=False, keep_labels=True, **kwargs)
 
     def plot_colormap(self, cmap, N=256, Y='auto', figsize=None, cbar_lim=None, brightness=True,
                       input_rec=None):
@@ -891,8 +929,10 @@ class ColorspaceYPbPr(object):
         self.clip = clip
         self._log.debug('Created ' + str(self))
 
-    def plot(self, Y=0.5, axis=None, figsize=(8, 8)):
+    def plot(self, Y=0.5, axis=None, figsize=None, **kwargs):
         self._log.debug('Calling plot')
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
         dim, ext = self.dim, self.extent
         # Create YPbPr colorspace:
         pb = np.linspace(ext[0], ext[1], dim[1])
@@ -925,14 +965,13 @@ class ColorspaceYPbPr(object):
         axis.set_xlabel('Pb', fontsize=15)
         axis.set_ylabel('Pr', fontsize=15)
         axis.set_title("Y'PbPr (Y' = {:g})".format(Y), fontsize=18)
-        fx = FuncForm(
-            lambda x, pos: '{:.3g}'.format(x / dim[1] * (ext[1] - ext[0]) + ext[0]))
+        axis.xaxis.set_major_locator(FixedLocator(np.linspace(0, dim[1], 5)))
+        axis.yaxis.set_major_locator(FixedLocator(np.linspace(0, dim[0], 5)))
+        fx = FuncForm(lambda x, pos: '{:.3g}'.format(x / dim[1] * (ext[1] - ext[0]) + ext[0]))
         axis.xaxis.set_major_formatter(fx)
-        fy = FuncForm(
-            lambda y, pos: '{:.3g}'.format(y / dim[0] * (ext[3] - ext[2]) + ext[2]))
+        fy = FuncForm(lambda y, pos: '{:.3g}'.format(y / dim[0] * (ext[3] - ext[2]) + ext[2]))
         axis.yaxis.set_major_formatter(fy)
-        axis.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(nbins=12, integer=True))
+        plottools.format_axis(axis, scalebar=False, keep_labels=True, **kwargs)
 
     def plot_colormap(self, cmap, N=256, Y='auto', figsize=None, cbar_lim=None, brightness=True,
                       input_rec=None):

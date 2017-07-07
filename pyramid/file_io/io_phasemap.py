@@ -18,7 +18,8 @@ __all__ = ['load_phasemap']
 _log = logging.getLogger(__name__)
 
 
-def load_phasemap(filename, mask=None, confidence=None, a=None, **kwargs):
+def load_phasemap(filename, mask=None, confidence=None, a=None, threshold=0,
+                  print_mask_limits=False, **kwargs):
     """Load supported file into a :class:`~pyramid.phasemap.PhaseMap` instance.
 
     The function loads the file according to the extension:
@@ -59,7 +60,11 @@ def load_phasemap(filename, mask=None, confidence=None, a=None, **kwargs):
     phasemap = _load(filename, as_phasemap=True, a=a, **kwargs)
     if mask is not None:
         filemask, kwargs_mask = _parse_add_param(mask)
-        phasemap.mask = _load(filemask, **kwargs_mask)
+        mask_raw = _load(filemask, **kwargs_mask)
+        if print_mask_limits:
+            print('[Mask] min:', mask_raw.min(), 'max:', mask_raw.max(), 'threshold:', threshold)
+        mask = np.where(mask_raw > threshold, True, False)
+        phasemap.mask = mask
     if confidence is not None:
         fileconf, kwargs_conf = _parse_add_param(confidence)
         phasemap.confidence = _load(fileconf, **kwargs_conf)

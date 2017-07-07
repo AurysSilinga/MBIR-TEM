@@ -46,7 +46,7 @@ from . import reconstruction
 from . import fieldconverter
 from . import magcreator
 from . import colors
-from . import plottools
+from . import plottools  # TODO: colors and plottools into "plots" package (maybe with examples?)
 from . import utils
 from .costfunction import *
 from .dataset import *

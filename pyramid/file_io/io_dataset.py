@@ -12,6 +12,8 @@ import h5py
 
 import numpy as np
 
+import scipy as sp
+
 from ..dataset import DataSet
 from ..file_io.io_projector import load_projector
 from ..file_io.io_phasemap import load_phasemap
@@ -38,7 +40,7 @@ def save_dataset(dataset, filename, overwrite=True):
             if dataset.mask is not None:
                 f.create_dataset('mask', data=dataset.mask)
             if dataset.Se_inv is not None:
-                f.create_dataset('Se_inv', data=dataset.Se_inv)
+                f.create_dataset('Se_inv', data=dataset.Se_inv.diagonal())  # Save only diagonal!
     # PhaseMaps and Projectors:
     for i, projector in enumerate(dataset.projectors):
         projector_name = 'projector_{}_{}_{}{}'.format(name, i, projector.get_info(), extension)
@@ -82,7 +84,8 @@ def load_dataset(filename):
         dim = f.attrs.get('dim')
         b_0 = f.attrs.get('b_0')
         mask = np.copy(f.get('mask', None))
-        Se_inv = np.copy(f.get('Se_inv', None))
+        Se_inv_diag = np.copy(f.get('Se_inv', None))
+        Se_inv = sp.sparse.diags(Se_inv_diag).tocsr()
         dataset = DataSet(a, dim, b_0, mask, Se_inv)
     # Projectors:
     projectors = []

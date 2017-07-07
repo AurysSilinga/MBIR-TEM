@@ -411,7 +411,7 @@ class PhaseMapperMIP(PhaseMapper):
 
 class PhaseMapperCharge(PhaseMapper):
 
-    """"""
+    """"""  # TODO: Write Docstring!
 
     def __init__(self, a, dim_uv, electrode_vec, v_acc=300000):
         self._log.debug('Calling __init__')

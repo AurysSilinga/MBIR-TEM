@@ -12,9 +12,6 @@ import logging
 import os
 import sys
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.uic import loadUiType
-
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
@@ -23,6 +20,13 @@ from ..projector import SimpleProjector
 from ..kernel import Kernel
 from ..phasemapper import PhaseMapperRDFC
 from ..file_io.io_vectordata import load_vectordata
+
+try:
+    from PyQt5 import QtGui, QtCore
+    from PyQt5.uic import loadUiType
+except ImportError:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4.uic import loadUiType
 
 __all__ = ['gui_mag_slicer']
 _log = logging.getLogger(__name__)

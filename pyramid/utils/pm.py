@@ -37,6 +37,8 @@ def pm(magdata, mode='z', b_0=1, mapper='RDFC', **kwargs):
 
     """
     _log.debug('Calling pm')
+    # In case of FDFC:
+    padding = kwargs.pop('padding', 0)
     # Determine projection mode:
     if mode == 'rot-tilt':
         projector = RotTiltProjector(magdata.dim, **kwargs)
@@ -54,7 +56,6 @@ def pm(magdata, mode='z', b_0=1, mapper='RDFC', **kwargs):
     if mapper == 'RDFC':
         phasemapper = PhaseMapperRDFC(Kernel(magdata.a, projector.dim_uv, b_0=b_0))
     elif mapper == 'FDFC':
-        padding = kwargs.get('padding', 0)
         phasemapper = PhaseMapperFDFC(magdata.a, projector.dim_uv, b_0=b_0, padding=padding)
     else:
         raise ValueError("Invalid mapper (use 'RDFC' or 'FDFC'")

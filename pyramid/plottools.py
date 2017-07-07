@@ -14,6 +14,7 @@ from matplotlib.patches import Rectangle
 from matplotlib import patheffects
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
+from mpl_toolkits.axes_grid.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import warnings
@@ -23,7 +24,7 @@ from . import colors
 __all__ = ['format_axis', 'pretty_plots', 'add_scalebar',
            'add_annotation', 'add_colorwheel', 'add_cbar']
 
-FIGSIZE_DEFAULT = (6.7, 5)
+FIGSIZE_DEFAULT = (6.7, 5)  # TODO: Apparently does not fit as well as before...
 FONTSIZE_DEFAULT = 20
 STROKE_DEFAULT = None
 
@@ -70,6 +71,7 @@ def add_scalebar(axis, sampling=1, fontsize=None, stroke=None):
         The box containing the scalebar.
 
     """
+    # TODO: Background (black outline) not visible...
     if fontsize is None:
         fontsize = FONTSIZE_DEFAULT
     if stroke is None:
@@ -166,7 +168,8 @@ def add_colorwheel(axis):
     inset_axes = inset_axes(axis, width=0.75, height=0.75, loc=1)
     inset_axes.axis('off')
     cmap = colors.CMAP_CIRCULAR_DEFAULT
-    return cmap.plot_colorwheel(size=100, axis=inset_axes, alpha=0, arrows=True)
+    bgcolor = axis.get_facecolor()
+    return cmap.plot_colorwheel(size=100, axis=inset_axes, alpha=0, bgcolor=bgcolor, arrows=True)
 
 
 def add_cbar(axis, mappable, label='', fontsize=None):
@@ -219,10 +222,37 @@ def add_cbar(axis, mappable, label='', fontsize=None):
     plt.sca(axis)
     return cbar
 
+def add_coords(axis, coords=('x', 'y')):
+    ins_ax = inset_axes(axis, width="5%", height="5%", loc=3, borderpad=2.2)
+    if coords == 3:
+        coords = ('x', 'y', 'z')
+    elif coords == 2:
+        coords = ('x', 'y')
+    if len(coords) == 3:
+        ins_ax.arrow(0.5, 0.45, -1.05, -0.75, fc="k", ec="k",
+                     head_width=0.2, head_length=0.3, linewidth=3, clip_on=False)
+        ins_ax.arrow(0.5, 0.45, 0.96, -0.75, fc="k", ec="k",
+                     head_width=0.2, head_length=0.3, linewidth=3, clip_on=False)
+        ins_ax.arrow(0.5, 0.45, 0, 1.35, fc="k", ec="k",
+                     head_width=0.2, head_length=0.3, linewidth=3, clip_on=False)
+        ins_ax.annotate(coords[0], xy=(0, 0), xytext=(-0.9, 0), fontsize=20, clip_on=False)
+        ins_ax.annotate(coords[1], xy=(0, 0), xytext=(1.4, 0.1), fontsize=20, clip_on=False)
+        ins_ax.annotate(coords[2], xy=(0, 0), xytext=(0.7, 1.5), fontsize=20, clip_on=False)
+    elif len(coords) == 2:
+        ins_ax.arrow(-0.5, -0.5, 1.5, 0, fc="k", ec="k",
+                     head_width=0.2, head_length=0.3, linewidth=3, clip_on=False)
+        ins_ax.arrow(-0.5, -0.5, 0, 1.5, fc="k", ec="k",
+                     head_width=0.2, head_length=0.3, linewidth=3, clip_on=False)
+        ins_ax.annotate(coords[0], xy=(0, 0), xytext=(1.3, -0.05), fontsize=20, clip_on=False)
+        ins_ax.annotate(coords[1], xy=(0, 0), xytext=(-0.2, 1.3), fontsize=20, clip_on=False)
+    ins_ax.axis('off')
+    plt.sca(axis)
+
+# TODO: These parameters in other plot functions belong in a dedicated dictionary!!!
 
 def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, scalebar=True,
-                hideaxes=None, sampling=1, note=None,  colorwheel=False, cbar_mappable=None,
-                cbar_label='', tight_layout=True, **_):
+                hideaxes=None, sampling=1, note=None, colorwheel=False, cbar_mappable=None,
+                cbar_label='', tight_layout=True, keep_labels=False, coords=None, **_):
     """Format an axis and add a lot of nice features.
 
     Parameters
@@ -269,26 +299,28 @@ def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, sc
         fontsize = FONTSIZE_DEFAULT
     if stroke is None:
         stroke = STROKE_DEFAULT
-    # Get dimensions:
-    bb0 = axis.transLimits.inverted().transform((0, 0))
-    bb1 = axis.transLimits.inverted().transform((1, 1))
-    dim_uv = (int(abs(bb1[1] - bb0[1])), int(abs(bb1[0] - bb0[0])))
-    # Set the title and the axes labels:
-    axis.set_xlim(0, dim_uv[1])
-    axis.set_ylim(0, dim_uv[0])
-    axis.set_title(title, fontsize=fontsize)
     # Add scalebar:
     if scalebar:
         add_scalebar(axis, sampling=sampling, fontsize=fontsize, stroke=stroke)
         if hideaxes is None:
             hideaxes = True
-    # Determine major tick locations (useful for grid, even if ticks will not be used):
-    if dim_uv[0] >= dim_uv[1]:
-        u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
-    else:
-        u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
-    axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
-    axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
+    if not keep_labels:
+        # Set_title
+        axis.set_title(title, fontsize=fontsize)
+        # Get dimensions:
+        bb0 = axis.transLimits.inverted().transform((0, 0))
+        bb1 = axis.transLimits.inverted().transform((1, 1))
+        dim_uv = (int(abs(bb1[1] - bb0[1])), int(abs(bb1[0] - bb0[0])))
+        # Set the title and the axes labels:
+        axis.set_xlim(0, dim_uv[1])
+        axis.set_ylim(0, dim_uv[0])
+        # Determine major tick locations (useful for grid, even if ticks will not be used):
+        if dim_uv[0] >= dim_uv[1]:
+            u_bin, v_bin = np.max((2, np.floor(9 * dim_uv[1] / dim_uv[0]))), 9
+        else:
+            u_bin, v_bin = 9, np.max((2, np.floor(9 * dim_uv[0] / dim_uv[1])))
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=u_bin, integer=True))
+        axis.yaxis.set_major_locator(MaxNLocator(nbins=v_bin, integer=True))
     # Hide axes label and ticks if wanted:
     if hideaxes:
         for tic in axis.xaxis.get_major_ticks():
@@ -298,14 +330,21 @@ def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, sc
             tic.tick1On = tic.tick2On = False
             tic.label1On = tic.label2On = False
     else:  # Set the axes ticks and labels:
-        axis.set_xlabel('u-axis [nm]', fontsize=fontsize)
-        axis.set_ylabel('v-axis [nm]', fontsize=fontsize)
-        axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * sampling)))
-        axis.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * sampling)))
+        if not keep_labels:
+            axis.set_xlabel('u-axis [nm]')
+            axis.set_ylabel('v-axis [nm]')
+            func_formatter = FuncFormatter(lambda x, pos: '{:.3g}'.format(x * sampling))
+            axis.xaxis.set_major_formatter(func_formatter)
+            axis.yaxis.set_major_formatter(func_formatter)
         axis.tick_params(axis='both', which='major', labelsize=fontsize)
+        axis.xaxis.label.set_size(fontsize)
+        axis.yaxis.label.set_size(fontsize)
     # Add annotation:
     if note:
         add_annotation(axis, label=note, fontsize=fontsize, stroke=stroke)
+    # Add coords:
+    if coords:
+        add_coords(axis, coords=coords)
     # Add colorhweel:
     if colorwheel:
         add_colorwheel(axis)

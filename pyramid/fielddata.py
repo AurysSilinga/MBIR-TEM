@@ -228,7 +228,8 @@ class FieldData(object, metaclass=abc.ABCMeta):
         self._log.debug('Calling get_mask')
         return np.where(self.field_amp > threshold, True, False)
 
-    def plot_mask(self, title='Mask', threshold=0, **kwargs):
+    def plot_mask(self, title='Mask', threshold=0, grid=True, labels=True,
+                  orientation=True, figsize=None, new_fig=True, **kwargs):
         """Plot the mask as a 3D-contour plot.
 
         Parameters
@@ -246,20 +247,31 @@ class FieldData(object, metaclass=abc.ABCMeta):
         """
         self._log.debug('Calling plot_mask')
         from mayavi import mlab
-        mlab.figure(size=(750, 700))
+        if figsize is None:
+            figsize = (750, 700)
+        if new_fig:
+            mlab.figure(size=figsize, bgcolor=(0.5, 0.5, 0.5), fgcolor=(0., 0., 0.))
         zzz, yyy, xxx = (np.indices(self.dim) + self.a / 2)
         zzz, yyy, xxx = zzz.T, yyy.T, xxx.T
         mask = self.get_mask(threshold=threshold).astype(int).T  # Transpose because of VTK order!
         extent = np.ravel(list(zip((0, 0, 0), mask.shape)))
         cont = mlab.contour3d(xxx, yyy, zzz, mask, contours=[1], **kwargs)
-        mlab.outline(cont, extent=extent)
-        mlab.axes(cont, extent=extent)
-        mlab.title(title, height=0.95, size=0.35)
-        mlab.orientation_axes()
-        cont.scene.isometric_view()
+        if grid:
+            mlab.outline(cont, extent=extent)
+        if labels:
+            mlab.axes(cont, extent=extent)
+            mlab.title(title, height=0.95, size=0.35)
+        if orientation:
+            oa = mlab.orientation_axes()
+            oa.marker.set_viewport(0, 0, 0.4, 0.4)
+            mlab.draw()
+        engine = mlab.get_engine()
+        scene = engine.scenes[0]
+        scene.scene.isometric_view()
         return cont
 
-    def plot_contour3d(self, title='Field Distribution', contours=10, opacity=0.25, **kwargs):
+    def plot_contour3d(self, title='Field Distribution', contours=10, opacity=0.25,
+                       new_fig=True, **kwargs):  # TODO: new_fig or hold in every mayavi plot!
         """Plot the field as a 3D-contour plot.
 
         Parameters
@@ -279,7 +291,8 @@ class FieldData(object, metaclass=abc.ABCMeta):
         """
         self._log.debug('Calling plot_contour3d')
         from mayavi import mlab
-        mlab.figure(size=(750, 700))
+        if new_fig:
+            mlab.figure(size=(750, 700))
         zzz, yyy, xxx = (np.indices(self.dim) + self.a / 2)
         zzz, yyy, xxx = zzz.T, yyy.T, xxx.T
         field_amp = self.field_amp.T  # Transpose because of VTK order!
@@ -454,6 +467,9 @@ class VectorData(FieldData):
 
     """
     _log = logging.getLogger(__name__ + '.VectorData')
+
+    def __getitem__(self, item):
+        return self.__class__(self.a, self.field[item])
 
     def scale_down(self, n=1):
         """Scale down the field distribution by averaging over two pixels along each axis.
@@ -685,6 +701,7 @@ class VectorData(FieldData):
         return VectorData(self.a, field_rot)
 
     def get_slice(self, ax_slice=None, proj_axis='z'):
+        # TODO: return x y z instead of u v w (to color fields consistent with xyz!)
         """Extract a slice from the :class:`~.VectorData` object.
 
         Parameters
@@ -719,9 +736,14 @@ class VectorData(FieldData):
             w_mag = np.copy(self.field[1][:, ax_slice, :])  # y-component
         elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
             self._log.debug('proj_axis == x')
-            u_mag = np.swapaxes(np.copy(self.field[2][..., ax_slice]), 0, 1)  # z-component
-            v_mag = np.swapaxes(np.copy(self.field[1][..., ax_slice]), 0, 1)  # y-component
-            w_mag = np.swapaxes(np.copy(self.field[0][..., ax_slice]), 0, 1)  # x-component
+            # TODO: Strange swapaxes, really necessary? Get rid EVERYWHERE if possible!
+            #u_mag = np.swapaxes(np.copy(self.field[2][..., ax_slice]), 0, 1)  # z-component
+            #v_mag = np.swapaxes(np.copy(self.field[1][..., ax_slice]), 0, 1)  # y-component
+            #w_mag = np.swapaxes(np.copy(self.field[0][..., ax_slice]), 0, 1)  # x-component
+            # TODO: z should be special and always along y in 2D if possible!!
+            u_mag = np.copy(self.field[1][..., ax_slice])  # y-component
+            v_mag = np.copy(self.field[2][..., ax_slice])  # z-component
+            w_mag = np.copy(self.field[0][..., ax_slice])  # x-component
         else:
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
         return u_mag, v_mag, w_mag
@@ -776,7 +798,7 @@ class VectorData(FieldData):
         from .file_io.io_vectordata import save_vectordata
         save_vectordata(self, filename, **kwargs)
 
-    def plot_quiver(self, ar_dens=1, log=False, scaled=True, scale=1., b_0=None,  # Only used here!
+    def plot_quiver(self, ar_dens=1, log=False, scaled=True, scale=1., b_0=None, qkey_unit='T',
                     coloring='angle', cmap=None,  # Used here and plot_streamlines!
                     proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
                     figsize=None, **kwargs):
@@ -848,6 +870,7 @@ class VectorData(FieldData):
         u_mag = u_mag[::ar_dens, ::ar_dens]
         v_mag = v_mag[::ar_dens, ::ar_dens]
         amplitudes = np.hypot(u_mag, v_mag)
+        # TODO: Delete if only used in log:
         angles = np.angle(u_mag + 1j * v_mag, deg=True).tolist()
         # Calculate the arrow colors:
         if bgcolor is None:
@@ -888,6 +911,7 @@ class VectorData(FieldData):
             tight = False
         axis.set_aspect('equal')
         # Take the logarithm of the arrows to clearly show directions (if specified):
+        # TODO: get rid of log!! (only problems...)
         if log and np.any(amplitudes):  # If the slice is empty, skip!
             cutoff = 10
             amp = np.round(amplitudes, decimals=cutoff)
@@ -903,7 +927,7 @@ class VectorData(FieldData):
             v_mag /= amplitudes.max() + 1E-30
         # Plot quiver:
         # TODO: quiver does not work with matplotlib 2.0! FIX!
-        quiv = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1), angles=angles,
+        quiv = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1), #angles=angles,
                            pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
                            minlength=0.05, width=1*ar_dens, headlength=2, headaxislength=2,
                            headwidth=2, minshaft=2)
@@ -915,7 +939,7 @@ class VectorData(FieldData):
         else:
             cbar_mappable, cbar_label = None, None
         # Change background color:
-        axis.set_axis_bgcolor(bgcolor)
+        axis.set_facecolor(bgcolor)
         # Show mask:
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
@@ -924,7 +948,7 @@ class VectorData(FieldData):
                          linestyles='dotted', linewidths=2)
         # Plot quiverkey if B_0 is specified):
         if b_0 and not log:  # The angles needed for log would break the quiverkey!
-            label = '{:.3g} T'.format(amplitudes.max() * b_0)
+            label = '{:.3g} {}'.format(amplitudes.max() * b_0, qkey_unit)
             quiv.angles = 'uv'  # With a list of angles, the quiverkey would break!
             stroke = plottools.STROKE_DEFAULT
             txtcolor = 'w' if stroke == 'k' else 'k'
@@ -985,6 +1009,17 @@ class VectorData(FieldData):
         # Extract slice and mask:
         u_mag, v_mag, w_mag = self.get_slice(ax_slice, proj_axis)
         submask = np.where(np.hypot(u_mag, v_mag) > 0, True, False)
+        # TODO: Before you fix this, fix get_slice!!! (should be easy...)
+        # TODO: return x y z instead of u v w (to color fields consistent with xyz!)
+        # TODO: maybe best to get colors of slice separately from u and v components!!!
+        # TODO: vector_to_rgb does already exist!!
+        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
+            u_mag, v_mag, w_mag = u_mag, v_mag, w_mag
+        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
+            u_mag, v_mag, w_mag = u_mag, w_mag, v_mag
+        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
+            u_mag, v_mag, w_mag = w_mag, u_mag, v_mag
+        # TODO: END!
         # If no axis is specified, a new figure is created:
         if axis is None:
             self._log.debug('axis is None')
@@ -1007,7 +1042,7 @@ class VectorData(FieldData):
                     extent=(0, dim_uv[1], 0, dim_uv[0]))
         # Change background color:
         if bgcolor is not None:
-            axis.set_axis_bgcolor(bgcolor)
+            axis.set_facecolor(bgcolor)
         # Show mask:
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
@@ -1164,7 +1199,8 @@ class VectorData(FieldData):
 
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
-                      orientation=True, figsize=None):
+                      orientation=True, figsize=None, new_fig=True, view='isometric',
+                      position=None, bgcolor=(0.5, 0.5, 0.5)):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
         Parameters
@@ -1198,7 +1234,7 @@ class VectorData(FieldData):
             limit = np.max(np.nan_to_num(self.field_amp))
         ad = ar_dens
         # Create points and vector components as lists:
-        zzz, yyy, xxx = (np.indices(self.dim) + self.a / 2)
+        zzz, yyy, xxx = (np.indices(self.dim) + 1 / 2)
         zzz = zzz[::ad, ::ad, ::ad].ravel()
         yyy = yyy[::ad, ::ad, ::ad].ravel()
         xxx = xxx[::ad, ::ad, ::ad].ravel()
@@ -1208,7 +1244,8 @@ class VectorData(FieldData):
         # Plot them as vectors:
         if figsize is None:
             figsize = (750, 700)
-        mlab.figure(size=figsize, bgcolor=(0.5, 0.5, 0.5), fgcolor=(0., 0., 0.))
+        if new_fig:
+            mlab.figure(size=figsize, bgcolor=bgcolor, fgcolor=(0., 0., 0.))
         extent = np.ravel(list(zip((0, 0, 0), (self.dim[2], self.dim[1], self.dim[0]))))
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation:
             self._log.debug('Encoding full 3D angles')
@@ -1241,10 +1278,21 @@ class VectorData(FieldData):
             mlab.draw()
         engine = mlab.get_engine()
         scene = engine.scenes[0]
-        scene.scene.isometric_view()
+        if view == 'isometric':
+            scene.scene.isometric_view()
+        elif view == 'x_plus_view':
+            scene.scene.x_plus_view()
+        elif view == 'y_plus_view':
+            scene.scene.y_plus_view()
+        if position:
+            scene.scene.camera.position = position
         return vecs
 
     def plot_quiver3d_to_2d(self, dim_uv=None, axis=None, figsize=None, high_res=False, **kwargs):
+        # TODO: into plottools and make available for all 3D plots if possible!
+        kwargs.setdefault('labels', False)
+        kwargs.setdefault('orientation', False)
+        kwargs.setdefault('bgcolor', (0.7, 0.7, 0.7))
         from mayavi import mlab
         if figsize is None:
             figsize = plottools.FIGSIZE_DEFAULT
@@ -1252,8 +1300,7 @@ class VectorData(FieldData):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-            axis.set_axis_bgcolor('gray')
-        kwargs.setdefault('labels', 'False')
+            axis.set_axis_bgcolor(kwargs['bgcolor'])
         self.plot_quiver3d(figsize=(800, 800), **kwargs)
         if high_res:  # Use temp files:
             tmpdir = tempfile.mkdtemp()
@@ -1471,3 +1518,5 @@ class ScalarData(FieldData):
         """
         from .file_io.io_scalardata import save_scalardata
         save_scalardata(self, filename, **kwargs)
+
+# TODO: Histogram plots for magnetisation (see thesis!)

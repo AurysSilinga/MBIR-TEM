@@ -13,9 +13,6 @@ import logging
 import os
 import sys
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.uic import loadUiType
-
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
@@ -24,9 +21,16 @@ from PIL import Image
 
 import numpy as np
 
-import hyperspy.api as hs
+#import hyperspy.api as hs  #  TODO: Necessary?
 
 import pyramid as pr
+
+try:
+    from PyQt5 import QtGui, QtCore
+    from PyQt5.uic import loadUiType
+except ImportError:
+    from PyQt4 import QtGui, QtCore
+    from PyQt4.uic import loadUiType
 
 __all__ = ['gui_phasemap_creator']
 _log = logging.getLogger(__name__)

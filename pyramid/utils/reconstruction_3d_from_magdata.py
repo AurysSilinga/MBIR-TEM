@@ -57,7 +57,7 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
         default.
     noise: float, optional
         If this is not zero, random gaussian noise with this as a maximum value will be applied
-        to all calculated phasemaps. The default is 0.
+        to all calculated phasemaps. The default is 0. The unit is radians.
     offset_max: float, optional
         if this is not zero, a random offset with this as a maximum value will be applied to all
         calculated phasemaps. The default is 0.
@@ -115,6 +115,7 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
         ramp_u = np.random.uniform(-ramp_max, ramp_max)
         ramp_v = np.random.uniform(-ramp_max, ramp_max)
         phasemap += Ramp.create_ramp(phasemap.a, phasemap.dim_uv, (offset, ramp_u, ramp_v))
+        data.phasemaps[i] = phasemap
     # Add noise if necessary:
     if noise != 0:
         for i, phasemap in enumerate(data.phasemaps):
@@ -142,7 +143,7 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
         data.plot_phasemaps()
     # Plot results:
     if plot_results:
-        data.plot_mask(ar_dens=ar_dens)
+        data.plot_mask()
         magdata.plot_quiver3d('Original Distribution', ar_dens=ar_dens)
         magdata_rec.plot_quiver3d('Reconstructed Distribution (angle)', ar_dens=ar_dens)
         magdata_rec.plot_quiver3d('Reconstructed Distribution (amplitude)',

@@ -19,6 +19,8 @@ from matplotlib.ticker import MaxNLocator
 
 from mpl_toolkits.mplot3d import Axes3D
 
+import cmocean
+
 from scipy import ndimage
 
 import warnings
@@ -134,7 +136,7 @@ class PhaseMap(object):
             assert confidence.shape == self.phase.shape, \
                 'Confidence and phase dimensions must match!'
             confidence = confidence.astype(dtype=np.float32)
-            confidence /= confidence.max()  # Normalise!
+            confidence /= confidence.max() + 1E-30  # Normalise!
         else:
             confidence = np.ones_like(self.phase, dtype=np.float32)
         self._confidence = confidence
@@ -170,7 +172,7 @@ class PhaseMap(object):
             assert other.phase.shape == self.dim_uv, \
                 'Added field has to have the same dimensions!'
             mask_comb = np.logical_or(self.mask, other.mask)  # masks combine
-            conf_comb = (self.confidence + other.confidence) / 2  # confidence averaged!
+            conf_comb = np.minimum(self.confidence, other.confidence)  # use minimum confidence!
             return PhaseMap(self.a, self.phase + other.phase, mask_comb, conf_comb)
         else:  # other is a Number
             self._log.debug('Adding an offset')
@@ -660,7 +662,9 @@ class PhaseMap(object):
         # Configure colormap, to fix white to zero if colormap is symmetric:
         if symmetric:
             if cmap is None:
-                cmap = plt.get_cmap('RdBu')
+                cmap = plt.get_cmap('RdBu')  # TODO: use cmocean.cm.balance (flipped colours!)
+                # TODO: get default from "colors" or "plots" package
+                # TODO: make flexible, cmocean and matplotlib...
             elif isinstance(cmap, str):  # Get colormap if given as string:
                 cmap = plt.get_cmap(cmap)
             vmin, vmax = np.min([vmin, -0]), np.max([0, vmax])  # Ensure zero is present!

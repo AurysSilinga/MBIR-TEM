@@ -73,7 +73,7 @@ def homog_slab(a=1., dim=(32, 32, 32), center=None, width=None, phi=np.pi/4, the
 
 
 def homog_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None,
-               phi=np.pi / 4, theta=np.pi / 4):
+               phi=np.pi / 4, theta=np.pi / 4, axis='z'):
     """Create homogeneous disc magnetisation distribution."""
     _log.debug('Calling homog_disc')
     if center is None:
@@ -82,7 +82,7 @@ def homog_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None,
         radius = dim[2] // 4
     if height is None:
         height = np.max((dim[0] // 2, 1))
-    mag_shape = shapes.disc(dim, center, radius, height)
+    mag_shape = shapes.disc(dim, center, radius, height, axis)
     return VectorData(a, mc.create_mag_dist_homog(mag_shape, phi, theta))
 
 
@@ -183,7 +183,7 @@ def vortex_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None, a
         radius = dim[2] // 4
     if height is None:
         height = np.max((dim[0] // 2, 1))
-    mag_shape = shapes.disc(dim, center, radius, height, axis)
+    mag_shape = shapes.disc(dim, center, radius, height, axis.replace('-', ''))
     magnitude = mc.create_mag_dist_vortex(mag_shape, center, axis)
     return VectorData(a, magnitude)
 
@@ -236,7 +236,7 @@ def vortex_horseshoe(a=1., dim=(16, 64, 64), center=None, radius_core=None,
 
 
 def smooth_vortex_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=None, axis='z',
-                       vortex_radius=None):
+                       core_r=0, vortex_radius=None):
     """Create smooth vortex disc magnetisation distribution."""
     _log.debug('Calling vortex_disc')
     if center is None:
@@ -247,8 +247,8 @@ def smooth_vortex_disc(a=1., dim=(32, 32, 32), center=None, radius=None, height=
         height = np.max((dim[0] // 2, 1))
     if vortex_radius is None:
         vortex_radius = radius // 2
-    mag_shape = shapes.disc(dim, center, radius, height, axis)
-    magnitude = mc.create_mag_dist_smooth_vortex(mag_shape, center, vortex_radius, axis)
+    mag_shape = shapes.disc(dim, center, radius, height, axis.replace('-', ''))  # same for +/-
+    magnitude = mc.create_mag_dist_smooth_vortex(mag_shape, center, vortex_radius, core_r, axis)
     return VectorData(a, magnitude)
 
 

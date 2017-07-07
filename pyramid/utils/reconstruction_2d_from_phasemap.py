@@ -92,10 +92,10 @@ def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ram
         if ramp_order is not None:
             if ramp_order >= 0:
                 print('offset:', offset)
-                title += ', fitted Offset: {:.2g} [rad]'.format(offset)
+                # title += ', fitted Offset: {:.2g} [rad]'.format(offset)
             if ramp_order >= 1:
                 print('ramp:', ramp)
-                title += ', (Fitted Ramp: (u:{:.2g}, v:{:.2g}) [rad/nm]'.format(*ramp)
+                # title += ', (Fitted Ramp: (u:{:.2g}, v:{:.2g}) [rad/nm]'.format(*ramp)
         phasemap_rec.plot_combined(note=title, gain=gain, vmin=vmin, vmax=vmax)
         diff = (phasemap_rec - phasemap)
         diff_name = 'Difference (RMS: {:.2g} rad)'.format(np.sqrt(np.mean(diff.phase) ** 2))

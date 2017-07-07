@@ -124,6 +124,7 @@ class DataSet(object):
 
     @property
     def phasemappers(self):
+        # TODO: get rid, only use phasemapper_dict!!
         """List of all PhaseMappers in the DataSet."""
         return self._phasemappers
 
@@ -166,6 +167,8 @@ class DataSet(object):
         assert phasemap.dim_uv == dim_uv, 'Projection dimensions (dim_uv) must match!'
         assert phasemap.a == self.a, 'Grid spacing must match!'
         # Create lookup key:
+        # TODO: Think again if phasemappers should be given as attribute (seems to be faulty
+        # TODO: currently... Also not very expensive, so keep outside?
         if phasemapper is not None:
             key = dim_uv  # Create standard phasemapper, dim_uv is enough for identification!
         else:
@@ -177,7 +180,7 @@ class DataSet(object):
             pass
         else:  # Create new standard (RDFC) phasemapper:
             phasemapper = PhaseMapperRDFC(Kernel(self.a, dim_uv, self.b_0))
-            self._phasemapper_dict[key] = phasemapper
+        self._phasemapper_dict[key] = phasemapper
         # Append everything to the lists (just contain pointers to objects!):
         self._phasemaps.append(phasemap)
         self._projectors.append(projector)
@@ -215,7 +218,7 @@ class DataSet(object):
         # Reset the Se_inv matrix from phasemaps confidence matrices:
         self.set_Se_inv_diag_with_conf()
 
-    def create_phasemaps(self, magdata, difference=True, ramp=None):
+    def create_phasemaps(self, magdata, difference=False, ramp=None):
         """Create a list of phasemaps with the projectors in the dataset for a given
         :class:`~.VectorData` object.
 
@@ -223,6 +226,13 @@ class DataSet(object):
         ----------
         magdata : :class:`~.VectorData`
             Magnetic distribution to which the projectors of the dataset should be applied.
+        difference : bool, optional
+            If `True`, the phasemaps of the dataset are subtracted from the created ones to view
+            difference images. Default is False.
+        ramp : :class:`~.Ramp`
+            A ramp object, which can be specified to add a ramp to the generated phasemaps.
+            If `difference` is `True`, this can be interpreted as ramp correcting the phasemaps
+            saved in the dataset.
 
         Returns
         -------
@@ -238,8 +248,8 @@ class DataSet(object):
             if difference:
                 phasemap -= self.phasemaps[i]
             if ramp is not None:
-                assert type(ramp) == Ramp, 'correct_ramp has to be a Ramp object!'
-                phasemap += ramp(index=i)
+                assert type(ramp) == Ramp, 'ramp has to be a Ramp object!'
+                phasemap += ramp(index=i)  # Full formula: phasemap -= phasemap_dataset - ramp
             phasemap.mask = mag_proj.get_mask()[0, ...]
             phasemaps.append(phasemap)
         return phasemaps
@@ -282,6 +292,7 @@ class DataSet(object):
         self.set_Se_inv_block_diag(cov_list)
 
     def set_3d_mask(self, mask_list=None, threshold=0.9):
+        # TODO: This function should be in a separate module and not here (maybe?)!
         """Set the 3D mask from a list of 2D masks.
 
         Parameters
@@ -328,7 +339,7 @@ class DataSet(object):
         from .file_io.io_dataset import save_dataset
         save_dataset(self, filename, overwrite)
 
-    def plot_mask(self, **kwargs):
+    def plot_mask(self):
         """If it exists, display the 3D mask of the magnetization distribution.
 
         Returns
@@ -338,7 +349,7 @@ class DataSet(object):
         """
         self._log.debug('Calling plot_mask')
         if self.mask is not None:
-            return ScalarData(self.a, self.mask).plot_mask(**kwargs)
+            return ScalarData(self.a, self.mask).plot_mask()
 
     def plot_phasemaps(self, magdata=None, title='Phase Map', difference=False, ramp=None,
                        **kwargs):
@@ -352,6 +363,13 @@ class DataSet(object):
         title : string, optional
             The main part of the title of the plots. The default is 'Phase Map'. Additional
             projector info is appended to this.
+        difference : bool, optional
+            If `True`, the phasemaps of the dataset are subtracted from the created ones to view
+            difference images. Default is False.
+        ramp : :class:`~.Ramp`
+            A ramp object, which can be specified to add a ramp to the generated phasemaps.
+            If `magdata` is not given, this will instead just ramp correct the phasemaps saved
+            in the dataset.
 
         Returns
         -------
@@ -359,12 +377,17 @@ class DataSet(object):
 
         """
         self._log.debug('Calling plot_phasemaps')
-        if magdata is not None:
+        if magdata is not None:  # Plot phasemaps of the given magnetisation distribution:
             phasemaps = self.create_phasemaps(magdata, difference=difference, ramp=ramp)
-        else:
+        else:  # Plot phasemaps saved in the DataSet (default):
             phasemaps = self.phasemaps
-        [phasemap.plot_phase('{} ({})'.format(title, self.projectors[i].get_info()), **kwargs)
-         for (i, phasemap) in enumerate(phasemaps)]
+            if ramp is not None:
+                for i, phasemap in enumerate(phasemaps):
+                    assert type(ramp) == Ramp, 'ramp has to be a Ramp object!'
+                    phasemap -= ramp(index=i)  # Ramp correction
+        for (i, phasemap) in enumerate(phasemaps):
+            phasemap.plot_phase(note='{} ({})'.format(title, self.projectors[i].get_info()),
+                                **kwargs)
 
     def plot_phasemaps_combined(self, magdata=None, title='Combined Plot', difference=False,
                                 ramp=None, **kwargs):
@@ -377,9 +400,13 @@ class DataSet(object):
             given, the phasemaps in the dataset are used.
         title : string, optional
             The title of the plot. The default is 'Combined Plot'.
-        cmap : string, optional
-            The :class:`~matplotlib.colors.Colormap` which is used for the plot as a string.
-            The default is 'RdBu'.
+        difference : bool, optional
+            If `True`, the phasemaps of the dataset are subtracted from the created ones to view
+            difference images. Default is False.
+        ramp : :class:`~.Ramp`
+            A ramp object, which can be specified to add a ramp to the generated phasemaps.
+            If `magdata` is not given, this will instead just ramp correct the phasemaps saved
+            in the dataset.
 
         Returns
         -------
@@ -391,7 +418,11 @@ class DataSet(object):
             phasemaps = self.create_phasemaps(magdata, difference=difference, ramp=ramp)
         else:
             phasemaps = self.phasemaps
+            if ramp is not None:
+                for i, phasemap in enumerate(phasemaps):
+                    assert type(ramp) == Ramp, 'ramp has to be a Ramp object!'
+                    phasemap -= ramp(index=i)  # Ramp correction
         for (i, phasemap) in enumerate(phasemaps):
-            phasemap.plot_combined('{} ({})'.format(title, self.projectors[i].get_info()),
+            phasemap.plot_combined(note='{} ({})'.format(title, self.projectors[i].get_info()),
                                    **kwargs)
         plt.show()

@@ -207,7 +207,7 @@ class Ramp(object):
             Dimensions of the 2D mesh that should be created.
         params : list
             List of ramp parameters. The first entry corresponds to a simple offset, the second
-            and third correspond to a linear ramp in u- and v-direction, respectively and so on.
+            and third correspond to a linear ramp in v- and u-direction, respectively and so on.
 
         Returns
         -------

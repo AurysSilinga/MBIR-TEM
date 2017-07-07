@@ -660,6 +660,7 @@ class SimpleProjector(Projector):
                  for row in range(size_2d)]).reshape(-1)
         elif axis == 'x':
             self._log.debug('Projection along the x-axis')
+            # TODO: is coordinate switch really necessary? Better other way???
             coeff = [[0, 0, 1], [0, 1, 0]]  # Caution, coordinate switch: u, v --> z, y (not y, z!)
             indices = np.array(
                 [np.arange(dim_x) + (row % dim_z) * dim_x * dim_y + row // dim_z * dim_x

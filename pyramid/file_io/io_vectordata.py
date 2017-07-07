@@ -194,8 +194,8 @@ def _save_to_llg(vectordata, filename):
     data = np.array([xx, yy, zz, x_vec, y_vec, z_vec]).T
     # Save data to file:
     with open(filename, 'w') as mag_file:
-        mag_file.write('LLGFileCreator: %s\n'.format(filename))
-        mag_file.write('    %d    %d    %d\n'.format(np.asarray(dim)[::-1]))
+        mag_file.write('LLGFileCreator: {:s}\n'.format(filename))
+        mag_file.write('    {:d}    {:d}    {:d}\n'.format(*dim))
         mag_file.writelines('\n'.join('   '.join('{:7.6e}'.format(cell)
                                                  for cell in row) for row in data))
 
