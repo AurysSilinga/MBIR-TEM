@@ -3,17 +3,21 @@ image: "python:3.5"
 before_script:
   # Check and print Python version
   - python --version
+  # List installed stuff:
+  #- apt list --installed
   ####- pip install hyperspy tqdm cmocean nose
   # Run ssh-agent, "-s" forces generation of Bourne shell (/bin/sh) commands on stdout:
   - eval $(ssh-agent -s)
   # Add SSH key for jutil to the agent store:
+  - echo "$SSH_KEY_JUTIL"
   - ssh-add <(echo "$SSH_KEY_JUTIL")
   # For Docker builds disable host key checking. Be aware that by adding that
   # you are suspectible to man-in-the-middle attacks.
   # WARNING: Use this only with the Docker executor, if you use it with shell
   # you will overwrite your user's SSH config.
   - mkdir -p ~/.ssh
-  - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n"' > ~/.ssh/config
+  - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
   - echo "Done"
 
 stages:
