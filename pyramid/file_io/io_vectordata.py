@@ -125,11 +125,16 @@ def _load_from_ovf(filename, a):
                     count = int(data_mode.split()[-1])
                     dtype = '>f{}'.format(count)
                     dim = (int(header['znodes']), int(header['ynodes']), int(header['xnodes']))
-                    test = np.fromfile(mag_file, dtype='<f4', count=count*2+1)
+                    byte = mag_file.read(1)
+                    while byte != '':
+                        print(byte)
+                        byte = mag_file.read(1)
+                    #test = np.fromfile(mag_file, dtype='<f4', count=1)#count*2+1)
                     if count == 4:  # Binary 4:
-                        assert test == '123456789.0', 'Wrong test bytes!'
-                    if count == 8:  # Binary 4:
-                        assert test == '123456789012345.0', 'Wrong test bytes!'
+                        pass#print(test)
+                        #assert test == '123456789.0', 'Wrong test bytes!'
+                    if count == 8:  # Binary 8:
+                        pass#assert test == '123456789012345.0', 'Wrong test bytes!'
                     data = np.fromfile(mag_file, dtype=dtype, count=3*np.prod(dim))
                     data.reshape((3,) + dim)
                     x_mag, y_mag, z_mag = data
@@ -141,8 +146,9 @@ def _load_from_ovf(filename, a):
         z_mag = np.asarray(z_mag).reshape(dim)
         field = np.asarray((x_mag, y_mag, z_mag)) * float(header.get('valuemultiplier', 1))
         if a is None:
-            assert header.get('xstepsize') == header.get('ystepsize') == header.get('zstepsize'), \
-                'Grid spacing is not equidistant!'
+            #assert header.get('xstepsize') == header.get('ystepsize') == header.get(
+            # 'zstepsize'), \
+            #    'Grid spacing is not equidistant!'
             a = float(header.get('xstepsize', 1.))
             meshunit = header.get('meshunit', 'nm')
             a *= {'m': 1e9, 'mm': 1e6, 'µm': 1e3, 'nm': 1}[meshunit]  # Conversion to nm
