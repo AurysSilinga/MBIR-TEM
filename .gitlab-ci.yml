@@ -3,6 +3,9 @@ image: "python:3.5"
 before_script:
   - python --version
   - pip install hyperspy tqdm cmocean nose
+  - eval $(ssh-agent -s)  # Run ssh-agent
+  - ssh-add <(echo "$SSH_KEY_JUTIL")  # Add SSH key for jutil to the agent store
+  - echo "Done"
 
 stages:
   - test
