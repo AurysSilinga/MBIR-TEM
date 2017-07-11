@@ -1,0 +1,3 @@
+[![build status](https://iffgit.fz-juelich.de/caron/Pyramid/badges/master/build.svg)](https://iffgit.fz-juelich.de/caron/Pyramid/commits/master)
+
+[![coverage report](https://iffgit.fz-juelich.de/caron/Pyramid/badges/master/coverage.svg)](https://iffgit.fz-juelich.de/caron/Pyramid/commits/master)
