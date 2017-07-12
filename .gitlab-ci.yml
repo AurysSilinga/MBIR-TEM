@@ -24,7 +24,7 @@ before_script:
   # - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" >> ~/.ssh/config'
   # >> appends instead of overwriting
   #- echo -e "iffgit.fz-juelich.de $ID_RSA_JUTIL_PUB" >> ~/.ssh/known_hosts
-  - echo iffgit.fz-juelich.de,134.94.161.83 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCk0Z9WQVPP3vwqSXa8RZFwGNrtwaJsE1cHmfUlrF0Fug1a1MBQI9q/ZgHOjE82Wu/lwO8VGnedk3Q//onw3JCpjL9I0Vmkcw0UBX3Cd7yM5RqIP87Ji44UPREQItWkWKOxKFYPXMLXon3Ef+R4oMegcTft/2Iq4lKugnPtdeFzJIF2ig1Uro3Vw6HM4bAr0+iOLuXL1LlM4JFNFcA/QwsvBbKsx25fpFUgyeIrUPNcra/m0vpW8ZrW/jiTK2HmQrjDcs/De2jCdGW6bsK6kd3Ks164tijwz4cOD/3JKjjzVChBBQe6bZVbAQVl5odO5wMS5A9wSe2Y8c4TmsAhobYj > ~/.ssh/known_hosts
+  - echo iffgit.fz-juelich.de,134.94.161.83 AAAAB3NzaC1yc2EAAAADAQABAAABAQCk0Z9WQVPP3vwqSXa8RZFwGNrtwaJsE1cHmfUlrF0Fug1a1MBQI9q/ZgHOjE82Wu/lwO8VGnedk3Q//onw3JCpjL9I0Vmkcw0UBX3Cd7yM5RqIP87Ji44UPREQItWkWKOxKFYPXMLXon3Ef+R4oMegcTft/2Iq4lKugnPtdeFzJIF2ig1Uro3Vw6HM4bAr0+iOLuXL1LlM4JFNFcA/QwsvBbKsx25fpFUgyeIrUPNcra/m0vpW8ZrW/jiTK2HmQrjDcs/De2jCdGW6bsK6kd3Ks164tijwz4cOD/3JKjjzVChBBQe6bZVbAQVl5odO5wMS5A9wSe2Y8c4TmsAhobYj > ~/.ssh/known_hosts
   - cat ~/.ssh/known_hosts
   # Install jutil via secure ssh connection:
   - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
