@@ -11,9 +11,12 @@ before_script:
   - chmod 400 ~/.ssh/id_rsa_jutil
   # Configure SSH to use ~/.ssh/jutil_key for iffgit.fz-juelich.de (-e allows \n):
   - echo -e "Host iffgit.fz-juelich.de\n\tIdentityFile ~/.ssh/id_rsa_jutil\n" > ~/.ssh/config
-  - cat ~/.ssh/config
-  - ssh-keyscan -H 'iffgit.fz-juelich.de'
-  - echo ssh-keyscan -H 'iffgit.fz-juelich.de' >> ~.ssh/known_hosts
+
+  #- cat ~/.ssh/config
+
+  #- ssh-keyscan -H 'iffgit.fz-juelich.de'
+  #- echo $(<ssh-keyscan -H 'iffgit.fz-juelich.de') >> ~/.ssh/known_hosts
+  #- cat ~/.ssh/known_hosts
   # For Docker builds disable host key checking. Be aware that by adding that
   # you are suspectible to man-in-the-middle attacks.
   # WARNING: Use this only with the Docker executor, if you use it with shell
