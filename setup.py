@@ -70,7 +70,7 @@ def check_requirements():
                               % ((package_name,) + min_version))
 
 
-def hg_version():
+def hg_version():  # TODO: Replace with GIT! Also check build output on GitLab!
     """Get the Mercurial reference identifier.
 
     Returns
@@ -139,10 +139,18 @@ setup(name=DISTNAME,
       url=URL,
       download_url=URL,
       version=VERSION,
-      packages=find_packages(exclude=['tests']),
+      packages=find_packages(exclude=['tests', 'doc']),
       include_dirs=[numpy.get_include()],
-      requires=['numpy', 'scipy', 'matplotlib', 'Pillow',
-                'mayavi', 'pyfftw', 'hyperspy', 'nose', 'jutil'],
+      # TODO: Use requirements.txt? extras_require for optional stuff (hyperspy, plotting)?
+      # TODO: After split of Pyramid, comment out and see what really is used (is e.g. scipy?)!
+      # - pip install numpy scipy nose h5py matplotlib Pillow scikit-image cmocean hyperspy
+      setup_requires=['numpy>=1.6', 'pytest-runner', 'pytest'],
+      tests_require=['nose', 'pytest-cov', 'pytest-flake8', 'coverage'],
+      install_requires=['numpy>=1.6', 'tqdm', 'scipy', 'matplotlib', 'Pillow', 'h5py',
+                        'hyperspy', 'jutil', 'cmocean'],
+      # TODO: extra: 'pyfftw', 'mayavi' (not easy to install... find a way!)
+      # TODO: See https://stackoverflow.com/a/28842733 for extras_require...
+      # TODO: ...replace [dev] with [IO] (hyperspy) and [plotting] (separate plotting library)!
       test_suite='nose.collector',
       cmdclass={'build': build})
 print('-------------------------------------------------------------------------------\n')

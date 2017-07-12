@@ -1,9 +1,9 @@
-.idea
-
 desktop.ini
 
 *.pyc
 
+.idea
+
+*.egg-info
+
 .DS_Store
-
-
