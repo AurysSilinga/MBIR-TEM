@@ -11,7 +11,7 @@ before_script:
   - chmod 400 ~/.ssh/id_rsa_jutil
   # Configure SSH to use ~/.ssh/jutil_key for iffgit.fz-juelich.de (-e allows \n):
   - echo -e "Host iffgit.fz-juelich.de\n\tIdentityFile ~/.ssh/id_rsa_jutil\n" > ~/.ssh/config
-  # Add iffgit.fz-juelich.de to known_hosts:
+  # Add iffgit.fz-juelich.de to known_hosts (not the same key as Jutil!):
   - echo iffgit.fz-juelich.de,134.94.161.83 "$ID_RSA_IFFGIT_PUBLIC" > ~/.ssh/known_hosts
   # Provide read access to owner (octal value code: 400) to known_hosts with chmod:
   - chmod 400 ~/.ssh/known_hosts
