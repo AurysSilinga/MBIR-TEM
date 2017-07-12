@@ -3,15 +3,24 @@ image: "python:3.5"
 before_script:
   # Check and print Python version
   - python --version
+
+  # Install required packages:
+  # TODO: Use requirements.txt? Separate jobs for optional stuff (hyperspy, plotting)?
+  # TODO: After split of Pyramid comment out and see what really is used (scipy?)!
+  - pip install numpy scipy nose h5py matplotlib Pillow scikit-image cmocean hyperspy
+
   # List installed stuff:
-  - apt list --installed
-  ####- pip install hyperspy tqdm cmocean nose
-  # Create SSH configuration directory if necessary:
+  #- apt list --installed
+
+
+
+  # Create SSH configuration directory if necessary (mode: read/write/execute):
   - mkdir -p --mode=700 ~/.ssh/
   # Add SSH key for jutil:
   - echo "$SSH_KEY_JUTIL" > ~/.ssh/jutil_key
+  # Provide read access to owner (octal value code: 400) with chmod to the key:
   - chmod 400 ~/.ssh/jutil_key
-  # Configure SSH to use ~/.ssh/jutil_key for iffgit.fz-juelich.de:
+  # Configure SSH to use ~/.ssh/jutil_key for iffgit.fz-juelich.de (-e allows \n):
   - echo -e "Host iffgit.fz-juelich.de\n\tIdentityFile ~/.ssh/jutil_key\n\n" > ~/.ssh/config
   # For Docker builds disable host key checking. Be aware that by adding that
   # you are suspectible to man-in-the-middle attacks.
@@ -19,7 +28,10 @@ before_script:
   # you will overwrite your user's SSH config.
   - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" >> ~/.ssh/config'
   - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
-  - echo "Done"
+
+
+  ####- pip install hyperspy tqdm cmocean nose
+
 
 stages:
   - test
