@@ -74,16 +74,23 @@ def _load_from_llg(filename, a):
 def _load_from_ovf(filename, a):
     _log.debug('Calling load_from_ovf')
     with open(filename, 'rb') as mag_file:
-        assert mag_file.readline().startswith(b'# OOMMF')  # Make sure file has .ovf-format!
+        # TODO: Also handle OOMF 1.0? See later TODOs...
+        line = mag_file.readline()
+        assert line.startswith(b'# OOMMF')  # File has OVF format!
         read_header, read_data = False, False
-        header = {}
+        header = {'version': line.split()[-1].decode('utf-8')}
         x_mag, y_mag, z_mag = [], [], []
-        data_mode = ''
-        for line in mag_file:
+        data_mode = None
+        while True:
             # Read in additional info:
             if not read_header and not read_data:
+                line = mag_file.readline()
+                if line == b'':
+                    break  # End of file is reached!
                 if line.startswith(b'# Segment count'):
-                    assert int(line.split()[3]) == 1, 'Only one vector field can be read at time!'
+                    header['segment_count'] = int(line.split()[-1])
+                    # TODO: currently new segments overwrite last ones. read more than one? return
+                    # TODO: navigation axis (segment count > 1) if implemented in HyperSpy reader!
                 elif line.startswith(b'# Begin: Header'):
                     read_header = True
                 elif line.startswith(b'# Begin: Data'):
@@ -93,8 +100,9 @@ def _load_from_ovf(filename, a):
                         'Data mode {} is currently not supported by this reader!'.format(data_mode)
                     assert header.get('meshtype') == 'rectangular', \
                         'Only rectangular grids can be currently read!'
-            # Read in header:
-            elif read_header:  # Read header:
+            # Read header line by line:
+            elif read_header:
+                line = mag_file.readline()
                 if line.startswith(b'# End: Header'):  # Header is done:
                     read_header = False
                     continue
@@ -105,15 +113,18 @@ def _load_from_ovf(filename, a):
                 if len(line_list) <= 1:  # Just '#' or empty line:
                     continue
                 key, value = line_list[1].strip(':'), ' '.join(line_list[2:])
-                if key not in header:  # Add new key, value pair:
+                if key not in header:  # Add new key, value pair if not existant:
                     header[key] = value
                 elif key == 'Desc':  # Can go over several lines:
                     header['Desc'] = ' '.join([header['Desc'], value])
             # Read in data:
             # TODO: Make it work for both text and binary! Put into HyperSpy?
             # TODO: http://math.nist.gov/oommf/doc/userguide11b2/userguide/vectorfieldformat.html
+            # TODO: http://math.nist.gov/oommf/doc/userguide12a5/userguide/OVF_2.0_format.html
+            # TODO: 1.0 and 2.0 DIFFER (little and big endian in binary data -.-)
             elif read_data:  # Currently in a data block:
-                if data_mode in ['text', 'Text']:  # Read data as text:
+                if data_mode in ['text', 'Text']:  # Read data as text, line by line:
+                    line = mag_file.readline()
                     if line.startswith(b'# End: Data'):  # Header is done:
                         read_data = False
                     else:
@@ -121,23 +132,20 @@ def _load_from_ovf(filename, a):
                         x_mag.append(x)
                         y_mag.append(y)
                         z_mag.append(z)
-                elif 'Binary' in data_mode:
+                elif 'Binary' in data_mode:  # Read data as binary, all bytes at the same time:
                     count = int(data_mode.split()[-1])
-                    dtype = '>f{}'.format(count)
+                    if header['version'] == '1.0':  # Big endian:
+                        dtype = '>f{}'.format(count)
+                    elif header['version'] == '2.0':  # Little endian:
+                        dtype = '<f{}'.format(count)
                     dim = (int(header['znodes']), int(header['ynodes']), int(header['xnodes']))
-                    byte = mag_file.read(1)
-                    while byte != '':
-                        print(byte)
-                        byte = mag_file.read(1)
-                    #test = np.fromfile(mag_file, dtype='<f4', count=1)#count*2+1)
+                    test = np.fromfile(mag_file, dtype=dtype, count=1)
                     if count == 4:  # Binary 4:
-                        pass#print(test)
-                        #assert test == '123456789.0', 'Wrong test bytes!'
-                    if count == 8:  # Binary 8:
-                        pass#assert test == '123456789012345.0', 'Wrong test bytes!'
+                        assert test == 1234567.0, 'Wrong test bytes!'
+                    elif count == 8:  # Binary 8:
+                        assert test == 123456789012345.0, 'Wrong test bytes!'
                     data = np.fromfile(mag_file, dtype=dtype, count=3*np.prod(dim))
-                    data.reshape((3,) + dim)
-                    x_mag, y_mag, z_mag = data
+                    x_mag, y_mag, z_mag = data[0::3], data[1::3], data[2::3]
                     read_data = False  # Stop reading data and search for new Segments (if any).
         # Format after reading:
         dim = (int(header['znodes']), int(header['ynodes']), int(header['xnodes']))
@@ -146,9 +154,9 @@ def _load_from_ovf(filename, a):
         z_mag = np.asarray(z_mag).reshape(dim)
         field = np.asarray((x_mag, y_mag, z_mag)) * float(header.get('valuemultiplier', 1))
         if a is None:
-            #assert header.get('xstepsize') == header.get('ystepsize') == header.get(
-            # 'zstepsize'), \
-            #    'Grid spacing is not equidistant!'
+            # TODO: If transferred to HyperSpy, this has to stay in Pyramid reader!
+            if header.get('xstepsize') == header.get('ystepsize') == header.get('zstepsize'):
+                _log.warning('Grid spacing is not equal in x, y and z (x will be used)!')
             a = float(header.get('xstepsize', 1.))
             meshunit = header.get('meshunit', 'nm')
             a *= {'m': 1e9, 'mm': 1e6, 'µm': 1e3, 'nm': 1}[meshunit]  # Conversion to nm
