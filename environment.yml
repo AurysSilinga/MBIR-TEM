@@ -1,0 +1,7 @@
+name: pyramid
+dependencies:
+- python=3.5
+- numpy
+- pip
+- pip:
+    - pypi-package-name

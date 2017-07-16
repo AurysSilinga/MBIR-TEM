@@ -18,6 +18,9 @@ before_script:
   # Install jutil via secure ssh connection:
   - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
 
+  ## Used for
+  #- pip install pytest pytest-cov
+
 stages:
   - test
 
@@ -27,5 +30,9 @@ test:
     # TODO: Different jobs with custom develop arguments? extra_requires (hyperspy, plotting)?
     # TODO: Use pip install -e .[hyperspy], etc.
     # Install requirements (-e: editable, like python setup.py develop, but pip, not easy_install):
-    - pip install -e .  # TODO: belongs here or before_script?
+    - pip install -e .['tests']  # Also installs everything for tests!
     - python setup.py test
+    - coverage html
+  artifacts:
+    paths:
+    - htmlcov/
