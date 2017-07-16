@@ -29,3 +29,4 @@ test:
     # Install requirements (-e: editable, like python setup.py develop, but pip, not easy_install):
     - pip install -e .  # TODO: belongs here or before_script?
     - python setup.py test
+    - coverage html
