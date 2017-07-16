@@ -30,3 +30,6 @@ test:
     - pip install -e .  # TODO: belongs here or before_script?
     - python setup.py test
     - coverage html
+  artifacts:
+    paths:
+      - htmlcov/
