@@ -26,8 +26,3 @@ class TestCasePM(unittest.TestCase):
         assert_allclose(phasemap.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in pm()!')
         assert_allclose(phasemap.a, phase_ref.a, err_msg='Unexpected behavior in pm()!')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)

@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import itertools
 from distutils.command.build import build
 
 #import numpy
@@ -17,12 +18,13 @@ DESCRIPTION = 'PYthon based Reconstruction Algorithm for MagnetIc Distributions'
 MAINTAINER = 'Jan Caron'
 MAINTAINER_EMAIL = 'j.caron@fz-juelich.de'
 URL = ''
-VERSION = '0.1.0-dev'
-PYTHON_VERSION = (2, 7)
-DEPENDENCIES = {'numpy': (1, 10)}  # TODO: get rid off!!!
+VERSION = '0.1.0.dev0'  # TODO: Better way?
+PYTHON_VERSION = (2, 7)  # TODO: get rid of!!!
+DEPENDENCIES = {'numpy': (1, 10)}  # TODO: get rid of!!!
 LONG_DESCRIPTION = 'long description (TODO!)'  # TODO: Long description! put in (Readme?) file!
 
 
+# TODO: get rid of superfluous functions!
 def get_package_version(package):
     """Return the package version of the specified package.
 
@@ -70,7 +72,7 @@ def check_requirements():
                               % ((package_name,) + min_version))
 
 
-def hg_version():  # TODO: Replace with GIT! Also check build output on GitLab!
+def hg_version():  # TODO: Replace with GIT! Also check build output on GitLab! See numpy setup.py!
     """Get the Mercurial reference identifier.
 
     Returns
@@ -126,13 +128,24 @@ def get_files(rootdir):
     return filepaths
 
 
+
+# TODO: Use requirements.txt? extras_require for optional stuff (hyperspy, plotting)?
+# TODO: After split of Pyramid, comment out and see what really is used (is e.g. scipy?)!
+install_requires = ['numpy>=1.6', 'tqdm', 'scipy', 'matplotlib', 'Pillow', 'h5py',
+                    'hyperspy', 'jutil', 'cmocean']
+
 # TODO: extend extras_require for plotting and IO:
+# TODO: extra: 'pyfftw', 'mayavi' (not easy to install... find a way!)
+# TODO: See https://stackoverflow.com/a/28842733 for extras_require...
+# TODO: ...replace [dev] with [IO] (hyperspy) and [plotting] (separate plotting library)!
 extras_require = {
     # TODO: Test all if really needed! don't use nose, if possible (pure pytest)!
-    "tests": ['pytest', 'pytest-runner', 'pytest-cov', 'pytest-flake8', 'coverage', 'nose']
+    'tests': ['pytest', 'pytest-runner', 'pytest-cov', 'pytest-flake8', 'coverage'],
+    '3Dplot': ['qt==4.8', 'mayavi==4.5']
     # TODO: more for mayavi (plotting in general) and hyperspy, etc (see below)...
 }
 
+extras_require["all"] = list(itertools.chain(*list(extras_require.values())))
 
 
 print('\n-------------------------------------------------------------------------------')
@@ -148,18 +161,12 @@ setup(name=DISTNAME,
       url=URL,
       download_url=URL,
       version=VERSION,
-      packages=find_packages(exclude=['tests', 'doc']),
-      #include_dirs=[numpy.get_include()],
-      # TODO: Use requirements.txt? extras_require for optional stuff (hyperspy, plotting)?
-      # TODO: After split of Pyramid, comment out and see what really is used (is e.g. scipy?)!
+      packages=find_packages(exclude=['tests', 'doc']),  # TODO: necessary?
+      #include_dirs=[numpy.get_include()],  # TODO: Maybe used for sphinx?!
       #setup_requires=['numpy>=1.6', 'pytest', 'pytest-runner'],
       #tests_require=['pytest', 'pytest-cov', 'pytest-flake8'],
-      install_requires=['numpy>=1.6', 'tqdm', 'scipy', 'matplotlib', 'Pillow', 'h5py',
-                        'hyperspy', 'jutil', 'cmocean'],
+      install_requires=install_requires,
       extras_require=extras_require,
-      # TODO: extra: 'pyfftw', 'mayavi' (not easy to install... find a way!)
-      # TODO: See https://stackoverflow.com/a/28842733 for extras_require...
-      # TODO: ...replace [dev] with [IO] (hyperspy) and [plotting] (separate plotting library)!
-      #test_suite='nose.collector',  # TODO: don't use nose!
-      cmdclass={'build': build})
+      cmdclass={'build': build}  # TODO: necessary?
+    )
 print('-------------------------------------------------------------------------------\n')

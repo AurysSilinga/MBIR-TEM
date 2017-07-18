@@ -72,8 +72,3 @@ class TestCasePhaseMap(unittest.TestCase):
                         err_msg='Unexpected behavior in load_from_netcdf4()!')
         assert_allclose(phasemap.a, self.phasemap.a,
                         err_msg='Unexpected behavior in load_from_netcdf4()!')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)

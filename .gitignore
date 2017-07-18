@@ -4,6 +4,8 @@ desktop.ini
 
 .idea
 
+.coverage
+
 *.egg-info
 
 .DS_Store
