@@ -1,5 +1,5 @@
 # REQUIREMENTS FOR PYRAMID
-
+#
 # Use "pip install -f requirements.txt" to install with pip!
 # If you want to install basic dependencies according to setup.py use "pip install -e .['all']"!
 #
@@ -12,58 +12,28 @@
 # with one of these options:
 #       - add them as a parameter to "conda create -n pyramid -f requirements.txt -c CHANNELS"
 #       - add them to ~/.condarc with "conda config --append channels CHANNEL" (one by one)
-
+#
 # The jutil package from "https://iffgit.fz-juelich.de/unger/jutil" has to be installed manually!
 
-# Basic:
-python==3.5  # TODO: upgrade to 3.6!
+python==3.5
 numpy==1.11
 scipy==0.19
 tqdm==4.14
 scikit-image==0.13
-
-# Fast computation:
 pyfftw==0.10
-
-# File IO:
 hyperspy==1.3
 hyperspy-gui-ipywidgets==1.0
-hyperspy-gui-traitsui==1.0  # TODO: Optional! Delete when mayavi is gone!
+hyperspy-gui-traitsui==1.0
 h5py==2.7
-
-# Plotting and colors:  # TODO: Shift to plotting package?
 matplotlib==2.0
 Pillow==4.1
 cmocean==1.1
-qt==4.8  # TODO: Necessary because of traits in mayavi. Delete when mayavi is gone!
-mayavi==4.5  # TODO: Get rid of!
-#colorspacious  # TODO: NOT USED?
-#visvis  # TODO: NOT USED?
-
-# Testing:
+qt==4.8
+mayavi==4.5
 pytest==3.1
 pytest-cov==2.5
 pytest-flake8==0.8
 pytest-runner==2.11
 coverage==4.4
-
-# IPython and notebooks:
 ipython==5.3
 jupyter==1.0
-
-# TODO: Add documentation stuff like sphinx!
-
-# TODO: Add back GUI dependencies!
-
-# TODO: Get Jutil from gitlab (currently doesn't work, git and cygwin don't play nice,...
-# TODO: ...because one is Unix, ond is Windows).
-#  - pip=9.0
-#  - pip:
-#    # ALSO NEEDS JUTIL!
-#    - "git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git"
-#
-#    # FOLLOWING NOT USED ANYMORE, CONDA WORKS, TOO (with appropriate channels):
-#    # Install pyFFTW=0.10 from wheel:
-#    - http://www.lfd.uci.edu/~gohlke/pythonlibs/pyFFTW‑0.10.4‑cp35‑cp35m‑win_amd64.whl
-#    # Install mayavi=4.5 and VTK from wheel:
-#    - http://www.lfd.uci.edu/~gohlke/pythonlibs/mayavi‑4.5.0+vtk71‑cp35‑cp35m‑win_amd64.whl
