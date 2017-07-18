@@ -201,8 +201,3 @@ class TestCasePhaseMapperCharge(unittest.TestCase):
 
     def test_jac_T_dot(self):
         self.assertRaises(NotImplementedError, self.mapper.jac_T_dot, None)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)

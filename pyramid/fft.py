@@ -10,7 +10,7 @@ pack will be used. FFTW objects are saved in a cache after creation which speeds
 FFT operations.
 
 """
-
+# TODO: is this still in use or deprecated by jutil???
 
 import pickle
 import logging

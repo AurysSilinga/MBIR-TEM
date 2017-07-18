@@ -78,8 +78,3 @@ class TestCaseMagCreator(unittest.TestCase):
         magnitude = mc.create_mag_dist_vortex(mag_shape)
         assert_allclose(magnitude, np.load(os.path.join(self.path, 'ref_mag_vort.npy')),
                         err_msg='Created vortex magnetic distribution does not match expectation')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)

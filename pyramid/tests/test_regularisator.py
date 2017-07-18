@@ -128,8 +128,3 @@ class TestCaseFirstOrderRegularisator(unittest.TestCase):
         hess_diag_ref = np.diag(np.load(os.path.join(self.path, 'first_order_jac_ref.npy')))
         assert_allclose(hess_diag, hess_diag_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in hess_diag()!')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)

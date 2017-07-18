@@ -155,7 +155,7 @@ def _load_from_ovf(filename, a):
         field = np.asarray((x_mag, y_mag, z_mag)) * float(header.get('valuemultiplier', 1))
         if a is None:
             # TODO: If transferred to HyperSpy, this has to stay in Pyramid reader!
-            if header.get('xstepsize') == header.get('ystepsize') == header.get('zstepsize'):
+            if not header.get('xstepsize') == header.get('ystepsize') == header.get('zstepsize'):
                 _log.warning('Grid spacing is not equal in x, y and z (x will be used)!')
             a = float(header.get('xstepsize', 1.))
             meshunit = header.get('meshunit', 'nm')

@@ -30,8 +30,3 @@ class TestCaseKernel(unittest.TestCase):
                         err_msg='Unexpected behavior in u_fft')
         assert_allclose(self.kernel.v_fft, ref_v_fft, atol=1E-7,
                         err_msg='Unexpected behavior in v_fft')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)

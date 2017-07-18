@@ -88,8 +88,3 @@ class TestCaseDataSet(unittest.TestCase):
         mask_ref[1:-1, 1:-1, 1:-1] = True
         np.testing.assert_equal(self.data.mask, mask_ref,
                                 err_msg='Unexpected behaviour in set_3d_mask')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)

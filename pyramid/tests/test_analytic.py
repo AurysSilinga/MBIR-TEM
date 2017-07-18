@@ -54,8 +54,3 @@ class TestCaseAnalytic(unittest.TestCase):
         reference = np.load(os.path.join(self.path, 'ref_phase_vort.npy'))
         assert_allclose(phase, reference, atol=1E-10,
                         err_msg='Unexpected behavior in phase_mag_vortex()')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)

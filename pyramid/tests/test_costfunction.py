@@ -74,8 +74,3 @@ class TestCaseCostfunction(unittest.TestCase):
     def test_hess_diag(self):
         assert_allclose(self.cost.hess_diag(None), np.ones(self.cost.n),
                         err_msg='Unexpected behaviour in hess_diag()!')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)

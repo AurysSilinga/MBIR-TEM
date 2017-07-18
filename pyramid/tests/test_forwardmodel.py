@@ -67,8 +67,3 @@ class TestCaseForwardModel(unittest.TestCase):
         jac_T_ref = np.load(os.path.join(self.path, 'jac.npy')).T
         assert_allclose(jac_T, jac_T_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in the the transposed jacobi matrix!')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.run(defaultTest=__name__)
