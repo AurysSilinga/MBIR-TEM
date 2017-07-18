@@ -35,4 +35,4 @@ test:
     - coverage html
   artifacts:
     paths:
-    - htmlcov/
+      - htmlcov/
