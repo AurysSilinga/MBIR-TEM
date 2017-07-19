@@ -128,6 +128,7 @@ def get_files(rootdir):
     return filepaths
 
 
+# TODO: Outsource stuff to setup.cfg? See https://github.com/pypa/setuptools/pull/862
 
 # TODO: Use requirements.txt? extras_require for optional stuff (hyperspy, plotting)?
 # TODO: After split of Pyramid, comment out and see what really is used (is e.g. scipy?)!
