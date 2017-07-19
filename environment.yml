@@ -4,7 +4,7 @@ name: pyramid
 
 channels:
   - defaults
-  - conda-forge  # Used for hyperspy, pyFFTW (linux-64/osx-64) and more!
+  - conda-forge  # Used for hyperspy, pyFFTW (linux-64/osx-64)
   - ccpi  # Used for pyFFTW on win-64!
 
 dependencies:
@@ -22,7 +22,7 @@ dependencies:
   - hyperspy-gui-traitsui=1.0  # TODO: Optional! Delete when mayavi is gone!
   - h5py=2.7
   # Plotting and colors:  # TODO: Shift to plotting package?
-  - matplotlib=2.0
+  - matplotlib=2.0  # Only works with qt4 from conda-forge channel!
   - Pillow=4.1
   - cmocean=1.1
   - qt=4.8  # Necessary because of traits in mayavi...
@@ -31,9 +31,10 @@ dependencies:
   #- visvis  # TODO: NOT USED?
   # Testing:
   - pytest=3.1
-  - pytest-cov=2.5
+  - pytest-cov=2.3
   - pytest-flake8=0.8
   - pytest-runner=2.11
+  - pytest-mpl=0.7  # Needed for testing hyperspy! TODO: Use for pyramid or plotting library, too!
   - coverage=4.4
   # IPython and notebooks:
   - ipython=5.3
