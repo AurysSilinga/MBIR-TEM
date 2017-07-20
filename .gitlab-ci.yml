@@ -1,4 +1,4 @@
-image: "python:3.5"
+image: "continuumio/miniconda3"
 
 before_script:
   # Check and print Python version
@@ -15,6 +15,12 @@ before_script:
   - echo iffgit.fz-juelich.de,134.94.161.83 "$ID_RSA_IFFGIT_PUBLIC" > ~/.ssh/known_hosts
   # Provide read access to owner (octal value code: 400) to known_hosts with chmod:
   - chmod 400 ~/.ssh/known_hosts
+  #
+  - ls
+  - conda info --envs
+  - conda env create -q  # -q: quiet/ no progressbar, because it spams the log!
+  - source activate pyramid
+  - conda info --envs
   # Install jutil via secure ssh connection:
   - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
 
@@ -27,7 +33,7 @@ test:
     # TODO: Different jobs with custom develop arguments? extra_requires (hyperspy, plotting)?
     # TODO: Use pip install -e .[hyperspy], etc.
     # Install requirements:
-    # - pip install -r requirements.txt  # TODO: DOES NOT WORK (because mayavi and stuff...)
+#    # - pip install -r requirements.txt  # TODO: DOES NOT WORK (because mayavi and stuff...)
     - pip install -e .['tests']
     - python setup.py test
     - coverage html
