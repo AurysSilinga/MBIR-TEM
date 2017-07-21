@@ -150,8 +150,8 @@ extras_require["all"] = list(itertools.chain(*list(extras_require.values())))
 
 
 print('\n-------------------------------------------------------------------------------')
-print('checking requirements')
-check_requirements()
+# print('checking requirements')  # TODO: Get rid of!
+# check_requirements()
 print('write version.py')
 write_version_py()
 setup(name=DISTNAME,

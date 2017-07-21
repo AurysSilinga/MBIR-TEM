@@ -15,19 +15,11 @@ before_script:
   - echo iffgit.fz-juelich.de,134.94.161.83 "$ID_RSA_IFFGIT_PUBLIC" > ~/.ssh/known_hosts
   # Provide read access to owner (octal value code: 400) to known_hosts with chmod:
   - chmod 400 ~/.ssh/known_hosts
-  #
-  - ls
-  - conda info --envs
-  - conda env create -q  # -q: quiet/ no progressbar, because it spams the log!
-  - source activate pyramid
-  - conda info --envs
-  # Install jutil via secure ssh connection:
-  - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
 
 stages:
   - test
 
-test:
+test_pip_minimal:
   stage: test
   script:
     # TODO: Different jobs with custom develop arguments? extra_requires (hyperspy, plotting)?
@@ -35,8 +27,55 @@ test:
     # Install requirements:
 #    # - pip install -r requirements.txt  # TODO: DOES NOT WORK (because mayavi and stuff...)
     - pip install -e .['tests']
+    # Install jutil via secure ssh connection:
+    - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
+    # Execute tests:
     - python setup.py test
+    # Create coverage report:
     - coverage html
   artifacts:
     paths:
       - htmlcov/
+
+test_pip_full:
+  stage: test
+  script:
+    # Install requirements:
+    - pip install -e .['all']
+    # Install jutil via secure ssh connection:
+    - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
+    # Execute tests:
+    - python setup.py test
+
+test_pip_requirements:
+  stage: test
+  script:
+    - pip install numpy  # Needed for mayavi...
+    # Install requirements:
+    - pip install -r requirements.txt  # TODO: DOES NOT WORK (because mayavi and stuff...)
+    # Install jutil via secure ssh connection:
+    - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
+    # Execute tests:
+    - python setup.py test
+
+test_conda:
+  stage: test
+  script:
+    # Install requirements:
+    - conda info --envs
+    - conda env create -q  # -q: quiet/ no progressbar, because it spams the log!
+    - source activate pyramid
+    - conda info --envs
+    # Install jutil via secure ssh connection:
+    - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
+    # Execute tests:
+    - python setup.py test
+
+
+
+
+
+
+
+
+
