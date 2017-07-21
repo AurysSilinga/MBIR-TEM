@@ -74,6 +74,7 @@
 image: ubuntu:16.04
 
 before_script:
+
 #  # Check and print Python version
 #  - python --version
   # Create SSH configuration directory if necessary (also parents with -p, mode: read/write/exec):
@@ -89,13 +90,14 @@ before_script:
   # Provide read access to owner (octal value code: 400) to known_hosts with chmod:
   - chmod 400 ~/.ssh/known_hosts
 
-  # Script from Ingo Heimabach:
+  # Script from Ingo Heimbach:
   - apt-get update
-  - apt-get install -y curl bzip2
+  - apt-get install -y curl bzip2 git
   - curl -O -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   - chmod +x Miniconda3-latest-Linux-x86_64.sh
   - ./Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda3
   - export PATH="/opt/miniconda3/bin:${PATH}"
+  - apt-cache policy git
 #  - conda create -y -n pyramid python
 #  - source activate test_env
 #  - conda install -y numpy
@@ -111,7 +113,7 @@ test_conda:
   script:
     # Install requirements:
     - conda info --envs
-    - conda env create -y -q  # -q: quiet/ no progressbar, because it spams the log!
+    - conda env create -q # -q: quiet/ no progressbar, because it spams the log!
     - source activate pyramid
     - conda info --envs
     # Install jutil via secure ssh connection:

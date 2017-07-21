@@ -50,9 +50,3 @@ dependencies:
 #  - pip:
 #    # ALSO NEEDS JUTIL!
 #    - "git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git"
-#
-#    # FOLLOWING NOT USED ANYMORE, CONDA WORKS, TOO (with appropriate channels):
-#    # Install pyFFTW=0.10 from wheel:
-#    - http://www.lfd.uci.edu/~gohlke/pythonlibs/pyFFTW‑0.10.4‑cp35‑cp35m‑win_amd64.whl
-#    # Install mayavi=4.5 and VTK from wheel:
-#    - http://www.lfd.uci.edu/~gohlke/pythonlibs/mayavi‑4.5.0+vtk71‑cp35‑cp35m‑win_amd64.whl

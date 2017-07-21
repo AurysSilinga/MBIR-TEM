@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 import itertools
-from distutils.command.build import build
+#from distutils.command.build import build
 
 #import numpy
 from setuptools import setup, find_packages
@@ -168,6 +168,6 @@ setup(name=DISTNAME,
       #tests_require=['pytest', 'pytest-cov', 'pytest-flake8'],
       install_requires=install_requires,
       extras_require=extras_require,
-      cmdclass={'build': build}  # TODO: necessary?
+      #cmdclass={'build': build}  # TODO: necessary?
     )
 print('-------------------------------------------------------------------------------\n')
