@@ -22,14 +22,15 @@ dependencies:
   - pyFFTW=0.10
   # File IO:
   - hyperspy=1.3
-  - hyperspy-gui-ipywidgets=1.0
-  - hyperspy-gui-traitsui=1.0  # TODO: Optional! Delete when mayavi is gone!
+  # - hyperspy-gui-ipywidgets=1.0
+  # - hyperspy-gui-traitsui=1.0  # TODO: Optional! Delete when mayavi is gone!
   - h5py=2.7
   # Plotting and colors:  # TODO: Shift to plotting package?
   - matplotlib=2.0  # Only works with qt4 from conda-forge channel!
   - Pillow=4.1
   - cmocean=1.1
-  - qt=4.8  # Necessary because of traits in mayavi...
+  # - qt=4.8  # Necessary because of traits in mayavi...
+  - pyqt=5.6.0
   - mayavi=4.5  # TODO: Get rid of!
   #- colorspacious  # TODO: NOT USED?
   #- visvis  # TODO: NOT USED?
