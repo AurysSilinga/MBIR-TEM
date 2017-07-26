@@ -116,6 +116,7 @@ test_conda:
     - conda env create -q # -q: quiet/ no progressbar, because it spams the log!
     - source activate pyramid
     - conda info --envs
+    - conda install pyqt=5.6.0 -y  # This is needed for tests to run, but breaks mayavi (not used)!
     # Install jutil via secure ssh connection:
     - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
     # Execute tests:

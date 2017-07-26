@@ -28,13 +28,14 @@ FIGSIZE_DEFAULT = (6.7, 5)  # TODO: Apparently does not fit as well as before...
 FONTSIZE_DEFAULT = 20
 STROKE_DEFAULT = None
 
-
+# TODO: Replace by matplotlib styles!
 def pretty_plots(figsize=None, fontsize=None, stroke=None):
     """Set IPython formats (for interactive and PDF output) and set pretty matplotlib font."""
     from IPython.display import set_matplotlib_formats
     set_matplotlib_formats('png', 'pdf')  # png for interactive, pdf, for PDF output!
     mpl.rcParams['mathtext.fontset'] = 'stix'  # Mathtext in $...$!
     mpl.rcParams['font.family'] = 'STIXGeneral'  # Set normal text to look the same!
+    # TODO: set 'font.size' = FONTSIZE! Does this change everything relative to this value???
     mpl.rcParams['figure.max_open_warning'] = 0  # Disable Max Open Figure warning!
     if figsize is not None:
         global FIGSIZE_DEFAULT
