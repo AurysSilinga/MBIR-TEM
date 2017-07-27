@@ -100,9 +100,11 @@ class Kernel(object):
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
         uu, vv = np.meshgrid(u, v)
+        # TODO: u, v are coordinates, rename self.u/v to self.kern_u/v!
         self.u = np.empty(self.dim_kern, dtype=dtype)
         self.v = np.empty(self.dim_kern, dtype=dtype)
         self.u[...] = coeff * self._get_elementary_phase(geometry, uu, vv, a)
+        # TODO: The minus sign belongs into the phasemapper (debatable)!
         self.v[...] = coeff * -self._get_elementary_phase(geometry, vv, uu, a)
         # Include perturbed reference wave:
         if prw_vec is not None:
