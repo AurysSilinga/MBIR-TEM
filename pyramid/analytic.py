@@ -164,8 +164,7 @@ def phase_mag_sphere(dim, a, phi, center, radius, b_0=1):
         r = np.hypot(x - x0, y - y0)
         result = coeff * R ** 3 / (r + 1E-30) ** 2 * (
             (y - y0) * np.cos(phi) - (x - x0) * np.sin(phi))
-        # TODO: During testing: "RuntimeWarning: invalid value encountered in power":
-        result *= np.where(r > R, 1, (1 - (1 - (r / R) ** 2) ** (3. / 2.)))
+        result *= 1 - np.clip(1 - (r / R) ** 2, 0, 1) ** (3. / 2.)
         return result
 
     # Process input parameters:

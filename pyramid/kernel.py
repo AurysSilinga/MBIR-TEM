@@ -101,15 +101,18 @@ class Kernel(object):
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
         uu, vv = np.meshgrid(u, v)
+        # TODO: u, v are coordinates, rename self.u/v to self.kern_u/v!
         self.u = np.empty(self.dim_kern, dtype=dtype)
         self.v = np.empty(self.dim_kern, dtype=dtype)
         self.u[...] = coeff * self._get_elementary_phase(geometry, uu, vv, a)
+        # TODO: The minus sign belongs into the phasemapper (debatable)!
         self.v[...] = coeff * -self._get_elementary_phase(geometry, vv, uu, a)
         # Include perturbed reference wave:
         if prw_vec is not None:
             uu += prw_vec[1]
             vv += prw_vec[0]
             self.u[...] -= coeff * self._get_elementary_phase(geometry, uu, vv, a)
+            # TODO: The minus sign belongs into the phasemapper (debatable)!
             self.v[...] -= coeff * -self._get_elementary_phase(geometry, vv, uu, a)
         # Calculate Fourier trafo of kernel components:
         self.u_fft = fft.rfftn(self.u, self.dim_pad)
@@ -128,6 +131,7 @@ class Kernel(object):
 
     def _get_elementary_phase(self, geometry, n, m, a):
         self._log.debug('Calling _get_elementary_phase')
+        # TODO: Rename n m to p q ?
         if geometry == 'disc':
             in_or_out = ~ np.logical_and(n == 0, m == 0)
             return m / (n ** 2 + m ** 2 + 1E-30) * in_or_out
