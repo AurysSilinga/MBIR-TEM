@@ -20,9 +20,9 @@ class TestCaseKernel(unittest.TestCase):
         self.kernel = None
 
     def test_kernel(self):
-        ref_u = np.load(os.path.join(self.path, 'ref_kc.npy'))
+        ref_u = np.load(os.path.join(self.path, 'ref_u.npy'))
         ref_v = np.load(os.path.join(self.path, 'ref_v.npy'))
-        ref_u_fft = np.load(os.path.join(self.path, 'ref_kc_fft.npy'))
+        ref_u_fft = np.load(os.path.join(self.path, 'ref_u_fft.npy'))
         ref_v_fft = np.load(os.path.join(self.path, 'ref_v_fft.npy'))
         assert_allclose(self.kernel.u, ref_u, err_msg='Unexpected behavior in u')
         assert_allclose(self.kernel.v, ref_v, err_msg='Unexpected behavior in v')
