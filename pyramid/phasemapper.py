@@ -410,8 +410,30 @@ class PhaseMapperMIP(PhaseMapper):
 
 
 class PhaseMapperCharge(PhaseMapper):
+    """Class representing a phase mapping strategy for the electrostatic charge contribution.
 
-    """"""  # TODO: Write Docstring!
+    The :class:`~.PhaseMapperCharge` class represents a phase mapping strategy for the electrostatic
+    charge contribution to the electron phase shift which results e.g. from the charges in
+    certain samples and which is sensitive to properties of the electron microscope. It directly
+    takes :class:`~.ScalarData` objects and returns :class:`~.PhaseMap` objects.
+
+    Attributes
+    ----------
+    a : float
+        The grid spacing in nm.
+    dim_uv : tuple of int (N=2)
+        Dimensions of the 2-dimensional projected magnetization grid for the kernel setup.
+    v_acc : float, optional
+        The acceleration voltage of the electron microscope in V. The default is 300000.
+    electrode_vec: tuple of float (N=2)
+        The norm vector of the counter electrode, (elec_a,elec_b), and the distance to the origin is
+        the norm of (elec_a,elec_b).
+    m: int
+        Size of the image space.
+    n: int
+        Size of the input space.
+
+    """
 
     def __init__(self, a, dim_uv, electrode_vec, v_acc=300000):
         self._log.debug('Calling __init__')
@@ -440,8 +462,6 @@ class PhaseMapperCharge(PhaseMapper):
         """ This is to calculate the phase from many electric dipoles. The model used to avoid singularity is
         the homogeneously-distributed charged metallic sphere.
         The elec_data includes the amount of charge in every grid, unit:electron.
-        The electrode_vec is the  normal vector of the electrode, (elec_a,elec_b), and the distance to the origin is
-        the norm of (elec_a,elec_b).
         R_sam is the sampling rate,pixel/nm."""
 
         R_sam = 1 / self.a
@@ -449,9 +469,7 @@ class PhaseMapperCharge(PhaseMapper):
         field = elec_data.field[0, ...]
         elec_a, elec_b = self.electrode_vec  # electrode vector (orthogonal to the electrode from origin)
         elec_n = elec_a ** 2 + elec_b ** 2
-
         dim_v, dim_u = field.shape
-
         u_cor = range(0, dim_u, 1)
         v_cor = range(0, dim_v, 1)
         v, u = np.meshgrid(v_cor, u_cor)
@@ -465,51 +483,29 @@ class PhaseMapperCharge(PhaseMapper):
         vm = (elec_a ** 2 - elec_b ** 2) / elec_n * vq - 2 * elec_a * elec_b / elec_n * uq + 2 * elec_b
         # Calculate phase contribution for each charge:
         phase = np.zeros((dim_v, dim_u))
-
         for i in range(len(q)):
-
             # The projected distance from the charges or image charges
-
             r1 = np.sqrt((u - uq[i]) ** 2 + (v - vq[i]) ** 2)
-
             r2 = np.sqrt((u - um[i]) ** 2 + (v - vm[i]) ** 2)
-
             # The square height when  the path come across the sphere
-
-            z1 = R ** 2 - r1 ** 2
-
-            z2 = R ** 2 - r2 ** 2
-
+            h1 = R ** 2 - r1 ** 2
+            h2 = R ** 2 - r2 ** 2
             # Phase calculation in 3 different cases
-
             # case 1 totally out of the sphere
-
-            case1 = ((z1 < 0) & (z2 < 0))
-
+            case1 = ((h1 < 0) & (h2 < 0))
             phase[case1] += - q[i] * self.coeff * np.log((r1[case1] ** 2) / (r2[case1] ** 2))
-
             # case 2: inside the charge sphere
-
-            case2 = ((z1 >= 0) & (z2 <= 0))
-
+            case2 = ((h1 >= 0) & (h2 <= 0))
             # The height when the path come across the charge sphere
-
-            z3 = np.sqrt(z1)
-
-            phase[case2] += q[i] * self.coeff * (- np.log((z3[case2] + R) ** 2 / r2[case2] ** 2) +
-                             (2 * z3[case2] / R + 2 * z3[case2] ** 3 / 3 / R ** 3))
-
+            h3 = np.sqrt(h1)
+            phase[case2] += q[i] * self.coeff * (- np.log((h3[case2] + R) ** 2 / r2[case2] ** 2) +
+                                                 (2 * h3[case2] / R + 2 * h3[case2] ** 3 / 3 / R ** 3))
             # case 3 : inside the image charge sphere
-
             case3 = np.logical_not(case1 | case2)
-
             # The height whe the path comes across the image charge sphere
-
-            z4 = np.sqrt(z2)
-
-            phase[case3] += q[i] * self.coeff * (np.log((z4[case3] + R) ** 2 / r1[case3] ** 2) -
-                             (2 * z4[case3] / R + 2 * z4[case3] ** 3 / 3 / R ** 3))
-
+            h4 = np.sqrt(h2)
+            phase[case3] += q[i] * self.coeff * (np.log((h4[case3] + R) ** 2 / r1[case3] ** 2) -
+                                                 (2 * h4[case3] / R + 2 * h4[case3] ** 3 / 3 / R ** 3))
         return PhaseMap(self.a, phase)
 
     def jac_dot(self, vector):
