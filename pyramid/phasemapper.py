@@ -434,6 +434,7 @@ class PhaseMapperCharge(PhaseMapper):
         Size of the input space.
 
     """
+    _log = logging.getLogger(__name__ + '.PhaseMapperCharge')
 
     def __init__(self, a, dim_uv, electrode_vec, v_acc=300000):
         self._log.debug('Calling __init__')
