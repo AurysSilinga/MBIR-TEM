@@ -155,11 +155,15 @@ def _load_from_ovf(filename, a):
         field = np.asarray((x_mag, y_mag, z_mag)) * float(header.get('valuemultiplier', 1))
         if a is None:
             # TODO: If transferred to HyperSpy, this has to stay in Pyramid reader!
-            if not header.get('xstepsize') == header.get('ystepsize') == header.get('zstepsize'):
-                _log.warning('Grid spacing is not equal in x, y and z (x will be used)!')
-            a = float(header.get('xstepsize', 1.))
-            meshunit = header.get('meshunit', 'nm')
-            a *= {'m': 1e9, 'mm': 1e6, 'µm': 1e3, 'nm': 1}[meshunit]  # Conversion to nm
+            xstep = float(header.get('xstepsize'))
+            ystep = float(header.get('ystepsize'))
+            zstep = float(header.get('zstepsize'))
+            if not np.allclose(xstep, ystep) and np.allclose(xstep, zstep):
+                _log.warning('Grid spacing is not equal in x, y and z (x will be used)!\n'
+                             'Found step sizes are x:{}, y:{}, z:{} (all in {})!'.format(
+                                xstep, ystep, zstep, header.get('meshunit')))
+            # Extract grid spacing from xstepsize and convert according to meshunit:
+            a = xstep * {'m': 1e9, 'mm': 1e6, 'µm': 1e3, 'nm': 1}[header.get('meshunit', 'nm')]
         return VectorData(a, field)
 
 

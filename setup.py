@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 import itertools
-from distutils.command.build import build
+#from distutils.command.build import build
 
 #import numpy
 from setuptools import setup, find_packages
@@ -150,8 +150,8 @@ extras_require["all"] = list(itertools.chain(*list(extras_require.values())))
 
 
 print('\n-------------------------------------------------------------------------------')
-print('checking requirements')
-check_requirements()
+# print('checking requirements')  # TODO: Get rid of!
+# check_requirements()
 print('write version.py')
 write_version_py()
 setup(name=DISTNAME,
@@ -168,6 +168,6 @@ setup(name=DISTNAME,
       #tests_require=['pytest', 'pytest-cov', 'pytest-flake8'],
       install_requires=install_requires,
       extras_require=extras_require,
-      cmdclass={'build': build}  # TODO: necessary?
+      #cmdclass={'build': build}  # TODO: necessary?
     )
 print('-------------------------------------------------------------------------------\n')
