@@ -182,7 +182,7 @@ class KernelCharge(object):
     a : float
         The grid spacing in nm.
     v_acc : float, optional
-            The acceleration voltage of the electron microscope in V. The default is 300000.
+        The acceleration voltage of the electron microscope in V. The default is 300000.
     electrode_vec : tuple of float (N=2)
         The norm vector of the counter electrode, (elec_a,elec_b), and the distance to the origin is
         the norm of (elec_a,elec_b).
@@ -228,7 +228,7 @@ class KernelCharge(object):
         self.electrode_vec = electrode_vec
         self.v_acc = v_acc
         lam = H_BAR / np.sqrt(2 * M_E * Q_E * v_acc * (1 + Q_E * v_acc / (2 * M_E * C ** 2)))
-        c_e = 2 * np.pi * Q_E / lam * (Q_E * v_acc + M_E * C ** 2) / (
+        C_e = 2 * np.pi * Q_E / lam * (Q_E * v_acc + M_E * C ** 2) / (
             Q_E * v_acc * (Q_E * v_acc + 2 * M_E * C ** 2))
         # Set up FFT:
         if fft.HAVE_FFTW:
@@ -241,18 +241,18 @@ class KernelCharge(object):
         self.slice_mag = (slice(0, dim_uv[0]),  # Magnetization is padded on the far end!
                           slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
         # Calculate kernel (single pixel phase):
-        coeff = c_e * Q_E / (4 * np.pi * EPS_0)  # Minus is gone because of negative z-direction
+        self.coeff = C_e * Q_E / (4 * np.pi * EPS_0)  # Minus is gone because of negative z-direction
         v_dim, u_dim = dim_uv
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
         uu, vv = np.meshgrid(u, v)
         self.kc = np.empty(self.dim_kern, dtype=dtype)
-        self.kc[...] = coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
+        self.kc[...] = self.coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
         # Include perturbed reference wave:
         if prw_vec is not None:
             uu += prw_vec[1]
             vv += prw_vec[0]
-            self.kc[...] -= coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
+            self.kc[...] -= self.coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
         # Calculate Fourier transform of kernel:
         self.kc_fft = fft.rfftn(self.kc, self.dim_pad)
         self._log.debug('Created ' + str(self))
@@ -269,13 +269,37 @@ class KernelCharge(object):
 
     def _get_elementary_phase(self, electrode_vec, n, m, a):
         self._log.debug('Calling _get_elementary_phase')
+        phase = np.zeros((self.dim_uv[1], self.dim_uv[0]))
         elec_a, elec_b = electrode_vec
-        n_img = 2 * elec_a
-        m_img = 2 * elec_b
-        in_or_out1 = ~ np.logical_and(n == 0, m == 0)
-        in_or_out2 = ~ np.logical_and((n - n_img) == 0, (m - m_img) == 0)
-        return (1. / np.sqrt(a ** 2 * (n ** 2 + m ** 2 + 1E-30))) * in_or_out1 - \
-               (1. / np.sqrt(a ** 2 * ((n - n_img) ** 2 + (m - m_img) ** 2 + 1E-30))) * in_or_out2
+        u_img = 2 * elec_a
+        v_img = 2 * elec_b
+        # in_or_out1 = ~ np.logical_and(n == 0, m == 0)
+        # in_or_out2 = ~ np.logical_and((n - u_img) == 0, (m - v_img) == 0)
+
+        # The projected distance from the charges or image charges
+        r1 = np.sqrt(n ** 2 + m ** 2)
+        r2 = np.sqrt((n - u_img) ** 2 + (n - v_img) ** 2)
+        # The square height when  the path come across the sphere
+        R = a / 2  # the radius of the pixel
+        h1 = R ** 2 - r1 ** 2
+        h2 = R ** 2 - r2 ** 2
+        # Phase calculation in 3 different cases
+        # case 1 totally out of the sphere
+        case1 = ((h1 < 0) & (h2 < 0))
+        phase[case1] += - self.coeff * np.log((r1[case1] ** 2) / (r2[case1] ** 2))
+        # case 2: inside the charge sphere
+        case2 = ((h1 >= 0) & (h2 <= 0))
+        # The height when the path come across the charge sphere
+        h3 = np.sqrt(h1)
+        phase[case2] += self.coeff * (- np.log((h3[case2] + R) ** 2 / r2[case2] ** 2) +
+                                             (2 * h3[case2] / R + 2 * h3[case2] ** 3 / 3 / R ** 3))
+        # case 3 : inside the image charge sphere
+        case3 = np.logical_not(case1 | case2)
+        # The height whe the path comes across the image charge sphere
+        h4 = np.sqrt(h2)
+        phase[case3] += self.coeff * (np.log((h4[case3] + R) ** 2 / r1[case3] ** 2) -
+                                             (2 * h4[case3] / R + 2 * h4[case3] ** 3 / 3 / R ** 3))
+        return phase
 
     def print_info(self):
         """Print information about the kernel.
