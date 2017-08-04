@@ -236,15 +236,14 @@ class KernelCharge(object):
         else:
             self.dim_pad = tuple(2 ** np.ceil(np.log2(2 * np.array(dim_uv))).astype(int))  # pow(2)
         self.dim_fft = (self.dim_pad[0], self.dim_pad[1] // 2 + 1)  # last axis is real
-        self.slice_phase = (slice(dim_uv[0] - 1, self.dim_kern[0]),  # Shift because kernel center
-                            slice(dim_uv[1] - 1, self.dim_kern[1]))  # is not at (0, 0)!
-        self.slice_mag = (slice(0, dim_uv[0]),  # Magnetization is padded on the far end!
-                          slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
+        self.slice_phase = slice(dim_uv[0] - 1, self.dim_kern[0])  # Shift because kernel center is not at (0, 0)!
+        self.slice_c = slice(0, dim_uv[0])
         # Calculate kernel (single pixel phase):
         self.coeff = C_e * Q_E / (4 * np.pi * EPS_0)  # Minus is gone because of negative z-direction
         v_dim, u_dim = dim_uv
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
+        self.phase = np.empty([2 * u_dim - 1, 2 * v_dim - 1])
         uu, vv = np.meshgrid(u, v)
         self.kc = np.empty(self.dim_kern, dtype=dtype)
         self.kc[...] = self.coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
@@ -269,7 +268,6 @@ class KernelCharge(object):
 
     def _get_elementary_phase(self, electrode_vec, n, m, a):
         self._log.debug('Calling _get_elementary_phase')
-        phase = np.zeros((self.dim_uv[1], self.dim_uv[0]))
         elec_a, elec_b = electrode_vec
         u_img = 2 * elec_a
         v_img = 2 * elec_b
@@ -286,20 +284,20 @@ class KernelCharge(object):
         # Phase calculation in 3 different cases
         # case 1 totally out of the sphere
         case1 = ((h1 < 0) & (h2 < 0))
-        phase[case1] += - self.coeff * np.log((r1[case1] ** 2) / (r2[case1] ** 2))
+        self.phase[case1] += - self.coeff * np.log((r1[case1] ** 2) / (r2[case1] ** 2))
         # case 2: inside the charge sphere
         case2 = ((h1 >= 0) & (h2 <= 0))
         # The height when the path come across the charge sphere
-        h3 = np.sqrt(h1)
-        phase[case2] += self.coeff * (- np.log((h3[case2] + R) ** 2 / r2[case2] ** 2) +
+        h3 = np.sqrt(np.where(h1 > 0, h1, 0))
+        self.phase[case2] += self.coeff * (- np.log((h3[case2] + R) ** 2 / r2[case2] ** 2) +
                                              (2 * h3[case2] / R + 2 * h3[case2] ** 3 / 3 / R ** 3))
         # case 3 : inside the image charge sphere
         case3 = np.logical_not(case1 | case2)
         # The height whe the path comes across the image charge sphere
-        h4 = np.sqrt(h2)
-        phase[case3] += self.coeff * (np.log((h4[case3] + R) ** 2 / r1[case3] ** 2) -
+        h4 = np.sqrt(np.where(h2 > 0, h2, 0))
+        self.phase[case3] += self.coeff * (np.log((h4[case3] + R) ** 2 / r1[case3] ** 2) -
                                              (2 * h4[case3] / R + 2 * h4[case3] ** 3 / 3 / R ** 3))
-        return phase
+        return self.phase
 
     def print_info(self):
         """Print information about the kernel.
@@ -315,7 +313,7 @@ class KernelCharge(object):
         print('Zero-padded shape   :', self.dim_pad)
         print('Shape of the FFT    :', self.dim_fft)
         print('Slice for the phase :', self.slice_phase)
-        print('Slice for the magn. :', self.slice_mag)
+        print('Slice for the charge. :', self.slice_c)
         print('Grid spacing        : {} nm'.format(self.a))
         print('PRW vector          : {} T'.format(self.prw_vec))
         print('Electrode vector    : {} T'.format(self.electrode_vec))

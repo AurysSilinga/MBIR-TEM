@@ -181,7 +181,8 @@ class TestCasePhaseMapperCharge(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
         self.charge_proj = load_scalardata(os.path.join(self.path, 'charge_proj.hdf5'))
-        self.mapper = PhaseMapperRDFC(KernelCharge(self.charge_proj.a, self.charge_proj.dim[1:]))
+        self.mapper = PhaseMapperCharge(KernelCharge(self.charge_proj.a, self.charge_proj.dim[1:],
+                                        electrode_vec=(3, 3)))
 
     def tearDown(self):
         self.path = None
@@ -189,7 +190,7 @@ class TestCasePhaseMapperCharge(unittest.TestCase):
         self.mapper = None
 
     def test_PhaseMapperCharge_call(self):
-        phase_ref = load_phasemap(os.path.join(self.path, 'phasemap.hdf5'))
+        phase_ref = load_phasemap(os.path.join(self.path, 'charge_phase_ref.hdf5'))
         phasemap = self.mapper(self.charge_proj)
         assert_allclose(phasemap.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
