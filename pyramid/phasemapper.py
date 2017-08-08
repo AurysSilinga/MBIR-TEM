@@ -410,107 +410,58 @@ class PhaseMapperMIP(PhaseMapper):
 
 
 class PhaseMapperCharge(PhaseMapper):
+    """Class representing a phase mapping strategy for the electrostatic charge contribution.
 
-    """"""  # TODO: Write Docstring!
+    The :class:`~.PhaseMapperCharge` class represents a phase mapping strategy for the electrostatic
+    charge contribution to the electron phase shift which results e.g. from the charges in
+    certain samples and which is sensitive to properties of the electron microscope. It directly
+    takes :class:`~.ScalarData` objects and returns :class:`~.PhaseMap` objects.
 
-    def __init__(self, a, dim_uv, electrode_vec, v_acc=300000):
+    Attributes
+    ----------
+    kernelcharge : :class:`~pyramid.KernelCharge`
+        Convolution kernel, representing the phase contribution of one single charge pixel.
+    m: int
+        Size of the image space.
+    n: int
+        Size of the input space.
+
+    """
+    _log = logging.getLogger(__name__ + '.PhaseMapperCharge')
+
+    def __init__(self, kernelcharge):
         self._log.debug('Calling __init__')
-        self.a = a
-        self.dim_uv = dim_uv
-        self.electrode_vec = electrode_vec
-        self.v_acc = v_acc
-        lam = H_BAR / np.sqrt(2 * M_E * Q_E * v_acc * (1 + Q_E * v_acc / (2 * M_E * C ** 2)))
-        C_e = 2 * np.pi * Q_E / lam * (Q_E * v_acc + M_E * C ** 2) / (
-            Q_E * v_acc * (Q_E * v_acc + 2 * M_E * C ** 2))
-        self.coeff = C_e * Q_E / (4 * np.pi * EPS_0)
-
+        self.kernelcharge = kernelcharge
+        self.m = np.prod(kernelcharge.dim_uv)
+        self.n = 2 * self.m
+        self.c = np.zeros(kernelcharge.dim_pad, dtype=kernelcharge.kc.dtype)
+        self.phase_adj = np.zeros(kernelcharge.dim_pad, dtype=kernelcharge.kc.dtype)
         self._log.debug('Created ' + str(self))
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
-        return '%s(a=%r, dim_uv=%r, v_acc=%r)' % \
-               (self.__class__, self.a, self.dim_uv, self.v_acc)
+        return '%s(kernelcharge=%r)' % (self.__class__, self.kernelcharge)
 
     def __str__(self):
         self._log.debug('Calling __str__')
-        return 'PhaseMapperCharge(a=%s, dim_uv=%s, v_acc=%s)' % \
-               (self.a, self.dim_uv, self.v_acc)
+        return 'PhaseMapperCharge(kernelcharge=%s)' % self.kernelcharge
 
-    def __call__(self, elec_data):
-        """ This is to calculate the phase from many electric dipoles. The model used to avoid singularity is
-        the homogeneously-distributed charged metallic sphere.
-        The elec_data includes the amount of charge in every grid, unit:electron.
-        The electrode_vec is the  normal vector of the electrode, (elec_a,elec_b), and the distance to the origin is
-        the norm of (elec_a,elec_b).
-        R_sam is the sampling rate,pixel/nm."""
+    def __call__(self, elecdata):
+        assert isinstance(elecdata, ScalarData), 'Only ScalarData objects can be mapped!'
+        assert elecdata.a == self.kernelcharge.a, 'Grid spacing has to match!'
+        assert elecdata.dim[0] == 1, 'Charge distribution must be 2-dimensional!'
+        assert elecdata.dim[1:3] == self.kernelcharge.dim_uv, 'Dimensions do not match!'
+        # Process input parameters:
+        self.c[self.kernelcharge.slice_c] = elecdata.field[0, 0, ...]
+        return PhaseMap(elecdata.a, self._convolve())
 
-        R_sam = 1 / self.a
-        R = R_sam / 2  # The radius of the charged sphere
-        field = elec_data.field[0, ...]
-        elec_a, elec_b = self.electrode_vec  # electrode vector (orthogonal to the electrode from origin)
-        elec_n = elec_a ** 2 + elec_b ** 2
-
-        dim_v, dim_u = field.shape
-
-        u_cor = range(0, dim_u, 1)
-        v_cor = range(0, dim_v, 1)
-        v, u = np.meshgrid(v_cor, u_cor)
-        # Find list of charge locations and charge values:
-        vq, uq = np.nonzero(field)
-        q = field[vq, uq]
-        # Calculate locations of image charges:
-        # vm = (bu ** 2 - bv ** 2) / bn * vq - 2 * bu * bv / bn * uq + 2 * bv
-        # um = (bv ** 2 - bu ** 2) / bn * uq - 2 * bu * bv / bn * vq + 2 * bu
-        um = (elec_b ** 2 - elec_a ** 2) / elec_n * uq - 2 * elec_a * elec_b / elec_n * vq + 2 * elec_a
-        vm = (elec_a ** 2 - elec_b ** 2) / elec_n * vq - 2 * elec_a * elec_b / elec_n * uq + 2 * elec_b
-        # Calculate phase contribution for each charge:
-        phase = np.zeros((dim_v, dim_u))
-
-        for i in range(len(q)):
-
-            # The projected distance from the charges or image charges
-
-            r1 = np.sqrt((u - uq[i]) ** 2 + (v - vq[i]) ** 2)
-
-            r2 = np.sqrt((u - um[i]) ** 2 + (v - vm[i]) ** 2)
-
-            # The square height when  the path come across the sphere
-
-            z1 = R ** 2 - r1 ** 2
-
-            z2 = R ** 2 - r2 ** 2
-
-            # Phase calculation in 3 different cases
-
-            # case 1 totally out of the sphere
-
-            case1 = ((z1 < 0) & (z2 < 0))
-
-            phase[case1] += - q[i] * self.coeff * np.log((r1[case1] ** 2) / (r2[case1] ** 2))
-
-            # case 2: inside the charge sphere
-
-            case2 = ((z1 >= 0) & (z2 <= 0))
-
-            # The height when the path come across the charge sphere
-
-            z3 = np.sqrt(z1)
-
-            phase[case2] += q[i] * self.coeff * (- np.log((z3[case2] + R) ** 2 / r2[case2] ** 2) +
-                             (2 * z3[case2] / R + 2 * z3[case2] ** 3 / 3 / R ** 3))
-
-            # case 3 : inside the image charge sphere
-
-            case3 = np.logical_not(case1 | case2)
-
-            # The height whe the path comes across the image charge sphere
-
-            z4 = np.sqrt(z2)
-
-            phase[case3] += q[i] * self.coeff * (np.log((z4[case3] + R) ** 2 / r1[case3] ** 2) -
-                             (2 * z4[case3] / R + 2 * z4[case3] ** 3 / 3 / R ** 3))
-
-        return PhaseMap(self.a, phase)
+    def _convolve(self):
+        # Fourier transform the projected magnetisation:
+        self.c_fft = fft.rfftn(self.c)
+        # Convolve the magnetization with the kernel in Fourier space:
+        self.phase_fft = self.c_fft * self.kernelcharge.kc_fft
+        # Return the result:
+        return fft.irfftn(self.phase_fft)[self.kernelcharge.slice_phase]
 
     def jac_dot(self, vector):
         """Calculate the product of the Jacobi matrix with a given `vector`.
