@@ -236,8 +236,10 @@ class KernelCharge(object):
         else:
             self.dim_pad = tuple(2 ** np.ceil(np.log2(2 * np.array(dim_uv))).astype(int))  # pow(2)
         self.dim_fft = (self.dim_pad[0], self.dim_pad[1] // 2 + 1)  # last axis is real
-        self.slice_phase = slice(dim_uv[0] - 1, self.dim_kern[0])  # Shift because kernel center is not at (0, 0)!
-        self.slice_c = slice(0, dim_uv[0])
+        self.slice_phase = (slice(dim_uv[0] - 1, self.dim_kern[0]),  # Shift because kernel center
+                            slice(dim_uv[1] - 1, self.dim_kern[1]))  # is not at (0, 0)!
+        self.slice_c = (slice(0, dim_uv[0]),  # Charge is padded on the far end!
+                        slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
         # Calculate kernel (single pixel phase):
         coeff = C_e * Q_E / (4 * np.pi * EPS_0)  # Minus is gone because of negative z-direction
         v_dim, u_dim = dim_uv
