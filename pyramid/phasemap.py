@@ -642,23 +642,23 @@ class PhaseMap(object):
             phase /= 10 ** order
         # Calculate limits if necessary (not necessary if both limits are already set):
         if vmin is None and vmax is None:
-            phase_l = phase
+            phase_lim = phase
             # Clip non-trustworthy regions for the limit calculation:
             if show_conf:
-                phase_trust = np.where(self.confidence > 0.9, phase_l, np.nan)
+                phase_trust = np.where(self.confidence > 0.9, phase_lim, np.nan)
                 phase_min, phase_max = np.nanmin(phase_trust), np.nanmax(phase_trust)
-                phase_l = np.clip(phase_l, phase_min, phase_max)
+                phase_lim = np.clip(phase_lim, phase_min, phase_max)
             # Cut outlier beyond a certain sigma-margin:
             if sigma_clip is not None:
-                outlier = np.abs(phase_l - np.mean(phase_l)) < sigma_clip * np.std(phase_l)
-                phase_sigma = np.where(outlier, phase_l, np.nan)
+                outlier = np.abs(phase_lim - np.mean(phase_lim)) < sigma_clip * np.std(phase_lim)
+                phase_sigma = np.where(outlier, phase_lim, np.nan)
                 phase_min, phase_max = np.nanmin(phase_sigma), np.nanmax(phase_sigma)
-                phase_l = np.clip(phase_l, phase_min, phase_max)
+                phase_lim = np.clip(phase_lim, phase_min, phase_max)
             # Calculate the limits if necessary (zero has to be present!):
             if vmin is None:
-                vmin = np.min(phase_l)
+                vmin = np.min(phase_lim)
             if vmax is None:
-                vmax = np.max(phase_l)
+                vmax = np.max(phase_lim)
         # Configure colormap, to fix white to zero if colormap is symmetric:
         if symmetric:
             if cmap is None:
@@ -712,7 +712,8 @@ class PhaseMap(object):
                                      cbar_label=cbar_label, tight_layout=tight, **kwargs)
 
     def plot_holo(self, gain='auto',  # specific to plot_holo!
-                  cmap=None, interpolation='none', axis=None, figsize=None, **kwargs):
+                  cmap=None, interpolation='none', axis=None, figsize=None, sigma_clip=2,
+                  **kwargs):
         """Display the color coded holography image.
 
         Parameters
@@ -757,7 +758,6 @@ class PhaseMap(object):
         # sign switch --> B_x = -grad_y(phi_m), B_y =  grad_x(phi_m)
         grad_x, grad_y = np.gradient(self.phase, self.a, self.a)
         # Clip outliers:
-        sigma_clip = 2
         outlier_x = np.abs(grad_x - np.mean(grad_x)) < sigma_clip * np.std(grad_x)
         grad_x_sigma = np.where(outlier_x, grad_x, np.nan)
         grad_x_min, grad_x_max = np.nanmin(grad_x_sigma), np.nanmax(grad_x_sigma)

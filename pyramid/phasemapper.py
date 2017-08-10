@@ -452,7 +452,7 @@ class PhaseMapperCharge(PhaseMapper):
         assert elecdata.dim[0] == 1, 'Charge distribution must be 2-dimensional!'
         assert elecdata.dim[1:3] == self.kernelcharge.dim_uv, 'Dimensions do not match!'
         # Process input parameters:
-        self.c[self.kernelcharge.slice_c] = elecdata.field[0, 0, ...]
+        self.c[self.kernelcharge.slice_c] = elecdata.field[0, ...]
         return PhaseMap(elecdata.a, self._convolve())
 
     def _convolve(self):
