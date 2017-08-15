@@ -182,7 +182,7 @@ class TestCasePhaseMapperCharge(unittest.TestCase):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
         self.charge_proj = load_scalardata(os.path.join(self.path, 'charge_proj.hdf5'))
         self.mapper = PhaseMapperCharge(KernelCharge(self.charge_proj.a, self.charge_proj.dim[1:],
-                                        electrode_vec=(3, 3)))
+                                        electrode_vec=(4, 4)))
 
     def tearDown(self):
         self.path = None
