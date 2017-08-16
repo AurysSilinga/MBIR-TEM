@@ -270,11 +270,9 @@ class KernelCharge(object):
     def _get_elementary_phase(self, electrode_vec, n, m, a):
         self._log.debug('Calling _get_elementary_phase')
         elec_a, elec_b = electrode_vec
+        # The positions of the image charge, i.e., 2 * electrode_vec as the single charge sits at (0, 0)
         u_img = 2 * elec_a
         v_img = 2 * elec_b
-        # in_or_out1 = ~ np.logical_and(n == 0, m == 0)
-        # in_or_out2 = ~ np.logical_and((n - u_img) == 0, (m - v_img) == 0)
-
         # The projected distance from the charges or image charges
         r1 = np.sqrt(n ** 2 + m ** 2)
         r2 = np.sqrt((n - u_img) ** 2 + (m - v_img) ** 2)

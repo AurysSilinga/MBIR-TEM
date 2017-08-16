@@ -422,9 +422,8 @@ class PhaseMapperCharge(PhaseMapper):
     kernelcharge : :class:`~pyramid.KernelCharge`
         Convolution kernel, representing the phase contribution of one single charge pixel.
     m: int
-        Size of the image space.
-    n: int
-        Size of the input space.
+        Size of the image space and the input space.
+
 
     """
     _log = logging.getLogger(__name__ + '.PhaseMapperCharge')
@@ -433,7 +432,6 @@ class PhaseMapperCharge(PhaseMapper):
         self._log.debug('Calling __init__')
         self.kernelcharge = kernelcharge
         self.m = np.prod(kernelcharge.dim_uv)
-        self.n = 2 * self.m
         self.c = np.zeros(kernelcharge.dim_pad, dtype=kernelcharge.kc.dtype)
         self.phase_adj = np.zeros(kernelcharge.dim_pad, dtype=kernelcharge.kc.dtype)
         self._log.debug('Created ' + str(self))
@@ -463,36 +461,46 @@ class PhaseMapperCharge(PhaseMapper):
         # Return the result:
         return fft.irfftn(self.phase_fft)[self.kernelcharge.slice_phase]
 
-    def jac_dot(self, vector):
+    def jac_dot(self, scalar):
         """Calculate the product of the Jacobi matrix with a given `vector`.
 
         Parameters
         ----------
-        vector : :class:`~numpy.ndarray` (N=1)
-            Vectorized form of the electrostatic field of every pixel (row-wise).
+        scalar: :class:`~numpy.ndarray` (N=1)
+            Scalar form of the charge distribution of every pixel (row-wise).
 
         Returns
         -------
         result : :class:`~numpy.ndarray` (N=1)
-            Product of the Jacobi matrix (which is not explicitely calculated) with the vector.
+            Product of the Jacobi matrix (which is not explicitly calculated) with the scalar.
 
         """
-        raise NotImplementedError()  # TODO: Implement right!
+        assert len(scalar) == self.m, \
+            'scalar size not compatible! scalar: {}, size: {}'.format(len(scalar), self.m)
+        self.c[self.kernelcharge.slice_c] = np.reshape(scalar, (1,) + self.kernelcharge.dim_uv)
+        return np.ravel(self._convolve())
 
-    def jac_T_dot(self, vector):
-        """Calculate the product of the transposed Jacobi matrix with a given `vector`.
+    def jac_T_dot(self, scalar):
+        """Calculate the product of the transposed Jacobi matrix with a given `scalar`.
 
         Parameters
         ----------
-        vector : :class:`~numpy.ndarray` (N=1)
-            Vector with ``N**2`` entries which represents a matrix with dimensions like a scalar
+        scalar: :class:`~numpy.ndarray` (N=1)
+            Scalar with ``N**2`` entries which represents a matrix with dimensions like a scalar
             phasemap.
 
         Returns
         -------
         result : :class:`~numpy.ndarray` (N=1)
-            Product of the transposed Jacobi matrix (which is not explicitely calculated) with
-            the vector, which has ``N**2`` entries like an electrostatic projection.
+            Product of the transposed Jacobi matrix (which is not explicitly calculated) with
+            the scalar, which has ``N**2`` entries like a 2D charge projection.
 
         """
-        raise NotImplementedError()  # TODO: Implement right!
+        assert len(scalar) == self.m, \
+            'scalar size not compatible! scalar: {}, size: {}'.format(len(scalar), self.m)
+        self.phase_adj[self.kernelcharge.slice_phase] = scalar.reshape(self.kernelcharge.dim_uv)
+        phase_adj_fft = fft.irfft2_adj(self.phase_adj)
+        kc_adj_fft = phase_adj_fft * np.conj(self.kernelcharge.kc_fft)
+        kc_adj = fft.rfft2_adj(kc_adj_fft)[self.kernelcharge.slice_c]
+        result = kc_adj.ravel()
+        return result
