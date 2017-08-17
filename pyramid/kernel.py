@@ -204,7 +204,7 @@ class KernelCharge(object):
     slice_phase : tuple (N=2) of :class:`slice`
         A tuple of :class:`slice` objects to extract the original FOV from the increased one with
         size `dim_pad` for the elementary kernel phase. The kernel is shifted, thus the center is
-        not at (0, 0), which also shifts the slicing compared to `slice_mag`.
+        not at (0, 0), which also shifts the slicing compared to `slice_c`.
     slice_c : tuple (N=2) of :class:`slice`
         A tuple of :class:`slice` objects to extract the original FOV from the increased one with
         size `dim_pad` for the projected charge distribution.
