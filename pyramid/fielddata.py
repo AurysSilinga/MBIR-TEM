@@ -939,7 +939,7 @@ class VectorData(FieldData):
         else:
             cbar_mappable, cbar_label = None, None
         # Change background color:
-        axis.set_facecolor(bgcolor)
+        #axis.set_facecolor(bgcolor)  # TODO: Activate for matplotlib 2.0!
         # Show mask:
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
@@ -1042,7 +1042,7 @@ class VectorData(FieldData):
                     extent=(0, dim_uv[1], 0, dim_uv[0]))
         # Change background color:
         if bgcolor is not None:
-            axis.set_facecolor(bgcolor)
+            pass#axis.set_facecolor(bgcolor)  # TODO: Activate for matplotlib 2.0!
         # Show mask:
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel

@@ -106,8 +106,8 @@ class Kernel(object):
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
         uu, vv = np.meshgrid(u, v)
         # TODO: u, v are coordinates, rename self.u/v to self.kern_u/v!
-        self.u = np.empty(self.dim_kern, dtype=dtype)
-        self.v = np.empty(self.dim_kern, dtype=dtype)
+        self.u = np.empty(self.dim_kern, dtype=dtype)  # TODO: Is this necessary?
+        self.v = np.empty(self.dim_kern, dtype=dtype)  # TODO: Move to _get_elementary_phase?
         self.u[...] = coeff * self._get_elementary_phase(geometry, uu, vv, a)
         # TODO: The minus sign belongs into the phasemapper (debatable)!
         self.v[...] = coeff * -self._get_elementary_phase(geometry, vv, uu, a)

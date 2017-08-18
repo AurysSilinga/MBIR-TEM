@@ -18,6 +18,10 @@ from pyramid.ramp import Ramp
 __all__ = ['ForwardModel', 'DistributedForwardModel']
 
 
+# TODO: Ramp should be a forward model itself! Instead of hookpoints, each ForwardModel should
+# TODO: keep track of start and end in vector x (defaults: 0 and -1)!
+# TODO: Write CombinedForwardModel class!
+
 class ForwardModel(object):
     """Class for mapping 3D magnetic distributions to 2D phase maps.
 

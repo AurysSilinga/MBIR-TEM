@@ -117,7 +117,7 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
         phasemap += Ramp.create_ramp(phasemap.a, phasemap.dim_uv, (offset, ramp_u, ramp_v))
         data.phasemaps[i] = phasemap
     # Add noise if necessary:
-    if noise != 0:
+    if noise != 0:  # TODO: write function to add noise after APERTURE!! (ask Florian again)
         for i, phasemap in enumerate(data.phasemaps):
             phasemap.phase += np.random.normal(0, noise, phasemap.dim_uv)
             data.phasemaps[i] = phasemap

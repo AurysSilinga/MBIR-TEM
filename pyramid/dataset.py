@@ -140,7 +140,7 @@ class DataSet(object):
             'Dimension has to be a tuple of length 3!'
         self.a = a
         self.dim = dim
-        self.b_0 = b_0
+        self.b_0 = b_0  # TODO: Not very general!!! get rid off!
         self.mask = mask
         self.Se_inv = Se_inv
         self._phasemaps = []
@@ -169,6 +169,8 @@ class DataSet(object):
         # Create lookup key:
         # TODO: Think again if phasemappers should be given as attribute (seems to be faulty
         # TODO: currently... Also not very expensive, so keep outside?
+        # TODO: Streamline DataSet, only container, not so much work inside
+        # TODO: Generalise for arbitrary sets of phasemaps, independent of magnetic/charge/ramp!
         if phasemapper is not None:
             key = dim_uv  # Create standard phasemapper, dim_uv is enough for identification!
         else:
