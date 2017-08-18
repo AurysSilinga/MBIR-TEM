@@ -462,7 +462,7 @@ class PhaseMapperCharge(PhaseMapper):
         return PhaseMap(elecdata.a, self._convolve())
 
     def _convolve(self):
-        # Fourier transform the projected charge distribution:
+        # Fourier transform of the projected charge distribution:
         self.c_fft = fft.rfftn(self.c)
         # Convolve the charge distribution with the kernel in Fourier space:
         self.phase_fft = self.c_fft * self.kernelcharge.kc_fft
