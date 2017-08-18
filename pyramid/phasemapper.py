@@ -422,15 +422,15 @@ class PhaseMapperCharge(PhaseMapper):
     kernelcharge : :class:`~pyramid.KernelCharge`
         Convolution kernel, representing the phase contribution of one single charge pixel.
     m: int
-        Size of the image space and input space.
+        Size of the image space.
+    n: int
+        Size of the input space.
     c: :class:`~numpy.ndarray` (N=3)
         The charge distribution
     c_fft : :class:`~numpy.ndarray` (N=3)
         The real FFT of the charge distribution.
     phase_fft: :class:`~numpy.ndarray` (N=3)
         The real FFT of the phase from the given charge distribution c.
-    phase_adj: :class:`~numpy.ndarray` (N=3)
-        The adjoint of the phase from the given charge distribution c.
 
     """
     _log = logging.getLogger(__name__ + '.PhaseMapperCharge')
@@ -439,7 +439,7 @@ class PhaseMapperCharge(PhaseMapper):
         self._log.debug('Calling __init__')
         self.kernelcharge = kernelcharge
         self.m = np.prod(kernelcharge.dim_uv)
-        # self.n = 2 * self.m
+        self.n = self.m
         self.c = np.zeros(kernelcharge.dim_pad, dtype=kernelcharge.kc.dtype)
         self.phase_adj = np.zeros(kernelcharge.dim_pad, dtype=kernelcharge.kc.dtype)
         self._log.debug('Created ' + str(self))
@@ -462,9 +462,9 @@ class PhaseMapperCharge(PhaseMapper):
         return PhaseMap(elecdata.a, self._convolve())
 
     def _convolve(self):
-        # Fourier transform the projected magnetisation:
+        # Fourier transform the projected charge distribution:
         self.c_fft = fft.rfftn(self.c)
-        # Convolve the magnetization with the kernel in Fourier space:
+        # Convolve the charge distribution with the kernel in Fourier space:
         self.phase_fft = self.c_fft * self.kernelcharge.kc_fft
         # Return the result:
         return fft.irfftn(self.phase_fft)[self.kernelcharge.slice_phase]
@@ -483,9 +483,9 @@ class PhaseMapperCharge(PhaseMapper):
             Product of the Jacobi matrix (which is not explicitly calculated) with the vector.
 
         """
-        assert len(vector) == self.m, \
-            'vector size not compatible! scalar: {}, size: {}'.format(len(vector), self.m)
-        self.c[self.kernelcharge.slice_c] = np.reshape(vector, (1,) + self.kernelcharge.dim_uv)
+        assert len(vector) == self.n, \
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.n)
+        self.c[self.kernelcharge.slice_c] = np.reshape(vector, self.kernelcharge.dim_uv)
         return np.ravel(self._convolve())
 
     def jac_T_dot(self, vector):
@@ -501,11 +501,11 @@ class PhaseMapperCharge(PhaseMapper):
         -------
         result : :class:`~numpy.ndarray` (N=1)
             Product of the transposed Jacobi matrix (which is not explicitly calculated) with
-            the scalar, which has ``N**2`` entries like a 2D charge projection.
+            the vector, which has ``N**2`` entries like a 2D charge projection.
 
         """
         assert len(vector) == self.m, \
-            'vector size not compatible! scalar: {}, size: {}'.format(len(vector), self.m)
+            'vector size not compatible! vector: {}, size: {}'.format(len(vector), self.m)
         self.phase_adj[self.kernelcharge.slice_phase] = vector.reshape(self.kernelcharge.dim_uv)
         phase_adj_fft = fft.irfft2_adj(self.phase_adj)
         kc_adj_fft = phase_adj_fft * np.conj(self.kernelcharge.kc_fft)

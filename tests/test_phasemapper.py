@@ -202,8 +202,8 @@ class TestCasePhaseMapperCharge(unittest.TestCase):
         phase_jac = self.mapper.jac_dot(charge_proj_scalar).reshape(self.mapper.kernelcharge.dim_uv)
         assert_allclose(phase, phase_jac, atol=1E-7,
                         err_msg='Inconsistency between __call__() and jac_dot()!')
-        m = self.mapper.m
-        jac = np.array([self.mapper.jac_dot(np.eye(m)[:, i]) for i in range(m)]).T
+        n = self.mapper.n
+        jac = np.array([self.mapper.jac_dot(np.eye(n)[:, i]) for i in range(n)]).T
         jac_charge_ref = np.load(os.path.join(self.path, 'jac_charge.npy'))
         assert_allclose(jac, jac_charge_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in the the jacobi matrix!')
