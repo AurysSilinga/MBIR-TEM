@@ -87,7 +87,6 @@ class Kernel(object):
         self.geometry = geometry
         # Set up FFT:
         if fft.HAVE_FFTW:
-
             self.dim_pad = tuple(2 * np.array(dim_uv))  # is at least even (not nec. power of 2)
         else:
             self.dim_pad = tuple(2 ** np.ceil(np.log2(2 * np.array(dim_uv))).astype(int))  # pow(2)
