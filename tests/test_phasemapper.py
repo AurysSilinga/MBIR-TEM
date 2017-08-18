@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from pyramid.kernel import Kernel
+from pyramid.kernel import Kernel, KernelCharge
 from pyramid.phasemapper import PhaseMapperRDFC, PhaseMapperFDFC, PhaseMapperMIP, PhaseMapperCharge
 from pyramid import load_phasemap, load_vectordata, load_scalardata
 
@@ -181,23 +181,36 @@ class TestCasePhaseMapperCharge(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_phasemapper')
         self.charge_proj = load_scalardata(os.path.join(self.path, 'charge_proj.hdf5'))
-        self.mapper = PhaseMapperCharge(self.charge_proj.a, self.charge_proj.dim[1:],
-                                        electrode_vec=[8, 8], v_acc=300000)
+        self.mapper = PhaseMapperCharge(KernelCharge(self.charge_proj.a, self.charge_proj.dim[1:],
+                                        electrode_vec=(4, 4)))
 
     def tearDown(self):
         self.path = None
         self.charge_proj = None
         self.mapper = None
 
-    def test_call(self):
-        charge_phase_ref = load_phasemap(os.path.join(self.path, 'charge_phase_ref.hdf5'))
+    def test_PhaseMapperCharge_call(self):
+        phase_ref = load_phasemap(os.path.join(self.path, 'charge_phase_ref.hdf5'))
         phasemap = self.mapper(self.charge_proj)
-        assert_allclose(phasemap.phase, charge_phase_ref.phase, atol=1E-7,
+        assert_allclose(phasemap.phase, phase_ref.phase, atol=1E-7,
                         err_msg='Unexpected behavior in __call__()!')
-        assert_allclose(phasemap.a, charge_phase_ref.a, err_msg='Unexpected behavior in __call__()!')
+        assert_allclose(phasemap.a, phase_ref.a, err_msg='Unexpected behavior in __call__()!')
 
-    def test_jac_dot(self):
-        self.assertRaises(NotImplementedError, self.mapper.jac_dot, None)
+    def test_PhaseMapperCharge_jac_dot(self):
+        phase = self.mapper(self.charge_proj).phase
+        charge_proj_scalar = self.charge_proj.field[:2, ...].ravel()
+        phase_jac = self.mapper.jac_dot(charge_proj_scalar).reshape(self.mapper.kernelcharge.dim_uv)
+        assert_allclose(phase, phase_jac, atol=1E-7,
+                        err_msg='Inconsistency between __call__() and jac_dot()!')
+        n = self.mapper.n
+        jac = np.array([self.mapper.jac_dot(np.eye(n)[:, i]) for i in range(n)]).T
+        jac_charge_ref = np.load(os.path.join(self.path, 'jac_charge.npy'))
+        assert_allclose(jac, jac_charge_ref, atol=1E-7,
+                        err_msg='Unexpected behaviour in the the jacobi matrix!')
 
-    def test_jac_T_dot(self):
-        self.assertRaises(NotImplementedError, self.mapper.jac_T_dot, None)
+    def test_PhaseMapperCharge_jac_T_dot(self):
+        m = self.mapper.m
+        jac_T = np.array([self.mapper.jac_T_dot(np.eye(m)[:, i]) for i in range(m)]).T
+        jac_T_ref = np.load(os.path.join(self.path, 'jac_charge.npy')).T
+        assert_allclose(jac_T, jac_T_ref, atol=1E-7,
+                        err_msg='Unexpected behaviour in the the transposed jacobi matrix!')
