@@ -189,6 +189,7 @@ class DataSet(object):
         self._phasemappers.append(phasemapper)
 
     def append(self, phasemap, projector, phasemapper=None):
+        # TODO: Maybe simply setting them as lists would be better overall, this is fiddely...
         """Appends a data pair of phase map and projection infos to the data collection.`
 
         Parameters

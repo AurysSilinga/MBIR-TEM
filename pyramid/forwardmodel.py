@@ -215,8 +215,9 @@ class DistributedForwardModel(ForwardModel):
             start = proc_id * img_per_proc
             stop = np.min(((proc_id + 1) * img_per_proc, self.data_set.count))
             self.proc_hook_points.append(hp[stop])
-            sub_data.phasemaps = self.data_set.phasemaps[start:stop]
-            sub_data.projectors = self.data_set.projectors[start:stop]
+            phasemaps = self.data_set.phasemaps[start:stop]
+            projectors = self.data_set.projectors[start:stop]
+            sub_data.append(phasemaps, projectors)
             # Create SubForwardModel:
             sub_fwd_model = ForwardModel(sub_data, ramp_order=None)  # ramps handled in master!
             # Create communication pipe:
