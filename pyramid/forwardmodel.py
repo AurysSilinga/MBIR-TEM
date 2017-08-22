@@ -12,7 +12,7 @@ import sys
 import numpy as np
 
 from pyramid.dataset import DataSet
-from pyramid.fielddata import VectorData
+from pyramid.fielddata import VectorData, ScalarData
 from pyramid.ramp import Ramp
 
 __all__ = ['ForwardModel', 'DistributedForwardModel']
@@ -161,6 +161,159 @@ class ForwardModel(object):
             proj_T_result += projector.jac_T_dot(mapper.jac_T_dot(sub_vec))
         self.magdata.field_vec = proj_T_result
         result = self.magdata.get_vector(self.data_set.mask)
+        ramp_params = self.ramp.jac_T_dot(vector)  # calculate ramp_params separately!
+        return np.concatenate((result, ramp_params))
+
+    def finalize(self):
+        """'Finalize the processes and let them join the master process (NOT USED HERE!).
+
+        Returns
+        -------
+        None
+
+        """
+        pass
+
+
+class ForwardModelCharge(object):
+    """Class for mapping 3D charge distributions to 2D phase maps.
+
+    Represents a strategy for the mapping of a 3D magnetic distribution to two-dimensional
+    phase maps. A :class:`~.DataSet` object is given which is used as input for the model
+    (projectors, phasemappers, etc.). A `ramp_order` can be specified to add polynomial ramps
+    to the constructed phase maps (which can also be reconstructed!). A :class:`~.Ramp` class
+    object will be constructed accordingly, which also holds all info about the ramps after a
+    reconstruction.
+
+    Attributes
+    ----------
+    data_set: :class:`~dataset.DataSet`
+        :class:`~dataset.DataSet` object, which stores all required information calculation.
+    ramp_order : int or None (default)
+        Polynomial order of the additional phase ramp which will be added to the phase maps.
+        All ramp parameters have to be at the end of the input vector and are split automatically.
+        Default is None (no ramps are added).
+    y : :class:`~numpy.ndarray` (N=1)
+        Vector which lists all pixel values of all phase maps one after another.
+    m: int
+        Size of the image space. Number of pixels of the 2-dimensional projected grid.
+    n: int
+        Size of the input space. Number of voxels of the 3-dimensional grid.
+    Se_inv : :class:`~numpy.ndarray` (N=2), optional
+        Inverted covariance matrix of the measurement errors. The matrix has size `m x m` with m
+        being the length of the targetvector y (vectorized phase map information).
+
+    """
+
+    _log = logging.getLogger(__name__ + '.ForwardModel')
+
+    def __init__(self, data_set, ramp_order=None):
+        self._log.debug('Calling __init__')
+        self.data_set = data_set
+        self.ramp_order = ramp_order
+        # Extract information from data_set:
+        self.phasemappers = self.data_set.phasemappers
+        self.y = self.data_set.phase_vec
+        self.n = self.data_set.n
+        self.m = self.data_set.m
+        self.shape = (self.m, self.n)
+        self.hook_points = self.data_set.hook_points
+        self.Se_inv = self.data_set.Se_inv
+        # Create ramp and change n accordingly:
+        self.ramp = Ramp(self.data_set, self.ramp_order)
+        self.n += self.ramp.n  # ramp.n is 0 if ramp_order is None
+        # Create empty ElecData object:
+        self.elecdata = ScalarData(self.data_set.a, np.zeros((3,) + self.data_set.dim))
+        self._log.debug('Creating ' + str(self))
+
+    def __repr__(self):
+        self._log.debug('Calling __repr__')
+        return '%s(data_set=%r)' % (self.__class__, self.data_set)
+
+    def __str__(self):
+        self._log.debug('Calling __str__')
+        return 'ForwardModel(data_set=%s)' % self.data_set
+
+    def __call__(self, x):
+        # Extract ramp parameters if necessary (x will be shortened!):
+        x = self.ramp.extract_ramp_params(x)
+        # Reset elecdata and fill with vector:
+        self.elecdata.field[...] = 0
+        self.elecdata.set_vector(x, self.data_set.mask)
+        # Simulate all phase maps and create result vector:
+        result = np.zeros(self.m)
+        hp = self.hook_points
+        for i, projector in enumerate(self.data_set.projectors):
+            mapper = self.phasemappers[i]
+            phasemap = mapper(projector(self.elecdata))
+            phasemap += self.ramp(i)  # add ramp!
+            result[hp[i]:hp[i + 1]] = phasemap.phase_vec
+        return np.reshape(result, -1)
+
+    def jac_dot(self, x, vector):
+        """Calculate the product of the Jacobi matrix with a given `vector`.
+
+        Parameters
+        ----------
+        x : :class:`~numpy.ndarray` (N=1)
+            Evaluation point of the jacobi-matrix. The Jacobi matrix is constant for a linear
+            problem, thus `x` can be set to None (it is not used int the computation). It is
+            implemented for the case that in the future nonlinear problems have to be solved.
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vectorized form of the 3D charge distribution. First the `x`, then the `y` and
+            lastly the `z` components are listed. Ramp parameters are also added at the end if
+            necessary.
+
+        Returns
+        -------
+        result_vector : :class:`~numpy.ndarray` (N=1)
+            Product of the Jacobi matrix (which is not explicitely calculated) with the input
+            `vector`.
+
+        """
+        # Extract ramp parameters if necessary (vector will be shortened!):
+        vector = self.ramp.extract_ramp_params(vector)
+        # Reset elecdata and fill with vector:
+        self.elecdata.field[...] = 0
+        self.elecdata.set_vector(vector, self.data_set.mask)
+        # Simulate all phase maps and create result vector:
+        result = np.zeros(self.m)
+        hp = self.hook_points
+        for i, projector in enumerate(self.data_set.projectors):
+            c_vec = self.elecdata.field_vec
+            mapper = self.phasemappers[i]
+            res = mapper.jac_dot(projector.jac_dot(c_vec))
+            res += self.ramp.jac_dot(i)  # add ramp!
+            result[hp[i]:hp[i + 1]] = res
+        return result
+
+    def jac_T_dot(self, x, vector):
+        """'Calculate the product of the transposed Jacobi matrix with a given `vector`.
+
+        Parameters
+        ----------
+        x : :class:`~numpy.ndarray` (N=1)
+            Evaluation point of the jacobi-matrix. The jacobi matrix is constant for a linear
+            problem, thus `x` can be set to None (it is not used int the computation). Is used
+            for the case that in the future nonlinear problems have to be solved.
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vectorized form of all 2D phase maps one after another in one vector.
+
+        Returns
+        -------
+        result_vector : :class:`~numpy.ndarray` (N=1)
+            Product of the transposed Jacobi matrix (which is not explicitly calculated) with
+            the input `vector`. If necessary, transposed ramp parameters are concatenated.
+
+        """
+        proj_T_result = np.zeros(3 * np.prod(self.data_set.dim))
+        hp = self.hook_points
+        for i, projector in enumerate(self.data_set.projectors):
+            sub_vec = vector[hp[i]:hp[i + 1]]
+            mapper = self.phasemappers[i]
+            proj_T_result += projector.jac_T_dot(mapper.jac_T_dot(sub_vec))
+        self.elecdata.field_vec = proj_T_result
+        result = self.elecdata.get_vector(self.data_set.mask)
         ramp_params = self.ramp.jac_T_dot(vector)  # calculate ramp_params separately!
         return np.concatenate((result, ramp_params))
 
