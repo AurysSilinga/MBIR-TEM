@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from pyramid.dataset import DataSet
+from pyramid.dataset import DataSet, DataSetCharge
 from pyramid.forwardmodel import ForwardModel, ForwardModelCharge
 from pyramid.projector import SimpleProjector
 from pyramid import load_phasemap
@@ -74,9 +74,10 @@ class TestCaseForwardModelCharge(unittest.TestCase):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_forwardmodel')
         self.a = 10.
         self.dim = (4, 5, 6)
+        self.electrode_vec =(1E6, 1E6)
         self.mask = np.zeros(self.dim, dtype=bool)
         self.mask[1:-1, 1:-1, 1:-1] = True
-        self.data = DataSet(self.a, self.dim, mask=self.mask)
+        self.data = DataSetCharge(self.a, self.dim, self.electrode_vec, mask=self.mask)
         self.projector = SimpleProjector(self.dim)
         self.phasemap = load_phasemap(os.path.join(self.path, 'charge_phase_ref.hdf5'))
         self.data.append(self.phasemap, self.projector)

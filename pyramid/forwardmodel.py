@@ -3,7 +3,7 @@
 # Author: J. Caron
 #
 """This module provides the :class:`~.ForwardModel` class which represents a strategy to map a
-threedimensional magnetization distribution onto a two-dimensional phase map."""
+three dimensional magnetization distribution onto a two-dimensional phase map."""
 
 import logging
 import multiprocessing as mp
@@ -11,7 +11,7 @@ import sys
 
 import numpy as np
 
-from pyramid.dataset import DataSet
+from pyramid.dataset import DataSet, DataSetCharge
 from pyramid.fielddata import VectorData, ScalarData
 from pyramid.ramp import Ramp
 
@@ -205,7 +205,7 @@ class ForwardModelCharge(object):
 
     """
 
-    _log = logging.getLogger(__name__ + '.ForwardModel')
+    _log = logging.getLogger(__name__ + '.ForwardModelCharge')
 
     def __init__(self, data_set, ramp_order=None):
         self._log.debug('Calling __init__')
