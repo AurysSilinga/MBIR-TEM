@@ -223,7 +223,7 @@ class ForwardModelCharge(object):
         self.ramp = Ramp(self.data_set, self.ramp_order)
         self.n += self.ramp.n  # ramp.n is 0 if ramp_order is None
         # Create empty ElecData object:
-        self.elecdata = ScalarData(self.data_set.a, np.zeros((3,) + self.data_set.dim))
+        self.elecdata = ScalarData(self.data_set.a, np.zeros(self.data_set.dim))
         self._log.debug('Creating ' + str(self))
 
     def __repr__(self):
@@ -306,7 +306,7 @@ class ForwardModelCharge(object):
             the input `vector`. If necessary, transposed ramp parameters are concatenated.
 
         """
-        proj_T_result = np.zeros(3 * np.prod(self.data_set.dim))
+        proj_T_result = np.zeros(np.prod(self.data_set.dim))
         hp = self.hook_points
         for i, projector in enumerate(self.data_set.projectors):
             sub_vec = vector[hp[i]:hp[i + 1]]
