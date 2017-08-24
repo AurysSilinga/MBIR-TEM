@@ -178,7 +178,7 @@ class ForwardModel(object):
 class ForwardModelCharge(object):
     """Class for mapping 3D charge distributions to 2D phase maps.
 
-    Represents a strategy for the mapping of a 3D magnetic distribution to two-dimensional
+    Represents a strategy for the mapping of a 3D charge distribution to two-dimensional
     phase maps. A :class:`~.DataSet` object is given which is used as input for the model
     (projectors, phasemappers, etc.). A `ramp_order` can be specified to add polynomial ramps
     to the constructed phase maps (which can also be reconstructed!). A :class:`~.Ramp` class
@@ -201,7 +201,7 @@ class ForwardModelCharge(object):
         Size of the input space. Number of voxels of the 3-dimensional grid.
     Se_inv : :class:`~numpy.ndarray` (N=2), optional
         Inverted covariance matrix of the measurement errors. The matrix has size `m x m` with m
-        being the length of the targetvector y (vectorized phase map information).
+        being the length of the target vector y (vectorized phase map information).
 
     """
 
@@ -267,7 +267,7 @@ class ForwardModelCharge(object):
         Returns
         -------
         result_vector : :class:`~numpy.ndarray` (N=1)
-            Product of the Jacobi matrix (which is not explicitely calculated) with the input
+            Product of the Jacobi matrix (which is not explicitly calculated) with the input
             `vector`.
 
         """
@@ -419,7 +419,7 @@ class DistributedForwardModel(ForwardModel):
         Returns
         -------
         result_vector : :class:`~numpy.ndarray` (N=1)
-            Product of the Jacobi matrix (which is not explicitely calculated) with the input
+            Product of the Jacobi matrix (which is not explicitly calculated) with the input
             `vector`.
 
         """

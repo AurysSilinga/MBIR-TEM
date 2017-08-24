@@ -100,7 +100,7 @@ class TestCaseDataSetCharge(unittest.TestCase):
         self.mask[1:-1, 1:-1, 1:-1] = True
         self.data = DataSetCharge(self.a, self.dim, self.electrode_vec, mask=self.mask)
         self.projector = SimpleProjector(self.dim)
-        self.phasemap = PhaseMap(self.a, np.ones(self.dim[1:3]))
+        self.phasemap = PhaseMap(self.a, np.ones(self.dim[1:]))
 
     def tearDown(self):
         self.path = None
