@@ -4,23 +4,17 @@
 #
 """This module provides classes for storing vector and scalar 3D-field."""
 
-import logging
-
-import os
-
-import tempfile
-
 import abc
+import logging
+import os
+import tempfile
 from numbers import Number
 
 import numpy as np
-
+from PIL import Image
+from matplotlib import patheffects
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
-from matplotlib import patheffects
-
-from PIL import Image
-
 from scipy.ndimage.interpolation import zoom
 
 from . import colors
@@ -93,17 +87,6 @@ class FieldData(object, metaclass=abc.ABCMeta):
             return np.sqrt(np.sum(self.field ** 2, axis=0))
         else:
             return self.field
-
-    @property
-    def field_vec(self):
-        """Vector containing the vector field distribution."""
-        return np.reshape(self.field, -1)
-
-    @field_vec.setter
-    def field_vec(self, mag_vec):
-        assert np.size(mag_vec) == np.prod(self.shape), \
-            'Vector has to match field shape! {} {}'.format(mag_vec.shape, np.prod(self.shape))
-        self.field = mag_vec.reshape((3,) + self.dim)
 
     def __init__(self, a, field):
         self._log.debug('Calling __init__')
@@ -1323,6 +1306,17 @@ class VectorData(FieldData):
         kwargs.setdefault('hideaxes', True)
         return plottools.format_axis(axis, hideaxes=True, scalebar=False)
 
+    @property
+    def field_vec(self):
+        """Vector containing the vector field distribution."""
+        return np.reshape(self.field, -1)
+
+    @field_vec.setter
+    def field_vec(self, mag_vec):
+        assert np.size(mag_vec) == np.prod(self.shape), \
+            'Vector has to match field shape! {} {}'.format(mag_vec.shape, np.prod(self.shape))
+        self.field = mag_vec.reshape((3,) + self.dim)
+
 
 class ScalarData(FieldData):
     """Class for storing scalar field data.
@@ -1518,5 +1512,16 @@ class ScalarData(FieldData):
         """
         from .file_io.io_scalardata import save_scalardata
         save_scalardata(self, filename, **kwargs)
+
+    @property
+    def field_vec(self):
+        """Vector containing the scalar field distribution."""
+        return np.reshape(self.field, -1)
+
+    @field_vec.setter
+    def field_vec(self, c_vec):
+        assert np.size(c_vec) == np.prod(self.shape), \
+            'Vector has to match field shape! {} {}'.format(c_vec.shape, np.prod(self.shape))
+        self.field = c_vec.reshape(self.dim)
 
 # TODO: Histogram plots for magnetisation (see thesis!)
