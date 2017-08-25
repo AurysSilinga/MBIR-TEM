@@ -98,9 +98,9 @@ class TestCaseForwardModelCharge(unittest.TestCase):
         n = self.fwd_model.n
         result = self.fwd_model(np.ones(n))
         hp = self.data.hook_points
-        assert_allclose(result[hp[0]:hp[1]], self.phasemap.phase.ravel(), atol=1E-7,
+        assert_allclose(result[hp[0]:hp[1]], self.phasemap.phase.ravel(), atol=1E-6,
                         err_msg='Unexpected behavior in __call__()!')
-        assert_allclose(result[hp[1]:hp[2]], self.phasemap.phase.ravel(), atol=1E-7,
+        assert_allclose(result[hp[1]:hp[2]], self.phasemap.phase.ravel(), atol=1E-6,
                         err_msg='Unexpected behavior in __call__()!')
 
     def test_jac_dot(self):
@@ -122,5 +122,5 @@ class TestCaseForwardModelCharge(unittest.TestCase):
         m = self.fwd_model.m
         jac_T = np.array([self.fwd_model.jac_T_dot(None, np.eye(m)[:, i]) for i in range(m)]).T
         jac_T_ref = np.load(os.path.join(self.path, 'jac_charge.npy')).T
-        assert_allclose(jac_T, jac_T_ref, atol=1E-6,
+        assert_allclose(jac_T, jac_T_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in the the transposed jacobi matrix!')
