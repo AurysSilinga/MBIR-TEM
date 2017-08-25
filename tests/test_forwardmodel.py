@@ -122,5 +122,5 @@ class TestCaseForwardModelCharge(unittest.TestCase):
         m = self.fwd_model.m
         jac_T = np.array([self.fwd_model.jac_T_dot(None, np.eye(m)[:, i]) for i in range(m)]).T
         jac_T_ref = np.load(os.path.join(self.path, 'jac_charge.npy')).T
-        assert_allclose(jac_T, jac_T_ref, atol=1E-7,
+        assert_allclose(jac_T, jac_T_ref, atol=1E-6,
                         err_msg='Unexpected behaviour in the the transposed jacobi matrix!')
