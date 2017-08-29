@@ -56,7 +56,7 @@ class TestCaseForwardModel(unittest.TestCase):
         jac = np.array([self.fwd_model.jac_dot(None, np.eye(n)[:, i]) for i in range(n)]).T
         hp = self.data.hook_points
         assert_allclose(jac[hp[0]:hp[1], :], jac[hp[1]:hp[2], :], atol=1E-7,
-                        err_msg='Unexpected behaviour in the the jacobi matrix!')
+                        err_msg='Unexpected behaviour in the jacobi matrix!')
         jac_ref = np.load(os.path.join(self.path, 'jac.npy'))
         assert_allclose(jac, jac_ref, atol=1E-7,
                         err_msg='Unexpected behaviour in the the jacobi matrix!')

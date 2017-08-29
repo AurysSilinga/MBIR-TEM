@@ -2,8 +2,8 @@
 # Copyright 2014 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
-"""This module provides the :class:`~.ForwardModel` class which represents a strategy to map a
-three dimensional magnetization distribution onto a two-dimensional phase map."""
+"""This module provides the :class:`~.ForwardModel` class and '~.ForwardModelCharge' class which represent a strategy to
+map a three dimensional magnetization and charge distribution onto a two-dimensional phase map."""
 
 import logging
 import multiprocessing as mp
@@ -15,7 +15,7 @@ from pyramid.dataset import DataSet, DataSetCharge
 from pyramid.fielddata import VectorData, ScalarData
 from pyramid.ramp import Ramp
 
-__all__ = ['ForwardModel', 'DistributedForwardModel']
+__all__ = ['ForwardModel', 'ForwardModelCharge', 'DistributedForwardModel']
 
 
 # TODO: Ramp should be a forward model itself! Instead of hookpoints, each ForwardModel should
@@ -179,7 +179,7 @@ class ForwardModelCharge(object):
     """Class for mapping 3D charge distributions to 2D phase maps.
 
     Represents a strategy for the mapping of a 3D charge distribution to two-dimensional
-    phase maps. A :class:`~.DataSet` object is given which is used as input for the model
+    phase maps. A :class:`~.DataSetCharge` object is given which is used as input for the model
     (projectors, phasemappers, etc.). A `ramp_order` can be specified to add polynomial ramps
     to the constructed phase maps (which can also be reconstructed!). A :class:`~.Ramp` class
     object will be constructed accordingly, which also holds all info about the ramps after a
@@ -187,8 +187,8 @@ class ForwardModelCharge(object):
 
     Attributes
     ----------
-    data_set: :class:`~dataset.DataSet`
-        :class:`~dataset.DataSet` object, which stores all required information calculation.
+    data_set: :class:`~dataset.DataSetCharge`
+        :class:`~dataset.DataSetCharge` object, which stores all required information calculation.
     ramp_order : int or None (default)
         Polynomial order of the additional phase ramp which will be added to the phase maps.
         All ramp parameters have to be at the end of the input vector and are split automatically.
