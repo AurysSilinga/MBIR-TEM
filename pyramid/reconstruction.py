@@ -107,7 +107,7 @@ def optimize_linear_charge(costfunction, charge_0=None, ramp_0=None, max_iter=No
     """
     import jutil.cg as jcg
     from jutil.taketime import TakeTime
-    _log.debug('Calling optimize_linear')
+    _log.debug('Calling optimize_linear_charge')
     _log.info('Cost before optimization: {:.3e}'.format(costfunction(np.zeros(costfunction.n))))
     data_set = costfunction.fwd_model.data_set
     # Get starting distribution vector x_0:
