@@ -3,7 +3,7 @@
 # Author: J. Caron
 #
 """This module provides the :class:`~.Costfunction` class which represents a strategy to calculate
-the so called `cost` of a threedimensional magnetization distribution."""
+the so called `cost` of a three dimensional magnetization distribution."""
 
 import logging
 
@@ -20,7 +20,7 @@ class Costfunction(object):
     Represents a strategy for the calculation of the `cost` of a 3D magnetic distribution in
     relation to two-dimensional phase maps. The `cost` is a measure for the difference of the
     simulated phase maps from the magnetic distributions to the given set of phase maps and from
-    a priori knowledge represented by a :class:`~.Regularisator` object. Furthermore this class
+    a prior knowledge represented by a :class:`~.Regularisator` object. Furthermore this class
     provides convenient methods for the calculation of the derivative :func:`~.jac` or the product
     with the Hessian matrix :func:`~.hess_dot` of the costfunction, which can be used by
     optimizers. All required data should be given in a :class:`~DataSet` object.
@@ -41,7 +41,7 @@ class Costfunction(object):
         Size of the input space.
     Se_inv : :class:`~numpy.ndarray` (N=2), optional
         Inverted covariance matrix of the measurement errors. The matrix has size `m x m` with m
-        being the length of the targetvector y.
+        being the length of the target vector y.
 
     """
 

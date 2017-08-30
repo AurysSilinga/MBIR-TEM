@@ -16,15 +16,15 @@ import logging
 
 import numpy as np
 
-from pyramid.fielddata import VectorData
+from pyramid.fielddata import VectorData, ScalarData
 
-__all__ = ['optimize_linear', 'optimize_nonlin', 'optimize_splitbregman']
+__all__ = ['optimize_linear', 'optimize_linear_charge', 'optimize_nonlin', 'optimize_splitbregman']
 _log = logging.getLogger(__name__)
 
 
 def optimize_linear(costfunction, mag_0=None, ramp_0=None, max_iter=None, verbose=False):
     """Reconstruct a three-dimensional magnetic distribution from given phase maps via the
-    conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
+    conjugate gradient optimization method :func:`~.scipy.sparse.linalg.cg`.
     Blazingly fast for l2-based cost functions.
 
     Parameters
@@ -35,11 +35,11 @@ def optimize_linear(costfunction, mag_0=None, ramp_0=None, max_iter=None, verbos
     mag_0: :class:`~.VectorData`
         The starting magnetisation distribution used for the reconstruction. A zero vector will be
         used if no VectorData object is specified.
-    mag_0: :class:`~.Ramp`
+    ramp_0: :class:`~.Ramp`
         The starting ramp for the reconstruction. A zero vector will be
         used if no Ramp object is specified.
     max_iter : int, optional
-        The maximum number of iterations for the opimization.
+        The maximum number of iterations for the optimization.
     verbose: bool, optional
         If set to True, information like a progressbar is displayed during reconstruction.
         The default is False.
@@ -78,8 +78,8 @@ def optimize_linear(costfunction, mag_0=None, ramp_0=None, max_iter=None, verbos
 
 
 def optimize_linear_charge(costfunction, charge_0=None, ramp_0=None, max_iter=None, verbose=False):
-    """Reconstruct a three-dimensional magnetic distribution from given phase maps via the
-    conjugate gradient optimizaion method :func:`~.scipy.sparse.linalg.cg`.
+    """Reconstruct a three-dimensional charge distribution from given phase maps via the
+    conjugate gradient optimization method :func:`~.scipy.sparse.linalg.cg`.
     Blazingly fast for l2-based cost functions.
 
     Parameters
@@ -87,34 +87,34 @@ def optimize_linear_charge(costfunction, charge_0=None, ramp_0=None, max_iter=No
     costfunction : :class:`~.Costfunction`
         A :class:`~.Costfunction` object which implements a specified forward model and
         regularisator which is minimized in the optimization process.
-    mag_0: :class:`~.VectorData`
+    charge_0: :class:`~.VectorData`
         The starting magnetisation distribution used for the reconstruction. A zero vector will be
         used if no VectorData object is specified.
-    mag_0: :class:`~.Ramp`
+    ramp_0: :class:`~.Ramp`
         The starting ramp for the reconstruction. A zero vector will be
         used if no Ramp object is specified.
     max_iter : int, optional
-        The maximum number of iterations for the opimization.
+        The maximum number of iterations for the optimization.
     verbose: bool, optional
         If set to True, information like a progressbar is displayed during reconstruction.
         The default is False.
 
     Returns
     -------
-    magdata : :class:`~pyramid.fielddata.VectorData`
-        The reconstructed magnetic distribution as a :class:`~.VectorData` object.
+    elecdata : :class:`~pyramid.fielddata.ScalarData`
+        The reconstructed charge distribution as a :class:`~.ScalarData` object.
 
     """
     import jutil.cg as jcg
     from jutil.taketime import TakeTime
-    _log.debug('Calling optimize_linear')
+    _log.debug('Calling optimize_linear_charge')
     _log.info('Cost before optimization: {:.3e}'.format(costfunction(np.zeros(costfunction.n))))
     data_set = costfunction.fwd_model.data_set
     # Get starting distribution vector x_0:
     x_0 = np.empty(costfunction.n)
     if charge_0 is not None:
-        costfunction.fwd_model.magdata = charge_0
-    x_0[:data_set.n] = costfunction.fwd_model.magdata.get_vector(mask=data_set.mask)
+        costfunction.fwd_model.elecdata = charge_0
+    x_0[:data_set.n] = costfunction.fwd_model.elecdata.get_vector(mask=data_set.mask)
     if ramp_0 is not None:
         ramp_vec = ramp_0.param_cache.ravel()
     else:
@@ -126,10 +126,10 @@ def optimize_linear_charge(costfunction, charge_0=None, ramp_0=None, max_iter=No
     _log.info('Cost after optimization: {:.3e}'.format(costfunction(x_opt)))
     # Cut ramp parameters if necessary (this also saves the final parameters in the ramp class!):
     x_opt = costfunction.fwd_model.ramp.extract_ramp_params(x_opt)
-    # Create and return fitting VectorData object:
-    mag_opt = VectorData(data_set.a, np.zeros((3,) + data_set.dim))
-    mag_opt.set_vector(x_opt, data_set.mask)
-    return mag_opt
+    # Create and return fitting ScalarData object:
+    charge_opt = ScalarData(data_set.a, np.zeros(data_set.dim))
+    charge_opt.set_vector(x_opt, data_set.mask)
+    return charge_opt
 
 
 def optimize_nonlin(costfunction, first_guess=None):

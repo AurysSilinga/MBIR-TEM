@@ -9,3 +9,5 @@ desktop.ini
 *.egg-info
 
 .DS_Store
+
+.DS
