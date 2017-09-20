@@ -47,7 +47,7 @@ class Costfunction(object):
 
     _log = logging.getLogger(__name__ + '.Costfunction')
 
-    def __init__(self, fwd_model, regularisator=None):
+    def __init__(self, fwd_model, regularisator=None, track_cost_iterations=10):
         self._log.debug('Calling __init__')
         self.fwd_model = fwd_model
         if regularisator is None:
@@ -59,6 +59,10 @@ class Costfunction(object):
         self.n = self.fwd_model.n
         self.m = self.fwd_model.m
         self.Se_inv = self.fwd_model.Se_inv
+        self.chisq_m = []
+        self.chisq_a = []
+        self.track_cost_iterations = track_cost_iterations
+        self.cnt_hess_dot = 0
         self._log.debug('Created ' + str(self))
 
     def __repr__(self):
@@ -72,13 +76,19 @@ class Costfunction(object):
                (self.fwd_model, self.fwd_model, self.regularisator)
 
     def __call__(self, x):
-        delta_y = self.fwd_model(x) - self.y
-        self.chisq_m = delta_y.dot(self.Se_inv.dot(delta_y))
-        self.chisq_a = self.regularisator(x)
-        self.chisq = self.chisq_m + self.chisq_a
+        self.calculate_costs(x)
+        self.chisq = self.chisq_m[-1] + self.chisq_a[-1]
         return self.chisq
 
+    def calculate_costs(self, x):
+        # TODO: Docstring!
+        delta_y = self.fwd_model(x) - self.y
+        self.chisq_m.append(delta_y.dot(self.Se_inv.dot(delta_y)))
+        self.chisq_a.append(self.regularisator(x))
+
+
     def init(self, x):
+        # TODO: Ask Jörn, why this exists!
         """Initialise the costfunction by calculating the different cost terms.
 
         Parameters
@@ -131,10 +141,16 @@ class Costfunction(object):
             Product of the input `vector` with the Hessian matrix of the costfunction.
 
         """
+        # TODO: Tracking better as decorator function? Useful for other things?
+        self.cnt_hess_dot += 1  # TODO: Ask Jörn if this belongs here or in CountingCostFunction!
+        if self.track_cost_iterations > 0 and self.cnt_hess_dot % self.track_cost_iterations == 0:
+            self.calculate_costs(vector)
+            #print(self.cnt_hess_dot, len(self.chisq_a)) # TODO:!!!
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model.jac_dot(x, vector)))
                 + self.regularisator.hess_dot(x, vector))
 
     def hess_diag(self, _):
+        # TODO: needed for preconditioner?
         """ Return the diagonal of the Hessian.
 
         Parameters

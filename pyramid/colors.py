@@ -37,6 +37,7 @@ import abc
 
 from . import plottools
 
+# TODO: categorize colormaps as sequential, divergent, or cyclic!
 
 __all__ = ['Colormap3D', 'ColormapCubehelix', 'ColormapPerception', 'ColormapHLS',
            'ColormapClassic', 'ColormapTransparent', 'cmaps', 'CMAP_CIRCULAR_DEFAULT',

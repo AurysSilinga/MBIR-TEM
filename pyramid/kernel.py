@@ -11,7 +11,7 @@ import numpy as np
 
 from jutil import fft
 
-__all__ = ['Kernel', 'PHI_0']
+__all__ = ['Kernel', 'PHI_0', 'KernelCharge']
 
 PHI_0 = 2067.83  # magnetic flux in T*nm²
 H_BAR = 6.626E-34  # Planck constant in J*s

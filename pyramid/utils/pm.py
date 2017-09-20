@@ -13,6 +13,7 @@ from ..projector import RotTiltProjector, XTiltProjector, YTiltProjector, Simple
 __all__ = ['pm']
 _log = logging.getLogger(__name__)
 
+# TODO: rename magdata to vecdata everywhere!
 
 def pm(magdata, mode='z', b_0=1, mapper='RDFC', **kwargs):
     """Convenience function for fast magnetic phase mapping.

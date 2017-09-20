@@ -21,6 +21,19 @@ __all__ = ['ForwardModel', 'ForwardModelCharge', 'DistributedForwardModel']
 # TODO: Ramp should be a forward model itself! Instead of hookpoints, each ForwardModel should
 # TODO: keep track of start and end in vector x (defaults: 0 and -1)!
 # TODO: Write CombinedForwardModel class!
+# TODO: DataSet should be an argument, but should ONLY contain phasemaps!
+# TODO: Maybe a list of PhaseMaps is even better and no DataSet class is needed?
+# TODO: But what about the convenience functions?
+# TODO: PhaseMaps should contain info about their projection direction!
+# TODO: The ForwardModel should then setup the projectors accordingly from this info!
+# TODO: Se_inv should be a class of its own and should be constructed by the ForwardModel init!
+# TODO: Same goes for the mask! Se_inv and mask should contain all constructers and functions!
+# TODO: This way, everything is set up and given AFTER all data are collected, because
+# TODO: Se_inv and mask can't be set up before...
+# TODO: Hook points belong to the forward models (or better the CombinedForwardModel)
+# TODO: Maybe have one ForwardModel per image? (maybe not a good idea...?)
+# TODO: Build factory convenience functions for constructing CombinedForwardModels!
+# TODO: DistributedForwardModel and CombinedForwardModel could be the same thing?!
 
 class ForwardModel(object):
     """Class for mapping 3D magnetic distributions to 2D phase maps.
@@ -82,6 +95,8 @@ class ForwardModel(object):
         return 'ForwardModel(data_set=%s)' % self.data_set
 
     def __call__(self, x):
+        # TODO: Have an extra forward model without the projector part?
+        # TODO: Which also corrects for the thickness? Would be nice!
         # Extract ramp parameters if necessary (x will be shortened!):
         x = self.ramp.extract_ramp_params(x)
         # Reset magdata and fill with vector:

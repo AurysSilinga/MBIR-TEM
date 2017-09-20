@@ -659,14 +659,14 @@ class PhaseMap(object):
                 vmin = np.min(phase_lim)
             if vmax is None:
                 vmax = np.max(phase_lim)
-        # Configure colormap, to fix white to zero if colormap is symmetric:
+        # Configure colormap and fix white to zero if colormap is symmetric:
+        if cmap is None:
+            cmap = plt.get_cmap('RdBu')  # TODO: use cmocean.cm.balance (flipped colours!)
+            # TODO: get default from "colors" or "plots" package
+            # TODO: make flexible, cmocean and matplotlib...
+        elif isinstance(cmap, str):  # Get colormap if given as string:
+            cmap = plt.get_cmap(cmap)
         if symmetric:
-            if cmap is None:
-                cmap = plt.get_cmap('RdBu')  # TODO: use cmocean.cm.balance (flipped colours!)
-                # TODO: get default from "colors" or "plots" package
-                # TODO: make flexible, cmocean and matplotlib...
-            elif isinstance(cmap, str):  # Get colormap if given as string:
-                cmap = plt.get_cmap(cmap)
             vmin, vmax = np.min([vmin, -0]), np.max([0, vmax])  # Ensure zero is present!
             limit = np.max(np.abs([vmin, vmax]))
             start = (vmin + limit) / (2 * limit)
