@@ -276,7 +276,8 @@ class KernelCharge(object):
         r1 = np.sqrt(n ** 2 + m ** 2)
         r2 = np.sqrt((n - u_img) ** 2 + (m - v_img) ** 2)
         # The square height when  the path come across the sphere
-        R = a / 2  # the radius of the pixel
+        # TODO: The radius of the sphere is 1 pixel, since everywhere calculation is done in pixel, here R=1.
+        R = 1. / 2  # the radius of the pixel
         h1 = R ** 2 - r1 ** 2
         h2 = R ** 2 - r2 ** 2
         # Phase calculation in 3 different cases
