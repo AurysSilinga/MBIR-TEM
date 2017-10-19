@@ -31,6 +31,8 @@ from . import plottools
 __all__ = ['PhaseMap']
 
 
+# TODO: check out pint for units and stuff!
+
 class PhaseMap(object):
     """Class for storing phase map data.
 

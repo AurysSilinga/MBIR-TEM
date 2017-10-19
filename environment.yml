@@ -44,6 +44,7 @@ dependencies:
   # IPython and notebooks:
   - ipython=5.3
   - jupyter=1.0
+  - nb_conda=2.2
   # TODO: Add back GUI dependencies!
   # TODO: Get Jutil from gitlab (currently doesn't work, git and cygwin don't play nice,...
   # TODO: ...because one is Unix, ond is Windows).

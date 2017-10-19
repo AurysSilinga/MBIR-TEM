@@ -375,6 +375,7 @@ class DistributedForwardModel(ForwardModel):
         self.proc_hook_points = [0]
         self.pipes = []
         self.processes = []
+        print('NPROCS:', self.nprocs)    # TODO: Logging instead of printing!
         for proc_id in range(self.nprocs):
             # Create SubDataSets:
             sub_data = DataSet(self.data_set.a, self.data_set.dim, self.data_set.b_0,
@@ -510,6 +511,7 @@ class DistributedForwardModel(ForwardModel):
 
 def _worker(fwd_model, pipe):
     # Has to be directly accessible in the module as a function, NOT a method of a class instance!
+    # TODO: Logging instead of printing!
     print('... {} starting!'.format(mp.current_process().name))
     sys.stdout.flush()
     for method, arguments in iter(pipe.recv, 'STOP'):

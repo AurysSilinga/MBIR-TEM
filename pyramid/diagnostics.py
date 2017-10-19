@@ -492,7 +492,7 @@ class LCurve(object):
         self.chisq_m = []
         if save_dir is not None:
             assert os.path.isdir(save_dir), 'save_dir has to be None or a valid directory!'
-        self.save_dir = save_dir
+        self.save_dir = save_dir  # TODO: Use save_dir!!!
         self._log.debug('Created ' + str(self))
 
     def calculate(self, lam):

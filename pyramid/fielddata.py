@@ -794,6 +794,9 @@ class VectorData(FieldData):
         from .file_io.io_vectordata import save_vectordata
         save_vectordata(self, filename, **kwargs)
 
+    # TODO: we have 2D and 3D plots, what about 1D line of vector arrows? Would be nice!
+    # TODO: Make all a bit more flexible with squeeze (so dimensions are not as strict).
+
     def plot_quiver(self, ar_dens=1, log=False, scaled=True, scale=1., b_0=None, qkey_unit='T',
                     coloring='angle', cmap=None,  # Used here and plot_streamlines!
                     proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
