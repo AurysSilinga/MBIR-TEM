@@ -11,3 +11,5 @@ desktop.ini
 .DS_Store
 
 .DS
+
+.ipynb_checkpoints*
