@@ -21,7 +21,7 @@ from .pm import pm
 __all__ = ['reconstruction_2d_from_phasemap']
 _log = logging.getLogger(__name__)
 
-
+# TODO: lam should NOT have a default!!!
 def reconstruction_2d_from_phasemap(phasemap, b_0=1, lam=1E-3, max_iter=100, ramp_order=1,
                                     plot_results=False, ar_dens=None, verbose=True):
     """Convenience function for reconstructing a projected distribution from a single phasemap.
