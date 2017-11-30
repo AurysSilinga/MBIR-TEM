@@ -14,8 +14,10 @@ import numpy as np
 from PIL import Image
 from matplotlib import patheffects
 from matplotlib import pyplot as plt
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from scipy.ndimage.interpolation import zoom
+
+import cmocean
 
 from . import colors
 from . import plottools
@@ -86,7 +88,18 @@ class FieldData(object, metaclass=abc.ABCMeta):
         if len(self.shape) == 4:
             return np.sqrt(np.sum(self.field ** 2, axis=0))
         else:
-            return self.field
+            return np.abs(self.field)
+
+    @property
+    def field_vec(self):
+        """Vector containing the vector field distribution."""
+        return np.reshape(self.field, -1)
+
+    @field_vec.setter
+    def field_vec(self, mag_vec):
+        assert np.size(mag_vec) == np.prod(self.shape), \
+            'Vector has to match field shape! {} {}'.format(mag_vec.shape, np.prod(self.shape))
+        self.field = mag_vec.reshape((3,) + self.dim)
 
     def __init__(self, a, field):
         self._log.debug('Calling __init__')
@@ -541,7 +554,7 @@ class VectorData(FieldData):
         self.field = np.pad(self.field, ((0, 0), (pv[0], pv[1]), (pv[2], pv[3]), (pv[4], pv[5])),
                             mode='constant')
 
-    def crop(self, crop_values):
+    def crop(self, crop_values):  # TODO: bad copy&paste from pad?
         """Crop the current field distribution with zeros for each individual axis.
 
         Parameters
@@ -781,6 +794,17 @@ class VectorData(FieldData):
         from .file_io.io_vectordata import save_vectordata
         save_vectordata(self, filename, **kwargs)
 
+    # TODO: we have 2D and 3D plots, what about 1D line of vector arrows? Would be nice!
+    # TODO: Make all a bit more flexible with squeeze (so dimensions are not as strict).
+    # TODO: Implement clip value for amplitude!
+    # TODO: ar_dens should work differently! do not show every n-th arrow! instead average:
+    # mag_overlay_vort = mag_data_vort.copy()
+    # mag_overlay_vort.scale_down(2)
+    # mag_overlay_vort.plot_quiver(axis=newax, coloring='uniform', bgcolor='white', show_mask=False,
+    #                              scalebar=False, hideaxes=True)
+    # # plt.savefig(directory + '/ch5-0-magnetic_distributions_v.png', bbox_inches='tight')
+    # plt.savefig(directory + '/ch5-0-magnetic_distributions_v.pdf', bbox_inches='tight')
+
     def plot_quiver(self, ar_dens=1, log=False, scaled=True, scale=1., b_0=None, qkey_unit='T',
                     coloring='angle', cmap=None,  # Used here and plot_streamlines!
                     proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
@@ -839,7 +863,7 @@ class VectorData(FieldData):
         if figsize is None:
             figsize = plottools.FIGSIZE_DEFAULT
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
-            'Axis has to be x, y or z (as string).'
+            "Axis has to be 'x', 'y' or 'z'."
         if ax_slice is None:
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
         # Extract slice and mask:
@@ -986,7 +1010,7 @@ class VectorData(FieldData):
         if figsize is None:
             figsize = plottools.FIGSIZE_DEFAULT
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
-            'Axis has to be x, y or z (as string).'
+            "Axis has to be 'x', 'y' or 'z'."
         if ax_slice is None:
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
         # Extract slice and mask:
@@ -1306,17 +1330,6 @@ class VectorData(FieldData):
         kwargs.setdefault('hideaxes', True)
         return plottools.format_axis(axis, hideaxes=True, scalebar=False)
 
-    @property
-    def field_vec(self):
-        """Vector containing the vector field distribution."""
-        return np.reshape(self.field, -1)
-
-    @field_vec.setter
-    def field_vec(self, mag_vec):
-        assert np.size(mag_vec) == np.prod(self.shape), \
-            'Vector has to match field shape! {} {}'.format(mag_vec.shape, np.prod(self.shape))
-        self.field = mag_vec.reshape((3,) + self.dim)
-
 
 class ScalarData(FieldData):
     """Class for storing scalar field data.
@@ -1338,6 +1351,17 @@ class ScalarData(FieldData):
 
     """
     _log = logging.getLogger(__name__ + '.ScalarData')
+
+    @property
+    def field_vec(self):
+        """Vector containing the scalar field distribution."""
+        return np.reshape(self.field, -1)
+
+    @field_vec.setter
+    def field_vec(self, c_vec):
+        assert np.size(c_vec) == np.prod(self.shape), \
+            'Vector has to match field shape! {} {}'.format(c_vec.shape, np.prod(self.shape))
+        self.field = c_vec.reshape(self.dim)
 
     def scale_down(self, n=1):
         """Scale down the field distribution by averaging over two pixels along each axis.
@@ -1513,15 +1537,124 @@ class ScalarData(FieldData):
         from .file_io.io_scalardata import save_scalardata
         save_scalardata(self, filename, **kwargs)
 
-    @property
-    def field_vec(self):
-        """Vector containing the scalar field distribution."""
-        return np.reshape(self.field, -1)
+    def get_slice(self, ax_slice=None, proj_axis='z'):
+        # TODO: Docstring!
+        """Extract a slice from the :class:`~.VectorData` object.
 
-    @field_vec.setter
-    def field_vec(self, c_vec):
-        assert np.size(c_vec) == np.prod(self.shape), \
-            'Vector has to match field shape! {} {}'.format(c_vec.shape, np.prod(self.shape))
-        self.field = c_vec.reshape(self.dim)
+        Parameters
+        ----------
+        proj_axis : {'z', 'y', 'x'}, optional
+            The axis, from which the slice is taken. The default is 'z'.
+        ax_slice : None or int, optional
+            The slice-index of the axis specified in `proj_axis`. Defaults to the center slice.
+
+        Returns
+        -------
+        u_mag, v_mag, w_mag, submask : :class:`~numpy.ndarray` (N=2)
+            The extracted vector field components in plane perpendicular to the `proj_axis` and
+            the perpendicular component.
+
+        """
+        self._log.debug('Calling get_slice')
+        # Find slice:
+        assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
+            'Axis has to be x, y or z (as string).'
+        if ax_slice is None:
+            ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
+        if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
+            self._log.debug('proj_axis == z')
+            scalar_slice = np.copy(self.field[ax_slice, ...])
+        elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
+            self._log.debug('proj_axis == y')
+            scalar_slice = np.copy(self.field[:, ax_slice, :])
+        elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
+            self._log.debug('proj_axis == x')
+            scalar_slice = np.copy(self.field[..., ax_slice])
+        else:
+            raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
+        return scalar_slice
+
+
+    def plot_field(self, proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
+                   figsize=None, vmin=None, vmax=None, symmetric=False, cmap=None, cbar=True,
+                   **kwargs):
+        # TODO: Docstring!
+        """Plot a slice of the scalar field as an imshow plot.
+
+        Parameters
+        ----------
+        proj_axis : {'z', 'y', 'x'}, optional
+            The axis, from which a slice is plotted. The default is 'z'.
+        ax_slice : int, optional
+            The slice-index of the axis specified in `proj_axis`. Is set to the center of
+            `proj_axis` if not specified.
+        show_mask: boolean
+            Default is True. Shows the outlines of the mask slice if available.
+        bgcolor: {'white', 'black'}, optional
+            Determines the background color of the plot.
+        axis : :class:`~matplotlib.axes.AxesSubplot`, optional
+            Axis on which the graph is plotted. Creates a new figure if none is specified.
+        figsize : tuple of floats (N=2)
+            Size of the plot figure.
+
+        Returns
+        -------
+        axis: :class:`~matplotlib.axes.AxesSubplot`
+            The axis on which the graph is plotted.
+
+        Notes
+        -----
+        Uses :func:`~.plottools.format_axis` at the end. According keywords can also be given here.
+
+        """
+        self._log.debug('Calling plot_field')
+        a = self.a
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
+        assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
+            "Axis has to be 'x', 'y' or 'z'."
+        if ax_slice is None:
+            ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
+        # Extract slice and mask:
+        field_slice = self.get_slice(ax_slice, proj_axis)
+        submask = np.where(np.abs(field_slice) > 0, True, False)
+        dim_uv = field_slice.shape
+        # If no axis is specified, a new figure is created:
+        if axis is None:
+            self._log.debug('axis is None')
+            fig = plt.figure(figsize=figsize)
+            axis = fig.add_subplot(1, 1, 1)
+            tight = True
+        else:
+            tight = False
+        axis.set_aspect('equal')
+        # Configure colormap and fix center to zero if colormap is symmetric:
+        if cmap is None:
+            cmap = cmocean.cm.thermal
+        elif isinstance(cmap, str):  # Get colormap if given as string:
+            cmap = plt.get_cmap(cmap)
+        if symmetric:  # TODO: symmetric should be called divergent (see cmocean)!
+            vmin, vmax = np.min([vmin, -0]), np.max([0, vmax])  # Ensure zero is present!
+            limit = np.max(np.abs([vmin, vmax]))
+            start = (vmin + limit) / (2 * limit)
+            end = (vmax + limit) / (2 * limit)
+            cmap_colors = cmap(np.linspace(start, end, 256))
+            cmap = LinearSegmentedColormap.from_list('Symmetric', cmap_colors)
+        # Plot the field:
+        im = axis.imshow(field_slice, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
+                         interpolation='none', extent=(0, dim_uv[1], 0, dim_uv[0]))
+        if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
+            vv, uu = np.indices(dim_uv) + 0.5
+            axis.contour(uu, vv, submask, levels=[0.5], colors='k',
+                         linestyles='dotted', linewidths=2)
+        if bgcolor is not None:
+            pass#axis.set_facecolor(bgcolor)  # TODO: Activate for matplotlib 2.0!
+        # Determine colorbar title:
+        cbar_mappable = None
+        if cbar:
+            cbar_mappable = im
+        # Return formatted axis:
+        return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,
+                                     tight_layout=tight, **kwargs)
 
 # TODO: Histogram plots for magnetisation (see thesis!)

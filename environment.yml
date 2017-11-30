@@ -5,7 +5,7 @@
 # To see if compatible upgrades are available for the current packages, use "conda upgrade --all"!
 # When packages are deprecated/deleted, it may be best to recreate the environment from scratch!
 
-name: pyramid
+name: pyramid-legacy
 
 channels:
   - defaults  # Default conda channels, on top to keep highest priority!
@@ -16,18 +16,18 @@ dependencies:
   # Basic:
   - python=3.5  # TODO: upgrade to 3.6!
   - numpy=1.11
-  - scipy=0.19
+  - scipy=1.0  # TODO: upgrade to 1.0 (if channels exist...)!
   - tqdm=4.14
   - scikit-image=0.13
   # Fast computation:
   - pyFFTW=0.10
   # File IO:
-  - hyperspy=1.3
+  - hyperspy=1.3  # TODO: Update as soon as 1.4 is out!
   - hyperspy-gui-ipywidgets=1.0
   # - hyperspy-gui-traitsui=1.0  # TODO: Optional! Delete when mayavi is gone!
   - h5py=2.7
   # Plotting and colors:  # TODO: Shift to plotting package?
-  - matplotlib=2.0  # Only conda-forge channel has working version for qt4!
+  - matplotlib=1.5  # Only conda-forge channel has working version for qt4!
   - Pillow=4.1
   - cmocean=1.1
   - qt=4.8  # Necessary because of traits in mayavi... On server, pyqt=5.6 is needed!
@@ -44,6 +44,7 @@ dependencies:
   # IPython and notebooks:
   - ipython=5.3
   - jupyter=1.0
+  - nb_conda=2.2
   # TODO: Add back GUI dependencies!
   # TODO: Get Jutil from gitlab (currently doesn't work, git and cygwin don't play nice,...
   # TODO: ...because one is Unix, ond is Windows).

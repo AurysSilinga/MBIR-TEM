@@ -5,21 +5,30 @@
 """This module provides the :class:`~.Diagnostics` class for the calculation of diagnostics of a
 specified costfunction for a fixed magnetization distribution."""
 
+import os
+
 import logging
 
+from pyramid.forwardmodel import ForwardModel
+from pyramid.costfunction import Costfunction
+from pyramid.regularisator import FirstOrderRegularisator
 from pyramid.fielddata import VectorData
 from pyramid.phasemap import PhaseMap
+from pyramid import reconstruction
+from pyramid import plottools
 
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from matplotlib import patheffects
 from matplotlib.ticker import FuncFormatter
+from matplotlib.colors import LogNorm
 import numpy as np
 
 import jutil
 
-__all__ = ['Diagnostics', 'get_vector_field_errors']
+__all__ = ['Diagnostics', 'LCurve','get_vector_field_errors']
 
+# TODO: should be subpackage, distribute methods and classes to separate modules!
 
 class Diagnostics(object):
     """Class for calculating diagnostic properties of a specified costfunction.
@@ -464,6 +473,120 @@ class Diagnostics(object):
         return plottools.format_axis(axis, hideaxes=True, scalebar=False)
 
 
+class LCurve(object):
+
+    # TODO: Docstring!
+
+    # TODO: save magdata_rec!
+
+    _log = logging.getLogger(__name__ + '.FieldData')
+
+    def __init__(self, fwd_model, max_iter=0, verbose=False, save_dir=None):
+        self._log.debug('Calling __init__')
+        assert isinstance(fwd_model, ForwardModel), 'Input has to be a costfunction'
+        self.fwd_model = fwd_model
+        self.max_iter = max_iter
+        self.verbose = verbose
+        self.lams = []
+        self.chisq_a = []
+        self.chisq_m = []
+        if save_dir is not None:
+            assert os.path.isdir(save_dir), 'save_dir has to be None or a valid directory!'
+        self.save_dir = save_dir  # TODO: Use save_dir!!!
+        self._log.debug('Created ' + str(self))
+
+    def calculate(self, lam):
+        # TODO: Docstring!
+        if lam not in self.lams:
+            # Create new regularisator: # TODO: Not hardcoding FirstOrderRegularisator!
+            reg = FirstOrderRegularisator(self.fwd_model.data_set.mask, lam,
+                                          add_params=self.fwd_model.ramp.n)
+            cost = Costfunction(fwd_model=self.fwd_model, regularisator=reg)
+            # Reconstruct:
+            magdata_rec = reconstruction.optimize_linear(cost, max_iter=self.max_iter,
+                                                         verbose=self.verbose)
+            # Save magdata_rec if necessary:
+            if self.save_dir is not None:
+                filename = 'magdata_rec_lam{:.0e}.hdf5'.format(lam)
+                magdata_rec.save(os.path.join(self.save_dir, filename), overwrite=True)
+            # Append new values:
+            self.lams.append(lam)
+            chisq_m, chisq_a = cost.chisq_m[-1], cost.chisq_a[-1]  # TODO: is chisq_m list or not?
+            self.chisq_m.append(chisq_m)
+            self.chisq_a.append(chisq_a / lam)  # TODO: lambda out of regularisator?
+            # Sort lists according to lambdas:
+            tuples = zip(*sorted(zip(self.lams, self.chisq_m, self.chisq_a)))
+            self.lams, self.chisq_m, self.chisq_a = (list(l) for l in tuples)
+            self._log.info(lam, ' -->  m:', chisq_m, '  a:', chisq_a / lam)
+            return chisq_m, chisq_a / lam
+        # TODO: Implement else, return saved values!
+        # TODO: Make this work with batch, sort lambdas at the end!
+        # TODO: After sorting, calculate the CURVATURE for each lambda! (needs 3 points?)
+        # TODO: Use finite difference methods (forward/backward/central, depending on location)!
+        # TODO: Investigate points around highest curvature further.
+        # TODO: Make sure to update ALL curvatures and search for new best EVERYWHERE!
+        # TODO: Distinguish regions of the L-Curve.
+
+    def calculate_auto(self, lam_start=1E-18, lam_end=1E5, online_axis=False):
+        # TODO: Docstring!
+        # Calculate new cost terms:
+        log_m_s, log_a_s = np.log10(self.calculate(lam_start))
+        log_m_e, log_a_e = np.log10(self.calculate(lam_end))
+        # Calculate new lambda:
+        log_lam_s, log_lam_e = np.log10(lam_start), np.log10(lam_end)
+        log_lam_new = np.mean((log_lam_s, log_lam_e))  # logarithmic mean to find middle on L!
+        sign_exp = np.floor(log_lam_new)
+        last_sign_digit = np.round(10 ** (log_lam_new - sign_exp))
+        lam_new = last_sign_digit * 10 ** sign_exp
+        # Calculate cost terms for new lambda:
+        log_m_new, log_a_new = np.log10(self.calculate(lam_new))
+        if online_axis:  # Update plot if necessary:
+            self.plot(axis=online_axis)
+            from IPython import display
+            display.clear_output(wait=True)
+            display.display(plt.gcf())
+
+        # TODO: slope has to be normalised, scale of axes is not equal!!!
+        # TODO: get rid of right flank (do Not use right points with slope steeper than -45°
+        # Calculate distances from origin and find new interval:
+        dist_s, dist_e = np.hypot(log_m_s, log_a_s), np.hypot(log_m_e, log_a_e)
+        dist_new = np.hypot(log_m_new, log_a_new)
+        print(lam_start, lam_end, lam_new)
+        print(dist_s, dist_e, dist_new)
+        #if dist_new
+
+
+
+    def plot(self, axis=None, figsize=None):
+        # TODO: Docstring!
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
+        if axis is None:
+            self._log.debug('axis is None')
+            fig = plt.figure(figsize=figsize)
+            axis = fig.add_subplot(1, 1, 1)
+        axis.set_yscale("log", nonposx='clip')
+        axis.set_xscale("log", nonposx='clip')
+        axis.plot(self.chisq_m, self.chisq_a, 'k-', linewidth=3, zorder=1)
+        sc = axis.scatter(x=self.chisq_m, y=self.chisq_a, c=self.lams, marker='o', s=100,
+                          zorder=2, cmap='nipy_spectral', norm=LogNorm())
+        plt.colorbar(mappable=sc, label='regularisation parameter $\lambda$')
+        #plottools.add_cbar(axis, mappable=sc, label='regularisation parameter $\lambda$')
+        #axis.get_xaxis().get_major_formatter().labelOnlyBase = False
+        axis.set_xlabel(
+            r'$\Vert\mathbf{F}(\mathbf{x})-\mathbf{y}\Vert_{\mathbf{S}_{\epsilon}^{-1}}^{2}$',
+            fontsize=22, labelpad=-5)
+        axis.set_ylabel(r'$\frac{1}{\lambda}\Vert\mathbf{x}\Vert_{\mathbf{S}_{a}^{-1}}^{2}$',
+                        fontsize=22)
+        #axis.set_xlim(3E3, 2E5)
+        #axis.set_ylim(1E2, 1E9)
+        axis.xaxis.label.set_color('firebrick')
+        axis.yaxis.label.set_color('seagreen')
+        axis.tick_params(axis='both', which='major')
+        axis.grid()
+        # TODO: Don't plot the steep part on the right...
+
+
 def get_vector_field_errors(vector_data, vector_data_ref):
     """After Kemp et. al.: Analysis of noise-induced errors in vector-field electron tomography"""
     v, vr = vector_data.field, vector_data_ref.field
@@ -479,3 +602,55 @@ def get_vector_field_errors(vector_data, vector_data_ref):
     rms_mag = np.sqrt(np.nansum((va - vra)**2) / np.nansum(vra**2))
     # Return results as tuple:
     return rms_tot, rms_dir, rms_mag
+
+
+# TODO: SVD as function for magnetic distributions!
+# TODO: Plot only singular vectors, nullspace, or both!
+# TODO: Jörn fragen, warum der Nullraum nur mit Maske eingeht!!
+# from matplotlib.ticker import MultipleLocator
+# n = 32
+# dim_uv = (n, n)
+# mapper = pr.PhaseMapperRDFC(kernel=pr.Kernel(a=1, dim_uv=dim_uv))
+# mat = np.asarray([mapper.jac_dot(np.eye(1, 2*n**2, k=k).T) for k in range(2*n**2)]).T
+# u, s, vh = sp.linalg.svd(mat, full_matrices=True)
+#
+# mag_hal = pr.magcreator.examples.smooth_vortex_disc(dim=(1,n,n))
+# phasemap = pr.utils.pm(mag_hal)
+# #phasemap.mask = np.ones_like(phasemap.phase, dtype=bool)
+# mag_hal_null, cost = pr.utils.reconstruction_2d_from_phasemap(phasemap, max_iter=5000, lam=1E-30)
+#
+# mag_hal_null.plot_quiver_field(scalebar=False, hideaxes=True, b_0=1)
+# (mag_hal_null-mag_hal).plot_quiver_field(scalebar=False, hideaxes=True, b_0=1)
+# pr.utils.pm(mag_hal_null).plot_phase()
+# mag_hal_vec = mag_hal_null.field_vec[:2*n**2]  # Discard z
+# coeffs = vh.dot(mag_hal_vec)
+#
+# fig, axis = plt.subplots(1, 1)
+# axis.plot(range(1, len(coeffs)+1), coeffs, 'bo', markersize=4)
+# axis.axvline(x=n**2, color='k', linestyle='--')
+# axis.set_xlim(0, 2*n**2)
+# axis.set_ylim(-1.5, 2.6)
+# axis.xaxis.set_major_locator(MultipleLocator(base=512))
+# axis.set_ylabel('Coefficient')
+# axis.set_xlabel('Index of column vector')
+# plt.text(200, 2.35, 'singular vectors', fontdict={'fontsize':18})
+# plt.text(200+n**2, 2.35, 'null space basis', fontdict={'fontsize':18})
+#
+# coeffs_new = np.copy(coeffs)
+# coeffs_new[:n**2] = 0
+# mag_hal_new = vh.T.dot(coeffs_new)
+# mag_hal_range = mag_hal.copy()
+# mag_hal_range.set_vector(np.concatenate((mag_hal_new, np.zeros(n**2))))
+# mag_hal_range.plot_quiver_field(b_0=1)
+# pr.utils.pm(mag_hal_range).plot_phase()
+#
+# fig, axis = plt.subplots(1, 1)
+# axis.plot(range(1, len(coeffs)+1), coeffs_new, 'bo', markersize=4)
+# axis.axvline(x=n**2, color='k', linestyle='--')
+# axis.set_xlim(0, 2*n**2)
+# axis.set_ylim(-1.5, 2.6)
+# axis.xaxis.set_major_locator(MultipleLocator(base=512))
+# axis.set_ylabel('Coefficient')
+# axis.set_xlabel('Index of column vector')
+# plt.text(200, 2.35, 'singular vectors', fontdict={'fontsize':18})
+# plt.text(200+n**2, 2.35, 'null space basis', fontdict={'fontsize':18})

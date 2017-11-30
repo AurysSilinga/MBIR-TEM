@@ -37,6 +37,7 @@ import abc
 
 from . import plottools
 
+# TODO: categorize colormaps as sequential, divergent, or cyclic!
 
 __all__ = ['Colormap3D', 'ColormapCubehelix', 'ColormapPerception', 'ColormapHLS',
            'ColormapClassic', 'ColormapTransparent', 'cmaps', 'CMAP_CIRCULAR_DEFAULT',
@@ -435,23 +436,23 @@ class ColormapClassic(colors.LinearSegmentedColormap, Colormap3D):
 
     _log = logging.getLogger(__name__ + '.ColormapClassic')
 
-    CDICT = {'red': [(0.00, 1.0, 1.0),
-                     (0.25, 0.0, 0.0),
-                     (0.50, 0.0, 0.0),
-                     (0.75, 1.0, 1.0),
-                     (1.00, 1.0, 1.0)],
+    CDICT = {'red': [(0/4, 1.0, 1.0),
+                     (1/4, 0.0, 0.0),
+                     (2/4, 0.0, 0.0),
+                     (3/4, 1.0, 1.0),
+                     (4/4, 1.0, 1.0)],
 
-             'green': [(0.00, 0.0, 0.0),
-                       (0.25, 0.0, 0.0),
-                       (0.50, 1.0, 1.0),
-                       (0.75, 1.0, 1.0),
-                       (1.00, 0.0, 0.0)],
+             'green': [(0/4, 0.0, 0.0),
+                       (1/4, 0.0, 0.0),
+                       (2/4, 1.0, 1.0),
+                       (3/4, 1.0, 1.0),
+                       (4/4, 0.0, 0.0)],
 
-             'blue': [(0.00, 0.0, 0.0),
-                      (0.25, 1.0, 1.0),
-                      (0.50, 0.0, 0.0),
-                      (0.75, 0.0, 0.0),
-                      (1.00, 0.0, 0.0)]}
+             'blue': [(0/4, 0.0, 0.0),
+                      (1/4, 1.0, 1.0),
+                      (2/4, 0.0, 0.0),
+                      (3/4, 0.0, 0.0),
+                      (4/4, 0.0, 0.0)]}
 
     def __init__(self):
         self._log.debug('Calling __init__')

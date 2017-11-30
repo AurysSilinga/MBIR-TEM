@@ -147,7 +147,7 @@ extras_require = {
 }
 
 extras_require["all"] = list(itertools.chain(*list(extras_require.values())))
-
+# TODO: What about the demo?
 
 print('\n-------------------------------------------------------------------------------')
 # print('checking requirements')  # TODO: Get rid of!

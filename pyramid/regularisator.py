@@ -18,7 +18,7 @@ __all__ = ['NoneRegularisator', 'ZeroOrderRegularisator', 'FirstOrderRegularisat
            'ComboRegularisator']
 
 
-class Regularisator(object, metaclass=abc.ABCMeta):
+class Regularisator(object, metaclass=abc.ABCMeta):  # TODO: Does this have to be abstract??
     """Class for providing a regularisation term which implements additional constraints.
 
     Represents a certain constraint for the 3D magnetization distribution whose cost is to minimize

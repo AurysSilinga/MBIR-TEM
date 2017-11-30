@@ -25,6 +25,7 @@ __all__ = ['create_mag_dist_homog', 'create_mag_dist_vortex', 'create_mag_dist_s
            'create_mag_dist_smooth_vortex']
 _log = logging.getLogger(__name__)
 
+# TODO: generalise for scalar data? rename to fieldcreator? have subclasses vector, scalar?
 
 def create_mag_dist_homog(mag_shape, phi, theta=pi / 2):
     """Create a 3-dimensional magnetic distribution of a homogeneously magnetized object.

@@ -28,6 +28,8 @@ FIGSIZE_DEFAULT = (6.7, 5)  # TODO: Apparently does not fit as well as before...
 FONTSIZE_DEFAULT = 20
 STROKE_DEFAULT = None
 
+# TODO: Cool: Plotting with four parameters for what to put in all four corners (with defaults)!
+
 # TODO: Replace by matplotlib styles!
 def pretty_plots(figsize=None, fontsize=None, stroke=None):
     """Set IPython formats (for interactive and PDF output) and set pretty matplotlib font."""
@@ -360,3 +362,31 @@ def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, sc
             plt.tight_layout()
     # Return plotting axis:
     return axis
+
+# TODO: Implement stuff from Florian:
+def figsize(scale, height=None, textwidth=448.1309):
+    """
+    Calculates ideal matplotlib Figure size, according to the desirde scale.
+    :param scale: Fraction of Latex graphic input (scale*\textwidth)
+    :param height: figure height = figure width * height
+    :param textwidth:
+    :return:
+    """
+    fig_width_pt = textwidth                         # Get this from LaTeX using \the\textwidth
+    inches_per_pt = 1.0 / 72.27                       # Convert pt to inch
+    golden_mean = (np.sqrt(5.0) - 1.0) / 2.0            # Aesthetic ratio (you could change this)
+    fig_width = fig_width_pt * inches_per_pt * scale    # width in inches
+    if height is None:
+        fig_height = fig_width * golden_mean              # height in inches
+    else:
+        fig_height = fig_width * height
+    fig_size = [fig_width, fig_height]
+
+    return fig_size
+
+# TODO: Florians way of shifting axes labels (should already be in somewhere):
+# for i in [1, 3]:
+#     axs[i].yaxis.set_label_position('right')
+#     axs[i].tick_params(axis='both', labelleft='off', labelright='on', labelsize=5)
+#     axs[i].yaxis.tick_right()
+#     axs[i].get_yaxis().set_label_coords(1.22, 0.5)
