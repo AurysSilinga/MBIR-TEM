@@ -238,7 +238,8 @@ class Projector(object):
         return 'Base projector'
 
 
-class RotTiltProjector(Projector):
+class RotTiltProjectorLegacy(Projector):
+    # TODO: FLAGGED FOR REMOVAL!
     """Class representing a projection function with a rotation around z followed by tilt around x.
 
     The :class:`~.XTiltProjector` class represents a projection function for a 3-dimensional
@@ -283,7 +284,151 @@ class RotTiltProjector(Projector):
         # Create tilt, rotation and combined quaternion, careful: Quaternion(w,x,y,z), not (z,y,x):
         quat_x = Quaternion.from_axisangle((1, 0, 0), tilt)  # Tilt around x-axis
         quat_z = Quaternion.from_axisangle((0, 0, 1), rotation)  # Rotate around z-axis
-        quat = quat_x * quat_z  # Combined quaternion (first rotate around z, then tilt around x)
+        quat = quat_x * quat_z  # Combined quaternion (first rotate around z, then tilt
+        # around x)
+        # Calculate impact positions on the projected pixel coordinate grid (flip because quat.):
+        impacts = np.flipud(quat.matrix[:2, :].dot(np.flipud(voxel_vecs)))  # only care for x/y
+        impacts[1, :] += dim_u / 2.  # Shift back to normal indices
+        impacts[0, :] += dim_v / 2.  # Shift back to normal indices
+        # Calculate equivalence radius:
+        R = (3 / (4 * np.pi)) ** (1 / 3.)
+        # Prepare weight matrix calculation:
+        rows = []  # 2D projection
+        columns = []  # 3D distribution
+        data = []  # weights
+        # Create 4D lookup table (1&2: which neighbour weight?, 3&4: which subpixel is hit?)
+        weight_lookup = self._create_weight_lookup(subcount, R)
+        # Go over all voxels:
+        disable = not verbose
+        for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False,
+                                       desc='Set up projector')):
+            column_index = voxel[0] * dim_y * dim_x + voxel[1] * dim_x + voxel[2]
+            remainder, impact = np.modf(impacts[:, i])  # split index of impact and remainder!
+            sub_pixel = (remainder * subcount).astype(dtype=np.int)  # sub_pixel inside impact px.
+            # Go over all influenced pixels (impact and neighbours, indices are [0, 1, 2]!):
+            for px_ind in list(itertools.product(range(3), range(3))):
+                # Pixel indices influenced by the impact (px_ind-1 to center them around impact):
+                pixel = (impact + np.array(px_ind) - 1).astype(dtype=np.int)
+                # Check if pixel is out of bound:
+                if 0 <= pixel[0] < dim_uv[0] and 0 <= pixel[1] < dim_uv[1]:
+                    # Lookup weight in 4-dimensional lookup table!
+                    weight = weight_lookup[px_ind[0], px_ind[1], sub_pixel[0], sub_pixel[1]]
+                    # Only write into sparse matrix if weight is not zero:
+                    if weight != 0.:
+                        row_index = pixel[0] * dim_u + pixel[1]
+                        columns.append(column_index)
+                        rows.append(row_index)
+                        data.append(weight)
+        # Calculate weight matrix and coefficients for jacobi matrix:
+        shape = (np.prod(dim_uv), np.prod(dim))
+        weights = csr_matrix(coo_matrix((data, (rows, columns)), shape=shape))
+        # Calculate coefficients by rotating unity matrix (unit vectors, (x,y,z)):
+        coeff = quat.matrix[:2, :].dot(np.eye(3))
+        super().__init__(dim, dim_uv, weights, coeff)
+        self._log.debug('Created ' + str(self))
+
+    @staticmethod
+    def _create_weight_lookup(subcount, R):
+        s = subcount
+        Rz = R * s  # Radius in subgrid units
+        dim_zoom = (3 * s, 3 * s)  # Dimensions of the subgrid, (3, 3) because of neighbour count!
+        cent_zoom = (np.asarray(dim_zoom) / 2.).astype(dtype=np.int)  # Center of the subgrid
+        y, x = np.indices(dim_zoom)
+        y -= cent_zoom[0]
+        x -= cent_zoom[1]
+        # Calculate projected thickness of an equivalence sphere (normed!):
+        d = np.where(np.hypot(x, y) <= Rz, Rz ** 2 - x ** 2 - y ** 2, 0)
+        d = np.sqrt(d)
+        d /= d.sum()
+        # Create lookup table (4D):
+        lookup = np.zeros((3, 3, s, s))
+        # Go over all 9 pixels (center and neighbours):
+        for pixel in list(itertools.product(range(3), range(3))):
+            pixel_lb = np.array(pixel) * s  # Convert to subgrid, hit bottom left of the pixel!
+            # Go over all subpixels in the center that can be hit:
+            for sub_pixel in list(itertools.product(range(s), range(s))):
+                shift = np.array(sub_pixel) - np.array((s // 2, s // 2))  # relative to center!
+                lb = pixel_lb - shift  # Shift summing zone according to hit subpixel!
+                # Make sure, that the summing zone is in bounds (otherwise correct accordingly):
+                lb = np.where(lb >= 0, lb, [0, 0])
+                tr = np.where(lb < 3 * s, lb + np.array((s, s)), [3 * s, 3 * s])
+                # Calculate weight by summing over the summing zone:
+                weight = d[lb[0]:tr[0], lb[1]:tr[1]].sum()
+                lookup[pixel[0], pixel[1], sub_pixel[0], sub_pixel[1]] = weight
+        return lookup
+
+    def get_info(self, verbose=False):
+        """Get specific information about the projector as a string.
+
+        Parameters
+        ----------
+        verbose: boolean, optional
+            If this is true, the text looks prettier (maybe using latex). Default is False for the
+            use in file names and such.
+
+        Returns
+        -------
+        info : string
+            Information about the projector as a string, e.g. for the use in plot titles.
+
+        """
+        theta_ang = int(np.round(self.rotation * 180 / pi))
+        phi_ang = int(np.round(self.tilt * 180 / pi))
+        if verbose:
+            return u'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
+        else:
+            return u'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
+
+
+class RotTiltProjector(Projector):
+    # TODO: Text incorrect!
+    """Class representing a projection function with a rotation around z followed by tilt around x.
+
+    The :class:`~.XTiltProjector` class represents a projection function for a 3-dimensional
+    vector- or scalar field onto a 2-dimensional grid, which is a concrete subclass of
+    :class:`~.Projector`.
+
+    Attributes
+    ----------
+    dim : tuple (N=3)
+        Dimensions (z, y, x) of the magnetization distribution.
+    rotation : float
+        Angle in `rad` describing the rotation around the z-axis before the tilt is happening.
+    tilt : float
+        Angle in `rad` describing the tilt of the beam direction relative to the x-axis.
+    dim_uv : tuple (N=2), optional
+        Dimensions (v, u) of the projection. If not set defaults to the (y, x)-dimensions.
+    subcount : int (optional)
+        Number of subpixels along one axis. This is used to create the lookup table which uses
+        a discrete subgrid to estimate the impact point of a voxel onto a pixel and the weight on
+        all surrounding pixels. Default is 11 (odd numbers provide a symmetric center).
+
+    """
+
+    _log = logging.getLogger(__name__ + '.RotTiltProjector')
+
+    def __init__(self, dim, rotation, tilt, dim_uv=None, subcount=11, verbose=False):
+        self._log.debug('Calling __init__')
+        self.rotation = rotation
+        self.tilt = tilt
+        # Determine dimensions:
+        dim_z, dim_y, dim_x = dim
+        center = (dim_z / 2., dim_y / 2., dim_x / 2.)
+        if dim_uv is None:
+            dim_v = max(dim_x, dim_y)  # first rotate around z-axis (take x and y into account)
+            dim_u = max(dim_v, dim_z)  # then tilt around x-axis (now z matters, too)
+            dim_uv = (dim_v, dim_u)
+        dim_v, dim_u = dim_uv
+        # Creating coordinate list of all voxels:
+        voxels = list(itertools.product(range(dim_z), range(dim_y), range(dim_x)))
+        # Calculate vectors to voxels relative to rotation center:
+        voxel_vecs = (np.asarray(voxels) + 0.5 - np.asarray(center)).T
+        # Create tilt, rotation and combined quaternion, careful: Quaternion(w,x,y,z), not (z,y,x):
+        quat_z_n = Quaternion.from_axisangle((0, 0, 1), -rotation)  # Rotate around z-axis
+        quat_x = Quaternion.from_axisangle((1, 0, 0), tilt)  # Tilt around x-axis
+        quat_z_p = Quaternion.from_axisangle((0, 0, 1), rotation)  # Rotate around z-axis
+        # Combined quaternion (first rotate around z, then tilt around x, rotate back around z):
+        quat = quat_z_n * quat_x * quat_z_p  # p: positive rotation, m: negative rotation
         # Calculate impact positions on the projected pixel coordinate grid (flip because quat.):
         impacts = np.flipud(quat.matrix[:2, :].dot(np.flipud(voxel_vecs)))  # only care for x/y
         impacts[1, :] += dim_u / 2.  # Shift back to normal indices
