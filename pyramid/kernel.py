@@ -246,12 +246,12 @@ class KernelCharge(object):
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
         uu, vv = np.meshgrid(u, v)
         self.kc = np.empty(self.dim_kern, dtype=dtype)
-        self.kc[...] = coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
+        self.kc[...] = a * coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
         # Include perturbed reference wave:
         if prw_vec is not None:
             uu += prw_vec[1]
             vv += prw_vec[0]
-            self.kc[...] -= coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
+            self.kc[...] -= a * coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
         # Calculate Fourier transform of kernel:
         self.kc_fft = fft.rfftn(self.kc, self.dim_pad)
         self._log.debug('Created ' + str(self))
@@ -276,7 +276,6 @@ class KernelCharge(object):
         r1 = np.sqrt(n ** 2 + m ** 2)
         r2 = np.sqrt((n - u_img) ** 2 + (m - v_img) ** 2)
         # The square height when  the path come across the sphere
-        # TODO: The radius of the sphere is 1 pixel, since everywhere calculation is done in pixel, here R=1.
         R = 1. / 2  # the radius of the pixel
         h1 = R ** 2 - r1 ** 2
         h2 = R ** 2 - r2 ** 2
