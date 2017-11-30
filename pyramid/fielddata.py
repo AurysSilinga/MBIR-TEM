@@ -554,7 +554,7 @@ class VectorData(FieldData):
         self.field = np.pad(self.field, ((0, 0), (pv[0], pv[1]), (pv[2], pv[3]), (pv[4], pv[5])),
                             mode='constant')
 
-    def crop(self, crop_values):
+    def crop(self, crop_values):  # TODO: bad copy&paste from pad?
         """Crop the current field distribution with zeros for each individual axis.
 
         Parameters
@@ -796,6 +796,14 @@ class VectorData(FieldData):
 
     # TODO: we have 2D and 3D plots, what about 1D line of vector arrows? Would be nice!
     # TODO: Make all a bit more flexible with squeeze (so dimensions are not as strict).
+    # TODO: Implement clip value for amplitude!
+    # TODO: ar_dens should work differently! do not show every n-th arrow! instead average:
+    # mag_overlay_vort = mag_data_vort.copy()
+    # mag_overlay_vort.scale_down(2)
+    # mag_overlay_vort.plot_quiver(axis=newax, coloring='uniform', bgcolor='white', show_mask=False,
+    #                              scalebar=False, hideaxes=True)
+    # # plt.savefig(directory + '/ch5-0-magnetic_distributions_v.png', bbox_inches='tight')
+    # plt.savefig(directory + '/ch5-0-magnetic_distributions_v.pdf', bbox_inches='tight')
 
     def plot_quiver(self, ar_dens=1, log=False, scaled=True, scale=1., b_0=None, qkey_unit='T',
                     coloring='angle', cmap=None,  # Used here and plot_streamlines!

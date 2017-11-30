@@ -295,7 +295,7 @@ class PhaseMap(object):
             mask = self.mask.reshape(dim_uv[0] // 2, 2, dim_uv[1] // 2, 2)
             self.mask = mask[:, 0, :, 0] & mask[:, 1, :, 0] & mask[:, 0, :, 1] & mask[:, 1, :, 1]
             self.confidence = self.confidence.reshape(dim_uv[0] // 2, 2,
-                                                      dim_uv[1] // 2, 2).mean(axis=(3, 1))
+                                                      dim_uv[1] // 2, 2).min(axis=(3, 1))
 
     def scale_up(self, n=1, order=0):
         """Scale up the phase map using spline interpolation of the requested order.

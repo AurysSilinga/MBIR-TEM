@@ -33,7 +33,11 @@ __all__ = ['ForwardModel', 'ForwardModelCharge', 'DistributedForwardModel']
 # TODO: Hook points belong to the forward models (or better the CombinedForwardModel)
 # TODO: Maybe have one ForwardModel per image? (maybe not a good idea...?)
 # TODO: Build factory convenience functions for constructing CombinedForwardModels!
+# TODO: OR implement arithmetic + (combine) and * (concatenate one after the other)?!
 # TODO: DistributedForwardModel and CombinedForwardModel could be the same thing?!
+# TODO: Build vector class which should now what it contains (stack of PhaseMaps, VectorData,
+# TODO: ScalarData, Ramp parameters, or a combination) and according hook points!
+# TODO: Vector should be easily convertible to container classes (e.g. stack of PhaseMaps)!
 
 class ForwardModel(object):
     """Class for mapping 3D magnetic distributions to 2D phase maps.
