@@ -240,18 +240,18 @@ class KernelCharge(object):
         self.slice_c = (slice(0, dim_uv[0]),  # Charge is padded on the far end!
                         slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
         # Calculate kernel (single pixel phase):
-        coeff = C_e * Q_E / (4 * np.pi * EPS_0)  # Minus is gone because of negative z-direction
+        coeff = a * C_e * Q_E / (4 * np.pi * EPS_0)  # Minus is gone because of negative z-direction
         v_dim, u_dim = dim_uv
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
         uu, vv = np.meshgrid(u, v)
         self.kc = np.empty(self.dim_kern, dtype=dtype)
-        self.kc[...] = a * coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
+        self.kc[...] = coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
         # Include perturbed reference wave:
         if prw_vec is not None:
             uu += prw_vec[1]
             vv += prw_vec[0]
-            self.kc[...] -= a * coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
+            self.kc[...] -= coeff * self._get_elementary_phase(electrode_vec, uu, vv, a)
         # Calculate Fourier transform of kernel:
         self.kc_fft = fft.rfftn(self.kc, self.dim_pad)
         self._log.debug('Created ' + str(self))
