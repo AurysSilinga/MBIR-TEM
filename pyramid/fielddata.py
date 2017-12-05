@@ -8,6 +8,7 @@ import abc
 import logging
 import os
 import tempfile
+from scipy.ndimage.interpolation import rotate
 from numbers import Number
 
 import numpy as np
@@ -21,6 +22,7 @@ import cmocean
 
 from . import colors
 from . import plottools
+from .quaternion import Quaternion
 
 __all__ = ['VectorData', 'ScalarData']
 
@@ -323,7 +325,8 @@ class FieldData(object, metaclass=abc.ABCMeta):
         Only possible, if each axis length is a power of 2!
 
         """
-        pass
+        pass  # TODO: NotImplementedError instead? See that all classes have the same interface!
+        # TODO: This means that all common functions of Scalar and Vector have to be abstract here!
 
     @abc.abstractmethod
     def scale_up(self, n, order):
@@ -467,121 +470,6 @@ class VectorData(FieldData):
     def __getitem__(self, item):
         return self.__class__(self.a, self.field[item])
 
-    def scale_down(self, n=1):
-        """Scale down the field distribution by averaging over two pixels along each axis.
-
-        Parameters
-        ----------
-        n : int, optional
-            Number of times the field distribution is scaled down. The default is 1.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Acts in place and changes dimensions and grid spacing accordingly.
-        Only possible, if each axis length is a power of 2!
-
-        """
-        self._log.debug('Calling scale_down')
-        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
-        self.a *= 2 ** n
-        for t in range(n):
-            # Pad if necessary:
-            pz, py, px = self.dim[0] % 2, self.dim[1] % 2, self.dim[2] % 2
-            if pz != 0 or py != 0 or px != 0:
-                self.field = np.pad(self.field, ((0, 0), (0, pz), (0, py), (0, px)),
-                                    mode='constant')
-            # Create coarser grid for the vector field:
-            shape_4d = (3, self.dim[0] // 2, 2, self.dim[1] // 2, 2, self.dim[2] // 2, 2)
-            self.field = self.field.reshape(shape_4d).mean(axis=(6, 4, 2))
-
-    def scale_up(self, n=1, order=0):
-        """Scale up the field distribution using spline interpolation of the requested order.
-
-        Parameters
-        ----------
-        n : int, optional
-            Power of 2 with which the grid is scaled. Default is 1, which means every axis is
-            increased by a factor of ``2**1 = 2``.
-        order : int, optional
-            The order of the spline interpolation, which has to be in the range between 0 and 5
-            and defaults to 0.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Acts in place and changes dimensions and grid spacing accordingly.
-        """
-        self._log.debug('Calling scale_up')
-        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
-        assert 5 > order >= 0 and isinstance(order, int), \
-            'order must be a positive integer between 0 and 5!'
-        self.a /= 2 ** n
-        self.field = np.array((zoom(self.field[0], zoom=2 ** n, order=order),
-                               zoom(self.field[1], zoom=2 ** n, order=order),
-                               zoom(self.field[2], zoom=2 ** n, order=order)))
-
-    def pad(self, pad_values):
-        """Pad the current field distribution with zeros for each individual axis.
-
-        Parameters
-        ----------
-        pad_values : tuple of int
-            Number of zeros which should be padded. Provided as a tuple where each entry
-            corresponds to an axis. An entry can be one int (same padding for both sides) or again
-            a tuple which specifies the pad values for both sides of the corresponding axis.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Acts in place and changes dimensions accordingly.
-        """
-        self._log.debug('Calling pad')
-        assert len(pad_values) == 3, 'Pad values for each dimension have to be provided!'
-        pv = np.zeros(6, dtype=np.int)
-        for i, values in enumerate(pad_values):
-            assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
-            pv[2 * i:2 * (i + 1)] = values
-        self.field = np.pad(self.field, ((0, 0), (pv[0], pv[1]), (pv[2], pv[3]), (pv[4], pv[5])),
-                            mode='constant')
-
-    def crop(self, crop_values):  # TODO: bad copy&paste from pad?
-        """Crop the current field distribution with zeros for each individual axis.
-
-        Parameters
-        ----------
-        crop_values : tuple of int
-            Number of zeros which should be cropped. Provided as a tuple where each entry
-            corresponds to an axis. An entry can be one int (same cropping for both sides) or again
-            a tuple which specifies the crop values for both sides of the corresponding axis.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Acts in place and changes dimensions accordingly.
-        """
-        self._log.debug('Calling crop')
-        assert len(crop_values) == 3, 'Crop values for each dimension have to be provided!'
-        cv = np.zeros(6, dtype=np.int)
-        for i, values in enumerate(crop_values):
-            assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
-            cv[2 * i:2 * (i + 1)] = values
-        cv *= np.resize([1, -1], len(cv))
-        cv = np.where(cv == 0, None, cv)
-        self.field = self.field[:, cv[0]:cv[1], cv[2]:cv[3], cv[4]:cv[5]]
-
     def get_vector(self, mask):
         """Returns the vector field components arranged in a vector, specified by a mask.
 
@@ -631,6 +519,127 @@ class VectorData(FieldData):
         else:
             self.field_vec = vector
 
+    # TODO: scale_down and scale_up should not work in place (also in ScalarData)!
+    def scale_down(self, n=1):
+        """Scale down the field distribution by averaging over two pixels along each axis.
+
+        Parameters
+        ----------
+        n : int, optional
+            Number of times the field distribution is scaled down. The default is 1.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions and grid spacing accordingly.
+        Only possible, if each axis length is a power of 2!
+
+        """
+        self._log.debug('Calling scale_down')
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
+        a_new = self.a * 2 ** n
+        field_new = self.field
+        for t in range(n):
+            # Pad if necessary:
+            dim = field_new.shape[1:]
+            pz, py, px = dim[0] % 2, dim[1] % 2, dim[2] % 2
+            if pz != 0 or py != 0 or px != 0:
+                field_new = np.pad(field_new, ((0, 0), (0, pz), (0, py), (0, px)), mode='constant')
+            # Create coarser grid for the vector field:
+            shape_4d = (3, dim[0] // 2, 2, dim[1] // 2, 2, dim[2] // 2, 2)
+            field_new = field_new.reshape(shape_4d).mean(axis=(6, 4, 2))
+        return VectorData(a_new, field_new)
+
+    def scale_up(self, n=1, order=0):
+        """Scale up the field distribution using spline interpolation of the requested order.
+
+        Parameters
+        ----------
+        n : int, optional
+            Power of 2 with which the grid is scaled. Default is 1, which means every axis is
+            increased by a factor of ``2**1 = 2``.
+        order : int, optional
+            The order of the spline interpolation, which has to be in the range between 0 and 5
+            and defaults to 0.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions and grid spacing accordingly.
+        """
+        self._log.debug('Calling scale_up')
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
+        assert 5 > order >= 0 and isinstance(order, int), \
+            'order must be a positive integer between 0 and 5!'
+        a_new = self.a / 2 ** n
+        field_new = np.array((zoom(self.field[0], zoom=2 ** n, order=order),
+                              zoom(self.field[1], zoom=2 ** n, order=order),
+                              zoom(self.field[2], zoom=2 ** n, order=order)))
+        return VectorData(a_new, field_new)
+
+    def pad(self, pad_values):
+        """Pad the current field distribution with zeros for each individual axis.
+
+        Parameters
+        ----------
+        pad_values : tuple of int
+            Number of zeros which should be padded. Provided as a tuple where each entry
+            corresponds to an axis. An entry can be one int (same padding for both sides) or again
+            a tuple which specifies the pad values for both sides of the corresponding axis.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions accordingly.
+        """
+        self._log.debug('Calling pad')
+        assert len(pad_values) == 3, 'Pad values for each dimension have to be provided!'
+        pv = np.zeros(6, dtype=np.int)
+        for i, values in enumerate(pad_values):
+            assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
+            pv[2 * i:2 * (i + 1)] = values
+        field_pad = np.pad(self.field, ((0, 0), (pv[0], pv[1]), (pv[2], pv[3]), (pv[4], pv[5])),
+                           mode='constant')
+        return VectorData(self.a, field_pad)
+
+    def crop(self, crop_values):  # TODO: bad copy&paste from pad?
+        """Crop the current field distribution with zeros for each individual axis.
+
+        Parameters
+        ----------
+        crop_values : tuple of int
+            Number of zeros which should be cropped. Provided as a tuple where each entry
+            corresponds to an axis. An entry can be one int (same cropping for both sides) or again
+            a tuple which specifies the crop values for both sides of the corresponding axis.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions accordingly.
+        """
+        self._log.debug('Calling crop')
+        assert len(crop_values) == 3, 'Crop values for each dimension have to be provided!'
+        cv = np.zeros(6, dtype=np.int)
+        for i, values in enumerate(crop_values):
+            assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
+            cv[2 * i:2 * (i + 1)] = values
+        cv *= np.resize([1, -1], len(cv))
+        cv = np.where(cv == 0, None, cv)
+        field_crop = self.field[:, cv[0]:cv[1], cv[2]:cv[3], cv[4]:cv[5]]
+        return VectorData(self.a, field_crop)
+
     def flip(self, axis='x'):
         """Flip/mirror the vector field around the specified axis.
 
@@ -659,6 +668,17 @@ class VectorData(FieldData):
             raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
         return VectorData(self.a, field_flip)
 
+    def rotate(self, angle, axis='z', reshape=False, **kwargs):
+        # TODO: Docstring!
+        # Define axes of rotation plane (axis 0 for vector component!) and rotate coord. system:
+        axes = {'x': (1, 2), 'y': (1, 3), 'z': (2, 3)}[axis]
+        field_coord_rot = rotate(self.field, angle, axes=axes, reshape=reshape, **kwargs)
+        # Rotate vectors inside the voxels (- signs determined by scipy rotate axes in firt step):
+        vec_dict = {'x': (-1, 0, 0), 'y': (0, 1, 0), 'z': (0, 0, -1)}
+        quat = Quaternion.from_axisangle(vec_dict[axis], np.deg2rad(angle))
+        field_rot = quat.matrix.dot(field_coord_rot.reshape(3, -1)).reshape(field_coord_rot.shape)
+        return VectorData(self.a, field_rot)
+
     def rot90(self, axis='x'):
         """Rotate the vector field 90° around the specified axis (right hand rotation).
 
@@ -674,27 +694,64 @@ class VectorData(FieldData):
 
         """
         self._log.debug('Calling rot90')
-        if axis == 'x':
+        if axis == 'x':  # RotMatrix for 90°: [[1, 0, 0], [0, 0, -1], [0, 1, 0]]
             field_rot = np.zeros((3, self.dim[1], self.dim[0], self.dim[2]))
             for i in range(self.dim[2]):
                 mag_x, mag_y, mag_z = self.field[:, :, :, i]
-                mag_xrot, mag_yrot, mag_zrot = np.rot90(mag_x), np.rot90(mag_y), np.rot90(mag_z)
-                field_rot[:, :, :, i] = np.array((mag_xrot, mag_zrot, -mag_yrot))
-        elif axis == 'y':
+                mag_xrot = np.rot90(mag_x)
+                mag_yrot = np.rot90(mag_z)
+                mag_zrot = -np.rot90(mag_y)
+                field_rot[:, :, :, i] = np.array((mag_xrot, mag_yrot, mag_zrot))
+        elif axis == 'y':  # RotMatrix for 90°: [[0, 0, 1], [0, 1, 0], [-1, 0, 0]]
             field_rot = np.zeros((3, self.dim[2], self.dim[1], self.dim[0]))
             for i in range(self.dim[1]):
                 mag_x, mag_y, mag_z = self.field[:, :, i, :]
-                mag_xrot, mag_yrot, mag_zrot = np.rot90(mag_x), np.rot90(mag_y), np.rot90(mag_z)
-                field_rot[:, :, i, :] = np.array((mag_zrot, mag_yrot, -mag_xrot))
-        elif axis == 'z':
+                mag_xrot = np.rot90(mag_z)
+                mag_yrot = np.rot90(mag_y)
+                mag_zrot = -np.rot90(mag_x)
+                field_rot[:, :, i, :] = np.array((mag_xrot, mag_yrot, mag_zrot))
+        elif axis == 'z':  # RotMatrix for 90°: [[0, -1, 0], [1, 0, 0], [0, 0, 1]]
             field_rot = np.zeros((3, self.dim[0], self.dim[2], self.dim[1]))
             for i in range(self.dim[0]):
                 mag_x, mag_y, mag_z = self.field[:, i, :, :]
-                mag_xrot, mag_yrot, mag_zrot = np.rot90(mag_x), np.rot90(mag_y), np.rot90(mag_z)
-                field_rot[:, i, :, :] = np.array((mag_yrot, -mag_xrot, mag_zrot))
+                mag_xrot = np.rot90(mag_y)
+                mag_yrot = -np.rot90(mag_x)
+                mag_zrot = np.rot90(mag_z)
+                field_rot[:, i, :, :] = np.array((mag_xrot, mag_yrot, mag_zrot))
         else:
             raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
         return VectorData(self.a, field_rot)
+
+    def roll(self, shift, axis='x'):  # TODO: Make sure both classes have all manipulator methods!
+        """Rotate the scalar field 90° around the specified axis (right hand rotation).
+
+                Parameters
+                ----------
+                axis: {'x', 'y', 'z'}, optional
+                    The axis around which the vector field is rotated.
+
+                Returns
+                -------
+                scalardata_rot: :class:`~.ScalarData`
+                   A rotated copy of the :class:`~.ScalarData` object.
+
+                """
+        self._log.debug('Calling roll')
+        ax = {'x': 2, 'y': 1, 'z': 0}[axis]
+        mag_x_roll = np.roll(self.field[0, ...], shift, ax)
+        mag_y_roll = np.roll(self.field[1, ...], shift, ax)
+        mag_z_roll = np.roll(self.field[2, ...], shift, ax)
+        return VectorData(self.a, np.asarray((mag_x_roll, mag_y_roll, mag_z_roll)))
+
+    def clip_amp(self, threshold):
+        # TODO: Docstring!
+        # TODO: 'mag' should be 'vec' everywhere!!!
+        mag_x, mag_y, mag_z = self.field
+        scaling = np.where(self.field_amp > threshold, threshold/self.field_amp, 1)
+        mag_x = mag_x * scaling
+        mag_y = mag_y * scaling
+        mag_z = mag_z * scaling
+        return VectorData(self.a, np.asarray((mag_x, mag_y, mag_z)))
 
     def get_slice(self, ax_slice=None, proj_axis='z'):
         # TODO: return x y z instead of u v w (to color fields consistent with xyz!)
@@ -1363,63 +1420,6 @@ class ScalarData(FieldData):
             'Vector has to match field shape! {} {}'.format(c_vec.shape, np.prod(self.shape))
         self.field = c_vec.reshape(self.dim)
 
-    def scale_down(self, n=1):
-        """Scale down the field distribution by averaging over two pixels along each axis.
-
-        Parameters
-        ----------
-        n : int, optional
-            Number of times the field distribution is scaled down. The default is 1.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Acts in place and changes dimensions and grid spacing accordingly.
-        Only possible, if each axis length is a power of 2!
-
-        """
-        self._log.debug('Calling scale_down')
-        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
-        self.a *= 2 ** n
-        for t in range(n):
-            # Pad if necessary:
-            pz, py, px = self.dim[0] % 2, self.dim[1] % 2, self.dim[2] % 2
-            if pz != 0 or py != 0 or px != 0:
-                self.field = np.pad(self.field, ((0, pz), (0, py), (0, px)), mode='constant')
-            # Create coarser grid for the field:
-            shape_4d = (self.dim[0] // 2, 2, self.dim[1] // 2, 2, self.dim[2] // 2, 2)
-            self.field = self.field.reshape(shape_4d).mean(axis=(5, 3, 1))
-
-    def scale_up(self, n=1, order=0):
-        """Scale up the field distribution using spline interpolation of the requested order.
-
-        Parameters
-        ----------
-        n : int, optional
-            Power of 2 with which the grid is scaled. Default is 1, which means every axis is
-            increased by a factor of ``2**1 = 2``.
-        order : int, optional
-            The order of the spline interpolation, which has to be in the range between 0 and 5
-            and defaults to 0.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Acts in place and changes dimensions and grid spacing accordingly.
-        """
-        self._log.debug('Calling scale_up')
-        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
-        assert 5 > order >= 0 and isinstance(order, int), \
-            'order must be a positive integer between 0 and 5!'
-        self.a /= 2 ** n
-        self.field = zoom(self.field, zoom=2 ** n, order=order)
-
     def get_vector(self, mask):
         """Returns the field as a vector, specified by a mask.
 
@@ -1461,6 +1461,75 @@ class ScalarData(FieldData):
         else:
             self.field_vec = vector
 
+    def scale_down(self, n=1):
+        """Scale down the field distribution by averaging over two pixels along each axis.
+
+        Parameters
+        ----------
+        n : int, optional
+            Number of times the field distribution is scaled down. The default is 1.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions and grid spacing accordingly.
+        Only possible, if each axis length is a power of 2!
+
+        """
+        self._log.debug('Calling scale_down')
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
+        a_new = self.a * 2 ** n
+        field_new = self.field
+        for t in range(n):
+            # Pad if necessary:
+            dim = field_new.shape
+            pz, py, px = dim[0] % 2, dim[1] % 2, dim[2] % 2
+            if pz != 0 or py != 0 or px != 0:
+                field_new = np.pad(field_new, ((0, pz), (0, py), (0, px)), mode='constant')
+            # Create coarser grid for the field:
+            shape_3d = (dim[0] // 2, 2, dim[1] // 2, 2, dim[2] // 2, 2)
+            field_new = field_new.reshape(shape_3d).mean(axis=(5, 3, 1))
+        return ScalarData(a_new, field_new)
+
+    def scale_up(self, n=1, order=0):
+        """Scale up the field distribution using spline interpolation of the requested order.
+
+        Parameters
+        ----------
+        n : int, optional
+            Power of 2 with which the grid is scaled. Default is 1, which means every axis is
+            increased by a factor of ``2**1 = 2``.
+        order : int, optional
+            The order of the spline interpolation, which has to be in the range between 0 and 5
+            and defaults to 0.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions and grid spacing accordingly.
+        """
+        self._log.debug('Calling scale_up')
+        assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
+        assert 5 > order >= 0 and isinstance(order, int), \
+            'order must be a positive integer between 0 and 5!'
+        a_new = self.a / 2 ** n
+        field_new = zoom(self.field, zoom=2 ** n, order=order)
+        return ScalarData(a_new, field_new)
+
+    # TODO: flip!
+
+    def rotate(self, angle, axis='z', reshape=False, **kwargs):
+        # TODO: Docstring!
+        axes = {'x': (0, 1), 'y': (0, 2), 'z': (1, 2)}[axis]  # Defines axes of plane of rotation!
+        field_rot = rotate(self.field[...], angle, axes=axes, reshape=reshape, **kwargs)
+        return ScalarData(self.a, field_rot)
+
     def rot90(self, axis='x'):
         """Rotate the scalar field 90° around the specified axis (right hand rotation).
 
@@ -1491,6 +1560,24 @@ class ScalarData(FieldData):
         else:
             raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
         return ScalarData(self.a, field_rot)
+
+    def roll(self, shift, axis='x'):  # TODO: Make sure both classes have all manipulator methods!
+        """Rotate the scalar field 90° around the specified axis (right hand rotation).
+
+                Parameters
+                ----------
+                axis: {'x', 'y', 'z'}, optional
+                    The axis around which the vector field is rotated.
+
+                Returns
+                -------
+                scalardata_rot: :class:`~.ScalarData`
+                   A rotated copy of the :class:`~.ScalarData` object.
+
+                """
+        self._log.debug('Calling roll')
+        ax = {'x': 2, 'y': 1, 'z': 0}[axis]
+        return ScalarData(self.a, np.roll(self.field, shift, ax))
 
     def to_signal(self):
         """Convert :class:`~.ScalarData` data into a HyperSpy signal.

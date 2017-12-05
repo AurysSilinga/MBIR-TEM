@@ -411,6 +411,12 @@ class RotTiltProjector(Projector):
         self._log.debug('Calling __init__')
         self.rotation = rotation
         self.tilt = tilt
+        # Create tilt, rotation and combined quaternion, careful: Quaternion(w,x,y,z), not (z,y,x):
+        quat_z_n = Quaternion.from_axisangle((0, 0, 1), -rotation)  # Rotate around z-axis
+        quat_x = Quaternion.from_axisangle((1, 0, 0), tilt)  # Tilt around x-axis
+        quat_z_p = Quaternion.from_axisangle((0, 0, 1), rotation)  # Rotate around z-axis
+        # Combined quaternion (first rotate around z, then tilt around x, rotate back around z):
+        quat = quat_z_n * quat_x * quat_z_p  # p: positive rotation, m: negative rotation
         # Determine dimensions:
         dim_z, dim_y, dim_x = dim
         center = (dim_z / 2., dim_y / 2., dim_x / 2.)
@@ -421,18 +427,17 @@ class RotTiltProjector(Projector):
         dim_v, dim_u = dim_uv
         # Creating coordinate list of all voxels:
         voxels = list(itertools.product(range(dim_z), range(dim_y), range(dim_x)))
-        # Calculate vectors to voxels relative to rotation center:
-        voxel_vecs = (np.asarray(voxels) + 0.5 - np.asarray(center)).T
-        # Create tilt, rotation and combined quaternion, careful: Quaternion(w,x,y,z), not (z,y,x):
-        quat_z_n = Quaternion.from_axisangle((0, 0, 1), -rotation)  # Rotate around z-axis
-        quat_x = Quaternion.from_axisangle((1, 0, 0), tilt)  # Tilt around x-axis
-        quat_z_p = Quaternion.from_axisangle((0, 0, 1), rotation)  # Rotate around z-axis
-        # Combined quaternion (first rotate around z, then tilt around x, rotate back around z):
-        quat = quat_z_n * quat_x * quat_z_p  # p: positive rotation, m: negative rotation
-        # Calculate impact positions on the projected pixel coordinate grid (flip because quat.):
-        impacts = np.flipud(quat.matrix[:2, :].dot(np.flipud(voxel_vecs)))  # only care for x/y
-        impacts[1, :] += dim_u / 2.  # Shift back to normal indices
-        impacts[0, :] += dim_v / 2.  # Shift back to normal indices
+        # Calculate vectors to voxels relative to rotation center (each row contains (z, y, x)):
+        voxel_vecs = np.asarray(voxels) + 0.5 - np.asarray(center)
+        # Change to coordinate order of quaternions (x, y, z) instead of (z, y, x):
+        voxel_vecs = np.fliplr(voxel_vecs)
+        # Calculate impact positions (x, y) on the projected pixel coordinate grid (z is dropped):
+        impacts = quat.matrix[:2, :].dot(voxel_vecs.T).T  # Only x and y row of matrix is used!
+        # Reverse transpose and change back coordinate order from (x, y) to (y, x)/(v, u):
+        impacts = np.fliplr(impacts.T)  # Now contains rows with (v, u) entries as desired!
+        # First index: voxel, second index: 0 -> v, 1 -> u!
+        impacts[:, 1] += dim_u / 2.  # Shift back to normal indices
+        impacts[:, 0] += dim_v / 2.  # Shift back to normal indices
         # Calculate equivalence radius:
         R = (3 / (4 * np.pi)) ** (1 / 3.)
         # Prepare weight matrix calculation:
@@ -446,7 +451,7 @@ class RotTiltProjector(Projector):
         for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False,
                                        desc='Set up projector')):
             column_index = voxel[0] * dim_y * dim_x + voxel[1] * dim_x + voxel[2]
-            remainder, impact = np.modf(impacts[:, i])  # split index of impact and remainder!
+            remainder, impact = np.modf(impacts[i, :])  # split index of impact and remainder!
             sub_pixel = (remainder * subcount).astype(dtype=np.int)  # sub_pixel inside impact px.
             # Go over all influenced pixels (impact and neighbours, indices are [0, 1, 2]!):
             for px_ind in list(itertools.product(range(3), range(3))):

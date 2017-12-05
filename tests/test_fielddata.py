@@ -29,20 +29,20 @@ class TestCaseVectorData(unittest.TestCase):
         assert magdata_copy != self.magdata, 'Unexpected behaviour in copy()!'
 
     def test_scale_down(self):
-        self.magdata.scale_down()
+        magdata_test = self.magdata.scale_down()
         reference = 1 / 8. * np.ones((3, 2, 2, 2))
-        assert_allclose(self.magdata.field, reference,
+        assert_allclose(magdata_test.field, reference,
                         err_msg='Unexpected behavior in scale_down()!')
-        assert_allclose(self.magdata.a, 20,
+        assert_allclose(magdata_test.a, 20,
                         err_msg='Unexpected behavior in scale_down()!')
 
     def test_scale_up(self):
-        self.magdata.scale_up()
+        magdata_test = self.magdata.scale_up()
         reference = np.zeros((3, 8, 8, 8))
         reference[:, 2:6, 2:6, 2:6] = 1
-        assert_allclose(self.magdata.field, reference,
+        assert_allclose(magdata_test.field, reference,
                         err_msg='Unexpected behavior in scale_down()!')
-        assert_allclose(self.magdata.a, 5,
+        assert_allclose(magdata_test.a, 5,
                         err_msg='Unexpected behavior in scale_down()!')
 
     def test_pad(self):

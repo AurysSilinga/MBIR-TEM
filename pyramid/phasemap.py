@@ -262,6 +262,8 @@ class PhaseMap(object):
         return PhaseMap(self.a, self.phase.copy(), self.mask.copy(),
                         self.confidence.copy())
 
+    # TODO: ALL NOT IN PLACE!!!
+
     def scale_down(self, n=1):
         """Scale down the phase map by averaging over two pixels along each axis.
 
@@ -671,10 +673,14 @@ class PhaseMap(object):
         if symmetric:
             vmin, vmax = np.min([vmin, -0]), np.max([0, vmax])  # Ensure zero is present!
             limit = np.max(np.abs([vmin, vmax]))
-            start = (vmin + limit) / (2 * limit)
-            end = (vmax + limit) / (2 * limit)
+            # A symmetric colormap only has zero at white (the symmetry point) if the values
+            # of the corresponding mappable go from -limit to +limit (symmetric bounds)!
+            # Calculate the colors of this symmetric colormap for the range vmin to vmax:
+            start = 0.5 + vmin/(2*limit)  # 0 for symmetric bounds, >0: unused colors at lower end!
+            end = 0.5 + vmax/(2*limit)  # 1 for symmetric bounds, <1: unused colors at upper end!
             cmap_colors = cmap(np.linspace(start, end, 256))
-            cmap = LinearSegmentedColormap.from_list('Symmetric', cmap_colors)
+            # Use calculated colors to create custom (asymmetric) colormap with white at zero:
+            cmap = LinearSegmentedColormap.from_list('custom', cmap_colors)
         # If no axis is specified, a new figure is created:
         if axis is None:
             fig = plt.figure(figsize=figsize)
@@ -878,11 +884,14 @@ class PhaseMap(object):
         # Plot histogram:
         hist_axis = fig.add_subplot(1, 2, 1)
         vec = self.phase_vec * self.UNITDICT[unit]  # Take units into consideration:
+        # TODO: This is bad! Discard low confidence values completely instead! Otherwise peak at 0!
+        # TODO: Set to nan and then discard with np.isnan()?
         vec *= np.where(self.confidence > 0.5, 1, 0).ravel()  # Discard low confidence points!
         hist_axis.hist(vec, bins=bins, histtype='stepfilled', color='g')
         # Format histogram:
         x0, x1 = hist_axis.get_xlim()
         y0, y1 = hist_axis.get_ylim()
+        # TODO: Why the next line? Seems bad if you want to change things later´!
         hist_axis.set(aspect=np.abs(x1 - x0) / np.abs(y1 - y0) * 0.94)  # Last value because cbar!
         fontsize = kwargs.get('fontsize', 16)
         hist_axis.tick_params(axis='both', which='major', labelsize=fontsize)

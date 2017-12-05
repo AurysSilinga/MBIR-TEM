@@ -64,10 +64,17 @@ class Quaternion(object):
         self._log.debug('Calling __mul__')
         if isinstance(other, Quaternion):  # Quaternion multiplication
             return self.dot_quat(self, other)
-        elif len(other) == 3:  # vector multiplication
+        elif len(other) == 3:  # vector multiplication (Caution: normalises!)
             q_vec = Quaternion((0,) + tuple(other))
             q = self.dot_quat(self.dot_quat(self, q_vec), self.conj)
             return q.values[1:]
+
+    def _normalize(self):
+        self._log.debug('Calling _normalize')
+        mag2 = np.sum(n ** 2 for n in self.values)
+        if abs(mag2 - 1.0) > self.NORM_TOLERANCE:
+            mag = np.sqrt(mag2)
+            self.values = tuple(n / mag for n in self.values)
 
     def dot_quat(self, q1, q2):
         """Multiply two :class:`~.Quaternion` objects to create a new one (always normalized).
@@ -91,13 +98,6 @@ class Quaternion(object):
         y = w1 * y2 + y1 * w2 + z1 * x2 - x1 * z2
         z = w1 * z2 + z1 * w2 + x1 * y2 - y1 * x2
         return Quaternion((w, x, y, z))
-
-    def _normalize(self):
-        self._log.debug('Calling _normalize')
-        mag2 = np.sum(n ** 2 for n in self.values)
-        if abs(mag2 - 1.0) > self.NORM_TOLERANCE:
-            mag = np.sqrt(mag2)
-            self.values = tuple(n / mag for n in self.values)
 
     @classmethod
     def from_axisangle(cls, vector, theta):

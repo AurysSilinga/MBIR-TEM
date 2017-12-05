@@ -9,6 +9,8 @@ import os
 
 import logging
 
+import pickle
+
 from pyramid.forwardmodel import ForwardModel
 from pyramid.costfunction import Costfunction
 from pyramid.regularisator import FirstOrderRegularisator
@@ -25,6 +27,14 @@ from matplotlib.colors import LogNorm
 import numpy as np
 
 import jutil
+
+try:
+    if type(get_ipython()).__name__ == 'ZMQInteractiveShell':  # IPython Notebook!
+        from tqdm import tqdm_notebook as tqdm
+    else:  # IPython, but not a Notebook (e.g. terminal)
+        from tqdm import tqdm
+except NameError:
+    from tqdm import tqdm
 
 __all__ = ['Diagnostics', 'LCurve','get_vector_field_errors']
 
@@ -143,7 +153,7 @@ class Diagnostics(object):
             self._updated_avrg_kern_row = False
             self._updated_measure_contribution = False
 
-    def __init__(self, magdata, cost, max_iter=1000, verbose=False):
+    def __init__(self, magdata, cost, max_iter=1000, verbose=False):  # TODO: verbose True default
         self._log.debug('Calling __init__')
         self.magdata = magdata
         self.cost = cost
@@ -390,7 +400,7 @@ class Diagnostics(object):
         artist = axis.add_patch(patches.Ellipse(xy, width, height, fill=False, edgecolor='w',
                                                 linewidth=2, alpha=0.5))
         artist.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
-
+        # TODO: Return axis on every plot?
 
     def plot_avrg_kern_field3d(self, pos=None, mask=True, ellipsoid=True, **kwargs):
         avrg_kern_field = self.get_avrg_kern_field(pos)
@@ -481,84 +491,101 @@ class LCurve(object):
 
     _log = logging.getLogger(__name__ + '.FieldData')
 
-    def __init__(self, fwd_model, max_iter=0, verbose=False, save_dir=None):
+    def __init__(self, fwd_model, max_iter=0, verbose=True, save_dir='lcurve'):
         self._log.debug('Calling __init__')
         assert isinstance(fwd_model, ForwardModel), 'Input has to be a costfunction'
         self.fwd_model = fwd_model
         self.max_iter = max_iter
         self.verbose = verbose
-        self.lams = []
-        self.chisq_a = []
-        self.chisq_m = []
-        if save_dir is not None:
-            assert os.path.isdir(save_dir), 'save_dir has to be None or a valid directory!'
-        self.save_dir = save_dir  # TODO: Use save_dir!!!
+        self.l_dict = {}
+        self.save_dir = save_dir
+        if self.save_dir is not None:
+            if not os.path.isdir(self.save_dir):  # Create directory if it does not exist:
+                os.makedirs(self.save_dir)
+            if os.path.isfile('{}/lcurve.pkl'.format(self.save_dir)):  # Load file if it exists:
+                self._load()
+            else:  # Create file:
+                self._save()
         self._log.debug('Created ' + str(self))
 
-    def calculate(self, lam):
+    # TODO: Methods for saving and loading l_dict's!!!
+    def _save(self):
+        with open('{}/lcurve.pkl'.format(self.save_dir), 'wb') as f:
+            pickle.dump(self.l_dict, f, pickle.HIGHEST_PROTOCOL)
+
+    def _load(self):
+        with open('{}/lcurve.pkl'.format(self.save_dir), 'rb') as f:
+            self.l_dict = pickle.load(f)
+
+    def calculate(self, lambdas, overwrite=False):
         # TODO: Docstring!
-        if lam not in self.lams:
-            # Create new regularisator: # TODO: Not hardcoding FirstOrderRegularisator!
-            reg = FirstOrderRegularisator(self.fwd_model.data_set.mask, lam,
-                                          add_params=self.fwd_model.ramp.n)
-            cost = Costfunction(fwd_model=self.fwd_model, regularisator=reg)
-            # Reconstruct:
-            magdata_rec = reconstruction.optimize_linear(cost, max_iter=self.max_iter,
-                                                         verbose=self.verbose)
-            # Save magdata_rec if necessary:
-            if self.save_dir is not None:
-                filename = 'magdata_rec_lam{:.0e}.hdf5'.format(lam)
-                magdata_rec.save(os.path.join(self.save_dir, filename), overwrite=True)
-            # Append new values:
-            self.lams.append(lam)
-            chisq_m, chisq_a = cost.chisq_m[-1], cost.chisq_a[-1]  # TODO: is chisq_m list or not?
-            self.chisq_m.append(chisq_m)
-            self.chisq_a.append(chisq_a / lam)  # TODO: lambda out of regularisator?
-            # Sort lists according to lambdas:
-            tuples = zip(*sorted(zip(self.lams, self.chisq_m, self.chisq_a)))
-            self.lams, self.chisq_m, self.chisq_a = (list(l) for l in tuples)
-            self._log.info(lam, ' -->  m:', chisq_m, '  a:', chisq_a / lam)
-            return chisq_m, chisq_a / lam
+        lams = np.atleast_1d(lambdas)
+        for lam in tqdm(lams, disable=not self.verbose):
+            if lam not in self.l_dict.keys() or overwrite:
+                # Create new regularisator and costfunction: # TODO: Not hardcoding FirstOrder!
+                # TODO: Not necessary if lambda can be extracted from regularisator? self.cost?
+                reg = FirstOrderRegularisator(self.fwd_model.data_set.mask, lam,
+                                              add_params=self.fwd_model.ramp.n)
+                cost = Costfunction(fwd_model=self.fwd_model, regularisator=reg)
+                # Reconstruct:
+                magdata_rec = reconstruction.optimize_linear(cost, max_iter=self.max_iter,
+                                                             verbose=self.verbose)
+                # Add new values to dictionary:
+                chisq_m, chisq_a = cost.chisq_m[-1], cost.chisq_a[-1]  # TODO: chisq_m list or not?
+                self.l_dict[lam] = (chisq_m, chisq_a)
+                self._log.info(lam, ' -->  m:', chisq_m, '  a:', chisq_a)
+                # Save magdata_rec and dictionary if necessary:
+                if self.save_dir is not None:
+                    filename = 'magdata_rec_lam{:.0e}.hdf5'.format(lam)
+                    magdata_rec.save(os.path.join(self.save_dir, filename), overwrite=True)
+                    self._save()
+
+    def calculate_auto(self, lam_start=1E-18, lam_end=1E5, online_axis=False):
+        raise NotImplementedError()
+        # TODO: Docstring!
+        # TODO: IMPLEMENT!!!
+        # # Calculate new cost terms:
+        # log_m_s, log_a_s = np.log10(self.calculate(lam_start))
+        # log_m_e, log_a_e = np.log10(self.calculate(lam_end))
+        # # Calculate new lambda:
+        # log_lam_s, log_lam_e = np.log10(lam_start), np.log10(lam_end)
+        # log_lam_new = np.mean((log_lam_s, log_lam_e))  # logarithmic mean to find middle on L!
+        # sign_exp = np.floor(log_lam_new)
+        # last_sign_digit = np.round(10 ** (log_lam_new - sign_exp))
+        # lam_new = last_sign_digit * 10 ** sign_exp
+        # # Calculate cost terms for new lambda:
+        # log_m_new, log_a_new = np.log10(self.calculate(lam_new))
+        # if online_axis:  # Update plot if necessary:
+        #     self.plot(axis=online_axis)
+        #     from IPython import display
+        #     display.clear_output(wait=True)
+        #     display.display(plt.gcf())
+        # # Calculate distances from origin and find new interval:
+        # dist_s, dist_e = np.hypot(log_m_s, log_a_s), np.hypot(log_m_e, log_a_e)
+        # dist_new = np.hypot(log_m_new, log_a_new)
+        # print(lam_start, lam_end, lam_new)
+        # print(dist_s, dist_e, dist_new)
+        # # if dist_new
+        # TODO: slope has to be normalised, scale of axes is not equal!!!
+        # TODO: get rid of right flank (do Not use right points with slope steeper than -45°
         # TODO: Implement else, return saved values!
         # TODO: Make this work with batch, sort lambdas at the end!
         # TODO: After sorting, calculate the CURVATURE for each lambda! (needs 3 points?)
-        # TODO: Use finite difference methods (forward/backward/central, depending on location)!
+        # TODO: Use finite difference methods (forward/backward/central, depends on location)!
         # TODO: Investigate points around highest curvature further.
         # TODO: Make sure to update ALL curvatures and search for new best EVERYWHERE!
         # TODO: Distinguish regions of the L-Curve.
 
-    def calculate_auto(self, lam_start=1E-18, lam_end=1E5, online_axis=False):
+
+    def plot(self, lambdas=None, axis=None, figsize=None):
         # TODO: Docstring!
-        # Calculate new cost terms:
-        log_m_s, log_a_s = np.log10(self.calculate(lam_start))
-        log_m_e, log_a_e = np.log10(self.calculate(lam_end))
-        # Calculate new lambda:
-        log_lam_s, log_lam_e = np.log10(lam_start), np.log10(lam_end)
-        log_lam_new = np.mean((log_lam_s, log_lam_e))  # logarithmic mean to find middle on L!
-        sign_exp = np.floor(log_lam_new)
-        last_sign_digit = np.round(10 ** (log_lam_new - sign_exp))
-        lam_new = last_sign_digit * 10 ** sign_exp
-        # Calculate cost terms for new lambda:
-        log_m_new, log_a_new = np.log10(self.calculate(lam_new))
-        if online_axis:  # Update plot if necessary:
-            self.plot(axis=online_axis)
-            from IPython import display
-            display.clear_output(wait=True)
-            display.display(plt.gcf())
-
-        # TODO: slope has to be normalised, scale of axes is not equal!!!
-        # TODO: get rid of right flank (do Not use right points with slope steeper than -45°
-        # Calculate distances from origin and find new interval:
-        dist_s, dist_e = np.hypot(log_m_s, log_a_s), np.hypot(log_m_e, log_a_e)
-        dist_new = np.hypot(log_m_new, log_a_new)
-        print(lam_start, lam_end, lam_new)
-        print(dist_s, dist_e, dist_new)
-        #if dist_new
-
-
-
-    def plot(self, axis=None, figsize=None):
-        # TODO: Docstring!
+        # Sort lists according to lambdas:
+        if lambdas is None:
+            lambdas = sorted(self.l_dict.keys())
+        x, y = [], []
+        for lam in lambdas:
+            x.append(self.l_dict[lam][0])
+            y.append(self.l_dict[lam][1] / lam)
         if figsize is None:
             figsize = plottools.FIGSIZE_DEFAULT
         if axis is None:
@@ -567,23 +594,20 @@ class LCurve(object):
             axis = fig.add_subplot(1, 1, 1)
         axis.set_yscale("log", nonposx='clip')
         axis.set_xscale("log", nonposx='clip')
-        axis.plot(self.chisq_m, self.chisq_a, 'k-', linewidth=3, zorder=1)
-        sc = axis.scatter(x=self.chisq_m, y=self.chisq_a, c=self.lams, marker='o', s=100,
-                          zorder=2, cmap='nipy_spectral', norm=LogNorm())
+        axis.plot(x, y, 'k-', linewidth=3, zorder=1)
+        sc = axis.scatter(x, y, c=lambdas, marker='o', s=100, zorder=2,
+                          cmap='nipy_spectral', norm=LogNorm())
         plt.colorbar(mappable=sc, label='regularisation parameter $\lambda$')
-        #plottools.add_cbar(axis, mappable=sc, label='regularisation parameter $\lambda$')
-        #axis.get_xaxis().get_major_formatter().labelOnlyBase = False
         axis.set_xlabel(
             r'$\Vert\mathbf{F}(\mathbf{x})-\mathbf{y}\Vert_{\mathbf{S}_{\epsilon}^{-1}}^{2}$',
             fontsize=22, labelpad=-5)
         axis.set_ylabel(r'$\frac{1}{\lambda}\Vert\mathbf{x}\Vert_{\mathbf{S}_{a}^{-1}}^{2}$',
                         fontsize=22)
-        #axis.set_xlim(3E3, 2E5)
-        #axis.set_ylim(1E2, 1E9)
         axis.xaxis.label.set_color('firebrick')
         axis.yaxis.label.set_color('seagreen')
         axis.tick_params(axis='both', which='major')
         axis.grid()
+        return axis
         # TODO: Don't plot the steep part on the right...
 
 
