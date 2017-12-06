@@ -41,20 +41,22 @@ class TestCaseVectorData(unittest.TestCase):
         reference = np.zeros((3, 8, 8, 8))
         reference[:, 2:6, 2:6, 2:6] = 1
         assert_allclose(magdata_test.field, reference,
-                        err_msg='Unexpected behavior in scale_down()!')
+                        err_msg='Unexpected behavior in scale_up()!')
         assert_allclose(magdata_test.a, 5,
-                        err_msg='Unexpected behavior in scale_down()!')
+                        err_msg='Unexpected behavior in scale_up()!')
 
     def test_pad(self):
+        magdata_test = self.magdata.pad((1, 1, 1))
         reference = self.magdata.field.copy()
-        self.magdata.pad((1, 1, 1))
         reference = np.pad(reference, ((0, 0), (1, 1), (1, 1), (1, 1)), mode='constant')
-        assert_allclose(self.magdata.field, reference,
-                        err_msg='Unexpected behavior in scale_down()!')
-        self.magdata.pad(((1, 1), (1, 1), (1, 1)))
+        assert_allclose(magdata_test.field, reference,
+                        err_msg='Unexpected behavior in pad()!')
+        magdata_test = magdata_test.pad(((1, 1), (1, 1), (1, 1)))
         reference = np.pad(reference, ((0, 0), (1, 1), (1, 1), (1, 1)), mode='constant')
-        assert_allclose(self.magdata.field, reference,
-                        err_msg='Unexpected behavior in scale_down()!')
+        assert_allclose(magdata_test.field, reference,
+                        err_msg='Unexpected behavior in pad()!')
+
+    # TODO: Crop and several others are missing!
 
     def test_get_mask(self):
         mask = self.magdata.get_mask()

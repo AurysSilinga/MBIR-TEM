@@ -543,11 +543,12 @@ class VectorData(FieldData):
         a_new = self.a * 2 ** n
         field_new = self.field
         for t in range(n):
-            # Pad if necessary:
             dim = field_new.shape[1:]
+            # Pad if necessary:
             pz, py, px = dim[0] % 2, dim[1] % 2, dim[2] % 2
             if pz != 0 or py != 0 or px != 0:
-                field_new = np.pad(field_new, ((0, 0), (0, pz), (0, py), (0, px)), mode='constant')
+                field_new = np.pad(field_new, ((0, 0), (0, pz), (0, py), (0, px)), mode='edge')
+                dim = field_new.shape[1:]  # Update dimensions!
             # Create coarser grid for the vector field:
             shape_4d = (3, dim[0] // 2, 2, dim[1] // 2, 2, dim[2] // 2, 2)
             field_new = field_new.reshape(shape_4d).mean(axis=(6, 4, 2))

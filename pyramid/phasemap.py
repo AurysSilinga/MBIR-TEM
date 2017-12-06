@@ -284,20 +284,26 @@ class PhaseMap(object):
         """
         self._log.debug('Calling scale_down')
         assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
-        self.a *= 2 ** n
+        a_new = self.a * 2 ** n
+        phase_new = self.phase
+        mask_new = self.mask
+        confidence_new = self.confidence
         for t in range(n):
+            dim_uv = phase_new.shape
             # Pad if necessary:
-            pv, pu = (0, self.dim_uv[0] % 2), (0, self.dim_uv[1] % 2)
+            pv, pu = (0, dim_uv[0] % 2), (0, dim_uv[1] % 2)
             if pv != 0 or pu != 0:
-                self.pad((pv, pu), mode='edge')
-            # Create coarser grid for the magnetization:
-            dim_uv = self.dim_uv
-            self.phase = self.phase.reshape((dim_uv[0] // 2, 2,
-                                             dim_uv[1] // 2, 2)).mean(axis=(3, 1))
-            mask = self.mask.reshape(dim_uv[0] // 2, 2, dim_uv[1] // 2, 2)
-            self.mask = mask[:, 0, :, 0] & mask[:, 1, :, 0] & mask[:, 0, :, 1] & mask[:, 1, :, 1]
-            self.confidence = self.confidence.reshape(dim_uv[0] // 2, 2,
-                                                      dim_uv[1] // 2, 2).min(axis=(3, 1))
+                phase_new = np.pad(phase_new, (pv, pu), mode='edge')
+                confidence_new = np.pad(confidence_new, (pv, pu), mode='edge')
+                mask_new = np.pad(mask_new, (pv, pu), mode='edge')
+                dim_uv = phase_new.shape  # Update dimensions!
+            # Create coarser grid for the phase image:
+            phase_new = phase_new.reshape((dim_uv[0] // 2, 2, dim_uv[1] // 2, 2)).mean(axis=(3, 1))
+            mask = mask_new.reshape(dim_uv[0] // 2, 2, dim_uv[1] // 2, 2)
+            mask_new = mask[:, 0, :, 0] & mask[:, 1, :, 0] & mask[:, 0, :, 1] & mask[:, 1, :, 1]
+            confidence_new = confidence_new.reshape(dim_uv[0] // 2, 2,
+                                                    dim_uv[1] // 2, 2).min(axis=(3, 1))
+        return PhaseMap(a_new, phase_new, mask_new, confidence_new)
 
     def scale_up(self, n=1, order=0):
         """Scale up the phase map using spline interpolation of the requested order.
@@ -324,12 +330,13 @@ class PhaseMap(object):
         assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
         assert 5 > order >= 0 and isinstance(order, int), \
             'order must be a positive integer between 0 and 5!'
-        self.a /= 2 ** n
-        self.phase = ndimage.zoom(self.phase, zoom=2 ** n, order=order)
-        self.mask = ndimage.zoom(self.mask, zoom=2 ** n, order=0)
-        self.confidence = ndimage.zoom(self.confidence, zoom=2 ** n, order=order)
+        a_new = self.a / 2 ** n
+        phase_new = ndimage.zoom(self.phase, zoom=2 ** n, order=order)
+        mask_new = ndimage.zoom(self.mask, zoom=2 ** n, order=0)
+        confidence_new = ndimage.zoom(self.confidence, zoom=2 ** n, order=order)
+        return PhaseMap(a_new, phase_new, mask_new, confidence_new)
 
-    def pad(self, pad_values, mode='constant', masked=False, **kwds):
+    def pad(self, pad_values, mode='constant', masked=False, **kwargs):
         """Pad the current phase map with zeros for each individual axis.
 
         Parameters
@@ -361,15 +368,16 @@ class PhaseMap(object):
         for i, values in enumerate(pad_values):
             assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
             pval[2 * i:2 * (i + 1)] = values
-        self.phase = np.pad(self.phase, ((pval[0], pval[1]),
-                                         (pval[2], pval[3])), mode=mode, **kwds)
-        self.confidence = np.pad(self.confidence, ((pval[0], pval[1]),
-                                                   (pval[2], pval[3])), mode=mode, **kwds)
+        phase_pad = np.pad(self.phase, ((pval[0], pval[1]), (pval[2], pval[3])),
+                           mode=mode, **kwargs)
+        confidence_pad = np.pad(self.confidence, ((pval[0], pval[1]), (pval[2], pval[3])),
+                                mode=mode, **kwargs)
         if masked:
             mask_kwds = {'mode': 'constant', 'constant_values': True}
         else:
             mask_kwds = {'mode': mode}
-        self.mask = np.pad(self.mask, ((pval[0], pval[1]), (pval[2], pval[3])), **mask_kwds)
+        mask_pad = np.pad(self.mask, ((pval[0], pval[1]), (pval[2], pval[3])), **mask_kwds)
+        return PhaseMap(self.a, phase_pad, mask_pad, confidence_pad)
 
     def crop(self, crop_values):
         """Pad the current phase map with zeros for each individual axis.
@@ -398,9 +406,10 @@ class PhaseMap(object):
             cv[2 * i:2 * (i + 1)] = values
         cv *= np.resize([1, -1], len(cv))
         cv = np.where(cv == 0, None, cv)
-        self.phase = self.phase[cv[0]:cv[1], cv[2]:cv[3]]
-        self.mask = self.mask[cv[0]:cv[1], cv[2]:cv[3]]
-        self.confidence = self.confidence[cv[0]:cv[1], cv[2]:cv[3]]
+        phase_crop = self.phase[cv[0]:cv[1], cv[2]:cv[3]]
+        mask_crop = self.mask[cv[0]:cv[1], cv[2]:cv[3]]
+        confidence_crop = self.confidence[cv[0]:cv[1], cv[2]:cv[3]]
+        return PhaseMap(self.a, phase_crop, mask_crop, confidence_crop)
 
     def flip(self, axis='u'):
         """Flip/mirror the phase map around the specified axis.

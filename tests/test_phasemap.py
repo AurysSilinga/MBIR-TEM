@@ -31,28 +31,28 @@ class TestCasePhaseMap(unittest.TestCase):
         assert phasemap_copy != self.phasemap, 'Unexpected behaviour in copy()!'
 
     def test_scale_down(self):
-        self.phasemap.scale_down()
+        phasemap_test = self.phasemap.scale_down()
         reference = 1 / 4. * np.ones((2, 2))
-        assert_allclose(self.phasemap.phase, reference,
+        assert_allclose(phasemap_test.phase, reference,
                         err_msg='Unexpected behavior in scale_down()!')
-        assert_allclose(self.phasemap.mask, np.zeros((2, 2), dtype=np.bool),
+        assert_allclose(phasemap_test.mask, np.zeros((2, 2), dtype=np.bool),
                         err_msg='Unexpected behavior in scale_down()!')
-        assert_allclose(self.phasemap.confidence, np.ones((2, 2)),
+        assert_allclose(phasemap_test.confidence, np.ones((2, 2)),
                         err_msg='Unexpected behavior in scale_down()!')
-        assert_allclose(self.phasemap.a, 20,
+        assert_allclose(phasemap_test.a, 20,
                         err_msg='Unexpected behavior in scale_down()!')
 
     def test_scale_up(self):
-        self.phasemap.scale_up()
+        phasemap_test = self.phasemap.scale_up()
         reference = np.zeros((8, 8))
         reference[2:-2, 2:-2] = 1
-        assert_allclose(self.phasemap.phase, reference,
+        assert_allclose(phasemap_test.phase, reference,
                         err_msg='Unexpected behavior in scale_up()!')
-        assert_allclose(self.phasemap.mask, reference.astype(dtype=np.bool),
+        assert_allclose(phasemap_test.mask, reference.astype(dtype=np.bool),
                         err_msg='Unexpected behavior in scale_up()!')
-        assert_allclose(self.phasemap.confidence, np.ones((8, 8)),
+        assert_allclose(phasemap_test.confidence, np.ones((8, 8)),
                         err_msg='Unexpected behavior in scale_up()!')
-        assert_allclose(self.phasemap.a, 5,
+        assert_allclose(phasemap_test.a, 5,
                         err_msg='Unexpected behavior in scale_up()!')
 
     def test_load_from_txt(self):
