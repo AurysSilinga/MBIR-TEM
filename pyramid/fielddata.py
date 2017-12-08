@@ -669,12 +669,13 @@ class VectorData(FieldData):
             raise ValueError("Wrong input! 'x', 'y', 'z' allowed!")
         return VectorData(self.a, field_flip)
 
-    def rotate(self, angle, axis='z', reshape=False, **kwargs):
+    def rotate(self, angle, axis='z', reshape=False, order=1, **kwargs):
         # TODO: Docstring!
         # Define axes of rotation plane (axis 0 for vector component!) and rotate coord. system:
         axes = {'x': (1, 2), 'y': (1, 3), 'z': (2, 3)}[axis]
-        field_coord_rot = rotate(self.field, angle, axes=axes, reshape=reshape, **kwargs)
-        # Rotate vectors inside the voxels (- signs determined by scipy rotate axes in firt step):
+        field_coord_rot = rotate(self.field, angle, axes=axes, reshape=reshape,
+                                 order=order, **kwargs)
+        # Rotate vectors inside the voxels (- signs determined by scipy rotate axes in first step):
         vec_dict = {'x': (-1, 0, 0), 'y': (0, 1, 0), 'z': (0, 0, -1)}
         quat = Quaternion.from_axisangle(vec_dict[axis], np.deg2rad(angle))
         field_rot = quat.matrix.dot(field_coord_rot.reshape(3, -1)).reshape(field_coord_rot.shape)
