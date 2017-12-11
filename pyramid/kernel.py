@@ -183,7 +183,7 @@ class KernelCharge(object):
     v_acc : float, optional
         The acceleration voltage of the electron microscope in V. The default is 300000.
     electrode_vec : tuple of float (N=2)
-        The norm vector of the counter electrode, (elec_a,elec_b), and the distance to the origin is
+        The norm vector of the counter electrode in pixels, (elec_a,elec_b), and the distance to the origin is
         the norm of (elec_a,elec_b).
     dim_uv : tuple of int (N=2), optional
         Dimensions of the 2-dimensional electrostatic charge grid from which the phase should
@@ -240,7 +240,7 @@ class KernelCharge(object):
         self.slice_c = (slice(0, dim_uv[0]),  # Charge is padded on the far end!
                         slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
         # Calculate kernel (single pixel phase):
-        coeff = C_e * Q_E / (4 * np.pi * EPS_0)  # Minus is gone because of negative z-direction
+        coeff = a * C_e * Q_E / (4 * np.pi * EPS_0)  # Minus is gone because of negative z-direction
         v_dim, u_dim = dim_uv
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)
@@ -276,7 +276,7 @@ class KernelCharge(object):
         r1 = np.sqrt(n ** 2 + m ** 2)
         r2 = np.sqrt((n - u_img) ** 2 + (m - v_img) ** 2)
         # The square height when  the path come across the sphere
-        R = a / 2  # the radius of the pixel
+        R = 1. / 2  # the radius of the pixel
         h1 = R ** 2 - r1 ** 2
         h2 = R ** 2 - r2 ** 2
         # Phase calculation in 3 different cases
