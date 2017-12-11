@@ -8,8 +8,8 @@ desktop.ini
 
 *.egg-info
 
-.DS_Store
+*.DS_Store
 
-.DS
+*.DS
 
-.ipynb_checkpoints*
+*.ipynb_checkpoints*
