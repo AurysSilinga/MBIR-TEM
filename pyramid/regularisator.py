@@ -18,7 +18,7 @@ __all__ = ['NoneRegularisator', 'ZeroOrderRegularisator', 'FirstOrderRegularisat
            'ComboRegularisator']
 
 
-class Regularisator(object, metaclass=abc.ABCMeta):  # TODO: Does this have to be abstract??
+class Regularisator(object):
     """Class for providing a regularisation term which implements additional constraints.
 
     Represents a certain constraint for the 3D magnetization distribution whose cost is to minimize
@@ -42,7 +42,6 @@ class Regularisator(object, metaclass=abc.ABCMeta):  # TODO: Does this have to b
 
     _log = logging.getLogger(__name__ + '.Regularisator')
 
-    @abc.abstractmethod
     def __init__(self, norm, lam, add_params=0):
         self._log.debug('Calling __init__')
         self.norm = norm

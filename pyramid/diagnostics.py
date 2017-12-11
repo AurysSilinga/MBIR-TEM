@@ -576,7 +576,6 @@ class LCurve(object):
         # TODO: Make sure to update ALL curvatures and search for new best EVERYWHERE!
         # TODO: Distinguish regions of the L-Curve.
 
-
     def plot(self, lambdas=None, axis=None, figsize=None):
         # TODO: Docstring!
         # Sort lists according to lambdas:
