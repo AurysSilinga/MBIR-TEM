@@ -183,7 +183,7 @@ class KernelCharge(object):
     v_acc : float, optional
         The acceleration voltage of the electron microscope in V. The default is 300000.
     electrode_vec : tuple of float (N=2)
-        The norm vector of the counter electrode, (elec_a,elec_b), and the distance to the origin is
+        The norm vector of the counter electrode in pixels, (elec_a,elec_b), and the distance to the origin is
         the norm of (elec_a,elec_b).
     dim_uv : tuple of int (N=2), optional
         Dimensions of the 2-dimensional electrostatic charge grid from which the phase should
