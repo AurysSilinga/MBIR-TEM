@@ -365,28 +365,41 @@ class DistributedForwardModel(ForwardModel):
         All ramp parameters have to be at the end of the input vector and are split automatically.
         Default is None (no ramps are added).
     nprocs: int
-        Number of processes which should be created. Default is 1 (not recommended).
+        Number of processes which should be created. Default is 1 (not recommended). # TODO: <<<!!!
 
     """
 
-    def __init__(self, data_set, ramp_order=None, nprocs=1):
+    _log = mp.log_to_stderr()
+
+    def __init__(self, data_set, ramp_order=None, nprocs='auto'):
         # Evoke super constructor to set up the normal ForwardModel:
         super().__init__(data_set, ramp_order)
         # Initialize multirocessing specific stuff:
+        if nprocs == 'auto':
+            nprocs = mp.cpu_count() - 2  # Use two cores less to reserve cpu for the system.
         self.nprocs = nprocs
-        img_per_proc = np.ceil(self.data_set.count / self.nprocs).astype(np.int)
-        hp = self.data_set.hook_points
-        self.proc_hook_points = [0]
         self.pipes = []
         self.processes = []
-        print('NPROCS:', self.nprocs)    # TODO: Logging instead of printing!
+        self.proc_hook_points = [0]  # Hook points of the processes in the output vector
+        hp = self.data_set.hook_points  # Hook points of the images in the output vector
+        # Calculate the best distribution of images to the processes:
+        proc_img_range = []
+        n = self.data_set.count // nprocs  # min items per process
+        r = self.data_set.count % nprocs  # remainder items
+        start, stop = 0, n + (r != 0)
         for proc_id in range(self.nprocs):
+            proc_img_range.append((start, stop))
+            if r > 0:  # use up remainder:
+                r -= 1
+            start = stop
+            stop = stop + n + (r != 0)
+        # Set up the workers:
+        self._log.info('Creating {} processes'.format(self.nprocs))
+        for proc_id, (start, stop) in enumerate(proc_img_range):
             # Create SubDataSets:
             sub_data = DataSet(self.data_set.a, self.data_set.dim, self.data_set.b_0,
-                               self.data_set.mask, self.data_set.Se_inv)
+                               self.data_set.mask, Se_inv=None)  # Se_inv is set later!
             # Distribute data to SubDataSets:
-            start = proc_id * img_per_proc
-            stop = np.min(((proc_id + 1) * img_per_proc, self.data_set.count))
             self.proc_hook_points.append(hp[stop])
             phasemaps = self.data_set.phasemaps[start:stop]
             projectors = self.data_set.projectors[start:stop]
@@ -396,7 +409,7 @@ class DistributedForwardModel(ForwardModel):
             # Create communication pipe:
             self.pipes.append(mp.Pipe())
             # Create process:
-            p = mp.Process(name='Worker {}'.format(proc_id), target=_worker,
+            p = mp.Process(name='Worker {}'.format(proc_id), target=self._worker,
                            args=(sub_fwd_model, self.pipes[proc_id][1]))
             self.processes.append(p)
             # Start process:
@@ -422,6 +435,13 @@ class DistributedForwardModel(ForwardModel):
             result[php[proc_id]:php[proc_id + 1]] += self.pipes[proc_id][0].recv()
         # Return result:
         return result
+
+    def _worker(self, fwd_model, pipe):
+        for method, arguments in iter(pipe.recv, 'STOP'):
+            sys.stdout.flush()
+            result = getattr(fwd_model, method)(*arguments)
+            pipe.send(result)
+        sys.stdout.flush()
 
     def jac_dot(self, x, vector):
         """Calculate the product of the Jacobi matrix with a given `vector`.
@@ -511,17 +531,3 @@ class DistributedForwardModel(ForwardModel):
         # Exit the completed processes:
         for p in self.processes:
             p.join()
-
-
-def _worker(fwd_model, pipe):
-    # Has to be directly accessible in the module as a function, NOT a method of a class instance!
-    # TODO: Logging instead of printing!
-    print('... {} starting!'.format(mp.current_process().name))
-    sys.stdout.flush()
-    for method, arguments in iter(pipe.recv, 'STOP'):
-        # '... {} processes method {}'.format(mp.current_process().name, method)
-        sys.stdout.flush()
-        result = getattr(fwd_model, method)(*arguments)
-        pipe.send(result)
-    print('... ', mp.current_process().name, 'exiting!')
-    sys.stdout.flush()

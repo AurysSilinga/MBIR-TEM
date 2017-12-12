@@ -14,8 +14,8 @@ from scipy import sparse
 import jutil.diff as jdiff
 import jutil.norms as jnorm
 
-__all__ = ['NoneRegularisator', 'ZeroOrderRegularisator', 'FirstOrderRegularisator',
-           'ComboRegularisator']
+__all__ = ['Regularisator', 'NoneRegularisator', 'ZeroOrderRegularisator',
+           'FirstOrderRegularisator', 'ComboRegularisator']
 
 
 class Regularisator(object):

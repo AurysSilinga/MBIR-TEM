@@ -240,7 +240,7 @@ class KernelCharge(object):
         self.slice_c = (slice(0, dim_uv[0]),  # Charge is padded on the far end!
                         slice(0, dim_uv[1]))  # (Phase cutout is shifted as listed above)
         # Calculate kernel (single pixel phase):
-        coeff = a * C_e * Q_E / (4 * np.pi * EPS_0)  # Minus is gone because of negative z-direction
+        coeff = a * C_e * Q_E / (4 * np.pi * EPS_0)  # Minus gone because of negative z-direction
         v_dim, u_dim = dim_uv
         u = np.linspace(-(u_dim - 1), u_dim - 1, num=2 * u_dim - 1)
         v = np.linspace(-(v_dim - 1), v_dim - 1, num=2 * v_dim - 1)

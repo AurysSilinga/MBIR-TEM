@@ -427,17 +427,17 @@ class RotTiltProjector(Projector):
         dim_v, dim_u = dim_uv
         # Creating coordinate list of all voxels:
         voxels = list(itertools.product(range(dim_z), range(dim_y), range(dim_x)))
-        # Calculate vectors to voxels relative to rotation center (each row contains (z, y, x)):
-        voxel_vecs = np.asarray(voxels) + 0.5 - np.asarray(center)
-        # Change to coordinate order of quaternions (x, y, z) instead of (z, y, x):
-        voxel_vecs = np.fliplr(voxel_vecs)
+        # Calculate vectors to voxels relative to rotation center (each column contains (z, y, x)):
+        voxel_vecs = (np.asarray(voxels) + 0.5 - np.asarray(center)).T  # .T: row to column!
+        # Change to coordinate order of quaternions (x, y, z) instead of (z, y, x) per column:
+        voxel_vecs = np.flipud(voxel_vecs)
         # Calculate impact positions (x, y) on the projected pixel coordinate grid (z is dropped):
-        impacts = quat.matrix[:2, :].dot(voxel_vecs.T).T  # Only x and y row of matrix is used!
-        # Reverse transpose and change back coordinate order from (x, y) to (y, x)/(v, u):
-        impacts = np.fliplr(impacts.T)  # Now contains rows with (v, u) entries as desired!
-        # First index: voxel, second index: 0 -> v, 1 -> u!
-        impacts[:, 1] += dim_u / 2.  # Shift back to normal indices
-        impacts[:, 0] += dim_v / 2.  # Shift back to normal indices
+        impacts = quat.matrix[:2, :].dot(voxel_vecs)  # Only x and y row of matrix is used!
+        # Change back coordinate order from (x, y) to (y, x)/(v, u) per column:
+        impacts = np.flipud(impacts)  # Now contains columns with (v, u) entries (pythonic index)!
+        # First index (column): 0 -> v, 1 -> u, second index (row): voxel!
+        impacts[0, :] += dim_v / 2.  # Shift back to normal indices
+        impacts[1, :] += dim_u / 2.  # Shift back to normal indices
         # Calculate equivalence radius:
         R = (3 / (4 * np.pi)) ** (1 / 3.)
         # Prepare weight matrix calculation:
@@ -451,7 +451,7 @@ class RotTiltProjector(Projector):
         for i, voxel in enumerate(tqdm(voxels, disable=disable, leave=False,
                                        desc='Set up projector')):
             column_index = voxel[0] * dim_y * dim_x + voxel[1] * dim_x + voxel[2]
-            remainder, impact = np.modf(impacts[i, :])  # split index of impact and remainder!
+            remainder, impact = np.modf(impacts[:, i])  # split index of impact and remainder!
             sub_pixel = (remainder * subcount).astype(dtype=np.int)  # sub_pixel inside impact px.
             # Go over all influenced pixels (impact and neighbours, indices are [0, 1, 2]!):
             for px_ind in list(itertools.product(range(3), range(3))):

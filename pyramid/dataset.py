@@ -142,7 +142,7 @@ class DataSet(object):
         self.dim = dim
         self.b_0 = b_0  # TODO: Not very general!!! get rid off!
         self.mask = mask
-        self.Se_inv = Se_inv
+        self.Se_inv = Se_inv  # TODO: Should be constructed in the costfunction, not here!!
         self._phasemaps = []
         self._projectors = []
         self._phasemappers = []
@@ -219,7 +219,7 @@ class DataSet(object):
         for i in range(len(phasemap)):
             self._append_single(phasemap[i], projector[i], phasemapper[i])
         # Reset the Se_inv matrix from phasemaps confidence matrices:
-        self.set_Se_inv_diag_with_conf()
+        self.set_Se_inv_diag_with_conf()  # TODO: Very clunky and redundant when adding a lot!
 
     def create_phasemaps(self, magdata, difference=False, ramp=None):
         """Create a list of phasemaps with the projectors in the dataset for a given
@@ -560,12 +560,13 @@ class DataSetCharge(object):
 
     def __repr__(self):
         self._log.debug('Calling __repr__')
-        return '%s(a=%r, dim=%r, electrode_vec=%r, mask=%r, Se_inv=%r)' % (self.__class__, self.a, self.dim,
-                                                                 self.electrode_vec, self.mask, self.Se_inv)
+        return '%s(a=%r, dim=%r, electrode_vec=%r, mask=%r, Se_inv=%r)' % \
+               (self.__class__, self.a, self.dim, self.electrode_vec, self.mask, self.Se_inv)
 
     def __str__(self):
         self._log.debug('Calling __str__')
-        return 'DataSetCharge(a=%s, dim=%s, electrode_vec=%s)' % (self.a, self.dim, self.electrode_vec)
+        return 'DataSetCharge(a=%s, dim=%s, electrode_vec=%s)' % \
+               (self.a, self.dim, self.electrode_vec)
 
     def _append_single(self, phasemap, projector, phasemapper=None):
         self._log.debug('Calling _append')
