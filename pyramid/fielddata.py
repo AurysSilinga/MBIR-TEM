@@ -1134,8 +1134,6 @@ class VectorData(FieldData):
         # Extract parameters:
         show_mask = kwargs.pop('show_mask', True)  # Only needed once!
         axis = kwargs.pop('axis', None)
-        # Set default bgcolor to white (only for combined plot), only if bgcolor was not specified:
-        kwargs.setdefault('bgcolor', 'white')
         # Plot field first (with mask and axis formatting), then quiver:
         axis = self.plot_field(axis=axis, show_mask=show_mask, **kwargs)
         self.plot_quiver(coloring='uniform', show_mask=False, axis=axis,

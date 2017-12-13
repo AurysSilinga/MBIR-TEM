@@ -436,6 +436,9 @@ class DistributedForwardModel(ForwardModel):
         # Return result:
         return result
 
+    def __del__(self):  # TODO: Does this work? Apparently not... Make sure processes end properly!
+        self.finalize()
+
     def _worker(self, fwd_model, pipe):
         for method, arguments in iter(pipe.recv, 'STOP'):
             sys.stdout.flush()
