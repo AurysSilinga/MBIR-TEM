@@ -155,7 +155,7 @@ class Diagnostics(object):
 
     def __init__(self, magdata, cost, max_iter=1000, verbose=False):  # TODO: verbose True default
         self._log.debug('Calling __init__')
-        self.magdata = magdata
+        self.magdata = magdata  # TODO: should not be necessary!!! extract a beforehand!!!!!!!!!!!
         self.cost = cost
         self.max_iter = max_iter
         self.verbose = verbose

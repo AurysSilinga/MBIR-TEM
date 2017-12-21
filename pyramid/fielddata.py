@@ -745,11 +745,16 @@ class VectorData(FieldData):
         mag_z_roll = np.roll(self.field[2, ...], shift, ax)
         return VectorData(self.a, np.asarray((mag_x_roll, mag_y_roll, mag_z_roll)))
 
-    def clip_amp(self, threshold):
-        # TODO: Docstring!
+    def clip_amp(self, vmin=None, vmax=None):
+        # TODO: Docstring! vmin clips to zero, vmax clips to vmax!
         # TODO: 'mag' should be 'vec' everywhere!!!
         mag_x, mag_y, mag_z = self.field
-        scaling = np.where(self.field_amp > threshold, threshold/self.field_amp, 1)
+        if vmin is None:
+            vmin = 0
+        if vmax is None:
+            vmax = self.field_amp.max()
+        # scaling = np.zeros_like(self.field_amp)
+        scaling = (vmin <= self.field_amp) & (self.field_amp <= vmax)
         mag_x = mag_x * scaling
         mag_y = mag_y * scaling
         mag_z = mag_z * scaling

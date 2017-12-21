@@ -407,13 +407,15 @@ class DistributedForwardModel(ForwardModel):
             # Create SubForwardModel:
             sub_fwd_model = ForwardModel(sub_data, ramp_order=None)  # ramps handled in master!
             # Create communication pipe:
-            self.pipes.append(mp.Pipe())
+            master_connection, worker_connection = mp.Pipe(duplex=True)  # duplex: both send/recv.!
+            self.pipes.append(master_connection)  # Master only needs one end!
             # Create process:
             p = mp.Process(name='Worker {}'.format(proc_id), target=self._worker,
-                           args=(sub_fwd_model, self.pipes[proc_id][1]))
+                           args=(sub_fwd_model, worker_connection))
             self.processes.append(p)
-            # Start process:
+            # Start process and close worker pipe end after passing it to worker (and starting it):
             p.start()
+            worker_connection.close()  # Close pipe ends in processes that don't need them!
         self._log.debug('Creating ' + str(self))
 
     def __call__(self, x):
@@ -421,7 +423,7 @@ class DistributedForwardModel(ForwardModel):
         x = self.ramp.extract_ramp_params(x)
         # Distribute input to processes and start working:
         for proc_id in range(self.nprocs):
-            self.pipes[proc_id][0].send(('__call__', (x,)))
+            self.pipes[proc_id].send(('__call__', (x,)))
         # Initialize result vector and shorten hook point names:
         result = np.zeros(self.m)
         hp = self.hook_points
@@ -432,7 +434,7 @@ class DistributedForwardModel(ForwardModel):
                 result[hp[i]:hp[i + 1]] += self.ramp(i).phase.ravel()
         # Get process results from the pipes:
         for proc_id in range(self.nprocs):
-            result[php[proc_id]:php[proc_id + 1]] += self.pipes[proc_id][0].recv()
+            result[php[proc_id]:php[proc_id + 1]] += self.pipes[proc_id].recv()
         # Return result:
         return result
 
@@ -445,6 +447,7 @@ class DistributedForwardModel(ForwardModel):
             result = getattr(fwd_model, method)(*arguments)
             pipe.send(result)
         sys.stdout.flush()
+        pipe.close()  # Close worker end of the pipe too, to allow garbage collection!
 
     def jac_dot(self, x, vector):
         """Calculate the product of the Jacobi matrix with a given `vector`.
@@ -471,7 +474,7 @@ class DistributedForwardModel(ForwardModel):
         vector = self.ramp.extract_ramp_params(vector)
         # Distribute input to processes and start working:
         for proc_id in range(self.nprocs):
-            self.pipes[proc_id][0].send(('jac_dot', (None, vector)))
+            self.pipes[proc_id].send(('jac_dot', (None, vector)))
         # Initialize result vector and shorten hook point names:
         result = np.zeros(self.m)
         hp = self.hook_points
@@ -482,7 +485,7 @@ class DistributedForwardModel(ForwardModel):
                 result[hp[i]:hp[i + 1]] += self.ramp.jac_dot(i)
         # Get process results from the pipes:
         for proc_id in range(self.nprocs):
-            result[php[proc_id]:php[proc_id + 1]] += self.pipes[proc_id][0].recv()
+            result[php[proc_id]:php[proc_id + 1]] += self.pipes[proc_id].recv()
         # Return result:
         return result
 
@@ -509,14 +512,14 @@ class DistributedForwardModel(ForwardModel):
         # Distribute input to processes and start working:
         for proc_id in range(self.nprocs):
             sub_vec = vector[php[proc_id]:php[proc_id + 1]]
-            self.pipes[proc_id][0].send(('jac_T_dot', (None, sub_vec)))
+            self.pipes[proc_id].send(('jac_T_dot', (None, sub_vec)))
         # Calculate ramps:
         ramp_params = self.ramp.jac_T_dot(vector)  # calculate ramp_params separately!
         # Initialize result vector:
         result = np.zeros(3 * self.data_set.mask.sum())
         # Get process results from the pipes:
         for proc_id in range(self.nprocs):
-            result += self.pipes[proc_id][0].recv()
+            result += self.pipes[proc_id].recv()
         # Return result:
         return np.concatenate((result, ramp_params))
 
@@ -530,7 +533,8 @@ class DistributedForwardModel(ForwardModel):
         """
         # Finalize processes:
         for proc_id in range(self.nprocs):
-            self.pipes[proc_id][0].send('STOP')
+            self.pipes[proc_id].send('STOP')
+            self.pipes[proc_id].close()
         # Exit the completed processes:
         for p in self.processes:
             p.join()
