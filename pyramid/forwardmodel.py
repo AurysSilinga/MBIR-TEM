@@ -369,12 +369,12 @@ class DistributedForwardModel(ForwardModel):
 
     """
 
-    _log = mp.log_to_stderr()
-
     def __init__(self, data_set, ramp_order=None, nprocs='auto'):
         # Evoke super constructor to set up the normal ForwardModel:
         super().__init__(data_set, ramp_order)
         # Initialize multirocessing specific stuff:
+        mp.log_to_stderr()
+        self._log = mp.get_logger()
         if nprocs == 'auto':
             nprocs = mp.cpu_count() - 2  # Use two cores less to reserve cpu for the system.
         self.nprocs = nprocs
@@ -438,11 +438,10 @@ class DistributedForwardModel(ForwardModel):
         # Return result:
         return result
 
-    def __del__(self):  # TODO: Does this work? Apparently not... Make sure processes end properly!
-        self.finalize()
-
     def _worker(self, fwd_model, pipe):
         for method, arguments in iter(pipe.recv, 'STOP'):
+            # TODO: Properly rethrow Exceptions to master (set to self.exc_info)!
+            # TODO: see: https://nedbatchelder.com/blog/200711/rethrowing_exceptions_in_python.html
             sys.stdout.flush()
             result = getattr(fwd_model, method)(*arguments)
             pipe.send(result)

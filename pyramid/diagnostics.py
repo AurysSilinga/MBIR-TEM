@@ -36,9 +36,10 @@ try:
 except NameError:
     from tqdm import tqdm
 
-__all__ = ['Diagnostics', 'LCurve','get_vector_field_errors']
+__all__ = ['Diagnostics', 'LCurve', 'get_vector_field_errors']
 
 # TODO: should be subpackage, distribute methods and classes to separate modules!
+
 
 class Diagnostics(object):
     """Class for calculating diagnostic properties of a specified costfunction.
@@ -153,10 +154,10 @@ class Diagnostics(object):
             self._updated_avrg_kern_row = False
             self._updated_measure_contribution = False
 
-    def __init__(self, magdata, cost, max_iter=1000, verbose=False):  # TODO: verbose True default
+    def __init__(self, cost, max_iter=1000, verbose=False):  # TODO: verbose True default
         self._log.debug('Calling __init__')
-        self.magdata = magdata  # TODO: should not be necessary!!! extract a beforehand!!!!!!!!!!!
         self.cost = cost
+        self.a = self.cost.fwd_model.data_set.a
         self.max_iter = max_iter
         self.verbose = verbose
         self.fwd_model = cost.fwd_model
@@ -164,8 +165,8 @@ class Diagnostics(object):
         self.dim = cost.fwd_model.data_set.dim
         self.mask = cost.fwd_model.data_set.mask
         self.x_rec = np.empty(cost.n)
-        self.x_rec[:self.fwd_model.data_set.n] = self.magdata.get_vector(mask=self.mask)
-        self.x_rec[self.fwd_model.data_set.n:] = self.fwd_model.ramp.param_cache.ravel()
+        # self.x_rec[:self.fwd_model.data_set.n] = self.magdata.get_vector(mask=self.mask)
+        # self.x_rec[self.fwd_model.data_set.n:] = self.fwd_model.ramp.param_cache.ravel()
         self.row_idx = None
         self.pos = (0,) + tuple(np.array(np.where(self.mask))[:, 0])  # first True mask entry
         self._updated_cov_row = False
@@ -194,7 +195,9 @@ class Diagnostics(object):
         if pos is not None:
             self.pos = pos
         magdata_avrg_kern = VectorData(self.cost.fwd_model.data_set.a, np.zeros((3,) + self.dim))
-        vector = self.avrg_kern_row[:-self.fwd_model.ramp.n]  # Only take vector field, not ramp!
+        vector = self.avrg_kern_row
+        if self.fwd_model.ramp.order is not None:
+            vector = vector[:-self.fwd_model.ramp.n]  # Only take vector field, not ramp!
         magdata_avrg_kern.set_vector(vector, mask=self.mask)
         return magdata_avrg_kern
 
@@ -226,7 +229,6 @@ class Diagnostics(object):
 
         """
         self._log.debug('Calling calculate_fwhm')
-        a = self.magdata.a
         magdata_avrg_kern = self.get_avrg_kern_field(pos)
         x = np.arange(0, self.dim[2]) - self.pos[3]
         y = np.arange(0, self.dim[1]) - self.pos[2]
@@ -268,9 +270,9 @@ class Diagnostics(object):
         lz, rz = _calc_lr(2)
 
         # TODO: Test if FWHM is really calculated with a in mind... didn't seem so...
-        fwhm_x = (rx - lx) * a
-        fwhm_y = (ry - ly) * a
-        fwhm_z = (rz - lz) * a
+        fwhm_x = (rx - lx) * self.a
+        fwhm_y = (ry - ly) * self.a
+        fwhm_z = (rz - lz) * self.a
         # Plot helpful stuff:
         if plot:
             fig, axis = plt.subplots(1, 1)
@@ -301,7 +303,8 @@ class Diagnostics(object):
             axis.set_xlabel('x/y/z-slice [nm]', fontsize=15)
             axis.set_ylabel('information content [%]', fontsize=15)
             axis.tick_params(axis='both', which='major', labelsize=14)
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
+            formatter = FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a))
+            axis.xaxis.set_major_formatter(formatter)
             comp_legend = axis.legend([cx, cy, cz], [c.get_label() for c in [cx, cy, cz]], loc=2,
                                       scatterpoints=1, prop={'size': 14})
             axis.legend(l, [i.get_label() for i in l], loc=1, numpoints=1, prop={'size': 14})
@@ -341,7 +344,7 @@ class Diagnostics(object):
             gain_map_list.append(PhaseMap(self.cost.fwd_model.data_set.a, gain))
         return gain_map_list
 
-    def plot_position(self, **kwargs):
+    def plot_position(self, magdata, **kwargs):
         proj_axis = kwargs.get('proj_axis', 'z')
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
             pos_2d = (self.pos[2], self.pos[3])
@@ -359,7 +362,7 @@ class Diagnostics(object):
             comp = {0: 'x', 1: 'y', 2: 'z'}[self.pos[0]]
             note = '{}-comp., pos.: {}'.format(comp, self.pos[1:])
         # Plots:
-        axis = self.magdata.plot_quiver_field(note=note, ax_slice=ax_slice, **kwargs)
+        axis = magdata.plot_quiver_field(note=note, ax_slice=ax_slice, **kwargs)
         rect = axis.add_patch(patches.Rectangle((pos_2d[1], pos_2d[0]), 1, 1, fill=False,
                                                 edgecolor='w', linewidth=2, alpha=0.5))
         rect.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
@@ -368,22 +371,21 @@ class Diagnostics(object):
         pass
 
     def plot_avrg_kern_field(self, pos=None, **kwargs):
-        a = self.magdata.a
         avrg_kern_field = self.get_avrg_kern_field(pos)
         fwhms, lr = self.calculate_fwhm(pos)[:2]
         proj_axis = kwargs.get('proj_axis', 'z')
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
             pos_2d = (self.pos[2], self.pos[3])
             ax_slice = self.pos[1]
-            width, height = fwhms[0] / a, fwhms[1] / a
+            width, height = fwhms[0] / self.a, fwhms[1] / self.a
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
             pos_2d = (self.pos[1], self.pos[3])
             ax_slice = self.pos[2]
-            width, height = fwhms[0] / a, fwhms[2] / a
+            width, height = fwhms[0] / self.a, fwhms[2] / self.a
         elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
             pos_2d = (self.pos[2], self.pos[1])
             ax_slice = self.pos[3]
-            width, height = fwhms[2] / a, fwhms[1] / a
+            width, height = fwhms[2] / self.a, fwhms[1] / self.a
         else:
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
         note = kwargs.pop('note', None)
@@ -433,11 +435,8 @@ class Diagnostics(object):
         actor.actor.orientation = [0, 0, 0]  # in degrees
         actor.actor.origin = (0, 0, 0)
         actor.actor.position = (self.pos[1]+0.5, self.pos[2]+0.5, self.pos[3]+0.5)
-        a = self.magdata.a
-        actor.actor.scale = [0.5*fwhm[0]/a, 0.5*fwhm[1]/a, 0.5*fwhm[2]/a]
-
+        actor.actor.scale = [0.5*fwhm[0]/self.a, 0.5*fwhm[1]/self.a, 0.5*fwhm[2]/self.a]
         #surface.append(surface)
-
 
         scene.scene.disable_render = False  # now turn it on  # TODO: EVERYWHERE WITH MAYAVI!
 
