@@ -654,7 +654,7 @@ class PhaseMap(object):
             unit = '{} x 1E{:g}'.format(unit, order)
             phase /= 10 ** order
         # Calculate limits if necessary (not necessary if both limits are already set):
-        if vmin is None and vmax is None:
+        if vmin is None or vmax is None:
             phase_lim = phase
             # Clip non-trustworthy regions for the limit calculation:
             if show_conf:
@@ -672,6 +672,8 @@ class PhaseMap(object):
                 vmin = np.min(phase_lim)
             if vmax is None:
                 vmax = np.max(phase_lim)
+        else:  # If vmin and vmax are set by the user, they have to be unit-scaled as well:
+            vmin, vmax = vmin * self.UNITDICT[unit], vmax * self.UNITDICT[unit]
         # Configure colormap and fix white to zero if colormap is symmetric:
         if cmap is None:
             cmap = plt.get_cmap('RdBu')  # TODO: use cmocean.cm.balance (flipped colours!)

@@ -342,7 +342,7 @@ class DataSet(object):
         from .file_io.io_dataset import save_dataset
         save_dataset(self, filename, overwrite)
 
-    def plot_mask(self):
+    def plot_mask(self, **kwargs):
         """If it exists, display the 3D mask of the magnetization distribution.
 
         Returns
@@ -352,7 +352,7 @@ class DataSet(object):
         """
         self._log.debug('Calling plot_mask')
         if self.mask is not None:
-            return ScalarData(self.a, self.mask).plot_mask()
+            return ScalarData(self.a, self.mask).plot_mask(**kwargs)
 
     def plot_phasemaps(self, magdata=None, title='Phase Map', difference=False, ramp=None,
                        **kwargs):

@@ -169,7 +169,7 @@ def add_colorwheel(axis):
     """
     from mpl_toolkits.axes_grid.inset_locator import inset_axes
     inset_axes = inset_axes(axis, width=0.75, height=0.75, loc=1)
-    inset_axes.axis('off')
+    inset_axes.axis('off')  # TODO: Matplotlib 2.0 uses False! Search 'off' to change everywhere!
     cmap = colors.CMAP_CIRCULAR_DEFAULT
     bgcolor = None#axis.get_facecolor() TODO: Activate for matplotlib 2.0!
     return cmap.plot_colorwheel(size=100, axis=inset_axes, alpha=0, bgcolor=bgcolor, arrows=True)

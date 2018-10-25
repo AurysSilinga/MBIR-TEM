@@ -607,6 +607,17 @@ class LCurve(object):
         axis.grid()
         return axis
         # TODO: Don't plot the steep part on the right...
+        # TODO: The following formatting is better but without usetex, \boldsymbol doesn't work!
+        # import matplotlib
+        # matplotlib.rc('text', usetex=True)
+        # matplotlib.rcParams['text.latex.preamble'] = [r"\usepackage{amsmath}"]
+        # axis.get_xaxis().get_major_formatter().labelOnlyBase = False
+        # axis.set_xlabel(
+        #     r'$\Vert\mathbf{F}\boldsymbol{x}-\boldsymbol{y}\Vert_{\mathbf{S}_{\epsilon}^{-1}}^{2}$',
+        #     fontsize=22)
+        # axis.set_ylabel(r'$\frac{1}{\lambda}\Vert\boldsymbol{x}\Vert_{\mathbf{S}_{a}^{-1}}^{2}$',
+        #                 fontsize=22)
+        # matplotlib.rc('text', usetex=False)
 
 
 def get_vector_field_errors(vector_data, vector_data_ref, mask=None):

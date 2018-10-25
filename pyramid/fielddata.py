@@ -49,6 +49,10 @@ class FieldData(object, metaclass=abc.ABCMeta):
 
     _log = logging.getLogger(__name__ + '.FieldData')
 
+    # TODO: Property mask: can be provided at construction and also set later. Default is None!
+    # TODO: The getter function should use the current get_mask() function if mask is None (and
+    # TODO: save it to _mask or something!
+
     @property
     def a(self):
         """The grid spacing in nm."""
@@ -584,7 +588,7 @@ class VectorData(FieldData):
                               zoom(self.field[2], zoom=2 ** n, order=order)))
         return VectorData(a_new, field_new)
 
-    def pad(self, pad_values):
+    def pad(self, pad_values, mode='constant'):
         """Pad the current field distribution with zeros for each individual axis.
 
         Parameters
@@ -609,10 +613,10 @@ class VectorData(FieldData):
             assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
             pv[2 * i:2 * (i + 1)] = values
         field_pad = np.pad(self.field, ((0, 0), (pv[0], pv[1]), (pv[2], pv[3]), (pv[4], pv[5])),
-                           mode='constant')
+                           mode=mode)
         return VectorData(self.a, field_pad)
 
-    def crop(self, crop_values):  # TODO: bad copy&paste from pad?
+    def crop(self, crop_values):  # TODO: bad copy&paste from pad? zeros cropped -> no sense!
         """Crop the current field distribution with zeros for each individual axis.
 
         Parameters
@@ -1725,6 +1729,10 @@ class ScalarData(FieldData):
             cmap = cmocean.cm.thermal
         elif isinstance(cmap, str):  # Get colormap if given as string:
             cmap = plt.get_cmap(cmap)
+        if vmin is None:
+            vmin = np.min(field_slice)
+        if vmax is None:
+            vmax = np.max(field_slice)
         if symmetric:  # TODO: symmetric should be called divergent (see cmocean)!
             vmin, vmax = np.min([vmin, -0]), np.max([0, vmax])  # Ensure zero is present!
             limit = np.max(np.abs([vmin, vmax]))

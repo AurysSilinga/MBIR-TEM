@@ -162,6 +162,7 @@ def create_mag_dist_smooth_vortex(mag_shape, center=None, vort_r=None, core_r=0,
     def core(r):
         """Function describing the smooth vortex core."""
         r_clip = np.clip(r - core_r, a_min=0, a_max=None)
+        # TODO: vort_r = None throws error in next line (divide by None not defined) > set default!
         return 1 - 2/np.pi * np.arcsin(np.tanh(np.pi*r_clip/vort_r))
 
     _log.debug('Calling create_mag_dist_vortex')

@@ -4,6 +4,10 @@ desktop.ini
 
 .idea
 
+.vscode
+
+.cache
+
 .coverage
 
 *.egg-info

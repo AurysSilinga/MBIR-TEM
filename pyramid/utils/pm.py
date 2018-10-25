@@ -17,12 +17,13 @@ _log = logging.getLogger(__name__)
 
 
 def pm(fielddata, mode='z', b_0=1, electrode_vec=(1E6, 1E6), mapper='RDFC', **kwargs):
-    """Convenience function for fast electric charge and magnetic phase mapping.
+    """Convenience function for fast magnetic and electric phase mapping.
 
     Parameters
     ----------
     fielddata : :class:`~.VectorData`, or `~.ScalarData`
-        A :class:`~.VectorData` or `~.ScalarData` object, from which the projected phase map should be calculated.
+        A :class:`~.VectorData` or `~.ScalarData` object, from which the projected phase map should
+        be calculated.
     mode: {'z', 'y', 'x', 'x-tilt', 'y-tilt', 'rot-tilt'}, optional
         Projection mode which determines the :class:`~.pyramid.projector.Projector` subclass, which
         is used for the projection. Default is a simple projection along the `z`-direction.
