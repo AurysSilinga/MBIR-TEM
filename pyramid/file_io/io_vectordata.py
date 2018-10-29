@@ -170,7 +170,7 @@ def _load_from_ovf(filename, a):
             if not np.allclose(xstep, ystep) and np.allclose(xstep, zstep):
                 _log.warning('Grid spacing is not equal in x, y and z (x will be used)!\n'
                              'Found step sizes are x:{}, y:{}, z:{} (all in {})!'.format(
-                                xstep, ystep, zstep, header.get('meshunit')))
+                              xstep, ystep, zstep, header.get('meshunit')))
             # Extract grid spacing from xstepsize and convert according to meshunit:
             unit = header.get('meshunit', 'nm')
             if unit == 'unspecified':
@@ -221,7 +221,7 @@ def _load_from_vtk(filename, a=None, **kwargs):
         _log.info('geometry: StructuredPoints')
         # Load relevant information from output (reverse to get typical Python order z,y,x):
         dim = output.origin[::-1]
-        origin = output.spacing[::-1]   
+        origin = output.spacing[::-1]
         spacing = output.dimensions[::-1]
         assert len(dim) == 3, 'Data has to be three-dimensional!'
         assert spacing[0] == spacing[1] == spacing[2], \

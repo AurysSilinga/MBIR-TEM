@@ -730,7 +730,7 @@ class PhaseMap(object):
         return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,
                                      cbar_label=cbar_label, tight_layout=tight, **kwargs)
 
-    def plot_holo(self, gain='auto',  # specific to plot_holo!
+    def plot_holo(self, gain='auto', colorwheel=True,  # specific to plot_holo!
                   cmap=None, interpolation='none', axis=None, figsize=None, sigma_clip=2,
                   **kwargs):
         """Display the color coded holography image.
@@ -808,9 +808,10 @@ class PhaseMap(object):
             note = 'gain: {:g}'.format(gain)
         stroke = kwargs.pop('stroke', 'k')  # Default for holo is white with black outline!
         return plottools.format_axis(axis, sampling=a, note=note, tight_layout=tight,
-                                     stroke=stroke, **kwargs)
+                                     colorwheel=colorwheel, stroke=stroke, **kwargs)
 
-    def plot_combined(self, title='', phase_title='', holo_title='', figsize=None, **kwargs):
+    def plot_combined(self, title='', phase_title='', holo_title='', figsize=None,
+                      colorwheel=True, **kwargs):
         """Display the phase map and the resulting color coded holography image in one plot.
 
         Parameters
@@ -844,7 +845,7 @@ class PhaseMap(object):
         note = kwargs.pop('note', None)
         # Plot holography image:
         holo_axis = fig.add_subplot(1, 2, 1, aspect='equal')
-        self.plot_holo(axis=holo_axis, title=holo_title, note=None, **kwargs)
+        self.plot_holo(axis=holo_axis, title=holo_title, note=None, colorwheel=colorwheel, **kwargs)
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         self.plot_phase(axis=phase_axis, title=phase_title, note=note, **kwargs)

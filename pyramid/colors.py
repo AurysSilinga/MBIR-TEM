@@ -65,7 +65,7 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
 
     _log = logging.getLogger(__name__ + '.Colormap3D')
 
-    def rgb_from_vector(self, vector):
+    def rgb_from_vector(self, vector, vmax=None):
         """Construct a hls tuple from three coordinates representing a 3D direction.
 
         Parameters
@@ -87,10 +87,15 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         phi = np.asarray(np.arctan2(y, x))
         phi[phi < 0] += 2 * np.pi
         theta = np.arccos(z / (r + 1E-30))
+        # Determine saturation normalisation:
+        if vmax is not None:
+            R = vmax
+        else:
+            R = r.max() + 1E-30
         # Calculate color deterministics:
         hue = phi / (2 * np.pi)
         lum = 1 - theta / np.pi
-        sat = r / (r.max() + 1E-30)
+        sat = r / R
         # Calculate RGB from hue with colormap:
         rgba = np.asarray(self(hue))
         r, g, b = rgba[..., 0], rgba[..., 1], rgba[..., 2]
