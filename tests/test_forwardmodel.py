@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Testcase for the forwardmodel module"""
-
 import os
 import unittest
 

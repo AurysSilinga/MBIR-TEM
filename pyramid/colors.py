@@ -159,8 +159,8 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         axis.add_artist(Circle(xy=(size/2-0.5, size/2-0.5), radius=size/2-2, linewidth=2,
                                edgecolor='k', facecolor='none'))
         if arrows:
-            plt.tick_params(axis='both', which='both', labelleft='off', labelbottom='off',
-                            left='off', right='off', top='off', bottom='off')
+            plt.tick_params(axis='both', which='both', labelleft=False, labelbottom=False,
+                            left=False, right=False, top=False, bottom=False)
             axis.arrow(size/2, size/2, 0, 0.15*size, head_width=9, head_length=20,
                        fc='k', ec='k', lw=1, width=2)
             axis.arrow(size/2, size/2, 0, -0.15*size, head_width=9, head_length=20,
@@ -349,8 +349,8 @@ class ColormapCubehelix(colors.LinearSegmentedColormap, Colormap3D):
         rgb = np.repeat(rgb, 30, axis=0)
         im = Image.fromarray(rgb)
         caxis.imshow(im)
-        plt.tick_params(axis='both', which='both', labelleft='off', labelbottom='off',
-                        left='off', right='off', top='on', bottom='on')
+        plt.tick_params(axis='both', which='both', labelleft=False, labelbottom=False,
+                            left=False, right=False, top=False, bottom=False)
         return plottools.format_axis(axis, scalebar=False, keep_labels=True, **kwargs)
 
 

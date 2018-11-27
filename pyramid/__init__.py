@@ -87,3 +87,5 @@ __all__.extend(quaternion.__all__)
 __all__.extend(file_io.__all__)
 
 # TODO: Test for different systems!
+
+# TODO: Arguments should only take up to two lines for IntelliSense to show all of it in preview!

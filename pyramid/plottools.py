@@ -14,7 +14,7 @@ from matplotlib.patches import Rectangle
 from matplotlib import patheffects
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
-from mpl_toolkits.axes_grid.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import warnings
@@ -167,12 +167,13 @@ def add_colorwheel(axis):
             The same axis which was given to this function is returned.
 
     """
-    from mpl_toolkits.axes_grid.inset_locator import inset_axes
-    inset_axes = inset_axes(axis, width=0.75, height=0.75, loc=1)
-    inset_axes.axis('off')  # TODO: Matplotlib 2.0 uses False! Search 'off' to change everywhere!
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    ins_axes = inset_axes(axis, width=0.75, height=0.75, loc=1)
+    ins_axes.axes.get_xaxis().visible = False
+    ins_axes.axes.get_yaxis().visible = False
     cmap = colors.CMAP_CIRCULAR_DEFAULT
-    bgcolor = None#axis.get_facecolor() TODO: Activate for matplotlib 2.0!
-    return cmap.plot_colorwheel(size=100, axis=inset_axes, alpha=0, bgcolor=bgcolor, arrows=True)
+    bgcolor = axis.get_facecolor()
+    return cmap.plot_colorwheel(size=100, axis=ins_axes, alpha=0, bgcolor=bgcolor, arrows=True)
 
 
 def add_cbar(axis, mappable, label='', fontsize=None):
@@ -200,12 +201,12 @@ def add_cbar(axis, mappable, label='', fontsize=None):
     divider = make_axes_locatable(axis)
     cbar_ax = divider.append_axes('right', size='5%', pad=0.1)
     cbar = plt.colorbar(mappable, cax=cbar_ax)
+    plt.draw()  # matplotlib "draws" the plot and determines e.g. label positions!
     cbar.ax.tick_params(labelsize=fontsize)
     # Make sure labels don't stick out of tight bbox:
     labels = cbar.ax.get_yticklabels()
     delta = 0.03 * (cbar.vmax - cbar.vmin)
-    lmin = float(labels[0]._text.replace(u'\u2212', '-').strip('$'))  # No unicode or latex!
-    lmax = float(labels[-1]._text.replace(u'\u2212', '-').strip('$'))  # No unicode or latex!
+    lmin, lmax = labels[0]._y, labels[-1]._y
     redo_max = True if cbar.vmax - lmax < delta else False
     redo_min = True if lmin - cbar.vmin < delta else False
     mappable.set_clim(cbar.vmin - delta * redo_min, cbar.vmax + delta * redo_max)
@@ -224,6 +225,7 @@ def add_cbar(axis, mappable, label='', fontsize=None):
     # Set focus back to axis and return cbar:
     plt.sca(axis)
     return cbar
+
 
 def add_coords(axis, coords=('x', 'y')):
     ins_ax = inset_axes(axis, width="5%", height="5%", loc=3, borderpad=2.2)
@@ -248,10 +250,11 @@ def add_coords(axis, coords=('x', 'y')):
                      head_width=0.2, head_length=0.3, linewidth=3, clip_on=False)
         ins_ax.annotate(coords[0], xy=(0, 0), xytext=(1.3, -0.05), fontsize=20, clip_on=False)
         ins_ax.annotate(coords[1], xy=(0, 0), xytext=(-0.2, 1.3), fontsize=20, clip_on=False)
-    ins_ax.axis('off')
+    ins_ax.axis(False)
     plt.sca(axis)
 
 # TODO: These parameters in other plot functions belong in a dedicated dictionary!!!
+
 
 def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, scalebar=True,
                 hideaxes=None, sampling=1, note=None, colorwheel=False, cbar_mappable=None,
@@ -357,11 +360,12 @@ def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, sc
         add_cbar(axis, mappable=cbar_mappable, label=cbar_label, fontsize=fontsize)
     # Tighten layout if axis was created here:
     if tight_layout:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            plt.tight_layout()
+        #with warnings.catch_warnings():
+            #warnings.simplefilter("ignore")
+        pass#plt.tight_layout()  # TODO: !!!!
     # Return plotting axis:
     return axis
+
 
 # TODO: Implement stuff from Florian:
 def figsize(scale, height=None, textwidth=448.1309):
@@ -387,6 +391,6 @@ def figsize(scale, height=None, textwidth=448.1309):
 # TODO: Florians way of shifting axes labels (should already be in somewhere):
 # for i in [1, 3]:
 #     axs[i].yaxis.set_label_position('right')
-#     axs[i].tick_params(axis='both', labelleft='off', labelright='on', labelsize=5)
+#     axs[i].tick_params(axis='both', labelleft=False, labelright=True, labelsize=5)
 #     axs[i].yaxis.tick_right()
 #     axs[i].get_yaxis().set_label_coords(1.22, 0.5)
