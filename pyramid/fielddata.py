@@ -876,7 +876,7 @@ class VectorData(FieldData):
     def plot_quiver(self, ar_dens=1, log=False, scaled=True, scale=1., b_0=None, qkey_unit='T',
                     coloring='angle', cmap=None,  # Used here and plot_streamlines!
                     proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
-                    figsize=None, **kwargs):
+                    figsize=None, stroke=None, fontsize=None, **kwargs):
         """Plot a slice of the vector field as a quiver plot.
 
         Parameters
@@ -930,6 +930,10 @@ class VectorData(FieldData):
         a = self.a
         if figsize is None:
             figsize = plottools.FIGSIZE_DEFAULT
+        if fontsize is None:
+            fontsize = plottools.FONTSIZE_DEFAULT
+        if stroke is None:
+            stroke = plottools.STROKE_DEFAULT
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             "Axis has to be 'x', 'y' or 'z'."
         if ax_slice is None:
@@ -1025,12 +1029,8 @@ class VectorData(FieldData):
         if b_0 and not log:  # The angles needed for log would break the quiverkey!
             label = '{:.3g} {}'.format(amplitudes.max() * b_0, qkey_unit)
             quiv.angles = 'uv'  # With a list of angles, the quiverkey would break!
-            stroke = plottools.STROKE_DEFAULT
             txtcolor = 'w' if stroke == 'k' else 'k'
             edgecolor = stroke if stroke is not None else 'none'
-            fontsize = kwargs.get('fontsize', None)
-            if fontsize is None:
-                fontsize = plottools.FONTSIZE_DEFAULT
             qk = plt.quiverkey(Q=quiv, X=0.88, Y=0.065, U=1, label=label, labelpos='W',
                                coordinates='axes', facecolor=txtcolor, edgecolor=edgecolor,
                                labelcolor=txtcolor, linewidth=0.5,

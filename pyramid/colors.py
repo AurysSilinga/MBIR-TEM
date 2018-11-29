@@ -156,8 +156,8 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1, aspect='equal')
         axis.imshow(color_wheel, origin='lower', **kwargs)
-        axis.add_artist(Circle(xy=(size/2-0.5, size/2-0.5), radius=size/2-2, linewidth=2,
-                               edgecolor='k', facecolor='none'))
+        axis.add_patch(Circle(xy=(size/2-0.5, size/2-0.5), radius=size/2-2, linewidth=2,
+                              edgecolor='k', facecolor='none'))
         if arrows:
             plt.tick_params(axis='both', which='both', labelleft=False, labelbottom=False,
                             left=False, right=False, top=False, bottom=False)

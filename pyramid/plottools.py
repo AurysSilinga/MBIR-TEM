@@ -8,6 +8,7 @@ import numpy as np
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm  # TODO: Everywhere or managed through stylesheets!
 from matplotlib.offsetbox import AnchoredOffsetbox, AuxTransformBox, VPacker, TextArea
 from matplotlib.transforms import blended_transform_factory, IdentityTransform
 from matplotlib.patches import Rectangle
@@ -15,9 +16,8 @@ from matplotlib import patheffects
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-import warnings
 
 from . import colors
 
@@ -29,6 +29,7 @@ FONTSIZE_DEFAULT = 20
 STROKE_DEFAULT = None
 
 # TODO: Cool: Plotting with four parameters for what to put in all four corners (with defaults)!
+
 
 # TODO: Replace by matplotlib styles!
 def pretty_plots(figsize=None, fontsize=None, stroke=None):
@@ -74,47 +75,38 @@ def add_scalebar(axis, sampling=1, fontsize=None, stroke=None):
         The box containing the scalebar.
 
     """
-    # TODO: Background (black outline) not visible...
     if fontsize is None:
         fontsize = FONTSIZE_DEFAULT
     if stroke is None:
-        stroke = STROKE_DEFAULT
-    # Transform that scales the width along the data and leaves height constant at 8 pt (text):
-    transform = blended_transform_factory(axis.transData, IdentityTransform())
+        stroke = STROKE_DEFAULT  # TODO: Not necessary?
     # Transform axis borders (1, 1) to data borders to get number of pixels in y and x:
+    transform = axis.transData
     bb0 = axis.transLimits.inverted().transform((0, 0))
     bb1 = axis.transLimits.inverted().transform((1, 1))
     dim_uv = (int(abs(bb1[1] - bb0[1])), int(abs(bb1[0] - bb0[0])))
-    # Calculate scale
+    # Calculate scale:
     scale = np.max((dim_uv[1] / 4, 1)) * sampling
     thresholds = [1, 5, 10, 50, 100, 500, 1000]
     for t in thresholds:  # For larger grids (real images), multiples of threshold look better!
         if scale > t:
             scale = (scale // t) * t
     # Set dimensions:
-    width = scale / sampling  # In data coordinate system!
-    height = 8  # In display coordinate system!
-    # Set label:
-    if scale >= 1000:  # Use higher order instead!
-        label = '{:.3g} µm'.format(scale/1000)
-    else:
-        label = '{:.3g} nm'.format(scale)
-    # Create scalebar rectangle:
-    bars = AuxTransformBox(transform)
-    bars.add_artist(Rectangle((0, 0), width, height, fc='w', linewidth=1,
-                    clip_box=axis.bbox, clip_on=True))
-    # Create text:
+    size = scale / sampling  # In data coordinate system!
+    # Set parameters for scale bar:
+    label = f'{scale:g} nm'
+    loc = 'lower left'
+    fontprops = fm.FontProperties(size=fontsize)
     txtcolor = 'w' if stroke == 'k' else 'k'
-    txt = TextArea(label, textprops={'color': txtcolor, 'fontsize': fontsize})
-    txt.set_clip_box(axis.bbox)
+    # Create scale bar:
+    scalebar = AnchoredSizeBar(transform, size, label, loc, borderpad=0.5,
+                               fontproperties=fontprops, color=txtcolor)
+    # Set stroke is necessary:
     if stroke is not None:
-        txt._text.set_path_effects([patheffects.withStroke(linewidth=2, foreground=stroke)])
-    # Pack both together an create AnchoredOffsetBox:
-    bars = VPacker(children=[txt, bars], align="center", pad=0.5, sep=5)
-    aoffbox = AnchoredOffsetbox(loc=3, pad=0.5, borderpad=0.1, child=bars, frameon=False)
-    axis.add_artist(aoffbox)
-    # Return:
-    return aoffbox
+        effects = [patheffects.withStroke(linewidth=2, foreground=stroke)]
+        scalebar.txt_label._text.set_path_effects(effects)
+    # Add scale bar to axis and return:
+    axis.add_artist(scalebar)
+    return scalebar
 
 
 def add_annotation(axis, label, stroke=None, fontsize=None):
@@ -139,7 +131,7 @@ def add_annotation(axis, label, stroke=None, fontsize=None):
     """
     if fontsize is None:
         fontsize = FONTSIZE_DEFAULT
-    if stroke is None:
+    if stroke is None:  # TODO: Can this be deleted everywhere? Or set globally with stylesheet/plottools?
         stroke = STROKE_DEFAULT
     # Create text:
     txtcolor = 'w' if stroke == 'k' else 'k'
@@ -169,8 +161,7 @@ def add_colorwheel(axis):
     """
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     ins_axes = inset_axes(axis, width=0.75, height=0.75, loc=1)
-    ins_axes.axes.get_xaxis().visible = False
-    ins_axes.axes.get_yaxis().visible = False
+    ins_axes.axis('off')
     cmap = colors.CMAP_CIRCULAR_DEFAULT
     bgcolor = axis.get_facecolor()
     return cmap.plot_colorwheel(size=100, axis=ins_axes, alpha=0, bgcolor=bgcolor, arrows=True)
@@ -360,9 +351,7 @@ def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, sc
         add_cbar(axis, mappable=cbar_mappable, label=cbar_label, fontsize=fontsize)
     # Tighten layout if axis was created here:
     if tight_layout:
-        #with warnings.catch_warnings():
-            #warnings.simplefilter("ignore")
-        pass#plt.tight_layout()  # TODO: !!!!
+        plt.tight_layout()  # TODO: get rid of all tight_layouts!!!
     # Return plotting axis:
     return axis
 
@@ -394,3 +383,11 @@ def figsize(scale, height=None, textwidth=448.1309):
 #     axs[i].tick_params(axis='both', labelleft=False, labelright=True, labelsize=5)
 #     axs[i].yaxis.tick_right()
 #     axs[i].get_yaxis().set_label_coords(1.22, 0.5)
+
+
+# TODO: How to add colorbar for several phase images? See thesis chapter 6!
+
+# TODO: Move the quiverkey stuff from here! Everything that annotates!
+# TODO: And make stuff like fontsize/stroke/figsize globally configurable here or in a stylesheet!
+
+# TODO: In general: Move ALL plotting stuff here???? Really?

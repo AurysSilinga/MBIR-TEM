@@ -723,7 +723,7 @@ class PhaseMap(object):
                 else:
                     cbar_name = 'phase'
                 if mpl.rcParams['text.usetex'] and 'µ' in unit:  # Make sure µ works in latex:
-                    mpl.rc('text.latex', preamble=r'\usepackage{txfonts},\usepackage{lmodern}')
+                    mpl.rc('text.latex', preamble=R'\usepackage{txfonts},\usepackage{lmodern}')
                     unit = unit.replace('µ', '$\muup$')  # Upright µ!
                 cbar_label = u'{} [{}]'.format(cbar_name, unit)
         # Return formatted axis:
@@ -850,9 +850,7 @@ class PhaseMap(object):
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         self.plot_phase(axis=phase_axis, title=phase_title, note=note, **kwargs)
         # Tighten layout if axis was created here:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            plt.tight_layout()
+        plt.tight_layout()
         # Return the plotting axes:
         return phase_axis, holo_axis
 
@@ -914,9 +912,7 @@ class PhaseMap(object):
         phase_axis = fig.add_subplot(1, 2, 2, aspect=1)
         self.plot_phase(unit=unit, axis=phase_axis, title=phase_title, **kwargs)
         # Tighten layout:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            plt.tight_layout()
+        plt.tight_layout()
         # Return the plotting axes:
         return phase_axis, hist_axis
 

@@ -5,50 +5,47 @@
 # To see if compatible upgrades are available for the current packages, use "conda upgrade --all"!
 # When packages are deprecated/deleted, it may be best to recreate the environment from scratch!
 
-name: pyramid-legacy
+name: pyramid
 
 channels:
   - defaults  # Default conda channels, on top to keep highest priority!
-  - conda-forge  # Used for hyperspy, pyFFTW (linux-64/osx-64)!
-  - ccpi  # Used for pyFFTW on win-64!
+  - conda-forge  # Used for hyperspy, pyFFTW!
 
 dependencies:
   # Basic:
-  - python=3.6  #=3.5
-  - numpy=1.15  #=1.11
-  - scipy=1.1  #=1.0
-  - tqdm=4.26  #=4.14
-  - scikit-image=0.14  #=0.13
+  - python=3.6
+  - numpy=1.15
+  - scipy=1.1
+  - tqdm=4.26
+  - scikit-image=0.14
   # File IO:
-  - hyperspy=1.4  #=1.3
-  - hyperspy-gui-ipywidgets=1.1  #=1.0
-  - h5py=2.8  #=2.7
+  - hyperspy=1.4
+  - hyperspy-gui-ipywidgets=1.1
+  - h5py=2.8
   # Plotting and colors:
-  - matplotlib=3.0 #=1.5  # Only conda-forge channel has working version for qt4!
-  - Pillow=5.3  #=4.1
-  - cmocean=1.2  #=1.1
-  - qt=5.9  #=4.8  # Necessary because of traits in mayavi... On server, pyqt=5.6 is needed!
-  - mayavi=4.6  #=4.5  # TODO: Get rid of!
+  - matplotlib=3.0.2 #=1.5  # Only conda-forge channel has working version for qt4!
+  - Pillow=5.3
+  - cmocean=1.2
+  - qt=5.6  # Necessary because of traits in mayavi... On server, pyqt=5.6 is needed!
+  - mayavi=4.6  # TODO: Get rid of!
   # Testing:
-  - pytest=3.9  #=3.1
-  - pytest-cov=2.6  #=2.3
-  - pytest-flake8=1.0  #=0.8
-  - pytest-runner=4.2  #=2.11
+  - pytest=3.9
+  - pytest-cov=2.6
+  - pytest-flake8=1.0
+  - pytest-runner=4.2
   - pytest-mpl=0.10  # Needed for testing hyperspy! TODO: Use for pyramid or plotting library, too!
-  - coverage=4.5  #=4.4
+  - coverage=4.5
   # IPython and notebooks:
-  - ipython=7.0  #=5.3
+  - ipython=7.0
   - jupyter=1.0
   - nb_conda=2.2
   # TODO: Add back GUI dependencies!
   # TODO: Get Jutil from gitlab (currently doesn't work, git and cygwin don't play nice,...
   # TODO: ...because one is Unix, ond is Windows).
   # Fast computation:
-  #- pyFFTW  #=0.10  # TODO: Currently only possible for Python 3.6 and only via wheel (see below)!
+  - pyFFTW=0.11  # TODO: Was only possible for Python 3.6 and only via wheel (see below)!
   # PIP installations:
   - pip=10.0
-  - pip:
-    # pyFFTW currently has no compiled package on AnacondaCloud (and nothing for Python 3.7, yet):
-    - https://www.lfd.uci.edu/~gohlke/pythonlibs/pyFFTW‑0.10.4‑cp36‑cp36m‑win_amd64.whl
+#  - pip:
 #    # ALSO NEEDS JUTIL!
 #    - "git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git"
