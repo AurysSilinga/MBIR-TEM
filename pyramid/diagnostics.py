@@ -592,7 +592,7 @@ class LCurve(object):
             axis = fig.add_subplot(1, 1, 1)
         axis.set_yscale("log", nonposy='clip')
         axis.set_xscale("log", nonposx='clip')
-        axis.plot(x, y, 'k-', linewidth=3, zorder=1)
+        axis.plot(x, y, 'grey', linestyle='-', linewidth=3, zorder=1)
         sc = axis.scatter(x, y, c=lambdas, marker='o', s=100, zorder=2,
                           cmap='nipy_spectral', norm=LogNorm())
         plt.colorbar(mappable=sc, label='regularisation parameter $\lambda$')

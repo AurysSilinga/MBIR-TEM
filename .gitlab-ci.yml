@@ -26,6 +26,7 @@ test_miniconda:
     # Install requirements for pyramid:
     - conda info --envs
     - conda env create -q # -q: quiet/ no progressbar, because it spams the log!
+    - conda info --envs
     - source activate pyramid
     - conda info --envs
     - conda uninstall mayavi vtk -y  # TODO: necessary, because mayavi does not play nice with qt5!
@@ -52,6 +53,7 @@ test_conda_ubuntu:
     # Install requirements for pyramid:
     - conda info --envs
     - conda env create -q # -q: quiet/ no progressbar, because it spams the log!
+    - conda info --envs
     - source activate pyramid
     - conda info --envs
     - conda uninstall mayavi vtk -y  # TODO: necessary, because mayavi does not play nice with qt5!
@@ -63,7 +65,7 @@ test_conda_ubuntu:
 
 test_pip_minimal:
   stage: test
-  image: python:3.5
+  image: python:3.6
   script:
     # TODO: Different jobs with custom develop arguments? extra_requires (hyperspy, plotting)?
     # TODO: Use pip install -e .[hyperspy], etc.
@@ -76,7 +78,7 @@ test_pip_minimal:
 
 test_pip_requirements:
   stage: test
-  image: python:3.5
+  image: python:3.6
   script:
     # Install requirements:
     - pip install -r requirements.txt  # TODO: mayavi/pyfftw commented out by hand to make work!

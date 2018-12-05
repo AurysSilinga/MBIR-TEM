@@ -696,9 +696,6 @@ class PhaseMap(object):
         if axis is None:
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-            tight = True
-        else:
-            tight = False
         axis.set_aspect('equal')
         # Plot the phasemap:
         im = axis.imshow(phase, cmap=cmap, vmin=vmin, vmax=vmax, interpolation=interpolation,
@@ -728,7 +725,7 @@ class PhaseMap(object):
                 cbar_label = u'{} [{}]'.format(cbar_name, unit)
         # Return formatted axis:
         return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,
-                                     cbar_label=cbar_label, tight_layout=tight, **kwargs)
+                                     cbar_label=cbar_label, **kwargs)
 
     def plot_holo(self, gain='auto', colorwheel=True,  # specific to plot_holo!
                   cmap=None, interpolation='none', axis=None, figsize=None, sigma_clip=2,
@@ -796,9 +793,6 @@ class PhaseMap(object):
         if axis is None:
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-            tight = True
-        else:
-            tight = False
         axis.set_aspect('equal')
         # Plot the image and set axes:
         axis.imshow(holo_image, origin='lower', interpolation=interpolation,
@@ -807,8 +801,8 @@ class PhaseMap(object):
         if note is None:
             note = 'gain: {:g}'.format(gain)
         stroke = kwargs.pop('stroke', 'k')  # Default for holo is white with black outline!
-        return plottools.format_axis(axis, sampling=a, note=note, tight_layout=tight,
-                                     colorwheel=colorwheel, stroke=stroke, **kwargs)
+        return plottools.format_axis(axis, sampling=a, note=note, colorwheel=colorwheel,
+                                     stroke=stroke, **kwargs)
 
     def plot_combined(self, title='', phase_title='', holo_title='', figsize=None,
                       colorwheel=True, **kwargs):
@@ -849,8 +843,6 @@ class PhaseMap(object):
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect='equal')
         self.plot_phase(axis=phase_axis, title=phase_title, note=note, **kwargs)
-        # Tighten layout if axis was created here:
-        plt.tight_layout()
         # Return the plotting axes:
         return phase_axis, holo_axis
 
@@ -911,8 +903,6 @@ class PhaseMap(object):
         # Plot phase map:
         phase_axis = fig.add_subplot(1, 2, 2, aspect=1)
         self.plot_phase(unit=unit, axis=phase_axis, title=phase_title, **kwargs)
-        # Tighten layout:
-        plt.tight_layout()
         # Return the plotting axes:
         return phase_axis, hist_axis
 

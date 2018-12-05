@@ -142,7 +142,8 @@ install_requires = ['numpy>=1.6', 'tqdm', 'scipy', 'matplotlib', 'Pillow', 'h5py
 extras_require = {
     # TODO: Test all if really needed! don't use nose, if possible (pure pytest)!
     'tests': ['pytest', 'pytest-runner', 'pytest-cov', 'pytest-flake8', 'coverage'],
-    '3Dplot': ['qt==4.8', 'mayavi==4.5']
+    '3Dplot': ['qt==4.8', 'mayavi==4.5']  # TODO: not current!
+    # TODO: in general, make CI test THESE requirements (maybe in addition to the environment.yml)
     # TODO: more for mayavi (plotting in general) and hyperspy, etc (see below)...
 }
 

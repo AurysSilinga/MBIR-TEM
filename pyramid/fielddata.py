@@ -985,9 +985,6 @@ class VectorData(FieldData):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-            tight = True
-        else:
-            tight = False
         axis.set_aspect('equal')
         # Take the logarithm of the arrows to clearly show directions (if specified):
         # TODO: get rid of log!! (only problems...)
@@ -1041,7 +1038,7 @@ class VectorData(FieldData):
                     [patheffects.withStroke(linewidth=2, foreground=stroke)])
         # Return formatted axis:
         return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,
-                                     cbar_label=cbar_label, tight_layout=tight, **kwargs)
+                                     cbar_label=cbar_label, **kwargs)
 
     def plot_field(self, proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
                    figsize=None, **kwargs):
@@ -1100,9 +1097,7 @@ class VectorData(FieldData):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-            tight = True
-        else:
-            tight = False
+
         axis.set_aspect('equal')
         # Determine 'z'-component for luminance (keep as gray if None):
         z_mag = w_mag
@@ -1125,7 +1120,7 @@ class VectorData(FieldData):
             axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
                          linestyles='dotted', linewidths=2)
         # Return formatted axis:
-        return plottools.format_axis(axis, sampling=a, tight_layout=tight, **kwargs)
+        return plottools.format_axis(axis, sampling=a, **kwargs)
 
     def plot_quiver_field(self, **kwargs):
         """Plot the vector field as a field plot with uniformly colored arrows overlayed.
@@ -1246,9 +1241,6 @@ class VectorData(FieldData):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-            tight = True
-        else:
-            tight = False
         axis.set_aspect('equal')
         # Plot the streamlines:
         im = plt.streamplot(uu, vv, u_mag, v_mag, density=density, linewidth=linewidth,
@@ -1268,7 +1260,7 @@ class VectorData(FieldData):
                          linestyles='dotted', linewidths=2)
         # Return formatted axis:
         return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,
-                                     cbar_label=cbar_label, tight_layout=tight, **kwargs)
+                                     cbar_label=cbar_label, **kwargs)
 
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
@@ -1720,9 +1712,6 @@ class ScalarData(FieldData):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-            tight = True
-        else:
-            tight = False
         axis.set_aspect('equal')
         # Configure colormap and fix center to zero if colormap is symmetric:
         if cmap is None:
@@ -1754,7 +1743,6 @@ class ScalarData(FieldData):
         if cbar:
             cbar_mappable = im
         # Return formatted axis:
-        return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,
-                                     tight_layout=tight, **kwargs)
+        return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable, **kwargs)
 
 # TODO: Histogram plots for magnetisation (see thesis!)

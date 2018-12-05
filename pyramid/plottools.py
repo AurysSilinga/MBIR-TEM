@@ -249,7 +249,7 @@ def add_coords(axis, coords=('x', 'y')):
 
 def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, scalebar=True,
                 hideaxes=None, sampling=1, note=None, colorwheel=False, cbar_mappable=None,
-                cbar_label='', tight_layout=True, keep_labels=False, coords=None, **_):
+                cbar_label='', keep_labels=False, coords=None, **_):
     """Format an axis and add a lot of nice features.
 
     Parameters
@@ -281,8 +281,6 @@ def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, sc
         which uses this mappable object.
     cbar_label : string, optional
         The label of the colorbar. If `None`, no label is used.
-    tight_layout : bool, optional
-        If True, `plt.tight_layout()` is executed after the formatting. Default is True.
 
     Returns
     -------
@@ -349,9 +347,6 @@ def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, sc
     if cbar_mappable:
         # Construct colorbar:
         add_cbar(axis, mappable=cbar_mappable, label=cbar_label, fontsize=fontsize)
-    # Tighten layout if axis was created here:
-    if tight_layout:
-        plt.tight_layout()  # TODO: get rid of all tight_layouts!!!
     # Return plotting axis:
     return axis
 
