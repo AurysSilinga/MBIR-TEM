@@ -11,7 +11,7 @@ before_script:
     # Configure SSH to use ~/.ssh/jutil_key for iffgit.fz-juelich.de (-e allows \n):
     - echo -e "Host iffgit.fz-juelich.de\n\tIdentityFile ~/.ssh/id_rsa_jutil\n" > ~/.ssh/config
     # Add iffgit.fz-juelich.de to known_hosts (not the same key as Jutil!):
-    - echo iffgit.fz-juelich.de,134.94.161.83 "$ID_RSA_IFFGIT_PUBLIC" > ~/.ssh/known_hosts
+    - echo iffgit.fz-juelich.de,134.94.161.83 "$ID_RSA_JUTIL_PUBLIC" > ~/.ssh/known_hosts
     # Provide read access to owner (octal value code: 400) to known_hosts with chmod:
     - chmod 400 ~/.ssh/known_hosts
     # Install necessary apps like git and mesa-utils (needed for GL):
@@ -59,7 +59,7 @@ test_conda_ubuntu:
     - conda uninstall mayavi vtk -y  # TODO: necessary, because mayavi does not play nice with qt5!
     - conda install pyqt=5  # TODO: This is needed for tests to run, but breaks mayavi (not used)!
     # Install jutil via secure ssh connection:
-    - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
+    - pip install git+ssh://git@jugit.fz-juelich.de:j.ungermann/jutil.git
     # Execute tests:
     - python setup.py test
 
@@ -72,7 +72,7 @@ test_pip_minimal:
     # Install requirements:
     - pip install -e .['tests']  # TODO: other case with ['all']? After getting rid of mayavi...
     # Install jutil via secure ssh connection:
-    - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
+    - pip install git+ssh://git@jugit.fz-juelich.de:j.ungermann/jutil.git
     # Execute tests:
     - python setup.py test
 
@@ -83,7 +83,7 @@ test_pip_requirements:
     # Install requirements:
     - pip install -r requirements.txt  # TODO: mayavi/pyfftw commented out by hand to make work!
     # Install jutil via secure ssh connection:
-    - pip install git+ssh://gitlab@iffgit.fz-juelich.de/unger/jutil.git
+    - pip install git+ssh://git@jugit.fz-juelich.de:j.ungermann/jutil.git
     # Execute tests:
     - python setup.py test
 
