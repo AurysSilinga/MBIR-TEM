@@ -1041,7 +1041,7 @@ class VectorData(FieldData):
                                      cbar_label=cbar_label, **kwargs)
 
     def plot_field(self, proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
-                   figsize=None, **kwargs):
+                   figsize=None, interpolation='none', **kwargs):
         """Plot a slice of the vector field as a color field imshow plot.
 
         Parameters
@@ -1108,7 +1108,7 @@ class VectorData(FieldData):
         # Plot the field:
         dim_uv = u_mag.shape
         rgb = colors.CMAP_CIRCULAR_DEFAULT.rgb_from_vector(np.asarray((u_mag, v_mag, z_mag)))
-        axis.imshow(Image.fromarray(rgb), origin='lower', interpolation='none',
+        axis.imshow(Image.fromarray(rgb), origin='lower', interpolation=interpolation,
                     extent=(0, dim_uv[1], 0, dim_uv[0]))
         # Change background color:
         if bgcolor is not None:
@@ -1365,7 +1365,7 @@ class VectorData(FieldData):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-            axis.set_axis_bgcolor(kwargs['bgcolor'])
+            axis.set_facecolor(kwargs['bgcolor'])
         self.plot_quiver3d(figsize=(800, 800), **kwargs)
         if high_res:  # Use temp files:
             tmpdir = tempfile.mkdtemp()

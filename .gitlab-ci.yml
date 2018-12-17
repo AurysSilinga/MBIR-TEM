@@ -88,3 +88,5 @@ test_pip_requirements:
     - python setup.py test
 
 # TODO: What about windows? Better have one test (miniconda?) for windows/max/linux, each!
+# TODO: Or use Dockers? What's the difference
+# TODO: Instead of environment.yml (for development) use setup.py requirements for end user!
