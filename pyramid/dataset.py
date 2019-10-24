@@ -214,8 +214,8 @@ class DataSet(object):
         if type(phasemapper) is not list:
             phasemapper = [phasemapper] * len(phasemap)
         assert len(phasemap) == len(projector),\
-            ('Phasemaps and projectors must have same' +
-             'length(phasemaps: {}, projectors: {})!'.format(len(phasemap), len(projector)))
+            (f'Phasemaps and projectors must have same'
+             + f'length(phasemaps: {len(phasemap)}, projectors: {len(projector)})!')
         for i in range(len(phasemap)):
             self._append_single(phasemap[i], projector[i], phasemapper[i])
         # Reset the Se_inv matrix from phasemaps confidence matrices:
@@ -591,6 +591,7 @@ class DataSetCharge(object):
         elif phasemapper is not None:  # Use given one (do nothing):
             pass
         else:  # Create new standard (RDFC) phasemapper:
+            # TODO: PRW is missing in the kernel
             phasemapper = PhaseMapperCharge(KernelCharge(self.a, dim_uv, self.electrode_vec))
         self._phasemapper_dict[key] = phasemapper
         # Append everything to the lists (just contain pointers to objects!):
@@ -622,9 +623,9 @@ class DataSetCharge(object):
             projector = [projector]
         if type(phasemapper) is not list:
             phasemapper = [phasemapper] * len(phasemap)
-        assert len(phasemap) == len(projector),\
-            ('Phasemaps and projectors must have same' +
-             'length(phasemaps: {}, projectors: {})!'.format(len(phasemap), len(projector)))
+        assert len(phasemap) == len(projector), \
+            (f'Phasemaps and projectors must have same length'
+             + '(phasemaps: {len(phasemap)}, projectors: {len(projector)})!')
         for i in range(len(phasemap)):
             self._append_single(phasemap[i], projector[i], phasemapper[i])
         # Reset the Se_inv matrix from phasemaps confidence matrices:

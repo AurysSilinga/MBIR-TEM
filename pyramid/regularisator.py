@@ -5,7 +5,6 @@
 """This module provides the :class:`~.Regularisator` class which represents a regularisation term
 which adds additional constraints to a costfunction to minimize."""
 
-import abc
 import logging
 
 import numpy as np
@@ -14,8 +13,8 @@ from scipy import sparse
 import jutil.diff as jdiff
 import jutil.norms as jnorm
 
-__all__ = ['Regularisator', 'NoneRegularisator', 'ZeroOrderRegularisator',
-           'FirstOrderRegularisator', 'ComboRegularisator']
+__all__ = ['Regularisator', 'NoneRegularisator', 'ZeroOrderRegularisator', 'FirstOrderRegularisator',
+           'ComboRegularisator']
 
 
 class Regularisator(object):
@@ -363,11 +362,11 @@ class FirstOrderRegularisator(Regularisator):
 
     """
 
-    def __init__(self, mask, lam=1E-4, p=2, add_params=0):
+    def __init__(self, mask, lam=1E-4, p=2, add_params=0, factor=3):
         self.p = p
-        D0 = jdiff.get_diff_operator(mask, 0, 3)
-        D1 = jdiff.get_diff_operator(mask, 1, 3)
-        D2 = jdiff.get_diff_operator(mask, 2, 3)
+        D0 = jdiff.get_diff_operator(mask, 0, factor)
+        D1 = jdiff.get_diff_operator(mask, 1, factor)
+        D2 = jdiff.get_diff_operator(mask, 2, factor)
         D = sparse.vstack([D0, D1, D2])
         if p == 2:
             norm = jnorm.WeightedL2Square(D)

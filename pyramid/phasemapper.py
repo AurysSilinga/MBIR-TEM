@@ -205,7 +205,7 @@ class PhaseMapperFDFC(PhaseMapper):
     dim_uv : tuple of int (N=2)
         Dimensions of the 2-dimensional projected magnetization grid for the kernel setup.
     b_0 : float, optional
-        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The magnetic induction corresponding to a magnetization :math:`M_{0}` in T.
         The default is 1.
     padding : int, optional
         Factor for the zero padding. The default is 0 (no padding). For a factor of n the number
@@ -402,7 +402,7 @@ class PhaseMapperMIP(PhaseMapper):
         Returns
         -------
         result : :class:`~numpy.ndarray` (N=1)
-            Product of the transposed Jacobi matrix (which is not explicitely calculated) with
+            Product of the transposed Jacobi matrix (which is not explicitly calculated) with
             the vector, which has ``N**2`` entries like an electrostatic projection.
 
         """

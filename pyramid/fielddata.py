@@ -1551,6 +1551,35 @@ class ScalarData(FieldData):
 
     # TODO: flip!
 
+    def crop(self, crop_values):  # TODO: it doesn't work now.
+        """Crop the current field distribution with zeros for each individual axis.
+
+        Parameters
+        ----------
+        crop_values : tuple of int
+            Number of zeros which should be cropped. Provided as a tuple where each entry
+            corresponds to an axis. An entry can be one int (same cropping for both sides) or again
+            a tuple which specifies the crop values for both sides of the corresponding axis.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Acts in place and changes dimensions accordingly.
+        """
+        self._log.debug('Calling crop')
+        assert len(crop_values) == 3, 'Crop values for each dimension have to be provided!'
+        cv = np.zeros(6, dtype=np.int)
+        for i, values in enumerate(crop_values):
+            assert np.shape(values) in [(), (2,)], 'Only one or two values per axis can be given!'
+            cv[2 * i:2 * (i + 1)] = values
+        cv *= np.resize([1, -1], len(cv))
+        cv = np.where(cv == 0, None, cv)
+        field_crop = self.field[cv[0]:cv[1], cv[2]:cv[3], cv[4]:cv[5]]
+        return ScalarData(self.a, field_crop)
+
     def rotate(self, angle, axis='z', reshape=False, **kwargs):
         # TODO: Docstring!
         axes = {'x': (0, 1), 'y': (0, 2), 'z': (1, 2)}[axis]  # Defines axes of plane of rotation!

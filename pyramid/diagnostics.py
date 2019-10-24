@@ -11,9 +11,9 @@ import logging
 
 import pickle
 
-from pyramid.forwardmodel import ForwardModel
+from pyramid.forwardmodel import ForwardModel, ForwardModelCharge
 from pyramid.costfunction import Costfunction
-from pyramid.regularisator import FirstOrderRegularisator
+from pyramid.regularisator import FirstOrderRegularisator, ZeroOrderRegularisator
 from pyramid.fielddata import VectorData
 from pyramid.phasemap import PhaseMap
 from pyramid import reconstruction
@@ -36,7 +36,7 @@ try:
 except NameError:
     from tqdm import tqdm
 
-__all__ = ['Diagnostics', 'LCurve', 'get_vector_field_errors']
+__all__ = ['Diagnostics', 'LCurve', 'LCurveCharge', 'get_vector_field_errors']
 
 # TODO: should be subpackage, distribute methods and classes to separate modules!
 
@@ -154,10 +154,10 @@ class Diagnostics(object):
             self._updated_avrg_kern_row = False
             self._updated_measure_contribution = False
 
-    def __init__(self, cost, max_iter=1000, verbose=False):  # TODO: verbose True default
+    def __init__(self, magdata, cost, max_iter=1000, verbose=False):  # TODO: verbose True default
         self._log.debug('Calling __init__')
+        self.magdata = magdata
         self.cost = cost
-        self.a = self.cost.fwd_model.data_set.a
         self.max_iter = max_iter
         self.verbose = verbose
         self.fwd_model = cost.fwd_model
@@ -165,8 +165,8 @@ class Diagnostics(object):
         self.dim = cost.fwd_model.data_set.dim
         self.mask = cost.fwd_model.data_set.mask
         self.x_rec = np.empty(cost.n)
-        # self.x_rec[:self.fwd_model.data_set.n] = self.magdata.get_vector(mask=self.mask)
-        # self.x_rec[self.fwd_model.data_set.n:] = self.fwd_model.ramp.param_cache.ravel()
+        self.x_rec[:self.fwd_model.data_set.n] = self.magdata.get_vector(mask=self.mask)
+        self.x_rec[self.fwd_model.data_set.n:] = self.fwd_model.ramp.param_cache.ravel()
         self.row_idx = None
         self.pos = (0,) + tuple(np.array(np.where(self.mask))[:, 0])  # first True mask entry
         self._updated_cov_row = False
@@ -195,9 +195,7 @@ class Diagnostics(object):
         if pos is not None:
             self.pos = pos
         magdata_avrg_kern = VectorData(self.cost.fwd_model.data_set.a, np.zeros((3,) + self.dim))
-        vector = self.avrg_kern_row
-        if self.fwd_model.ramp.order is not None:
-            vector = vector[:-self.fwd_model.ramp.n]  # Only take vector field, not ramp!
+        vector = self.avrg_kern_row[:-self.fwd_model.ramp.n]  # Only take vector field, not ramp!
         magdata_avrg_kern.set_vector(vector, mask=self.mask)
         return magdata_avrg_kern
 
@@ -229,6 +227,7 @@ class Diagnostics(object):
 
         """
         self._log.debug('Calling calculate_fwhm')
+        a = self.magdata.a
         magdata_avrg_kern = self.get_avrg_kern_field(pos)
         x = np.arange(0, self.dim[2]) - self.pos[3]
         y = np.arange(0, self.dim[1]) - self.pos[2]
@@ -270,9 +269,9 @@ class Diagnostics(object):
         lz, rz = _calc_lr(2)
 
         # TODO: Test if FWHM is really calculated with a in mind... didn't seem so...
-        fwhm_x = (rx - lx) * self.a
-        fwhm_y = (ry - ly) * self.a
-        fwhm_z = (rz - lz) * self.a
+        fwhm_x = (rx - lx) * a
+        fwhm_y = (ry - ly) * a
+        fwhm_z = (rz - lz) * a
         # Plot helpful stuff:
         if plot:
             fig, axis = plt.subplots(1, 1)
@@ -303,8 +302,7 @@ class Diagnostics(object):
             axis.set_xlabel('x/y/z-slice [nm]', fontsize=15)
             axis.set_ylabel('information content [%]', fontsize=15)
             axis.tick_params(axis='both', which='major', labelsize=14)
-            formatter = FuncFormatter(lambda x, pos: '{:.3g}'.format(x * self.a))
-            axis.xaxis.set_major_formatter(formatter)
+            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
             comp_legend = axis.legend([cx, cy, cz], [c.get_label() for c in [cx, cy, cz]], loc=2,
                                       scatterpoints=1, prop={'size': 14})
             axis.legend(l, [i.get_label() for i in l], loc=1, numpoints=1, prop={'size': 14})
@@ -344,7 +342,7 @@ class Diagnostics(object):
             gain_map_list.append(PhaseMap(self.cost.fwd_model.data_set.a, gain))
         return gain_map_list
 
-    def plot_position(self, magdata, **kwargs):
+    def plot_position(self, **kwargs):
         proj_axis = kwargs.get('proj_axis', 'z')
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
             pos_2d = (self.pos[2], self.pos[3])
@@ -362,7 +360,7 @@ class Diagnostics(object):
             comp = {0: 'x', 1: 'y', 2: 'z'}[self.pos[0]]
             note = '{}-comp., pos.: {}'.format(comp, self.pos[1:])
         # Plots:
-        axis = magdata.plot_quiver_field(note=note, ax_slice=ax_slice, **kwargs)
+        axis = self.magdata.plot_quiver_field(note=note, ax_slice=ax_slice, **kwargs)
         rect = axis.add_patch(patches.Rectangle((pos_2d[1], pos_2d[0]), 1, 1, fill=False,
                                                 edgecolor='w', linewidth=2, alpha=0.5))
         rect.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
@@ -371,21 +369,22 @@ class Diagnostics(object):
         pass
 
     def plot_avrg_kern_field(self, pos=None, **kwargs):
+        a = self.magdata.a
         avrg_kern_field = self.get_avrg_kern_field(pos)
         fwhms, lr = self.calculate_fwhm(pos)[:2]
         proj_axis = kwargs.get('proj_axis', 'z')
         if proj_axis == 'z':  # Slice of the xy-plane with z = ax_slice
             pos_2d = (self.pos[2], self.pos[3])
             ax_slice = self.pos[1]
-            width, height = fwhms[0] / self.a, fwhms[1] / self.a
+            width, height = fwhms[0] / a, fwhms[1] / a
         elif proj_axis == 'y':  # Slice of the xz-plane with y = ax_slice
             pos_2d = (self.pos[1], self.pos[3])
             ax_slice = self.pos[2]
-            width, height = fwhms[0] / self.a, fwhms[2] / self.a
+            width, height = fwhms[0] / a, fwhms[2] / a
         elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
             pos_2d = (self.pos[2], self.pos[1])
             ax_slice = self.pos[3]
-            width, height = fwhms[2] / self.a, fwhms[1] / self.a
+            width, height = fwhms[2] / a, fwhms[1] / a
         else:
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
         note = kwargs.pop('note', None)
@@ -587,9 +586,9 @@ class LCurve(object):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-        axis.set_yscale("log", nonposy='clip')
+        axis.set_yscale("log", nonposx='clip')
         axis.set_xscale("log", nonposx='clip')
-        axis.plot(x, y, 'grey', linestyle='-', linewidth=3, zorder=1)
+        axis.plot(x, y, 'k-', linewidth=3, zorder=1)
         sc = axis.scatter(x, y, c=lambdas, marker='o', s=100, zorder=2,
                           cmap='nipy_spectral', norm=LogNorm())
         plt.colorbar(mappable=sc, label=R'regularisation parameter $\lambda$')
@@ -604,17 +603,138 @@ class LCurve(object):
         axis.grid()
         return axis
         # TODO: Don't plot the steep part on the right...
-        # TODO: The following formatting is better but without usetex, \boldsymbol doesn't work!
-        # import matplotlib
-        # matplotlib.rc('text', usetex=True)
-        # matplotlib.rcParams['text.latex.preamble'] = [r"\usepackage{amsmath}"]
-        # axis.get_xaxis().get_major_formatter().labelOnlyBase = False
-        # axis.set_xlabel(
-        #     r'$\Vert\mathbf{F}\boldsymbol{x}-\boldsymbol{y}\Vert_{\mathbf{S}_{\epsilon}^{-1}}^{2}$',
-        #     fontsize=22)
-        # axis.set_ylabel(r'$\frac{1}{\lambda}\Vert\boldsymbol{x}\Vert_{\mathbf{S}_{a}^{-1}}^{2}$',
-        #                 fontsize=22)
-        # matplotlib.rc('text', usetex=False)
+
+
+class LCurveCharge(object):
+
+    # TODO: Docstring!
+
+    # TODO: save elecdata_rec!
+
+    _log = logging.getLogger(__name__ + '.FieldData')
+
+    def __init__(self, fwd_model, max_iter=1000, regularisator=0, verbose=True, save_dir='lcurve'):
+        self._log.debug('Calling __init__')
+        assert isinstance(fwd_model, ForwardModelCharge), 'Input has to be a costfunction'
+        self.fwd_model = fwd_model
+        self.max_iter = max_iter
+        self.verbose = verbose
+        self.regularisator = regularisator
+        self.l_dict = {}
+        self.save_dir = save_dir
+        if self.save_dir is not None:
+            if not os.path.isdir(self.save_dir):  # Create directory if it does not exist:
+                os.makedirs(self.save_dir)
+            if os.path.isfile('{}/lcurve.pkl'.format(self.save_dir)):  # Load file if it exists:
+                self._load()
+            else:  # Create file:
+                self._save()
+        self._log.debug('Created ' + str(self))
+
+    # TODO: Methods for saving and loading l_dict's!!!
+    def _save(self):
+        with open('{}/lcurve.pkl'.format(self.save_dir), 'wb') as f:
+            pickle.dump(self.l_dict, f, pickle.HIGHEST_PROTOCOL)
+
+    def _load(self):
+        with open('{}/lcurve.pkl'.format(self.save_dir), 'rb') as f:
+            self.l_dict = pickle.load(f)
+
+    def calculate(self, lambdas, overwrite=False):
+        # TODO: Docstring!
+        lams = np.atleast_1d(lambdas)
+        for lam in tqdm(lams, disable=not self.verbose):
+            if lam not in self.l_dict.keys() or overwrite:
+                # Create new regularisator and costfunction: # TODO: Not hardcoding FirstOrder!
+                # TODO: Not necessary if lambda can be extracted from regularisator? self.cost?
+                if self.regularisator == 1:
+                    reg = FirstOrderRegularisator(self.fwd_model.data_set.mask, lam,
+                                                  add_params=self.fwd_model.ramp.n, factor=1)
+                else:
+                    reg = ZeroOrderRegularisator(self.fwd_model.data_set.mask, lam,
+                                                 add_params=self.fwd_model.ramp.n)
+                cost = Costfunction(fwd_model=self.fwd_model, regularisator=reg)
+                # Reconstruct:
+                elecdata_rec = reconstruction.optimize_linear_charge(cost, max_iter=self.max_iter,
+                                                                     verbose=self.verbose)
+                # Add new values to dictionary:
+                chisq_m, chisq_a = cost.chisq_m[-1], cost.chisq_a[-1]  # TODO: chisq_m list or not?
+                self.l_dict[lam] = (chisq_m, chisq_a)
+                self._log.info(lam, ' -->  m:', chisq_m, '  a:', chisq_a)
+                # Save elecdata_rec and dictionary if necessary:
+                if self.save_dir is not None:
+                    filename = 'elecdata_rec_lam{:.0e}.hdf5'.format(lam)
+                    elecdata_rec.save(os.path.join(self.save_dir, filename), overwrite=True)
+                    self._save()
+
+    def calculate_auto(self, lam_start=1E-18, lam_end=1E5, online_axis=False):
+        raise NotImplementedError()
+        # TODO: Docstring!
+        # TODO: IMPLEMENT!!!
+        # # Calculate new cost terms:
+        # log_m_s, log_a_s = np.log10(self.calculate(lam_start))
+        # log_m_e, log_a_e = np.log10(self.calculate(lam_end))
+        # # Calculate new lambda:
+        # log_lam_s, log_lam_e = np.log10(lam_start), np.log10(lam_end)
+        # log_lam_new = np.mean((log_lam_s, log_lam_e))  # logarithmic mean to find middle on L!
+        # sign_exp = np.floor(log_lam_new)
+        # last_sign_digit = np.round(10 ** (log_lam_new - sign_exp))
+        # lam_new = last_sign_digit * 10 ** sign_exp
+        # # Calculate cost terms for new lambda:
+        # log_m_new, log_a_new = np.log10(self.calculate(lam_new))
+        # if online_axis:  # Update plot if necessary:
+        #     self.plot(axis=online_axis)
+        #     from IPython import display
+        #     display.clear_output(wait=True)
+        #     display.display(plt.gcf())
+        # # Calculate distances from origin and find new interval:
+        # dist_s, dist_e = np.hypot(log_m_s, log_a_s), np.hypot(log_m_e, log_a_e)
+        # dist_new = np.hypot(log_m_new, log_a_new)
+        # print(lam_start, lam_end, lam_new)
+        # print(dist_s, dist_e, dist_new)
+        # # if dist_new
+        # TODO: slope has to be normalised, scale of axes is not equal!!!
+        # TODO: get rid of right flank (do Not use right points with slope steeper than -45°
+        # TODO: Implement else, return saved values!
+        # TODO: Make this work with batch, sort lambdas at the end!
+        # TODO: After sorting, calculate the CURVATURE for each lambda! (needs 3 points?)
+        # TODO: Use finite difference methods (forward/backward/central, depends on location)!
+        # TODO: Investigate points around highest curvature further.
+        # TODO: Make sure to update ALL curvatures and search for new best EVERYWHERE!
+        # TODO: Distinguish regions of the L-Curve.
+
+    def plot(self, lambdas=None, axis=None, figsize=None):
+        # TODO: Docstring!
+        # Sort lists according to lambdas:
+        if lambdas is None:
+            lambdas = sorted(self.l_dict.keys())
+        x, y = [], []
+        for lam in lambdas:
+            x.append(self.l_dict[lam][0])
+            y.append(self.l_dict[lam][1] / lam)
+        if figsize is None:
+            figsize = plottools.FIGSIZE_DEFAULT
+        if axis is None:
+            self._log.debug('axis is None')
+            fig = plt.figure(figsize=figsize)
+            axis = fig.add_subplot(1, 1, 1)
+        axis.set_yscale("log", nonposx='clip')
+        axis.set_xscale("log", nonposx='clip')
+        axis.plot(x, y, 'k-', linewidth=3, zorder=1)
+        sc = axis.scatter(x, y, c=lambdas, marker='o', s=100, zorder=2,
+                          cmap='nipy_spectral', norm=LogNorm())
+        plt.colorbar(mappable=sc, label=R'regularisation parameter $\lambda$')
+        axis.set_xlabel(
+            R'$\Vert\mathbf{F}(\mathbf{x})-\mathbf{y}\Vert_{\mathbf{S}_{\epsilon}^{-1}}^{2}$',
+            fontsize=22, labelpad=-5)
+        axis.set_ylabel(R'$\frac{1}{\lambda}\Vert\mathbf{x}\Vert_{\mathbf{S}_{a}^{-1}}^{2}$',
+                        fontsize=22)
+        axis.xaxis.label.set_color('firebrick')
+        axis.yaxis.label.set_color('seagreen')
+        axis.tick_params(axis='both', which='major')
+        axis.grid()
+        return axis
+        # TODO: Don't plot the steep part on the right...
 
 
 def get_vector_field_errors(vector_data, vector_data_ref, mask=None):
@@ -635,8 +755,7 @@ def get_vector_field_errors(vector_data, vector_data_ref, mask=None):
     amp_sum_sqr = np.nansum((v - vr)**2)
     rms_tot = np.sqrt(amp_sum_sqr / np.nansum(vra**2))
     # Directional error:
-    with np.errstate(divide='ignore', invalid='ignore'):  # ignore "invalid value in true_divide"!
-        scal_prod = np.clip(np.nansum(vr * v, axis=0) / (vra * va), -1, 1)  # arccos float inacc.!
+    scal_prod = np.clip(np.nansum(vr * v, axis=0) / (vra * va), -1, 1)  # arccos float pt. inacc.!
     rms_dir = np.sqrt(np.nansum(np.arccos(scal_prod)**2) / volume) / np.pi
     # Magnitude error:
     rms_mag = np.sqrt(np.nansum((va - vra)**2) / np.nansum(vra**2))
