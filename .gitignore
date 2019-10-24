@@ -1,9 +1,8 @@
+!.gitignore
+!.gitlab-ci.yml
+.*
 desktop.ini
 *.pyc
-.idea
-.vscode
-.cache
-.coverage
 *.egg-info
 *.DS_Store
 *.DS

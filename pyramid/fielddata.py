@@ -80,12 +80,9 @@ class FieldData(object, metaclass=abc.ABCMeta):
         return self._field
 
     @field.setter
-    def field(self, field):
-        assert isinstance(field, np.ndarray), 'Field has to be a numpy array!'
-        assert 3 <= len(field.shape) <= 4, 'Field has to be 3- or 4-dimensional (scalar / vector)!'
-        if len(field.shape) == 4:
-            assert field.shape[0] == 3, 'A vector field has to have exactly 3 components!'
-        self._field = field
+    @abc.abstractmethod
+    def field(self):
+        pass
 
     @property
     def field_amp(self):
@@ -190,6 +187,8 @@ class FieldData(object, metaclass=abc.ABCMeta):
         return self.__floordiv__(other)
 
     def __getitem__(self, item):
+        # TODO: When indexing, the components should not need to be included:
+        # TODO: e.g.: fielddata[1:7, 3:5, 3:4] instead of fielddata[:, 1:7, 3:5, 3:4]
         return self.__class__(self.a, self.field[item])
 
     def __array__(self, dtype=None):  # Used for numpy ufuncs, together with __array_wrap__!
@@ -470,6 +469,18 @@ class VectorData(FieldData):
 
     """
     _log = logging.getLogger(__name__ + '.VectorData')
+
+    @property
+    def field(self):
+        """The field strength for every 3D-gridpoint (scalar: 3D, vector: 4D)."""
+        return self._field
+
+    @field.setter
+    def field(self, field):
+        assert isinstance(field, np.ndarray), 'Field has to be a numpy array!'
+        assert len(field.shape) == 4, 'Field has to be 4-dimensional (3D vector-field)!'
+        assert field.shape[0] == 3, 'A vector field has to have exactly 3 components!'
+        self._field = field
 
     def __getitem__(self, item):
         return self.__class__(self.a, self.field[item])
@@ -801,9 +812,9 @@ class VectorData(FieldData):
         elif proj_axis == 'x':  # Slice of the zy-plane with x = ax_slice
             self._log.debug('proj_axis == x')
             # TODO: Strange swapaxes, really necessary? Get rid EVERYWHERE if possible!
-            #u_mag = np.swapaxes(np.copy(self.field[2][..., ax_slice]), 0, 1)  # z-component
-            #v_mag = np.swapaxes(np.copy(self.field[1][..., ax_slice]), 0, 1)  # y-component
-            #w_mag = np.swapaxes(np.copy(self.field[0][..., ax_slice]), 0, 1)  # x-component
+            # u_mag = np.swapaxes(np.copy(self.field[2][..., ax_slice]), 0, 1)  # z-component
+            # v_mag = np.swapaxes(np.copy(self.field[1][..., ax_slice]), 0, 1)  # y-component
+            # w_mag = np.swapaxes(np.copy(self.field[0][..., ax_slice]), 0, 1)  # x-component
             # TODO: z should be special and always along y in 2D if possible!!
             u_mag = np.copy(self.field[1][..., ax_slice])  # y-component
             v_mag = np.copy(self.field[2][..., ax_slice])  # z-component
@@ -942,6 +953,8 @@ class VectorData(FieldData):
         u_mag, v_mag = self.get_slice(ax_slice, proj_axis)[:2]
         submask = np.where(np.hypot(u_mag, v_mag) > 0, True, False)
         # Prepare quiver (select only used arrows if ar_dens is specified):
+        # TODO: None or 'auto' as default for ar_dens, set something sensible!!!
+        # TODO: ALSO mean instead of every nth arrow (use extend to cover the same space!)
         dim_uv = u_mag.shape
         vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
         uu = uu[::ar_dens, ::ar_dens]
@@ -950,7 +963,7 @@ class VectorData(FieldData):
         v_mag = v_mag[::ar_dens, ::ar_dens]
         amplitudes = np.hypot(u_mag, v_mag)
         # TODO: Delete if only used in log:
-        angles = np.angle(u_mag + 1j * v_mag, deg=True).tolist()
+        # angles = np.angle(u_mag + 1j * v_mag, deg=True).tolist()
         # Calculate the arrow colors:
         if bgcolor is None:
             bgcolor = 'white'  # Default!
@@ -1002,8 +1015,8 @@ class VectorData(FieldData):
             u_mag /= amplitudes.max() + 1E-30
             v_mag /= amplitudes.max() + 1E-30
         # Plot quiver:
-        # TODO: quiver does not work with matplotlib 2.0! FIX!
-        quiv = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1), #angles=angles,
+        # TODO: quiver does not work with matplotlib 2.0! FIX! DELETE ANGLES PARAMETER V
+        quiv = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1),  # angles=angles,
                            pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
                            minlength=0.05, width=1*ar_dens, headlength=2, headaxislength=2,
                            headwidth=2, minshaft=2)
@@ -1135,6 +1148,7 @@ class VectorData(FieldData):
             The axis on which the graph is plotted.
 
         """
+        # with plt.style.context('../pyramid.mplstyle'):  # TODO: RIGHT USE LIKE THIS???
         # Extract parameters:
         show_mask = kwargs.pop('show_mask', True)  # Only needed once!
         axis = kwargs.pop('axis', None)
@@ -1355,6 +1369,7 @@ class VectorData(FieldData):
 
     def plot_quiver3d_to_2d(self, dim_uv=None, axis=None, figsize=None, high_res=False, **kwargs):
         # TODO: into plottools and make available for all 3D plots if possible!
+        # TODO: Look at https://docs.enthought.com/mayavi/mayavi/tips.html and implement!
         kwargs.setdefault('labels', False)
         kwargs.setdefault('orientation', False)
         kwargs.setdefault('bgcolor', (0.7, 0.7, 0.7))
@@ -1366,7 +1381,7 @@ class VectorData(FieldData):
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
             axis.set_facecolor(kwargs['bgcolor'])
-        self.plot_quiver3d(figsize=(800, 800), **kwargs)
+        self.plot_quiver3d(figsize=(1600, 1600), **kwargs)
         if high_res:  # Use temp files:
             tmpdir = tempfile.mkdtemp()
             temp_path = os.path.join(tmpdir, 'temp.png')
@@ -1409,6 +1424,17 @@ class ScalarData(FieldData):
 
     """
     _log = logging.getLogger(__name__ + '.ScalarData')
+
+    @property
+    def field(self):
+        """The field strength for every 3D-gridpoint (scalar: 3D)."""
+        return self._field
+
+    @field.setter
+    def field(self, field):
+        assert isinstance(field, np.ndarray), 'Field has to be a numpy array!'
+        assert len(field.shape) == 3, 'Field has to be 3-dimensional (3D scalar field)!'
+        self._field = field
 
     @property
     def field_vec(self):
@@ -1662,7 +1688,6 @@ class ScalarData(FieldData):
             raise ValueError('{} is not a valid argument (use x, y or z)'.format(proj_axis))
         return scalar_slice
 
-
     def plot_field(self, proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
                    figsize=None, vmin=None, vmax=None, symmetric=False, cmap=None, cbar=True,
                    **kwargs):
@@ -1737,7 +1762,7 @@ class ScalarData(FieldData):
             axis.contour(uu, vv, submask, levels=[0.5], colors='k',
                          linestyles='dotted', linewidths=2)
         if bgcolor is not None:
-            pass#axis.set_facecolor(bgcolor)  # TODO: Activate for matplotlib 2.0!
+            axis.set_facecolor(bgcolor)
         # Determine colorbar title:
         cbar_mappable = None
         if cbar:

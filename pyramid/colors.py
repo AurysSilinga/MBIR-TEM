@@ -4,7 +4,7 @@
 #
 
 # TODO: Own small package? Use viscm (with colorspacious)?
-# TODO: Also add cmoceaon "phase" colormap? Make optional (try importing, fall back to RdBu!)
+# TODO: Also add cmocean "phase" colormap? Make optional (try importing, fall back to RdBu!)
 """This module provides a number of custom colormaps, which also have capabilities for 3D plotting.
 If this is the case, the :class:`~.Colormap3D` colormap class is a parent class. In `cmaps`, a
 number of specialised colormaps is available for convenience. If the default for circular colormaps
@@ -18,11 +18,9 @@ import logging
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter as FuncForm
-from matplotlib.ticker import MaxNLocator, IndexLocator, FixedLocator
-
-from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import FixedLocator
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 from mpl_toolkits.axes_grid1 import ImageGrid
-from matplotlib import gridspec
 from matplotlib.patches import Circle
 
 import numpy as np
@@ -173,11 +171,11 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         axis.xaxis.set_visible(False)
         axis.yaxis.set_visible(False)
         for tic in axis.xaxis.get_major_ticks():
-            tic.tick1On = tic.tick2On = False
-            tic.label1On = tic.label2On = False
+            tic.tick1line.set_visible(False)
+            tic.label1.set_visible(False)
         for tic in axis.yaxis.get_major_ticks():
-            tic.tick1On = tic.tick2On = False
-            tic.label1On = tic.label2On = False
+            tic.tick1line.set_visible(False)
+            tic.label1.set_visible(False)
         return axis
 
 
@@ -327,8 +325,8 @@ class ColormapCubehelix(colors.LinearSegmentedColormap, Colormap3D):
         self._log.debug('Calling plot_helix')
         if figsize is None:
             figsize = plottools.FIGSIZE_DEFAULT
-        plt.figure(figsize=figsize)
-        gs = gridspec.GridSpec(2, 1, height_ratios=[8, 1])
+        fig = plt.figure(figsize=figsize, constrained_layout=True)
+        gs = fig.add_gridspec(2, 1, height_ratios=[8, 1])
         # Main plot:
         axis = plt.subplot(gs[0])
         axis.plot(self.fract, 'k', linewidth=2)
@@ -343,14 +341,14 @@ class ColormapCubehelix(colors.LinearSegmentedColormap, Colormap3D):
         axis.xaxis.set_major_locator(FixedLocator(locs=np.linspace(0, self.nlev, 5)))
         axis.yaxis.set_major_locator(FixedLocator(locs=[0, 0.5, 1]))
         # Colorbar horizontal:
-        caxis = plt.subplot(gs[1], sharex=axis)
+        caxis = plt.subplot(gs[1])
         rgb = self(np.linspace(0, 1, 256))[None, ...]
         rgb = np.asarray(255.9999 * rgb, dtype=np.uint8)
         rgb = np.repeat(rgb, 30, axis=0)
-        im = Image.fromarray(rgb)
+        im = Image.fromarray(rgb, aspect='auto')
         caxis.imshow(im)
         plt.tick_params(axis='both', which='both', labelleft=False, labelbottom=False,
-                            left=False, right=False, top=False, bottom=False)
+                        left=False, right=False, top=False, bottom=False)
         return plottools.format_axis(axis, scalebar=False, keep_labels=True, **kwargs)
 
 
@@ -615,7 +613,7 @@ class ColorspaceCIELab(object):  # TODO: Superclass?
         aa, bb = np.meshgrid(a, b)
         import visvis  # TODO: If VisPy is ever ready, switch every plot to that!
         for i in range(1, N):
-            LL = np.full(dim,  i * 100 / N, dtype=int)
+            LL = np.full(dim, i * 100 / N, dtype=int)
             Lab = np.stack((LL, aa, bb), axis=-1)
             # Convert to XYZ colorspace:
             XYZ = skcolor.lab2xyz(Lab)
@@ -754,7 +752,7 @@ class ColorspaceCIELuv(object):
         uu, vv = np.meshgrid(u, v)
         import visvis
         for i in range(1, N):
-            LL = np.full(dim,  i * 100 / N, dtype=int)
+            LL = np.full(dim, i * 100 / N, dtype=int)
             Luv = np.stack((LL, uu, vv), axis=-1)
             # Convert to XYZ colorspace:
             XYZ = skcolor.luv2xyz(Luv)
@@ -897,7 +895,7 @@ class ColorspaceCIExyY(object):
         xx, yy = np.meshgrid(x, y)
         import visvis
         for i in range(1, N):
-            YY = np.full(dim,  i * 1. / N)
+            YY = np.full(dim, i * 1. / N)
             # Convert to XYZ:
             XX = YY / (yy + 1e-30) * xx
             ZZ = YY / (yy + 1e-30) * (1 - xx - yy)

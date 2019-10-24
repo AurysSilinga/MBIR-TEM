@@ -424,22 +424,19 @@ class Diagnostics(object):
         engine.add_source(source)
         surface = Surface()
         source.add_module(surface)
-
         actor = surface.actor  # mayavi actor, actor.actor is tvtk actor
         # actor.property.ambient = 1 # defaults to 0 for some reason, ah don't need it, turn off scalar visibility instead
         actor.property.opacity = 0.5
         actor.property.color = (0, 0, 0)
         actor.mapper.scalar_visibility = False  # don't colour ellipses by their scalar indices into colour map
         actor.property.backface_culling = True  # gets rid of rendering artifact when opacity is < 1
-        # actor.property.frontface_culling = True
+        # actor.property.frontface_culling = True  # TODO: needed?
         actor.actor.orientation = [0, 0, 0]  # in degrees
         actor.actor.origin = (0, 0, 0)
         actor.actor.position = (self.pos[1]+0.5, self.pos[2]+0.5, self.pos[3]+0.5)
         actor.actor.scale = [0.5*fwhm[0]/self.a, 0.5*fwhm[1]/self.a, 0.5*fwhm[2]/self.a]
-        #surface.append(surface)
-
+        # surface.append(surface)  # TODO: needed?
         scene.scene.disable_render = False  # now turn it on  # TODO: EVERYWHERE WITH MAYAVI!
-
 
     def plot_avrg_kern_field_3d_to_2d(self, dim_uv=None, axis=None, figsize=None, high_res=False,
                                       **kwargs):
@@ -457,8 +454,8 @@ class Diagnostics(object):
             axis = fig.add_subplot(1, 1, 1)
             axis.set_axis_bgcolor('gray')
         kwargs.setdefault('labels', 'False')
-        #avrg_kern_field = self.get_avrg_kern_field()
-        #avrg_kern_field.plot_quiver3d(**kwargs)
+        # avrg_kern_field = self.get_avrg_kern_field()
+        # avrg_kern_field.plot_quiver3d(**kwargs)
         self.plot_avrg_kern_field3d(**kwargs)
         if high_res:  # Use temp files:
             tmpdir = tempfile.mkdtemp()
@@ -595,11 +592,11 @@ class LCurve(object):
         axis.plot(x, y, 'grey', linestyle='-', linewidth=3, zorder=1)
         sc = axis.scatter(x, y, c=lambdas, marker='o', s=100, zorder=2,
                           cmap='nipy_spectral', norm=LogNorm())
-        plt.colorbar(mappable=sc, label='regularisation parameter $\lambda$')
+        plt.colorbar(mappable=sc, label=R'regularisation parameter $\lambda$')
         axis.set_xlabel(
-            r'$\Vert\mathbf{F}(\mathbf{x})-\mathbf{y}\Vert_{\mathbf{S}_{\epsilon}^{-1}}^{2}$',
+            R'$\Vert\mathbf{F}(\mathbf{x})-\mathbf{y}\Vert_{\mathbf{S}_{\epsilon}^{-1}}^{2}$',
             fontsize=22, labelpad=-5)
-        axis.set_ylabel(r'$\frac{1}{\lambda}\Vert\mathbf{x}\Vert_{\mathbf{S}_{a}^{-1}}^{2}$',
+        axis.set_ylabel(R'$\frac{1}{\lambda}\Vert\mathbf{x}\Vert_{\mathbf{S}_{a}^{-1}}^{2}$',
                         fontsize=22)
         axis.xaxis.label.set_color('firebrick')
         axis.yaxis.label.set_color('seagreen')
@@ -629,7 +626,7 @@ def get_vector_field_errors(vector_data, vector_data_ref, mask=None):
         vector_data_ref_masked.set_vector(vector_data_ref.get_vector(mask), mask)
         v, vr = vector_data_masked.field, vector_data_ref_masked.field
         va, vra = vector_data_masked.field_amp, vector_data_ref_masked.field_amp
-        volume = mask.sum()
+        volume = mask.sum()  # Only count masked voxels, not the whole volume!
     else:
         v, vr = vector_data.field, vector_data_ref.field
         va, vra = vector_data.field_amp, vector_data_ref.field_amp
