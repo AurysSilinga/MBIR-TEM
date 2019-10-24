@@ -214,7 +214,7 @@ class DataSet(object):
         if type(phasemapper) is not list:
             phasemapper = [phasemapper] * len(phasemap)
         assert len(phasemap) == len(projector),\
-            (f'Phasemaps and projectors must have same'
+            ('Phasemaps and projectors must have same'
              + f'length(phasemaps: {len(phasemap)}, projectors: {len(projector)})!')
         for i in range(len(phasemap)):
             self._append_single(phasemap[i], projector[i], phasemapper[i])
@@ -624,8 +624,8 @@ class DataSetCharge(object):
         if type(phasemapper) is not list:
             phasemapper = [phasemapper] * len(phasemap)
         assert len(phasemap) == len(projector), \
-            (f'Phasemaps and projectors must have same length'
-             + '(phasemaps: {len(phasemap)}, projectors: {len(projector)})!')
+            ('Phasemaps and projectors must have same length'
+             + f'(phasemaps: {len(phasemap)}, projectors: {len(projector)})!')
         for i in range(len(phasemap)):
             self._append_single(phasemap[i], projector[i], phasemapper[i])
         # Reset the Se_inv matrix from phasemaps confidence matrices:
