@@ -591,6 +591,7 @@ class DataSetCharge(object):
         elif phasemapper is not None:  # Use given one (do nothing):
             pass
         else:  # Create new standard (RDFC) phasemapper:
+        # TODO: PRW is missing in the kernel
             phasemapper = PhaseMapperCharge(KernelCharge(self.a, dim_uv, self.electrode_vec))
         self._phasemapper_dict[key] = phasemapper
         # Append everything to the lists (just contain pointers to objects!):

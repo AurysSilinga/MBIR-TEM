@@ -283,19 +283,28 @@ class KernelCharge(object):
         # case 1 totally out of the sphere
         case1 = ((h1 < 0) & (h2 < 0))
         phase = np.zeros(n.shape)
+        # elec_field = np.zeros(n.shape)
         phase[case1] += - np.log((r1[case1] ** 2) / (r2[case1] ** 2))
+        # The x, y component of electric field, Ex=Ey in the kernel
+        # elec_field[case1] += np.sqrt(3) * np.pi * (1 / r1[case1] - 1 / r2[case1]) / 3
         # case 2: inside the charge sphere
         case2 = ((h1 >= 0) & (h2 <= 0))
         # The height when the path come across the charge sphere
         h3 = np.sqrt(np.where(h1 > 0, h1, 0))
         phase[case2] += (- np.log((h3[case2] + R) ** 2 / r2[case2] ** 2) +
                          (2 * h3[case2] / R + 2 * h3[case2] ** 3 / 3 / R ** 3))
+        # elec_field[case2] += 2 * np.sqrt(3) / 3 * (np.pi * (1 / r1[case1] - 1 / r2[case1]) / 2 -
+        #                                   np.arctan(h3[case2] / r1[case2]) / r1[case2] + h3[case2] / 2 / R ** 2 +
+        #                                   r1[case2] ** 2 / 2 / R ** 3 * (np.log(h3[case2] + R)) - np.log(r1[case2]))
         # case 3 : inside the image charge sphere
         case3 = np.logical_not(case1 | case2)
         # The height whe the path comes across the image charge sphere
         h4 = np.sqrt(np.where(h2 > 0, h2, 0))
         phase[case3] += (np.log((h4[case3] + R) ** 2 / r1[case3] ** 2) -
                               (2 * h4[case3] / R + 2 * h4[case3] ** 3 / 3 / R ** 3))
+        # elec_field[case3] += 2 * np.sqrt(3) / 3 * (np.pi * (1 / r1[case1] - 1 / r2[case1]) / 2 -
+        #                                   np.arctan(h4[case3] / r2[case3]) / r2[case3] - h4[case3] / 2 / R ** 2 -
+        #                                   r2[case3] ** 2 / 2 / R ** 3 * (np.log(h4[case3] + R)) - np.log(r2[case3]))
         return phase
 
     def print_info(self):
