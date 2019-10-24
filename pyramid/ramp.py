@@ -37,7 +37,7 @@ class Ramp(object):
         (one for each degree of freedom) are saved along the first axis, values for different
         images along the second axis.
     n : int
-        Size of the input space. Coincides with the numer of entries in `param_cache` and
+        Size of the input space. Coincides with the number of entries in `param_cache` and
         calculates to ``deg_of_freedom * data_set.count``.
 
     Notes

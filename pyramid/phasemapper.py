@@ -402,7 +402,7 @@ class PhaseMapperMIP(PhaseMapper):
         Returns
         -------
         result : :class:`~numpy.ndarray` (N=1)
-            Product of the transposed Jacobi matrix (which is not explicitely calculated) with
+            Product of the transposed Jacobi matrix (which is not explicitly calculated) with
             the vector, which has ``N**2`` entries like an electrostatic projection.
 
         """
