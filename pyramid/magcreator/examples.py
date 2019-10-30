@@ -20,7 +20,7 @@ __all__ = ['pyramid_logo', 'singularity', 'homog_pixel', 'homog_slab', 'homog_di
            'homog_array_sphere_disc_slab', 'homog_random_pixels', 'homog_random_slabs',
            'vortex_slab', 'vortex_disc', 'vortex_alternating_discs', 'vortex_sphere',
            'vortex_horseshoe', 'smooth_vortex_disc', 'source_disc',
-           'core_shell_disc', 'core_shell_sphere']
+           'core_shell_disc', 'core_shell_sphere', 'skyrmion']
 _log = logging.getLogger(__name__)
 
 
@@ -303,3 +303,12 @@ def core_shell_sphere(a=1., dim=(32, 32, 32), center=None, radius_core=None,
     magdata = VectorData(a, mc.create_mag_dist_vortex(mag_shape_shell)) * rate_core_to_shell
     magdata += VectorData(a, mc.create_mag_dist_homog(mag_shape_core, phi=0, theta=0))
     return magdata
+
+
+def skyrmion(a=1., dim=(32, 32, 32), center=None, phi_0=0, skyrm_d=None, wall_d=None,
+             axis='z', mode='tanh'):
+    """Create smooth vortex disc magnetisation distribution."""
+    _log.debug('Calling vortex_disc')
+    mag_shape = shapes.slab(dim, center=(dim[0]//2, dim[1]//2, dim[2]//2), width=dim)
+    magnitude = mc.create_mag_dist_skyrmion(mag_shape, center, phi_0, skyrm_d, wall_d, axis, mode)
+    return VectorData(a, magnitude)

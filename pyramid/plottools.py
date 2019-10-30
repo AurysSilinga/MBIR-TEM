@@ -9,9 +9,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm  # TODO: Everywhere or managed through stylesheets!
-from matplotlib.offsetbox import AnchoredOffsetbox, AuxTransformBox, VPacker, TextArea
-from matplotlib.transforms import blended_transform_factory, IdentityTransform
-from matplotlib.patches import Rectangle
+from matplotlib.offsetbox import AnchoredOffsetbox, TextArea
 from matplotlib import patheffects
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
@@ -24,7 +22,7 @@ from . import colors
 __all__ = ['format_axis', 'pretty_plots', 'add_scalebar',
            'add_annotation', 'add_colorwheel', 'add_cbar']
 
-FIGSIZE_DEFAULT = (6.7, 5)  # TODO: Apparently does not fit as well as before...
+FIGSIZE_DEFAULT = (8.3, 6.2)
 FONTSIZE_DEFAULT = 20
 STROKE_DEFAULT = None
 
@@ -56,6 +54,8 @@ def pretty_plots(figsize=None, fontsize=None, stroke=None):
 
 
 def add_scalebar(axis, sampling=1, fontsize=None, stroke=None):
+    # TODO: THE LITTLE BLACK BAR is the scale bar, not the whole field!
+    # TODO: Problem with stroke: it gets invisible.... remove stroke, always black text?
     """Add a scalebar to the axis.
 
     Parameters
@@ -98,12 +98,16 @@ def add_scalebar(axis, sampling=1, fontsize=None, stroke=None):
     fontprops = fm.FontProperties(size=fontsize)
     txtcolor = 'w' if stroke == 'k' else 'k'
     # Create scale bar:
-    scalebar = AnchoredSizeBar(transform, size, label, loc, borderpad=0.5,
-                               fontproperties=fontprops, color=txtcolor)
+    height = dim_uv[0] * 0.01
+    scalebar = AnchoredSizeBar(transform, size, label, loc, borderpad=0.2, pad=0.2, sep=5,
+                               fontproperties=fontprops, color=txtcolor, size_vertical=height,
+                               frameon=False, label_top=True, fill_bar=True)
     # Set stroke is necessary:
     if stroke is not None:
-        effects = [patheffects.withStroke(linewidth=2, foreground=stroke)]
-        scalebar.txt_label._text.set_path_effects(effects)
+        effect_txt = [patheffects.withStroke(linewidth=2, foreground=stroke)]
+        scalebar.txt_label._text.set_path_effects(effect_txt)
+        effect_bar = [patheffects.withStroke(linewidth=3, foreground=stroke)]
+        scalebar.size_bar._children[0].set_path_effects(effect_bar)
     # Add scale bar to axis and return:
     axis.add_artist(scalebar)
     return scalebar
@@ -195,24 +199,13 @@ def add_cbar(axis, mappable, label='', fontsize=None):
     plt.draw()  # matplotlib "draws" the plot and determines e.g. label positions!
     cbar.ax.tick_params(labelsize=fontsize)
     # Make sure labels don't stick out of tight bbox:
-    labels = cbar.ax.get_yticklabels()
     delta = 0.03 * (cbar.vmax - cbar.vmin)
-    lmin, lmax = labels[0]._y, labels[-1]._y
+    lmin, lmax = cbar.get_ticks().min(), cbar.get_ticks().max()
     redo_max = True if cbar.vmax - lmax < delta else False
     redo_min = True if lmin - cbar.vmin < delta else False
     mappable.set_clim(cbar.vmin - delta * redo_min, cbar.vmax + delta * redo_max)
-    # A lot of plotting magic to make plot width consistent (mostly):
-    cbar.ax.set_yticklabels(labels, ha='right')
-    renderer = plt.gcf().canvas.get_renderer()
-    bbox_0 = labels[0].get_window_extent(renderer)
-    bbox_1 = labels[-1].get_window_extent(renderer)
-    cbar_pad = np.max((bbox_0.width, bbox_1.width)) + 5  # bit of padding left!
-    cbar.ax.yaxis.set_tick_params(pad=cbar_pad)
-    max_txt = plt.text(0, 0, u'\u22120.00', fontsize=fontsize)
-    bbox_max = max_txt.get_window_extent(renderer)
-    max_txt.remove()
-    cbar_pad_max = bbox_max.width + 10  # bit of padding right!
-    cbar.set_label(label, fontsize=fontsize, labelpad=max(cbar_pad_max - cbar_pad, 0))
+    # Set colorbar label:
+    cbar.set_label(label, fontsize=fontsize)
     # Set focus back to axis and return cbar:
     plt.sca(axis)
     return cbar
@@ -319,11 +312,11 @@ def format_axis(axis, format_axis=True, title='', fontsize=None, stroke=None, sc
     # Hide axes label and ticks if wanted:
     if hideaxes:
         for tic in axis.xaxis.get_major_ticks():
-            tic.tick1On = tic.tick2On = False
-            tic.label1On = tic.label2On = False
+            tic.tick1line.set_visible(False)
+            tic.label1.set_visible(False)
         for tic in axis.yaxis.get_major_ticks():
-            tic.tick1On = tic.tick2On = False
-            tic.label1On = tic.label2On = False
+            tic.tick1line.set_visible(False)
+            tic.label1.set_visible(False)
     else:  # Set the axes ticks and labels:
         if not keep_labels:
             axis.set_xlabel('u-axis [nm]')

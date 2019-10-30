@@ -50,7 +50,7 @@ def convert_M_to_A(magdata, b_0=1.0):
     slice_M = (slice(0, dim[0]),  # Magnetization is padded on the far end!
                slice(0, dim[1]),  # B-field cutout is shifted as listed above
                slice(0, dim[2]))  # because of the kernel center!
-    # Set up kernels
+    # Set up kernels:
     coeff = magdata.a * b_0 / (4 * np.pi)
     zzz, yyy, xxx = np.indices(dim_kern)
     xxx -= dim[2] - 1
@@ -59,9 +59,9 @@ def convert_M_to_A(magdata, b_0=1.0):
     k_x = np.empty(dim_kern, dtype=magdata.field.dtype)
     k_y = np.empty(dim_kern, dtype=magdata.field.dtype)
     k_z = np.empty(dim_kern, dtype=magdata.field.dtype)
-    k_x[...] = coeff * xxx / np.abs(xxx ** 2 + yyy ** 2 + zzz ** 2 + 1E-30) ** 3
-    k_y[...] = coeff * yyy / np.abs(xxx ** 2 + yyy ** 2 + zzz ** 2 + 1E-30) ** 3
-    k_z[...] = coeff * zzz / np.abs(xxx ** 2 + yyy ** 2 + zzz ** 2 + 1E-30) ** 3
+    k_x[...] = coeff * xxx / np.sqrt(xxx ** 2 + yyy ** 2 + zzz ** 2 + 1E-30) ** 3
+    k_y[...] = coeff * yyy / np.sqrt(xxx ** 2 + yyy ** 2 + zzz ** 2 + 1E-30) ** 3
+    k_z[...] = coeff * zzz / np.sqrt(xxx ** 2 + yyy ** 2 + zzz ** 2 + 1E-30) ** 3
     # Calculate Fourier trafo of kernel components:
     k_x_fft = fft.rfftn(k_x, dim_pad)
     k_y_fft = fft.rfftn(k_y, dim_pad)
@@ -104,40 +104,14 @@ def convert_A_to_B(a_data):
     """
     _log.debug('Calling convert_A_to_B')
     assert isinstance(a_data, VectorData), 'Only VectorData objects can be mapped!'
-    #
-    axis = tuple([i for i in range(3) if a_data.dim[i] > 1])
-    #
-    x_grads = np.gradient(a_data.field[0, ...], axis=axis) #/ a_data.a
-    y_grads = np.gradient(a_data.field[1, ...], axis=axis) #/ a_data.a
-    z_grads = np.gradient(a_data.field[2, ...], axis=axis) #/ a_data.a
-    #
-    x_gradii = np.zeros(a_data.shape)
-    y_gradii = np.zeros(a_data.shape)
-    z_gradii = np.zeros(a_data.shape)
-    #
-    for i, axis in enumerate(axis):
-        x_gradii[axis] = x_grads[i]
-        y_gradii[axis] = y_grads[i]
-        z_gradii[axis] = z_grads[i]
-    #
-    x_grad_z, x_grad_y, x_grad_x = x_gradii
-    y_grad_z, y_grad_y, y_grad_x = y_gradii
-    z_grad_z, z_grad_y, z_grad_x = z_gradii
-    # Calculate cross product:
-    b_x = (z_grad_y - y_grad_z)
-    b_y = (x_grad_z - z_grad_x)
-    b_z = (y_grad_x - x_grad_y)
-    # Return B-field:
-    return VectorData(a_data.a, np.asarray((b_x, b_y, b_z)))
-
-
-
-
-    # Calculate gradients:
-    x_mag, y_mag, z_mag = a_data.field
-    x_grad_z, x_grad_y, x_grad_x = np.gradient(x_mag)
-    y_grad_z, y_grad_y, y_grad_x = np.gradient(y_mag)
-    z_grad_z, z_grad_y, z_grad_x = np.gradient(z_mag)
+    # Calculate gradients of the three components in their two perpendicular directions,
+    # ONLY if the according direction is > 1 (else: set to zero):
+    x_grad_z, x_grad_y = [np.gradient(a_data.field[0, ...], a_data.a, axis=i)
+                          if a_data.dim[i] > 1 else np.zeros(a_data.dim) for i in (0, 1)]
+    y_grad_z, y_grad_x = [np.gradient(a_data.field[1, ...], a_data.a, axis=i)
+                          if a_data.dim[i] > 1 else np.zeros(a_data.dim) for i in (0, 2)]
+    z_grad_y, z_grad_x = [np.gradient(a_data.field[2, ...], a_data.a, axis=i)
+                          if a_data.dim[i] > 1 else np.zeros(a_data.dim) for i in (1, 2)]
     # Calculate cross product:
     b_x = (z_grad_y - y_grad_z)
     b_y = (x_grad_z - z_grad_x)

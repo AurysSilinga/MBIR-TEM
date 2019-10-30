@@ -87,9 +87,9 @@ def optimize_linear_charge(costfunction, charge_0=None, ramp_0=None, max_iter=No
     costfunction : :class:`~.Costfunction`
         A :class:`~.Costfunction` object which implements a specified forward model and
         regularisator which is minimized in the optimization process.
-    charge_0: :class:`~.VectorData`
-        The starting magnetisation distribution used for the reconstruction. A zero vector will be
-        used if no VectorData object is specified.
+    charge_0: :class:`~.ScalarData`
+        The starting charge distribution used for the reconstruction. A zero vector will be
+        used if no ScalarData object is specified.
     ramp_0: :class:`~.Ramp`
         The starting ramp for the reconstruction. A zero vector will be
         used if no Ramp object is specified.

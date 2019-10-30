@@ -1,6 +1,7 @@
 from scipy import constants
 import numpy as np
 
+
 def electron_wavelength(ht):
     """
     Returns electron wavelenght in nm.
@@ -9,9 +10,9 @@ def electron_wavelength(ht):
     ht : float
         High tension in kV.
     """
-    momentum = 2 * constants.m_e * constants.elementary_charge * ht * 1000 * (
-    1 + constants.elementary_charge * ht * 1000 / (2 * constants.m_e * constants.c ** 2))
-    wavelength = constants.h / np.sqrt(momentum) * 1e9  # in nm
+    m_e, q_e, c, h = constants.m_e, constants.elementary_charge, constants.c, constants.h
+    momentum = 2 * m_e * q_e * ht * 1000 * (1 + q_e * ht * 1000 / (2 * m_e * c ** 2))
+    wavelength = h / np.sqrt(momentum) * 1e9  # in nm
     return wavelength
 
 
@@ -39,6 +40,13 @@ def apply_aberrations(phasemap, aber_dict, v_acc):
 
     wave = np.exp(1j * phasemap.phase)
     wave_fft = np.fft.fftn(wave) / np.prod(phasemap.dim_uv)
+    # TODO: This shows the phase plate! Toggle/verbose?
+    # import matplotlib.pyplot as plt
+    # fig, axis = plt.subplots(1, 1)
+    # axis.plot(np.fft.fftshift(w[0, :]*1E3),
+    #           np.fft.fftshift(np.angle(np.exp(-1j * chi))[0, :]))
+    # plt.matshow(np.fft.fftshift(np.angle(np.exp(-1j * chi))))
+
     wave_fft *= np.exp(-1j * chi)
     wave = np.fft.ifftn(wave_fft) * np.prod(phasemap.dim_uv)
 

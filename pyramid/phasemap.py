@@ -23,8 +23,6 @@ import cmocean
 
 from scipy import ndimage
 
-import warnings
-
 from . import colors
 from . import plottools
 
@@ -186,22 +184,22 @@ class PhaseMap(object):
 
     def __mul__(self, other):  # self * other
         self._log.debug('Calling __mul__')
-        assert (isinstance(other, Number) or
-                (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
+        assert (isinstance(other, Number) or (isinstance(other, np.ndarray)
+                                              and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be multiplied by scalar numbers or fitting arrays!'
         return PhaseMap(self.a, self.phase * other, self.mask, self.confidence)
 
     def __truediv__(self, other):  # self / other
         self._log.debug('Calling __truediv__')
-        assert (isinstance(other, Number) or
-                (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
+        assert (isinstance(other, Number) or (isinstance(other, np.ndarray)
+                                              and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be divided by scalar numbers or fitting arrays!'
         return PhaseMap(self.a, self.phase / other, self.mask, self.confidence)
 
     def __floordiv__(self, other):  # self // other
         self._log.debug('Calling __floordiv__')
-        assert (isinstance(other, Number) or
-                (isinstance(other, np.ndarray) and other.shape == self.dim_uv)), \
+        assert (isinstance(other, Number) or (isinstance(other, np.ndarray)
+                                              and other.shape == self.dim_uv)), \
             'PhaseMap objects can only be divided by scalar numbers or fitting arrays!'
         return PhaseMap(self.a, self.phase // other, self.mask, self.confidence)
 
@@ -605,7 +603,7 @@ class PhaseMap(object):
             will be clipped for the calculation of the plotting `limit`.
         symmetric : boolean, optional
             If True (default), a zero symmetric colormap is assumed and a zero value (which
-            will always be present) will be set to the central color color of the colormap.
+            will always be present) will be set to the central color of the colormap.
         show_mask : bool, optional
             A switch determining if the mask should be plotted or not. Default is True.
         show_conf : float, optional
@@ -676,7 +674,8 @@ class PhaseMap(object):
             vmin, vmax = vmin * self.UNITDICT[unit], vmax * self.UNITDICT[unit]
         # Configure colormap and fix white to zero if colormap is symmetric:
         if cmap is None:
-            cmap = plt.get_cmap('RdBu')  # TODO: use cmocean.cm.balance (flipped colours!)
+            cmap = cmocean.cm.balance
+            # TODO: use cmocean.cm.balance (flipped colours!)
             # TODO: get default from "colors" or "plots" package
             # TODO: make flexible, cmocean and matplotlib...
         elif isinstance(cmap, str):  # Get colormap if given as string:
@@ -721,7 +720,7 @@ class PhaseMap(object):
                     cbar_name = 'phase'
                 if mpl.rcParams['text.usetex'] and 'µ' in unit:  # Make sure µ works in latex:
                     mpl.rc('text.latex', preamble=R'\usepackage{txfonts},\usepackage{lmodern}')
-                    unit = unit.replace('µ', '$\muup$')  # Upright µ!
+                    unit = unit.replace('µ', R'$\muup$')  # Upright µ!
                 cbar_label = u'{} [{}]'.format(cbar_name, unit)
         # Return formatted axis:
         return plottools.format_axis(axis, sampling=a, cbar_mappable=cbar_mappable,

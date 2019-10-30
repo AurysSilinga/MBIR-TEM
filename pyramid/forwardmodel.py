@@ -11,7 +11,7 @@ import sys
 
 import numpy as np
 
-from pyramid.dataset import DataSet, DataSetCharge
+from pyramid.dataset import DataSet
 from pyramid.fielddata import VectorData, ScalarData
 from pyramid.ramp import Ramp
 
@@ -372,7 +372,7 @@ class DistributedForwardModel(ForwardModel):
     def __init__(self, data_set, ramp_order=None, nprocs='auto'):
         # Evoke super constructor to set up the normal ForwardModel:
         super().__init__(data_set, ramp_order)
-        # Initialize multirocessing specific stuff:
+        # Initialize multiprocessing specific stuff:
         mp.log_to_stderr()
         self._log = mp.get_logger()
         if nprocs == 'auto':
@@ -410,7 +410,7 @@ class DistributedForwardModel(ForwardModel):
             master_connection, worker_connection = mp.Pipe(duplex=True)  # duplex: both send/recv.!
             self.pipes.append(master_connection)  # Master only needs one end!
             # Create process:
-            p = mp.Process(name='Worker {}'.format(proc_id), target=self._worker,
+            p = mp.Process(name='Worker {:02d}'.format(proc_id), target=self._worker,
                            args=(sub_fwd_model, worker_connection))
             self.processes.append(p)
             # Start process and close worker pipe end after passing it to worker (and starting it):

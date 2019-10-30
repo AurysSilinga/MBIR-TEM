@@ -37,7 +37,7 @@ class Ramp(object):
         (one for each degree of freedom) are saved along the first axis, values for different
         images along the second axis.
     n : int
-        Size of the input space. Coincides with the numer of entries in `param_cache` and
+        Size of the input space. Coincides with the number of entries in `param_cache` and
         calculates to ``deg_of_freedom * data_set.count``.
 
     Notes
@@ -83,8 +83,8 @@ class Ramp(object):
             # Iterate over all degrees of freedom:
             for dof in dof_list:
                 # Add the contribution of the current degree of freedom:
-                phase_ramp += (self.param_cache[dof][index] *
-                               self.create_poly_mesh(self.a, dof, dim_uv))
+                poly_mesh = self.create_poly_mesh(self.a, dof, dim_uv)
+                phase_ramp += self.param_cache[dof][index] * poly_mesh
             return PhaseMap(self.a, phase_ramp, mask=np.zeros(dim_uv, dtype=np.bool))
 
     def jac_dot(self, index):
@@ -110,8 +110,8 @@ class Ramp(object):
             # Iterate over all degrees of freedom:
             for dof in range(self.deg_of_freedom):
                 # Add the contribution of the current degree of freedom:
-                phase_ramp += (self.param_cache[dof][index] *
-                               self.create_poly_mesh(self.a, dof, dim_uv))
+                poly_mesh = self.create_poly_mesh(self.a, dof, dim_uv)
+                phase_ramp += self.param_cache[dof][index] * poly_mesh
             return np.ravel(phase_ramp)
 
     def jac_T_dot(self, vector):
