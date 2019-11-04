@@ -7,3 +7,6 @@ desktop.ini
 *.DS_Store
 *.DS
 *.ipynb_checkpoints*
+build/*
+docs/api/*
+dist/*
