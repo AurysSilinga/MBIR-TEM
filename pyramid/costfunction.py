@@ -86,7 +86,6 @@ class Costfunction(object):
         self.chisq_m.append(delta_y.dot(self.Se_inv.dot(delta_y)))
         self.chisq_a.append(self.regularisator(x))
 
-
     def init(self, x):
         # TODO: Ask Jörn, why this exists!
         """Initialise the costfunction by calculating the different cost terms.
