@@ -187,7 +187,7 @@ def _load_from_ovf(filename, a=None, segment=None):
             if not np.allclose(xstep, ystep) and np.allclose(xstep, zstep):
                 _log.warning('Grid spacing is not equal in x, y and z (x will be used)!\n'
                              f'Found step sizes are x:{xstep}, y:{ystep}, z:{zstep} '
-                             f'(all in {header.get('meshunit')})!')
+                             f'(all in {header.get("meshunit")})!')
             # Extract grid spacing from xstepsize and convert according to meshunit:
             unit = header.get('meshunit', 'nm')
             _log.info(f'unit: {unit}')
