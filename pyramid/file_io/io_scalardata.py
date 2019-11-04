@@ -80,7 +80,7 @@ def save_scalardata(scalardata, filename, **kwargs):
         _save_to_npy(scalardata, filename, **kwargs)
     else:  # Try HyperSpy:
         _save_to_hs(scalardata, filename, **kwargs)
-save_scalardata.__doc__ %= ScalarData.save.__doc__
+save_scalardata.__doc__ %= ScalarData.save.__doc__  # noqa: E305
 
 
 def _save_to_npy(scalardata, filename, **kwargs):

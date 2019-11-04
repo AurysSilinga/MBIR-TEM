@@ -375,9 +375,9 @@ class RotTiltProjectorLegacy(Projector):
         theta_ang = int(np.round(self.rotation * 180 / pi))
         phi_ang = int(np.round(self.tilt * 180 / pi))
         if verbose:
-            return u'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
+            return R'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
         else:
-            return u'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
+            return R'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
 
 
 class RotTiltProjector(Projector):
@@ -523,9 +523,9 @@ class RotTiltProjector(Projector):
         theta_ang = int(np.round(self.rotation * 180 / pi))
         phi_ang = int(np.round(self.tilt * 180 / pi))
         if verbose:
-            return u'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
+            return R'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
         else:
-            return u'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
+            return R'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
 
 
 class XTiltProjector(Projector):

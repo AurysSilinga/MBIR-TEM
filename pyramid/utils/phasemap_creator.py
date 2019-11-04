@@ -21,7 +21,7 @@ from PIL import Image
 
 import numpy as np
 
-#import hyperspy.api as hs  #  TODO: Necessary?
+# import hyperspy.api as hs  #  TODO: Necessary?
 
 import pyramid as pr
 

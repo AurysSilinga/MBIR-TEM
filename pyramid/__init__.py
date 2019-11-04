@@ -89,3 +89,6 @@ __all__.extend(file_io.__all__)
 # TODO: Test for different systems!
 
 # TODO: Arguments should only take up to two lines for IntelliSense to show all of it in preview!
+
+# TODO: * imports are bad, do I need things in the main namespace? Better to make a good structure!
+# TODO: If you get rid of * imports, remove flake8 rules F401,F403,F405 from Settings/setup.cfg!

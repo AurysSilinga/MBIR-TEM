@@ -47,7 +47,7 @@ def save_dataset(dataset, filename, overwrite=True):
         projector.save(os.path.join(path, projector_name), overwrite=overwrite)
         phasemap_name = 'phasemap_{}_{}_{}{}'.format(name, i, projector.get_info(), extension)
         dataset.phasemaps[i].save(os.path.join(path, phasemap_name), overwrite=overwrite)
-save_dataset.__doc__ %= DataSet.save.__doc__
+save_dataset.__doc__ %= DataSet.save.__doc__  # noqa: E305
 
 
 def load_dataset(filename):

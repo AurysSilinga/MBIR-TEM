@@ -186,8 +186,8 @@ def _load_from_ovf(filename, a=None, segment=None):
             zstep = float(header.get('zstepsize'))
             if not np.allclose(xstep, ystep) and np.allclose(xstep, zstep):
                 _log.warning('Grid spacing is not equal in x, y and z (x will be used)!\n'
-                             'Found step sizes are x:{}, y:{}, z:{} (all in {})!'.format(
-                             xstep, ystep, zstep, header.get('meshunit')))
+                             f'Found step sizes are x:{xstep}, y:{ystep}, z:{zstep} '
+                             f'(all in {header.get('meshunit')})!')
             # Extract grid spacing from xstepsize and convert according to meshunit:
             unit = header.get('meshunit', 'nm')
             _log.info(f'unit: {unit}')
@@ -288,7 +288,7 @@ def _load_from_tec(filename, a=None, **kwargs):
         # Read in lines:
         lines = mag_file.readlines()
         # Extract number of points from third line:
-        match = re.search('N=(\d+)', lines[2])
+        match = re.search(R'N=(\d+)', lines[2])
         if match:
             n_points = int(match.group(1))
         else:
@@ -357,7 +357,7 @@ def _interp_to_regular_grid(points, values, a, conversion=1, step=1, convex=True
         # Create boolean mask that determines which interpolation points have no neighbor near enough:
         mask = np.isinf(data).reshape(dim)  # Points further away than upper bound were marked 'inf'!
         for i in tqdm(range(values.shape[-1])):  # TODO: tqdm? can take a looooong time...
-            #interpolation[i, ...][mask] = 0  # TODO: Which one is correct?
+            # interpolation[i, ...][mask] = 0  # TODO: Which one is correct?
             interpolation[i, ...].ravel()[mask.ravel()] = 0
         # TODO: Log how many points are added and such... DEBUG!!!
         # # Append interpolation points without close neighbors to list of original points:
