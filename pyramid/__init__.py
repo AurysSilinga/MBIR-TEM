@@ -62,11 +62,11 @@ from .ramp import *
 from .quaternion import *
 from .file_io import *
 from .version import version as __version__
-from .version import hg_revision as __hg_revision__
+from .version import git_revision as __git_revision__
 
 import logging
 _log = logging.getLogger(__name__)
-_log.info("Starting Pyramid V{} HG{}".format(__version__, __hg_revision__))
+_log.info("Starting Pyramid V-{} GIT-{}".format(__version__, __git_revision__))
 del logging
 
 __all__ = ['analytic', 'magcreator', 'reconstruction', 'fieldconverter',
