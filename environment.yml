@@ -14,6 +14,7 @@ channels:
 dependencies:
   # Basic:
   - python=3.7
+  - setuptools
   - numpy=1.16
   - scipy=1.3
   - tqdm=4.36
@@ -35,6 +36,9 @@ dependencies:
   - pytest-runner=5.1
   - pytest-mpl=0.10  # Needed for testing hyperspy! # TODO: Use for pyramid/plotting library, too!
   - coverage=4.5
+  # Documentation:
+  - sphinx=2.1
+  - numpydoc=0.9
   # IPython and notebooks:
   - ipython=7.7
   - jupyter=1.0
@@ -45,7 +49,7 @@ dependencies:
   # TODO: ...because one is Unix, ond is Windows).
   # Fast computation:
   - pyFFTW=0.11
-  - pathos  # pathos.multiprocessing uses dill instead of pickle (needed for class functions)
+  # TODO: ? - pathos  # pathos.multiprocessing uses dill instead of pickle
   # PIP installations:
   - pip=19.0
 #  - pip:
