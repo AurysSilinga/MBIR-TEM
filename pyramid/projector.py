@@ -757,9 +757,9 @@ class YTiltProjector(Projector):
 
         """
         if verbose:
-            return u'y-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt * 180 / pi)))
+            return R'y-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt * 180 / pi)))
         else:
-            return u'ytilt_phi={:d}°'.format(int(np.round(self.tilt * 180 / pi)))
+            return R'ytilt_phi={:d}°'.format(int(np.round(self.tilt * 180 / pi)))
 
 
 class SimpleProjector(Projector):
