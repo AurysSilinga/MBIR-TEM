@@ -86,7 +86,6 @@ class Costfunction(object):
         self.chisq_m.append(delta_y.dot(self.Se_inv.dot(delta_y)))
         self.chisq_a.append(self.regularisator(x))
 
-
     def init(self, x):
         # TODO: Ask Jörn, why this exists!
         """Initialise the costfunction by calculating the different cost terms.
@@ -145,7 +144,7 @@ class Costfunction(object):
         self.cnt_hess_dot += 1  # TODO: Ask Jörn if this belongs here or in CountingCostFunction!
         if self.track_cost_iterations > 0 and self.cnt_hess_dot % self.track_cost_iterations == 0:
             self.calculate_costs(vector)
-            #print(self.cnt_hess_dot, len(self.chisq_a)) # TODO:!!!
+            # print(self.cnt_hess_dot, len(self.chisq_a)) # TODO:!!!
         return (2 * self.fwd_model.jac_T_dot(x, self.Se_inv.dot(self.fwd_model.jac_dot(x, vector)))
                 + self.regularisator.hess_dot(x, vector))
 

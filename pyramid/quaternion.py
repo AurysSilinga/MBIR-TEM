@@ -12,7 +12,7 @@ __all__ = ['Quaternion']
 
 
 class Quaternion(object):
-    """Class representing a rotation expressed by a quaternion.
+    R"""Class representing a rotation expressed by a quaternion.
 
     A quaternion is a four-dimensional description of a rotation which can also be described by
     a rotation vector (`v1`, `v2`, `v3`) and a rotation angle :math:`\theta`. The four components

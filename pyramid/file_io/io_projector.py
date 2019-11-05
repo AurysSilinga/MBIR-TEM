@@ -42,7 +42,7 @@ def save_projector(projector, filename, overwrite=True):
             f.create_dataset('indptr', data=projector.weight.indptr)
             f.create_dataset('indices', data=projector.weight.indices)
             f.create_dataset('coeff', data=projector.coeff)
-save_projector.__doc__ %= projector.Projector.save.__doc__
+save_projector.__doc__ %= projector.Projector.save.__doc__  # noqa: E305
 
 
 def load_projector(filename):

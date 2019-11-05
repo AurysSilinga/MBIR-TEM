@@ -169,7 +169,7 @@ def save_phasemap(phasemap, filename, save_mask, save_conf, pyramid_format, **kw
         _save_to_npy(phasemap, filename, save_mask, save_conf, **kwargs)
     else:  # Try HyperSpy:
         _save_to_hs(phasemap, filename, save_mask, save_conf, **kwargs)
-save_phasemap.__doc__ %= PhaseMap.save.__doc__
+save_phasemap.__doc__ %= PhaseMap.save.__doc__  # noqa: E305
 
 
 def _save_to_txt(phasemap, filename, pyramid_format, save_mask, save_conf, **kwargs):

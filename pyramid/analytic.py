@@ -40,7 +40,7 @@ def phase_mag_slab(dim, a, phi, center, width, b_0=1):
     width : tuple (N=3)
         The width of the slab in pixel coordinates `(z, y, x)`.
     b_0 : float, optional
-        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The magnetic induction corresponding to a magnetization :math:`M_0` in T.
         The default is 1.
 
     Returns
@@ -58,14 +58,14 @@ def phase_mag_slab(dim, a, phi, center, width, b_0=1):
             B = np.arctan(x / (y + 1E-30))
             return x * A - 2 * x + 2 * y * B
 
-        return coeff * Lz * (- np.cos(phi) * (_F_0(x - x0 - Lx / 2, y - y0 - Ly / 2) -
-                                              _F_0(x - x0 + Lx / 2, y - y0 - Ly / 2) -
-                                              _F_0(x - x0 - Lx / 2, y - y0 + Ly / 2) +
-                                              _F_0(x - x0 + Lx / 2, y - y0 + Ly / 2))
-                             + np.sin(phi) * (_F_0(y - y0 - Ly / 2, x - x0 - Lx / 2) -
-                                              _F_0(y - y0 + Ly / 2, x - x0 - Lx / 2) -
-                                              _F_0(y - y0 - Ly / 2, x - x0 + Lx / 2) +
-                                              _F_0(y - y0 + Ly / 2, x - x0 + Lx / 2)))
+        return coeff * Lz * (- np.cos(phi) * (_F_0(x - x0 - Lx/2, y - y0 - Ly/2) -
+                                              _F_0(x - x0 + Lx/2, y - y0 - Ly/2) -
+                                              _F_0(x - x0 - Lx/2, y - y0 + Ly/2) +
+                                              _F_0(x - x0 + Lx/2, y - y0 + Ly/2))
+                             + np.sin(phi) * (_F_0(y - y0 - Ly/2, x - x0 - Lx/2) -
+                                              _F_0(y - y0 + Ly/2, x - x0 - Lx/2) -
+                                              _F_0(y - y0 - Ly/2, x - x0 + Lx/2) +
+                                              _F_0(y - y0 + Ly/2, x - x0 + Lx/2)))
 
     # Process input parameters:
     z_dim, y_dim, x_dim = dim
@@ -99,7 +99,7 @@ def phase_mag_disc(dim, a, phi, center, radius, height, b_0=1):
     height : float
         The height of the disc in pixel coordinates.
     b_0 : float, optional
-        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The magnetic induction corresponding to a magnetization :math:`M_0` in T.
         The default is 1.
 
     Returns
@@ -148,7 +148,7 @@ def phase_mag_sphere(dim, a, phi, center, radius, b_0=1):
     radius : float
         The radius of the sphere in pixel coordinates.
     b_0 : float, optional
-        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The magnetic induction corresponding to a magnetization :math:`M_0` in T.
         The default is 1.
 
     Returns
@@ -197,7 +197,7 @@ def phase_mag_vortex(dim, a, center, radius, height, b_0=1):
     height : float
         The height of the disc in pixel coordinates.
     b_0 : float, optional
-        The magnetic induction corresponding to a magnetization `M`\ :sub:`0` in T.
+        The magnetic induction corresponding to a magnetization :math:`M_0` in T.
         The default is 1.
 
     Returns

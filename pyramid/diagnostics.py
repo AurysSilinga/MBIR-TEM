@@ -424,10 +424,12 @@ class Diagnostics(object):
         surface = Surface()
         source.add_module(surface)
         actor = surface.actor  # mayavi actor, actor.actor is tvtk actor
-        # actor.property.ambient = 1 # defaults to 0 for some reason, ah don't need it, turn off scalar visibility instead
+        # TODO: defaults to 0 for some reason, ah don't need it, turn off scalar visibility instead!
+        # actor.property.ambient = 1
         actor.property.opacity = 0.5
         actor.property.color = (0, 0, 0)
-        actor.mapper.scalar_visibility = False  # don't colour ellipses by their scalar indices into colour map
+        # Don't colour ellipses by their scalar indices into colour map:
+        actor.mapper.scalar_visibility = False
         actor.property.backface_culling = True  # gets rid of rendering artifact when opacity is < 1
         # actor.property.frontface_culling = True  # TODO: needed?
         actor.actor.orientation = [0, 0, 0]  # in degrees

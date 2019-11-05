@@ -6,7 +6,7 @@
 
 from . import shapes
 from . import examples
-from .magcreator import *
+from .magcreator import *  # noqa: F403  # TODO: Why is noqa still necessary? It's in setup.cfg :-(!
 
 __all__ = ['shapes', 'examples']
 __all__.extend(magcreator.__all__)

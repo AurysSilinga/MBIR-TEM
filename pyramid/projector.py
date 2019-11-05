@@ -375,9 +375,9 @@ class RotTiltProjectorLegacy(Projector):
         theta_ang = int(np.round(self.rotation * 180 / pi))
         phi_ang = int(np.round(self.tilt * 180 / pi))
         if verbose:
-            return u'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
+            return R'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
         else:
-            return u'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
+            return R'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
 
 
 class RotTiltProjector(Projector):
@@ -523,9 +523,9 @@ class RotTiltProjector(Projector):
         theta_ang = int(np.round(self.rotation * 180 / pi))
         phi_ang = int(np.round(self.tilt * 180 / pi))
         if verbose:
-            return u'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
+            return R'$\\theta = {:d}$°, $\phi = {:d}$°'.format(theta_ang, phi_ang)
         else:
-            return u'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
+            return R'theta={:d}_phi={:d}°'.format(theta_ang, phi_ang)
 
 
 class XTiltProjector(Projector):
@@ -640,9 +640,9 @@ class XTiltProjector(Projector):
 
         """
         if verbose:
-            return u'x-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt * 180 / pi)))
+            return R'x-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt * 180 / pi)))
         else:
-            return u'xtilt_phi={:d}°'.format(int(np.round(self.tilt * 180 / pi)))
+            return R'xtilt_phi={:d}°'.format(int(np.round(self.tilt * 180 / pi)))
 
 
 class YTiltProjector(Projector):
@@ -757,9 +757,9 @@ class YTiltProjector(Projector):
 
         """
         if verbose:
-            return u'y-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt * 180 / pi)))
+            return R'y-tilt: $\phi = {:d}$°'.format(int(np.round(self.tilt * 180 / pi)))
         else:
-            return u'ytilt_phi={:d}°'.format(int(np.round(self.tilt * 180 / pi)))
+            return R'ytilt_phi={:d}°'.format(int(np.round(self.tilt * 180 / pi)))
 
 
 class SimpleProjector(Projector):
