@@ -950,7 +950,7 @@ class VectorData(FieldData):
         # TODO: Deprecate ar_dens in favor of scale_it, call it "binsize" or something...
         # TODO: None or 'auto' as default for ar_dens/bin_size, set something sensible!!!
         if ar_dens == 'auto':
-            ar_dens = np.max((1,  np.max(self.dim) // 16))
+            ar_dens = np.max((1, np.max(self.dim) // 16))
             # TODO: Just for now, delete later, when power of 2 no longer needed:
             ar_dens = int(2**(np.log2(ar_dens)//1))
         if ar_dens > 1:
