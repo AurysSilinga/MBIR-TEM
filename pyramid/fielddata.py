@@ -884,7 +884,7 @@ class VectorData(FieldData):
     # # plt.savefig(directory + '/ch5-0-magnetic_distributions_v.png', bbox_inches='tight')
     # plt.savefig(directory + '/ch5-0-magnetic_distributions_v.pdf', bbox_inches='tight')
 
-    def plot_quiver(self, ar_dens=1, log=False, scaled=True, scale=1., b_0=None, qkey_unit='T',
+    def plot_quiver(self, ar_dens='auto', log=False, scaled=True, scale=1., b_0=None, qkey_unit='T',
                     coloring='angle', cmap=None,  # Used here and plot_streamlines!
                     proj_axis='z', ax_slice=None, show_mask=True, bgcolor=None, axis=None,
                     figsize=None, stroke=None, fontsize=None, **kwargs):
@@ -947,20 +947,30 @@ class VectorData(FieldData):
             stroke = plottools.STROKE_DEFAULT
         assert proj_axis == 'z' or proj_axis == 'y' or proj_axis == 'x', \
             "Axis has to be 'x', 'y' or 'z'."
+        # TODO: Deprecate ar_dens in favor of scale_it, call it "binsize" or something...
+        # TODO: None or 'auto' as default for ar_dens/bin_size, set something sensible!!!
+        if ar_dens == 'auto':
+            ar_dens = np.max((1,  np.max(self.dim) // 16))
+            # TODO: Just for now, delete later, when power of 2 no longer needed:
+            ar_dens = int(2**(np.log2(ar_dens)//1))
+        if ar_dens > 1:
+            scale_it = np.log2(ar_dens)
+            assert scale_it % 1 == 0, 'ar_dens has to be power of 2 (for now)!'  # TODO: Delete!
+            vecdata = self.scale_down(int(scale_it))
+        else:
+            vecdata = self
+        # Extract slice and mask:
         if ax_slice is None:
             ax_slice = self.dim[{'z': 0, 'y': 1, 'x': 2}[proj_axis]] // 2
-        # Extract slice and mask:
-        u_mag, v_mag = self.get_slice(ax_slice, proj_axis)[:2]
+        ax_slice //= ar_dens
+        # TODO: Currently, the slice is taken AFTER the scale down. In EMPyRe, this plotting
+        # TODO: function should be called on the slice (another 2D Vector Field class) instead!
+        # TODO: The slicing is therefore done before the scale down and more accurate!(??)
+        u_mag, v_mag = vecdata.get_slice(ax_slice, proj_axis)[:2]
         submask = np.where(np.hypot(u_mag, v_mag) > 0, True, False)
         # Prepare quiver (select only used arrows if ar_dens is specified):
-        # TODO: None or 'auto' as default for ar_dens, set something sensible!!!
-        # TODO: ALSO mean instead of every nth arrow (use extend to cover the same space!)
         dim_uv = u_mag.shape
-        vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
-        uu = uu[::ar_dens, ::ar_dens]
-        vv = vv[::ar_dens, ::ar_dens]
-        u_mag = u_mag[::ar_dens, ::ar_dens]
-        v_mag = v_mag[::ar_dens, ::ar_dens]
+        vv, uu = (np.indices(dim_uv) + 0.5) * ar_dens  # 0.5: shift to center of pixel!
         amplitudes = np.hypot(u_mag, v_mag)
         # TODO: Delete if only used in log:
         # angles = np.angle(u_mag + 1j * v_mag, deg=True).tolist()
@@ -983,14 +993,12 @@ class VectorData(FieldData):
         elif coloring == 'uniform':
             self._log.debug('Automatic uniform color encoding')
             hue = amplitudes / amplitudes.max()
-            if bgcolor == 'white':
-                cmap = colors.cmaps['transparent_black']
-            else:
-                cmap = colors.cmaps['transparent_white']
+            cmap = colors.cmaps['transparent_white']
         else:
             self._log.debug('Specified uniform color encoding')
             hue = np.zeros_like(u_mag)
             cmap = ListedColormap([coloring])
+        edgecolors = colors.cmaps['transparent_black'](amplitudes / amplitudes.max()).reshape(-1, 4)
         if cmap_overwrite is not None:
             cmap = cmap_overwrite
         # If no axis is specified, a new figure is created:
@@ -1019,9 +1027,9 @@ class VectorData(FieldData):
         quiv = axis.quiver(uu, vv, u_mag, v_mag, hue, cmap=cmap, clim=(0, 1),  # angles=angles,
                            pivot='middle', units='xy', scale_units='xy', scale=scale / ar_dens,
                            minlength=0.05, width=1*ar_dens, headlength=2, headaxislength=2,
-                           headwidth=2, minshaft=2)
-        axis.set_xlim(0, dim_uv[1])
-        axis.set_ylim(0, dim_uv[0])
+                           headwidth=2, minshaft=2, edgecolor=edgecolors, linewidths=1)
+        axis.set_xlim(0, dim_uv[1]*ar_dens)
+        axis.set_ylim(0, dim_uv[0]*ar_dens)
         # Determine colormap if necessary:
         if coloring == 'amplitude':
             cbar_mappable, cbar_label = quiv, 'amplitude'
@@ -1035,7 +1043,7 @@ class VectorData(FieldData):
             mask_color = 'white' if bgcolor == 'black' else 'black'
             axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
                          linestyles='dotted', linewidths=2)
-        # Plot quiverkey if B_0 is specified):
+        # Plot quiverkey if B_0 is specified:
         if b_0 and not log:  # The angles needed for log would break the quiverkey!
             label = '{:.3g} {}'.format(amplitudes.max() * b_0, qkey_unit)
             quiv.angles = 'uv'  # With a list of angles, the quiverkey would break!
@@ -1506,6 +1514,11 @@ class ScalarData(FieldData):
         Only possible, if each axis length is a power of 2!
 
         """
+        # TODO: Florian: make more general, not just power of 2, n should denote bin size, not
+        # TODO: number of scale down operations! Same for scale up!
+        # TODO: def rebin(a, shape):
+        # TODO:     sh = (shape[0], a.shape[0] // shape[0], shape[1], a.shape[1] // shape[1])
+        # TODO:     return a.reshape(sh).mean(-1).mean(1)
         self._log.debug('Calling scale_down')
         assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
         a_new = self.a * 2 ** n

@@ -82,6 +82,7 @@ def phase_mag_slab(dim, a, phi, center, width, b_0=1):
 
 
 def phase_mag_disc(dim, a, phi, center, radius, height, b_0=1):
+    # TODO: Parameter order should match magcreator.examples!
     """Calculate the analytic magnetic phase for a homogeneously magnetized disc.
 
     Parameters

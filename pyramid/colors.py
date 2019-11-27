@@ -80,29 +80,24 @@ class Colormap3D(colors.Colormap, metaclass=abc.ABCMeta):
         """
         self._log.debug('Calling rgb_from_vector')
         x, y, z = np.asarray(vector)
-        # Calculate spherical coordinates:
-        r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+        R = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+        R_max = vmax if vmax is not None else R.max() + 1E-30
+        # FIRST color dimension: HUE (1D ring/angular direction)
         phi = np.asarray(np.arctan2(y, x))
         phi[phi < 0] += 2 * np.pi
-        theta = np.arccos(z / (r + 1E-30))
-        # Determine saturation normalisation:
-        if vmax is not None:
-            R = vmax
-        else:
-            R = r.max() + 1E-30
-        # Calculate color deterministics:
         hue = phi / (2 * np.pi)
-        lum = 1 - theta / np.pi
-        sat = r / R
-        # Calculate RGB from hue with colormap:
         rgba = np.asarray(self(hue))
         r, g, b = rgba[..., 0], rgba[..., 1], rgba[..., 2]
-        # Interpolate saturation:
+        # SECOND color dimension: SATURATION (2D, in-plane)
+        rho = np.sqrt(x ** 2 + y ** 2)
+        sat = rho / R_max
         r, g, b = interpolate_color(sat, (0.5, 0.5, 0.5), np.stack((r, g, b), axis=-1))
-        # Interpolate luminance:
-        lum_target = np.where(lum < 0.5, 0, 1)
-        lum_target = np.stack([lum_target] * 3, axis=-1)
-        fraction = np.where(lum < 0.5, 1 - 2 * lum, 2 * (lum - 0.5))
+        # THIRD color dimension: LUMINANCE (3D, color sphere)
+        theta = np.arccos(z / R_max)
+        lum = 1 - theta / np.pi  # goes from 0 (black) over 0.5 (grey) to 1 (white)!
+        lum_target = np.where(lum < 0.5, 0, 1)  # Separate upper(white)/lower(black) hemispheres!
+        lum_target = np.stack([lum_target] * 3, axis=-1)  # [0, 0, 0] -> black / [1, 1, 1] -> white!
+        fraction = 2 * np.abs(lum - 0.5)  # 0.5: difference from grey, 2: scale to range (0, 1)!
         r, g, b = interpolate_color(fraction, np.stack((r, g, b), axis=-1), lum_target)
         # Return RGB:
         return np.asarray(255 * np.stack((r, g, b), axis=-1), dtype=np.uint8)

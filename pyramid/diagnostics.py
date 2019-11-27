@@ -195,7 +195,9 @@ class Diagnostics(object):
         if pos is not None:
             self.pos = pos
         magdata_avrg_kern = VectorData(self.cost.fwd_model.data_set.a, np.zeros((3,) + self.dim))
-        vector = self.avrg_kern_row[:-self.fwd_model.ramp.n]  # Only take vector field, not ramp!
+        # Only take vector field, not ramp [Special case of n=0 is caught by coalescing or:
+        # "x or y" returns x if x is True (here: -0 -> False), else y (None -> return whole array)]:
+        vector = self.avrg_kern_row[:(-self.fwd_model.ramp.n or None)]
         magdata_avrg_kern.set_vector(vector, mask=self.mask)
         return magdata_avrg_kern
 
@@ -401,7 +403,7 @@ class Diagnostics(object):
         artist = axis.add_patch(patches.Ellipse(xy, width, height, fill=False, edgecolor='w',
                                                 linewidth=2, alpha=0.5))
         artist.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
-        # TODO: Return axis on every plot?
+        return axis  # TODO: Return axis on every plot?
 
     def plot_avrg_kern_field3d(self, pos=None, mask=True, ellipsoid=True, **kwargs):
         avrg_kern_field = self.get_avrg_kern_field(pos)
