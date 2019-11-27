@@ -100,14 +100,15 @@ def add_scalebar(axis, sampling=1, fontsize=None, stroke=None):
     # Create scale bar:
     height = dim_uv[0] * 0.01
     scalebar = AnchoredSizeBar(transform, size, label, loc, borderpad=0.2, pad=0.2, sep=5,
-                               fontproperties=fontprops, color=txtcolor, size_vertical=height,
+                               fontproperties=fontprops, color='w', size_vertical=height,
                                frameon=False, label_top=True, fill_bar=True)
-    # Set stroke is necessary:
+    scalebar.txt_label._text._color = txtcolor  # Overwrite AnchoredSizeBar color!
+    # Set stroke if necessary:
     if stroke is not None:
         effect_txt = [patheffects.withStroke(linewidth=2, foreground=stroke)]
         scalebar.txt_label._text.set_path_effects(effect_txt)
-        effect_bar = [patheffects.withStroke(linewidth=3, foreground=stroke)]
-        scalebar.size_bar._children[0].set_path_effects(effect_bar)
+    effect_bar = [patheffects.withStroke(linewidth=3, foreground='k')]
+    scalebar.size_bar._children[0].set_path_effects(effect_bar)
     # Add scale bar to axis and return:
     axis.add_artist(scalebar)
     return scalebar

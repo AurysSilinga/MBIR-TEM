@@ -1050,7 +1050,7 @@ class VectorData(FieldData):
             txtcolor = 'w' if stroke == 'k' else 'k'
             edgecolor = stroke if stroke is not None else 'none'
             qk = plt.quiverkey(Q=quiv, X=0.88, Y=0.065, U=1, label=label, labelpos='W',
-                               coordinates='axes', facecolor=txtcolor, edgecolor=edgecolor,
+                               coordinates='axes', facecolor='w', edgecolor='k',
                                labelcolor=txtcolor, linewidth=0.5,
                                clip_box=axis.bbox, clip_on=True,
                                fontproperties={'size': kwargs.get('fontsize', fontsize)})
