@@ -1046,7 +1046,6 @@ class VectorData(FieldData):
             label = '{:.3g} {}'.format(amplitudes.max() * b_0, qkey_unit)
             quiv.angles = 'uv'  # With a list of angles, the quiverkey would break!
             txtcolor = 'w' if stroke == 'k' else 'k'
-            edgecolor = stroke if stroke is not None else 'none'
             qk = plt.quiverkey(Q=quiv, X=0.88, Y=0.065, U=1, label=label, labelpos='W',
                                coordinates='axes', facecolor='w', edgecolor='k',
                                labelcolor=txtcolor, linewidth=0.5,
