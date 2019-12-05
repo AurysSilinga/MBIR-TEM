@@ -4,7 +4,11 @@
 # Adapted from mpl_toolkits.axes_grid2
 """This module provides the useful plotting utilities."""
 
+import logging
+import os
+import tempfile
 import numpy as np
+from PIL import Image
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -21,6 +25,7 @@ from . import colors
 
 __all__ = ['format_axis', 'pretty_plots', 'add_scalebar',
            'add_annotation', 'add_colorwheel', 'add_cbar']
+_log = logging.getLogger(__name__)
 
 FIGSIZE_DEFAULT = (8.3, 6.2)
 FONTSIZE_DEFAULT = 20
@@ -365,6 +370,144 @@ def figsize(scale, height=None, textwidth=448.1309):
     fig_size = [fig_width, fig_height]
 
     return fig_size
+
+
+def plot_3d_to_2d(dim_uv, axis=None, figsize=None, dpi=100, mag=1, close_3d=True, **kwargs):
+    # TODO: into plottools and make available for all 3D plots if possible!
+    # TODO: Maybe as a decorator? Rename to mayvi_to_matlotlib? or just convert_3d_to_2d?
+    # TODO: Look at https://docs.enthought.com/mayavi/mayavi/tips.html and implement!
+    from mayavi import mlab
+    if figsize is None:
+         figsize = FIGSIZE_DEFAULT
+    if axis is None:
+        _log.debug('axis is None')
+        fig = plt.figure(figsize=figsize, dpi=dpi)
+        axis = fig.add_subplot(1, 1, 1, aspect='equal')
+    else:
+        dpi = plt.gcf().dpi  # get current figures dpi, needed later!
+    # figsize (in inches) and dpi (dots per pixel) determine the res (resolution -> # of dots)!
+    res = np.min([int(i * dpi) for i in figsize])
+    # Two ways of proceeding
+    # (needs screen resolution, hardcode now, later: https://github.com/rr-/screeninfo):
+    # IF resolution of mayavi image is smaller than screen resolution:
+    tmpdir = tempfile.mkdtemp()
+    temp_path = 'temp.png'#TODO:os.path.join(tmpdir, 'temp.png')
+    print('Temp file created')
+    try:
+        mlab.savefig(temp_path, magnification=mag)
+        print(f'SAVED with mag={mag}!')
+        imgmap = np.asarray(Image.open(temp_path))
+        print('LOADED!')
+    except Exception as e:
+        raise e
+    finally:
+        #TODO:os.remove(temp_path)
+        os.rmdir(tmpdir)
+    # In both cases, log mappable shape and do the rest:
+    if close_3d:
+        mlab.close(mlab.gcf())
+    _log.info(f'mappable shape: {imgmap.shape[:2]} (res.: {res})')
+    axis.imshow(np.flipud(imgmap))
+    kwargs.setdefault('scalebar', False)
+    kwargs.setdefault('hideaxes', True)
+    return format_axis(axis, **kwargs)
+
+
+
+
+
+
+
+
+
+    if dim_uv is None:
+        dim_uv = self.dim[1:]
+    axis.imshow(imgmap, extent=[0, dim_uv[0], 0, dim_uv[1]], origin='upper')
+    kwargs.setdefault('scalebar', False)
+    kwargs.setdefault('hideaxes', True)
+    # TODO: RETURN AXIS AND FORMAT AFTER! kwargs are for quiverplot (do some defaults here,
+    # TODO not adding stuff like colorbars!!!!)!!!!
+    return plottools.format_axis(axis, **kwargs)
+
+
+
+    # OLD
+    res = tuple((int(i * dpi) for i in figsize))
+    print(f'res: {res}')
+    self.plot_quiver3d(figsize=res, labels=False, orientation=False, mode='arrow')
+    if mag > 1:  # Use temp files:
+        tmpdir = tempfile.mkdtemp()
+        temp_path = 'temp.png'#TODO:os.path.join(tmpdir, 'temp.png')
+        print('Temp file created')
+        try:
+            mlab.savefig(temp_path, magnification=mag) # size=(10, 10),
+            print('SAVED! now load?')
+            imgmap = np.asarray(Image.open(temp_path))
+            print('LOADED!')
+        except Exception as e:
+            raise e
+        finally:
+            #TODO:os.remove(temp_path)
+            os.rmdir(tmpdir)
+    else:  # Use screenshot (returns array WITH alpha!):
+        # TODO: saving images does NOT give alpha -> set bgcolor there and remove alpha here!
+        imgmap = mlab.screenshot(mode='rgba', antialiased=True)
+    self._log.info(f'mappable shape: {imgmap.shape[:2]} (res.: {res})')
+    if imgmap.shape[0] < res[0] or imgmap.shape[1] < res[1]:
+        import warnings
+        warnings.warn(f'Shape of created image {imgmap.shape[:2]} is smaller than the '
+                        +'calculated resolution {res} for at least one axis. This might lead '
+                        +'to distorted images. Try other values for dpi, figsize or a '
+                        +'monitor with larger resolution!')
+    mlab.close(mlab.gcf())
+    if dim_uv is None:
+        dim_uv = self.dim[1:]
+    axis.imshow(imgmap, extent=[0, dim_uv[0], 0, dim_uv[1]], origin='upper')
+    kwargs.setdefault('scalebar', False)
+    kwargs.setdefault('hideaxes', True)
+    return plottools.format_axis(axis, **kwargs)
+
+
+
+#     # OLD
+#     res = tuple((int(i * dpi) for i in figsize))
+#     print(f'res: {res}')
+#     self.plot_quiver3d(figsize=res, labels=False, orientation=False, mode='arrow')
+#     if mag > 1:  # Use temp files:
+#         tmpdir = tempfile.mkdtemp()
+#         temp_path = 'temp.png'#TODO:os.path.join(tmpdir, 'temp.png')
+#         print('Temp file created')
+#         try:
+#             mlab.savefig(temp_path, magnification=mag) # size=(10, 10),
+#             print('SAVED! now load?')
+#             imgmap = np.asarray(Image.open(temp_path))
+#             print('LOADED!')
+#         except Exception as e:
+#             raise e
+#         finally:
+#             #TODO:os.remove(temp_path)
+#             os.rmdir(tmpdir)
+#     else:  # Use screenshot (returns array WITH alpha!):
+#         # TODO: saving images does NOT give alpha -> set bgcolor there and remove alpha here!
+#         imgmap = mlab.screenshot(mode='rgba', antialiased=True)
+#     self._log.info(f'mappable shape: {imgmap.shape[:2]} (res.: {res})')
+#     if imgmap.shape[0] < res[0] or imgmap.shape[1] < res[1]:
+#         import warnings
+#         warnings.warn(f'Shape of created image {imgmap.shape[:2]} is smaller than the '
+#                         +'calculated resolution {res} for at least one axis. This might lead '
+#                         +'to distorted images. Try other values for dpi, figsize or a '
+#                         +'monitor with larger resolution!')
+#     mlab.close(mlab.gcf())
+#     if dim_uv is None:
+#         dim_uv = self.dim[1:]
+#     axis.imshow(imgmap, extent=[0, dim_uv[0], 0, dim_uv[1]], origin='upper')
+#     kwargs.setdefault('scalebar', False)
+#     kwargs.setdefault('hideaxes', True)
+#     return plottools.format_axis(axis, **kwargs)
+
+
+
+
 
 # TODO: Florians way of shifting axes labels (should already be in somewhere):
 # for i in [1, 3]:

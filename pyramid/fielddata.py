@@ -6,13 +6,14 @@
 
 import abc
 import logging
+import sys
 import os
-import tempfile
+import tempfile  # TODO: remove if unused!
 from scipy.ndimage.interpolation import rotate
 from numbers import Number
 
 import numpy as np
-from PIL import Image
+from PIL import Image  # TODO: remove if unused!
 from matplotlib import patheffects
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
@@ -1122,9 +1123,9 @@ class VectorData(FieldData):
         axis.set_aspect('equal')
         # Determine 'z'-component for luminance (keep as gray if None):
         z_mag = w_mag
-        if bgcolor == 'white':
+        if bgcolor in ('white', 'w'):
             z_mag = np.where(submask, z_mag, np.max(np.hypot(u_mag, v_mag)))
-        if bgcolor == 'black':
+        if bgcolor in ('black', 'k'):
             z_mag = np.where(submask, z_mag, -np.max(np.hypot(u_mag, v_mag)))
         # Plot the field:
         dim_uv = u_mag.shape
@@ -1137,7 +1138,7 @@ class VectorData(FieldData):
         # Show mask:
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
-            mask_color = 'white' if bgcolor == 'black' else 'black'
+            mask_color = 'w' if bgcolor in ('black', 'k') else 'k'
             axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
                          linestyles='dotted', linewidths=2)
         # Return formatted axis:
@@ -1286,7 +1287,7 @@ class VectorData(FieldData):
 
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
-                      orientation=True, figsize=None, new_fig=True, view='isometric',
+                      orientation=True, size=(700, 750), new_fig=True, view='isometric',
                       position=None, bgcolor=(0.5, 0.5, 0.5)):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
@@ -1329,10 +1330,8 @@ class VectorData(FieldData):
         y_mag = self.field[1][::ad, ::ad, ::ad].ravel()
         z_mag = self.field[2][::ad, ::ad, ::ad].ravel()
         # Plot them as vectors:
-        if figsize is None:
-            figsize = (750, 700)
         if new_fig:
-            mlab.figure(size=figsize, bgcolor=bgcolor, fgcolor=(0., 0., 0.))
+            mlab.figure(size=size, bgcolor=bgcolor, fgcolor=(0., 0., 0.))
         extent = np.ravel(list(zip((0, 0, 0), (self.dim[2], self.dim[1], self.dim[0]))))
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation:
             self._log.debug('Encoding full 3D angles')
@@ -1375,41 +1374,71 @@ class VectorData(FieldData):
             scene.scene.camera.position = position
         return vecs
 
-    def plot_quiver3d_to_2d(self, dim_uv=None, axis=None, figsize=None, high_res=False, **kwargs):
+    def plot_quiver3d_to_2d(self, dim_uv=None, axis=None, figsize=None, dpi=100, **kwargs):
         # TODO: into plottools and make available for all 3D plots if possible!
+        # TODO: Maybe as a decorator? Rename to mayvi_to_matlotlib? or just convert_3d_to_2d?
         # TODO: Look at https://docs.enthought.com/mayavi/mayavi/tips.html and implement!
-        kwargs.setdefault('labels', False)
-        kwargs.setdefault('orientation', False)
-        kwargs.setdefault('bgcolor', (0.7, 0.7, 0.7))
         from mayavi import mlab
         if figsize is None:
             figsize = plottools.FIGSIZE_DEFAULT
         if axis is None:
             self._log.debug('axis is None')
-            fig = plt.figure(figsize=figsize)
-            axis = fig.add_subplot(1, 1, 1)
-            axis.set_facecolor(kwargs['bgcolor'])
-        self.plot_quiver3d(figsize=(1600, 1600), **kwargs)
-        if high_res:  # Use temp files:
+            fig = plt.figure(figsize=figsize, dpi=dpi)
+            axis = fig.add_subplot(1, 1, 1, aspect='equal')
+            # TODO: ? axis.set_facecolor(kwargs.get('bgcolor', (0.7, 0.7, 0.7)))
+        else:
+            pass  # TODO: get current figures dpi, it is used later!
+        # figsize (in inches) and dpi (dots per pixel) determine the res (resolution -> # of dots)!
+        res = np.min([int(i * dpi) for i in figsize])
+        # Two ways of proceeding
+        # (needs screen resolution, hardcode now, later: https://github.com/rr-/screeninfo):
+        from PyQt5 import QtWidgets
+        myApp = QtWidgets.QApplication(sys.argv)
+        sgeo = myApp.desktop().screenGeometry()
+        screen_res = (3840, 2160)  # TODO: hardcode now, later: https://github.com/rr-/screeninfo)
+        screen_res = sgeo.height(), sgeo.width()
+        print(screen_res)
+        # IF resolution of mayavi image is smaller than screen resolution:
+        if res < np.min(screen_res):
+            self._log.info(f'BIG ENOUGH (res.: {res})')
+            # all is good, we can use the screenshot function to get the mappable image!
+            self.plot_quiver3d(size=(res, res), labels=False, orientation=False, mode='arrow',
+                                bgcolor=(0.7, 0.7, 0.7))
+            imgmap = mlab.screenshot(mode='rgb', antialiased=True)
+        # ELSE resolution of mayavi image would exceed screen resolution:
+        else:
+            self._log.info(f'TOO SMALL (res.: {res})')
+            # mlab.savefig is used to circumvent screen resolution, magnification factor is used:
+            mag = res/np.min(screen_res)
+            # image resolution is reduced by factor mag (so that it fits on screen again)
+            res //= mag
+            self.plot_quiver3d(size=(res, res), labels=False, orientation=False, mode='arrow',
+                                bgcolor=(0.7, 0.7, 0.7))
+            # mlab.savefig takes mag factor that saves an image that is bigger by factor mag
             tmpdir = tempfile.mkdtemp()
-            temp_path = os.path.join(tmpdir, 'temp.png')
+            temp_path = 'temp.png'#TODO:os.path.join(tmpdir, 'temp.png')
+            print('Temp file created')
             try:
-                mlab.savefig(temp_path, size=(2000, 2000))
+                mlab.savefig(temp_path, magnification=mag)
+                print(f'SAVED with mag={mag}!')
                 imgmap = np.asarray(Image.open(temp_path))
+                print('LOADED!')
             except Exception as e:
                 raise e
             finally:
-                os.remove(temp_path)
+                #TODO:os.remove(temp_path)
                 os.rmdir(tmpdir)
-        else:  # Use screenshot (returns array WITH alpha!):
-            imgmap = mlab.screenshot(mode='rgba', antialiased=True)
+        # In both cases, log mappable shape and do the rest:
         mlab.close(mlab.gcf())
+        self._log.info(f'mappable shape: {imgmap.shape[:2]} (res.: {res})')
         if dim_uv is None:
             dim_uv = self.dim[1:]
         axis.imshow(imgmap, extent=[0, dim_uv[0], 0, dim_uv[1]], origin='upper')
         kwargs.setdefault('scalebar', False)
         kwargs.setdefault('hideaxes', True)
-        return plottools.format_axis(axis, hideaxes=True, scalebar=False)
+        # TODO: RETURN AXIS AND FORMAT AFTER! kwargs are for quiverplot (do some defaults here,
+        # TODO not adding stuff like colorbars!!!!)!!!!
+        return plottools.format_axis(axis, **kwargs)
 
 
 class ScalarData(FieldData):

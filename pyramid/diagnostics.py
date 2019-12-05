@@ -535,7 +535,7 @@ class LCurve(object):
                 self._log.info(lam, ' -->  m:', chisq_m, '  a:', chisq_a)
                 # Save magdata_rec and dictionary if necessary:
                 if self.save_dir is not None:
-                    filename = 'magdata_rec_lam{:.0e}.hdf5'.format(lam)
+                    filename = f'magdata_rec_lam{lam:.0e}.hdf5'
                     magdata_rec.save(os.path.join(self.save_dir, filename), overwrite=True)
                     self._save()
 
@@ -590,7 +590,7 @@ class LCurve(object):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-        axis.set_yscale("log", nonposx='clip')
+        axis.set_yscale("log", nonposy='clip')
         axis.set_xscale("log", nonposx='clip')
         axis.plot(x, y, 'k-', linewidth=3, zorder=1)
         sc = axis.scatter(x, y, c=lambdas, marker='o', s=100, zorder=2,
