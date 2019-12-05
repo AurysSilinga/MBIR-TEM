@@ -6,8 +6,6 @@
 
 import abc
 import logging
-import sys
-import os
 from scipy.ndimage.interpolation import rotate
 from numbers import Number
 
