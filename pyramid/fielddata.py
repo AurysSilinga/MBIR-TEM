@@ -6,8 +6,6 @@
 
 import abc
 import logging
-import os
-import tempfile
 from scipy.ndimage.interpolation import rotate
 from numbers import Number
 
@@ -1048,7 +1046,6 @@ class VectorData(FieldData):
             label = '{:.3g} {}'.format(amplitudes.max() * b_0, qkey_unit)
             quiv.angles = 'uv'  # With a list of angles, the quiverkey would break!
             txtcolor = 'w' if stroke == 'k' else 'k'
-            edgecolor = stroke if stroke is not None else 'none'
             qk = plt.quiverkey(Q=quiv, X=0.88, Y=0.065, U=1, label=label, labelpos='W',
                                coordinates='axes', facecolor='w', edgecolor='k',
                                labelcolor=txtcolor, linewidth=0.5,
@@ -1122,9 +1119,9 @@ class VectorData(FieldData):
         axis.set_aspect('equal')
         # Determine 'z'-component for luminance (keep as gray if None):
         z_mag = w_mag
-        if bgcolor == 'white':
+        if bgcolor in ('white', 'w'):
             z_mag = np.where(submask, z_mag, np.max(np.hypot(u_mag, v_mag)))
-        if bgcolor == 'black':
+        if bgcolor in ('black', 'k'):
             z_mag = np.where(submask, z_mag, -np.max(np.hypot(u_mag, v_mag)))
         # Plot the field:
         dim_uv = u_mag.shape
@@ -1137,7 +1134,7 @@ class VectorData(FieldData):
         # Show mask:
         if show_mask and not np.all(submask):  # Plot mask if desired and not trivial!
             vv, uu = np.indices(dim_uv) + 0.5  # shift to center of pixel
-            mask_color = 'white' if bgcolor == 'black' else 'black'
+            mask_color = 'w' if bgcolor in ('black', 'k') else 'k'
             axis.contour(uu, vv, submask, levels=[0.5], colors=mask_color,
                          linestyles='dotted', linewidths=2)
         # Return formatted axis:
@@ -1286,7 +1283,7 @@ class VectorData(FieldData):
 
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
-                      orientation=True, figsize=None, new_fig=True, view='isometric',
+                      orientation=True, size=(700, 750), new_fig=True, view='isometric',
                       position=None, bgcolor=(0.5, 0.5, 0.5)):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
@@ -1329,10 +1326,8 @@ class VectorData(FieldData):
         y_mag = self.field[1][::ad, ::ad, ::ad].ravel()
         z_mag = self.field[2][::ad, ::ad, ::ad].ravel()
         # Plot them as vectors:
-        if figsize is None:
-            figsize = (750, 700)
         if new_fig:
-            mlab.figure(size=figsize, bgcolor=bgcolor, fgcolor=(0., 0., 0.))
+            mlab.figure(size=size, bgcolor=bgcolor, fgcolor=(0., 0., 0.))
         extent = np.ravel(list(zip((0, 0, 0), (self.dim[2], self.dim[1], self.dim[0]))))
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation:
             self._log.debug('Encoding full 3D angles')
@@ -1374,42 +1369,6 @@ class VectorData(FieldData):
         if position:
             scene.scene.camera.position = position
         return vecs
-
-    def plot_quiver3d_to_2d(self, dim_uv=None, axis=None, figsize=None, high_res=False, **kwargs):
-        # TODO: into plottools and make available for all 3D plots if possible!
-        # TODO: Look at https://docs.enthought.com/mayavi/mayavi/tips.html and implement!
-        kwargs.setdefault('labels', False)
-        kwargs.setdefault('orientation', False)
-        kwargs.setdefault('bgcolor', (0.7, 0.7, 0.7))
-        from mayavi import mlab
-        if figsize is None:
-            figsize = plottools.FIGSIZE_DEFAULT
-        if axis is None:
-            self._log.debug('axis is None')
-            fig = plt.figure(figsize=figsize)
-            axis = fig.add_subplot(1, 1, 1)
-            axis.set_facecolor(kwargs['bgcolor'])
-        self.plot_quiver3d(figsize=(1600, 1600), **kwargs)
-        if high_res:  # Use temp files:
-            tmpdir = tempfile.mkdtemp()
-            temp_path = os.path.join(tmpdir, 'temp.png')
-            try:
-                mlab.savefig(temp_path, size=(2000, 2000))
-                imgmap = np.asarray(Image.open(temp_path))
-            except Exception as e:
-                raise e
-            finally:
-                os.remove(temp_path)
-                os.rmdir(tmpdir)
-        else:  # Use screenshot (returns array WITH alpha!):
-            imgmap = mlab.screenshot(mode='rgba', antialiased=True)
-        mlab.close(mlab.gcf())
-        if dim_uv is None:
-            dim_uv = self.dim[1:]
-        axis.imshow(imgmap, extent=[0, dim_uv[0], 0, dim_uv[1]], origin='upper')
-        kwargs.setdefault('scalebar', False)
-        kwargs.setdefault('hideaxes', True)
-        return plottools.format_axis(axis, hideaxes=True, scalebar=False)
 
 
 class ScalarData(FieldData):

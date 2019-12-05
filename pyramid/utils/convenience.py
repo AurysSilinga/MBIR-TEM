@@ -278,7 +278,7 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
                                    angles=np.linspace(-90, 90, num=19), dim_uv=None,
                                    axes=(True, True), noise=0, offset_max=0, ramp_max=0,
                                    use_internal_mask=True, plot_results=False, plot_input=False,
-                                   ar_dens=None, multicore=False, verbose=True):
+                                   ar_dens=None, multicore=False, verbose=True, seed=42):
     """Convenience function for reconstructing a projected distribution from a single phasemap.
 
     Parameters
@@ -339,6 +339,7 @@ def reconstruction_3d_from_magdata(magdata, b_0=1, lam=1E-3, max_iter=100, ramp_
 
     """
     _log.debug('Calling reconstruction_3d_from_magdata')
+    np.random.seed(seed)
     # Construct DataSet:
     dim = magdata.dim
     if ar_dens is None:

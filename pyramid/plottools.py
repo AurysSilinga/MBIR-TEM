@@ -4,7 +4,11 @@
 # Adapted from mpl_toolkits.axes_grid2
 """This module provides the useful plotting utilities."""
 
+import logging
+import os
+import tempfile
 import numpy as np
+from PIL import Image
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -21,6 +25,7 @@ from . import colors
 
 __all__ = ['format_axis', 'pretty_plots', 'add_scalebar',
            'add_annotation', 'add_colorwheel', 'add_cbar']
+_log = logging.getLogger(__name__)
 
 FIGSIZE_DEFAULT = (8.3, 6.2)
 FONTSIZE_DEFAULT = 20
@@ -365,6 +370,48 @@ def figsize(scale, height=None, textwidth=448.1309):
     fig_size = [fig_width, fig_height]
 
     return fig_size
+
+
+def plot_3d_to_2d(dim_uv, axis=None, figsize=None, dpi=100, mag=1, close_3d=True, **kwargs):
+    # TODO: into plottools and make available for all 3D plots if possible!
+    # TODO: Maybe as a decorator? Rename to mayvi_to_matlotlib? or just convert_3d_to_2d?
+    # TODO: Look at https://docs.enthought.com/mayavi/mayavi/tips.html and implement!
+    from mayavi import mlab
+    if figsize is None:
+        figsize = FIGSIZE_DEFAULT
+    if axis is None:
+        _log.debug('axis is None')
+        fig = plt.figure(figsize=figsize, dpi=dpi)
+        axis = fig.add_subplot(1, 1, 1, aspect='equal')
+    else:
+        dpi = plt.gcf().dpi  # get current figures dpi, needed later!
+    # figsize (in inches) and dpi (dots per pixel) determine the res (resolution -> # of dots)!
+    res = np.min([int(i * dpi) for i in figsize])
+    # Two ways of proceeding
+    # (needs screen resolution, hardcode now, later: https://github.com/rr-/screeninfo):
+    # IF resolution of mayavi image is smaller than screen resolution:
+    tmpdir = tempfile.mkdtemp()
+    temp_path = os.path.join(tmpdir, 'temp.png')
+    print('Temp file created')
+    try:
+        mlab.savefig(temp_path, magnification=mag)
+        print(f'SAVED with mag={mag}!')
+        imgmap = np.asarray(Image.open(temp_path))
+        print('LOADED!')
+    except Exception as e:
+        raise e
+    finally:
+        os.remove(temp_path)
+        os.rmdir(tmpdir)
+    # In both cases, log mappable shape and do the rest:
+    if close_3d:
+        mlab.close(mlab.gcf())
+    _log.info(f'mappable shape: {imgmap.shape[:2]} (res.: {res})')
+    axis.imshow(np.flipud(imgmap))
+    kwargs.setdefault('scalebar', False)
+    kwargs.setdefault('hideaxes', True)
+    return format_axis(axis, **kwargs)
+
 
 # TODO: Florians way of shifting axes labels (should already be in somewhere):
 # for i in [1, 3]:
