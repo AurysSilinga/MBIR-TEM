@@ -14,7 +14,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm  # TODO: Everywhere or managed through stylesheets!
 from matplotlib.offsetbox import AnchoredOffsetbox, TextArea
-from matplotlib import patheffects
+from matplotlib import patches, patheffects
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -392,12 +392,9 @@ def plot_3d_to_2d(dim_uv, axis=None, figsize=None, dpi=100, mag=1, close_3d=True
     # IF resolution of mayavi image is smaller than screen resolution:
     tmpdir = tempfile.mkdtemp()
     temp_path = os.path.join(tmpdir, 'temp.png')
-    print('Temp file created')
     try:
         mlab.savefig(temp_path, magnification=mag)
-        print(f'SAVED with mag={mag}!')
         imgmap = np.asarray(Image.open(temp_path))
-        print('LOADED!')
     except Exception as e:
         raise e
     finally:
@@ -411,6 +408,18 @@ def plot_3d_to_2d(dim_uv, axis=None, figsize=None, dpi=100, mag=1, close_3d=True
     kwargs.setdefault('scalebar', False)
     kwargs.setdefault('hideaxes', True)
     return format_axis(axis, **kwargs)
+
+
+def plot_ellipse(axis, pos_2d, width, height):
+    xy = (pos_2d[1], pos_2d[0])
+    rect = axis.add_patch(patches.Rectangle(xy, 1, 1, fill=False, edgecolor='w',
+                                            linewidth=2, alpha=0.5))
+    rect.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
+    xy = ((xy[0]+0.5), (xy[1]+0.5))
+    artist = axis.add_patch(patches.Ellipse(xy, width, height, fill=False, edgecolor='w',
+                                            linewidth=2, alpha=0.5))
+    artist.set_path_effects([patheffects.withStroke(linewidth=4, foreground='k', alpha=0.5)])
+    return axis
 
 
 # TODO: Florians way of shifting axes labels (should already be in somewhere):

@@ -20,8 +20,7 @@ from pyramid import reconstruction
 from pyramid import plottools
 
 import matplotlib.pyplot as plt
-from matplotlib import patches
-from matplotlib import patheffects
+from matplotlib import patches, patheffects
 from matplotlib.ticker import FuncFormatter
 from matplotlib.colors import LogNorm
 import numpy as np
