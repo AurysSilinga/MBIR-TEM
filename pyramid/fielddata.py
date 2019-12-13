@@ -952,9 +952,16 @@ class VectorData(FieldData):
             # TODO: Just for now, delete later, when power of 2 no longer needed:
             ar_dens = int(2**(np.log2(ar_dens)//1))
         if ar_dens > 1:
-            scale_it = np.log2(ar_dens)
+            scale_it = int(np.log2(ar_dens))
             assert scale_it % 1 == 0, 'ar_dens has to be power of 2 (for now)!'  # TODO: Delete!
-            vecdata = self.scale_down(int(scale_it))
+            vecdata = self.scale_down(scale_it)
+            # Get mask BEFORE scaling:
+            u_mag_mask, v_mag_mask = self.get_slice(ax_slice, proj_axis)[:2]
+            arrow_mask = np.where(np.hypot(u_mag_mask, v_mag_mask) > 0, True, False)
+            for i in range(scale_it):
+                dim_uv = arrow_mask.shape
+                arrow_mask = arrow_mask.reshape(dim_uv[0]//2, 2, dim_uv[0]//2, 2).mean(axis=(1, 3))
+                arrow_mask = arrow_mask == 1
         else:
             vecdata = self
         # Extract slice and mask:
@@ -966,6 +973,9 @@ class VectorData(FieldData):
         # TODO: The slicing is therefore done before the scale down and more accurate!(??)
         u_mag, v_mag = vecdata.get_slice(ax_slice, proj_axis)[:2]
         submask = np.where(np.hypot(u_mag, v_mag) > 0, True, False)
+        if ar_dens > 1:
+            u_mag *= arrow_mask
+            v_mag *= arrow_mask
         # Prepare quiver (select only used arrows if ar_dens is specified):
         dim_uv = u_mag.shape
         vv, uu = (np.indices(dim_uv) + 0.5) * ar_dens  # 0.5: shift to center of pixel!
