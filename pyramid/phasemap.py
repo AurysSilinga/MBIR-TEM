@@ -770,8 +770,9 @@ class PhaseMap(object):
         holo /= 2  # Rescale to [0, 1]
         # Calculate the phase gradients:
         # B = rot(A)  --> B_x =  grad_y(A_z),   B_y = -grad_x(A_z); phi_m ~ -int(A_z)
-        # sign switch --> B_x = -grad_y(phi_m), B_y =  grad_x(phi_m)
-        grad_x, grad_y = np.gradient(self.phase, self.a, self.a)
+        # for projection along +z:    sign switch --> B_x = -grad_y(phi_m), B_y =  grad_x(phi_m)
+        # for projection along -z: NO sign switch --> B_x = grad_y(phi_m), B_y =  -grad_x(phi_m)
+        grad_y, grad_x = np.gradient(self.phase, self.a, self.a)
         # Clip outliers:
         outlier_x = np.abs(grad_x - np.mean(grad_x)) < sigma_clip * np.std(grad_x)
         grad_x_sigma = np.where(outlier_x, grad_x, np.nan)
@@ -784,7 +785,7 @@ class PhaseMap(object):
         # Calculate colors:
         if cmap is None:
             cmap = colors.CMAP_CIRCULAR_DEFAULT
-        vector = np.asarray((grad_x, -grad_y, np.zeros_like(grad_x)))
+        vector = np.asarray((grad_y, -grad_x, np.zeros_like(grad_x)))
         rgb = cmap.rgb_from_vector(vector)
         rgb = (holo.T * rgb.T).T.astype(np.uint8)
         holo_image = Image.fromarray(rgb)
