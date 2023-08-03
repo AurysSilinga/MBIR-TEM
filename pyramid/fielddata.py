@@ -9,7 +9,12 @@ import logging
 from scipy.ndimage.interpolation import rotate
 from numbers import Number
 
-import numpy as np
+try:
+    import cupy as np
+except ImportError:
+    import numpy as np
+
+import numpy
 from PIL import Image
 from matplotlib import patheffects
 from matplotlib import pyplot as plt

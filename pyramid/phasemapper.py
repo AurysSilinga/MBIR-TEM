@@ -10,9 +10,13 @@ The electrostatic contribution is calculated by using the assumption of a mean i
 import abc
 import logging
 
-import numpy as np
+try:
+    import cupy as np
+    from cupy import fft
+except ImportError:
+    import numpy as np
+    from jutil import fft
 
-from jutil import fft
 
 from .fielddata import VectorData, ScalarData
 from .phasemap import PhaseMap
@@ -106,7 +110,7 @@ class PhaseMapperRDFC(PhaseMapper):
     def __init__(self, kernel):
         self._log.debug('Calling __init__')
         self.kernel = kernel
-        self.m = np.prod(kernel.dim_uv)
+        self.m = np.prod(np.array(kernel.dim_uv))
         self.n = 2 * self.m
         self.u_mag = np.zeros(kernel.dim_pad, dtype=kernel.u.dtype)
         self.v_mag = np.zeros(kernel.dim_pad, dtype=kernel.u.dtype)
