@@ -2,6 +2,9 @@
 # Copyright 2016 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
+
+#Aurys 21/06/2023
+#changed all oa.marker.set_viewport(x) to oa.marker.viewport=x .
 """This module provides classes for storing vector and scalar 3D-field."""
 
 import abc
@@ -9,12 +12,7 @@ import logging
 from scipy.ndimage.interpolation import rotate
 from numbers import Number
 
-try:
-    import cupy as np
-except ImportError:
-    import numpy as np
-
-import numpy
+import numpy as np
 from PIL import Image
 from matplotlib import patheffects
 from matplotlib import pyplot as plt
@@ -267,7 +265,7 @@ class FieldData(object, metaclass=abc.ABCMeta):
             mlab.title(title, height=0.95, size=0.35)
         if orientation:
             oa = mlab.orientation_axes()
-            oa.marker.set_viewport(0, 0, 0.4, 0.4)
+            oa.marker.viewport=(0, 0, 0.4, 0.4)
             mlab.draw()
         engine = mlab.get_engine()
         scene = engine.scenes[0]
@@ -1371,7 +1369,7 @@ class VectorData(FieldData):
             mlab.title(title, height=0.95, size=0.35)
         if orientation:
             oa = mlab.orientation_axes()
-            oa.marker.set_viewport(0, 0, 0.4, 0.4)
+            oa.marker.viewport=(0, 0, 0.4, 0.4)
             mlab.draw()
         engine = mlab.get_engine()
         scene = engine.scenes[0]

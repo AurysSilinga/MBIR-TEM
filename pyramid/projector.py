@@ -2,12 +2,15 @@
 # Copyright 2014 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
+#Aurys 26/06/2023
+#changed rot-tilt projector to make equivalence radius a variable
+#
+#
 """This module provides the abstract base class :class:`~.Projector` and concrete subclasses for
 projections of vector and scalar fields."""
 
 import itertools
 import logging
-
 
 try:
     if type(get_ipython()).__name__ == 'ZMQInteractiveShell':  # IPython Notebook!
@@ -17,15 +20,9 @@ try:
 except NameError:
     from tqdm import tqdm
 
+import numpy as np
 from numpy import pi
-try:
-    import cupy as np
-    from cupyx.scipy.sparse import coo_matrix, csr_matrix
-except ImportError:
-    import numpy as np
-    from scipy.sparse import coo_matrix, csr_matrix
-
-import numpy
+from scipy.sparse import coo_matrix, csr_matrix
 
 from pyramid.fielddata import VectorData, ScalarData
 from pyramid.quaternion import Quaternion
@@ -83,8 +80,8 @@ class Projector(object):
         self.weight = weight
         self.coeff = coeff
         self.size_2d, self.size_3d = weight.shape
-        self.n = 3 * np.prod(np.array(dim))
-        self.m = 2 * np.prod(np.array(dim_uv))
+        self.n = 3 * np.prod(dim)
+        self.m = 2 * np.prod(dim_uv)
         self._log.debug('Created ' + str(self))
 
     def __repr__(self):
@@ -414,7 +411,7 @@ class RotTiltProjector(Projector):
 
     _log = logging.getLogger(__name__ + '.RotTiltProjector')
 
-    def __init__(self, dim, rotation, tilt, dim_uv=None, subcount=11, verbose=False):
+    def __init__(self, dim, rotation, tilt, dim_uv=None, subcount=11, verbose=False, R=0.5):
         self._log.debug('Calling __init__')
         self.rotation = rotation
         self.tilt = tilt
@@ -446,7 +443,7 @@ class RotTiltProjector(Projector):
         impacts[0, :] += dim_v / 2.  # Shift back to normal indices
         impacts[1, :] += dim_u / 2.  # Shift back to normal indices
         # Calculate equivalence radius:
-        R = (3 / (4 * np.pi)) ** (1 / 3.)
+        R = R
         # Prepare weight matrix calculation:
         rows = []  # 2D projection
         columns = []  # 3D distribution
@@ -597,9 +594,9 @@ class XTiltProjector(Projector):
         columns += addition
         rows += addition
         # Calculate weight matrix and coefficients for jacobi matrix:
-        shape = (np.prod(np.array(dim_uv)), np.prod(np.array(dim)))
+        shape = (np.prod(dim_uv), np.prod(dim))
         weight = csr_matrix(coo_matrix((data, (rows, columns)), shape=shape))
-        coeff = np.array(numpy.array([[1, 0, 0], [0, numpy.cos(tilt), numpy.sin(tilt)]]))
+        coeff = [[1, 0, 0], [0, np.cos(tilt), np.sin(tilt)]]
         super().__init__(dim, dim_uv, weight, coeff)
         self._log.debug('Created ' + str(self))
 
@@ -613,7 +610,7 @@ class XTiltProjector(Projector):
 
     @staticmethod
     def _get_impact(pos, r, size):
-        return [x for x in np.arange(int(np.floor(pos - r)), int(np.floor(pos + r) + 1), dtype=int)
+        return [x for x in np.arange(np.floor(pos - r), np.floor(pos + r) + 1, dtype=int)
                 if 0 <= x < size]
 
     @staticmethod

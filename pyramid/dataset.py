@@ -2,6 +2,11 @@
 # Copyright 2014 by Forschungszentrum Juelich GmbH
 # Author: J. Caron
 #
+#
+#Aurys 23/06/2023
+#In set_3d_mask removed check if only one mask because it was bugged and gave wrong dimesions.
+#
+#
 """This module provides the :class:`~.DataSet` class for the collection of phase maps
 and additional data like corresponding projectors."""
 
@@ -294,7 +299,7 @@ class DataSet(object):
         cov_list = [sparse.diags(c.ravel().astype(np.float32), 0) for c in conf_list]
         self.set_Se_inv_block_diag(cov_list)
 
-    def set_3d_mask(self, mask_list=None, threshold=0.9):
+    def set_3d_mask(self, mask_list=None, threshold=1.0):
         # TODO: This function should be in a separate module and not here (maybe?)!
         """Set the 3D mask from a list of 2D masks.
 
@@ -307,7 +312,7 @@ class DataSet(object):
         threshold: float, optional
             The threshold, describing the minimal number of 2D masks which have to extrude to the
             point in 3D to be considered valid as containing magnetisation. `threshold` is a
-            relative number in the range of [0, 1]. The default is 0.9. Choosing a value of 1 is
+            relative number in the range of [0, 1]. The default is 1.0. Choosing a value of 1 is
             the strictest possible setting (every 2D mask has to contain a 3D point to be valid).
 
         Returns
@@ -318,15 +323,12 @@ class DataSet(object):
         self._log.debug('Calling set_3d_mask')
         if mask_list is None:  # if no masks are given, extract from phase maps:
             mask_list = [phasemap.mask for phasemap in self.phasemaps]
-        if len(mask_list) == 1:  # just one phasemap --> 3D mask equals 2D mask
-            self.mask = np.expand_dims(mask_list[0], axis=0)  # z-dim is set to 1!
-        else:  # 3D mask has to be constructed from 2D masks:
-            mask_3d = np.zeros(self.dim)
-            for i, projector in enumerate(self.projectors):
-                mask_2d = self.phasemaps[i].mask.reshape(-1)  # 2D mask
-                # Add extrusion of 2D mask:
-                mask_3d += projector.weight.T.dot(mask_2d).reshape(self.dim)
-            self.mask = np.where(mask_3d >= threshold * self.count, True, False)
+        mask_3d = np.zeros(self.dim)
+        for i, projector in enumerate(self.projectors):
+            mask_2d = self.phasemaps[i].mask.reshape(-1)  # 2D mask
+            # Add extrusion of 2D mask:
+            mask_3d += projector.weight.T.dot(mask_2d).reshape(self.dim)
+        self.mask = np.where(mask_3d >= threshold * self.count, True, False)
 
     def save(self, filename, overwrite=True):
         """Saves the dataset as a collection of HDF5 files.

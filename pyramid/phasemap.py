@@ -8,11 +8,7 @@ import logging
 
 from numbers import Number
 
-try:
-    import cupy as np
-except ImportError:
-    import numpy as np
-
+import numpy as np
 
 from PIL import Image
 

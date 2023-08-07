@@ -7,13 +7,7 @@ single magnetized pixel."""
 
 import logging
 
-
-try:
-    import cupy as np
-except ImportError:
-    import numpy as np
-
-import numpy
+import numpy as np
 
 from jutil import fft
 
@@ -88,14 +82,14 @@ class Kernel(object):
         self.b_0 = b_0
         self.prw_vec = prw_vec
         self.dim_uv = dim_uv  # Dimensions of the FOV
-        self.dim_kern = tuple(2 * numpy.array(dim_uv) - 1)  # Dimensions of the kernel
+        self.dim_kern = tuple(2 * np.array(dim_uv) - 1)  # Dimensions of the kernel
         self.a = a
         self.geometry = geometry
         # Set up FFT:
         if fft.HAVE_FFTW:
-            self.dim_pad = tuple(2 * numpy.array(dim_uv))  # is at least even (not nec. power of 2)
+            self.dim_pad = tuple(2 * np.array(dim_uv))  # is at least even (not nec. power of 2)
         else:
-            self.dim_pad = tuple(2 ** numpy.ceil(numpy.log2(2 * numpy.array(dim_uv))).astype(int))  # pow(2)
+            self.dim_pad = tuple(2 ** np.ceil(np.log2(2 * np.array(dim_uv))).astype(int))  # pow(2)
         self.dim_fft = (self.dim_pad[0], self.dim_pad[1] // 2 + 1)  # last axis is real
         self.slice_phase = (slice(dim_uv[0] - 1, self.dim_kern[0]),  # Shift because kernel center
                             slice(dim_uv[1] - 1, self.dim_kern[1]))  # is not at (0, 0)!
@@ -125,8 +119,8 @@ class Kernel(object):
             # TODO: The minus sign belongs into the phasemapper (debatable)!
             self.v[...] -= coeff * -self._get_elementary_phase(geometry, vv, uu, a)
         # Calculate Fourier trafo of kernel components:
-        self.u_fft = np.array(fft.rfftn(np.asnumpy(self.u), self.dim_pad))
-        self.v_fft = np.array(fft.rfftn(np.asnumpy(self.v), self.dim_pad))
+        self.u_fft = fft.rfftn(self.u, self.dim_pad)
+        self.v_fft = fft.rfftn(self.v, self.dim_pad)
         self._log.debug('Created ' + str(self))
 
     def __repr__(self):
