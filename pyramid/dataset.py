@@ -356,7 +356,7 @@ class DataSet(object):
         if self.mask is not None:
             return ScalarData(self.a, self.mask).plot_mask(**kwargs)
 
-    def plot_phasemaps(self, magdata=None, title='Phase Map', difference=False, ramp=None,
+    def plot_phasemaps(self, magdata=None, title='Phase Map', difference=False, ramp=None, equal_cbars=True,
                        **kwargs):
         """Display all phasemaps saved in the :class:`~.DataSet` as a colormesh.
 
@@ -390,8 +390,14 @@ class DataSet(object):
                 for i, phasemap in enumerate(phasemaps):
                     assert type(ramp) == Ramp, 'ramp has to be a Ramp object!'
                     phasemap -= ramp(index=i)  # Ramp correction
+        if equal_cbars:
+            vmax = np.nanmax(phasemaps)
+            vmin = np.nanmin(phasemaps)
+        else:
+            vmax=None
+            vmin=None
         for (i, phasemap) in enumerate(phasemaps):
-            phasemap.plot_phase(note='{} ({})'.format(title, self.projectors[i].get_info()),
+            phasemap.plot_phase(note='{} ({})'.format(title, self.projectors[i].get_info()), vmax=vmax, vmin=vmin,
                                 **kwargs)
 
     def plot_phasemaps_combined(self, magdata=None, title='Combined Plot', difference=False,

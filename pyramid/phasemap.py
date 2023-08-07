@@ -648,9 +648,10 @@ class PhaseMap(object):
         # Scale phase and make last check if order is okay:
         phase = self.phase * self.UNITDICT[unit]
         order = np.floor(np.log10(np.abs(phase).max()))
-        if order > 2 or order < -6:  # Display would look bad
-            unit = '{} x 1E{:g}'.format(unit, order)
-            phase /= 10 ** order
+        unit_orderless=unit
+        #if order > 2 or order < -6:  # Display would look bad # removed because prevent normalisation
+        #    unit = '{} x 1E{:g}'.format(unit, order)
+        #    phase /= 10 ** order
         # Calculate limits if necessary (not necessary if both limits are already set):
         if vmin is None or vmax is None:
             phase_lim = phase
@@ -671,7 +672,7 @@ class PhaseMap(object):
             if vmax is None:
                 vmax = np.max(phase_lim)
         else:  # If vmin and vmax are set by the user, they have to be unit-scaled as well:
-            vmin, vmax = vmin * self.UNITDICT[unit], vmax * self.UNITDICT[unit]
+            vmin, vmax = vmin * self.UNITDICT[unit_orderless], vmax * self.UNITDICT[unit_orderless]
         # Configure colormap and fix white to zero if colormap is symmetric:
         if cmap is None:
             cmap = cmocean.cm.balance
