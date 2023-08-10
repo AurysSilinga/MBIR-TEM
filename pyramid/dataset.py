@@ -327,7 +327,10 @@ class DataSet(object):
         for i, projector in enumerate(self.projectors):
             mask_2d = self.phasemaps[i].mask.reshape(-1)  # 2D mask
             # Add extrusion of 2D mask:
-            mask_3d += projector.weight.T.dot(mask_2d).reshape(self.dim)
+            mask_2d_projected=projector.weight.T.dot(mask_2d).reshape(self.dim)
+            #correction for space-streching by z-rotation
+            mask_2d_projected[mask_2d_projected > 0.9] = 1.0  #threshold 0.9 works
+            mask_3d += mask_2d_projected
         self.mask = np.where(mask_3d >= threshold * self.count, True, False)
 
     def save(self, filename, overwrite=True):

@@ -266,11 +266,13 @@ class RotTiltProjector(Projector):
         Note, subcount < 4 breaks the code.
     R : float (optional)
         Equivalence radius. Voxel centres falling withing distance R of a projection pixel are considered when calculating the pixel value.
+    center : tuple (N=3), optional
+        Defines where the centre of the phasemap is in 3D reconstruction space. Default is in middle. Dimensions (z,y,x)
     """
 
     _log = logging.getLogger(__name__ + '.RotTiltProjector')
 
-    def __init__(self, dim, rotation, tilt, dim_uv=None, subcount=11, verbose=False, R=0.5):
+    def __init__(self, dim, rotation, tilt, dim_uv=None, subcount=11, verbose=False, R=0.5, center = None):
         self._log.debug('Calling __init__')
         self.rotation = rotation
         self.tilt = tilt
@@ -281,7 +283,8 @@ class RotTiltProjector(Projector):
         quat =  quat_x * quat_z_n
         # Determine dimensions:
         dim_z, dim_y, dim_x = dim
-        center = (dim_z / 2., dim_y / 2., dim_x / 2.)
+        if center == None:
+            center = (dim_z / 2., dim_y / 2., dim_x / 2.)
         if dim_uv is None:
             dim_v = max(dim_x, dim_y)  # first rotate around z-axis (take x and y into account)
             dim_u = max(dim_v, dim_z)  # then tilt around x-axis (now z matters, too)
