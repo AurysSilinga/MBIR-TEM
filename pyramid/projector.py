@@ -257,6 +257,8 @@ class RotTiltProjector(Projector):
         Angle in `rad` describing the rotation around the z-axis before the tilt is happening.
     tilt : float
         Angle in `rad` describing the tilt of the beam direction relative to the x-axis.
+    camera_rotation : float (optional)
+        Angle in `rad` describing the rotation around the z-axis before after the tilt.
     dim_uv : tuple (N=2), optional
         Dimensions (v, u) of the projection. If not set defaults to the (y, x)-dimensions.
     subcount : int (optional)
@@ -272,15 +274,17 @@ class RotTiltProjector(Projector):
 
     _log = logging.getLogger(__name__ + '.RotTiltProjector')
 
-    def __init__(self, dim, rotation, tilt, dim_uv=None, subcount=11, verbose=False, R=0.5, center = None):
+    def __init__(self, dim, rotation, tilt, camera_rotation=0, dim_uv=None, subcount=11, verbose=False, R=0.5, center = None):
         self._log.debug('Calling __init__')
         self.rotation = rotation
         self.tilt = tilt
+        self.camera_rotation = camera_rotation
         # Create tilt, rotation and combined quaternion, careful: Quaternion(w,x,y,z), not (z,y,x):
         quat_z_n = Quaternion.from_axisangle((0, 0, 1), rotation)  # Rotate around z-axis
         quat_x = Quaternion.from_axisangle((1, 0, 0), tilt)  # Tilt around x-axis
-        # Combined quaternion (first rotate around z, then tilt around x):
-        quat =  quat_x * quat_z_n
+        quat_z_p = Quaternion.from_axisangle((0, 0, 1), camera_rotation)  # Rotate around z-axis
+        # Combined quaternion (first rotate around z, then tilt around x, then rotate around z again):
+        quat =  quat_z_p * quat_x * quat_z_n
         # Determine dimensions:
         dim_z, dim_y, dim_x = dim
         if center == None:
