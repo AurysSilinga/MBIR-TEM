@@ -253,7 +253,7 @@ class FieldData(object, metaclass=abc.ABCMeta):
             figsize = (750, 700)
         if new_fig:
             mlab.figure(size=figsize, bgcolor=(0.5, 0.5, 0.5), fgcolor=(0., 0., 0.))
-        zzz, yyy, xxx = (np.indices(self.dim) + self.a / 2)
+        zzz, yyy, xxx = (np.indices(self.dim) + 1 / 2)
         zzz, yyy, xxx = zzz.T, yyy.T, xxx.T
         mask = self.get_mask(threshold=threshold).astype(int).T  # Transpose because of VTK order!
         extent = np.ravel(list(zip((0, 0, 0), mask.shape)))
@@ -295,7 +295,7 @@ class FieldData(object, metaclass=abc.ABCMeta):
         from mayavi import mlab
         if new_fig:
             mlab.figure(size=(750, 700))
-        zzz, yyy, xxx = (np.indices(self.dim) + self.a / 2)
+        zzz, yyy, xxx = (np.indices(self.dim) + 1 / 2)
         zzz, yyy, xxx = zzz.T, yyy.T, xxx.T
         field_amp = self.field_amp.T  # Transpose because of VTK order!
         if not isinstance(contours, (list, tuple, np.ndarray)):  # Calculate the contours:
@@ -1381,7 +1381,7 @@ class VectorData(FieldData):
             scene.scene.y_plus_view()
         if position:
             scene.scene.camera.position = position
-        return vecs
+        return (vecs, mlab.screenshot())
 
 
 class ScalarData(FieldData):

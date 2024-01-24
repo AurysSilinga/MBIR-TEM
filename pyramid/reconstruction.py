@@ -22,7 +22,7 @@ __all__ = ['optimize_linear', 'optimize_linear_charge', 'optimize_nonlin', 'opti
 _log = logging.getLogger(__name__)
 
 
-def optimize_linear(costfunction, mag_0=None, ramp_0=None, max_iter=None, verbose=False):
+def optimize_linear(costfunction, mag_0=None, ramp_0=None, max_iter=None, verbose=False, abs_tol=1e-20, rel_tol=1e-20):
     """Reconstruct a three-dimensional magnetic distribution from given phase maps via the
     conjugate gradient optimization method :func:`~.scipy.sparse.linalg.cg`.
     Blazingly fast for l2-based cost functions.
@@ -53,7 +53,6 @@ def optimize_linear(costfunction, mag_0=None, ramp_0=None, max_iter=None, verbos
     import jutil.cg as jcg
     from jutil.taketime import TakeTime
     _log.debug('Calling optimize_linear')
-    _log.info('Cost before optimization: {:.3e}'.format(costfunction(np.zeros(costfunction.n))))
     data_set = costfunction.fwd_model.data_set
     # Get starting distribution vector x_0:
     x_0 = np.empty(costfunction.n)
@@ -65,9 +64,10 @@ def optimize_linear(costfunction, mag_0=None, ramp_0=None, max_iter=None, verbos
     else:
         ramp_vec = np.zeros_like(costfunction.fwd_model.ramp.n)
     x_0[data_set.n:] = ramp_vec
+    _log.info('Cost before optimization: {:.3e}'.format(costfunction(x_0)))
     # Minimize:
     with TakeTime('reconstruction time'):
-        x_opt = jcg.conj_grad_minimize(costfunction, x_0=x_0, max_iter=max_iter, verbose=verbose).x
+        x_opt = jcg.conj_grad_minimize(costfunction, x_0=x_0, max_iter=max_iter, verbose=verbose, abs_tol=abs_tol, rel_tol=rel_tol).x
     _log.info('Cost after optimization: {:.3e}'.format(costfunction(x_opt)))
     # Cut ramp parameters if necessary (this also saves the final parameters in the ramp class!):
     x_opt = costfunction.fwd_model.ramp.extract_ramp_params(x_opt)

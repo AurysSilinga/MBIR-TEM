@@ -394,8 +394,8 @@ class DataSet(object):
                     assert type(ramp) == Ramp, 'ramp has to be a Ramp object!'
                     phasemap -= ramp(index=i)  # Ramp correction
         if equal_cbars:
-            vmax = np.nanmax(phasemaps)
-            vmin = np.nanmin(phasemaps)
+            vmax = np.nanmax([np.nanmax(pm) for pm in phasemaps])
+            vmin = np.nanmin([np.nanmin(pm) for pm in phasemaps])
         else:
             vmax=None
             vmin=None

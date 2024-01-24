@@ -153,7 +153,7 @@ class Diagnostics(object):
             self._updated_avrg_kern_row = False
             self._updated_measure_contribution = False
 
-    def __init__(self, magdata, cost, max_iter=1000, verbose=False):  # TODO: verbose True default
+    def __init__(self, magdata, cost, max_iter=1000, verbose=True):
         self._log.debug('Calling __init__')
         self.magdata = magdata
         self.cost = cost
