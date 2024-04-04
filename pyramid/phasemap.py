@@ -71,7 +71,8 @@ class PhaseMap(object):
                 u'1/rad': 1E0,
                 u'1/mrad': 1E-3,
                 u'1/µrad': 1E-6,
-                u'1/nrad': 1E-9}
+                u'1/nrad': 1E-9,
+                u'T/rad': 1E0}
 
     @property
     def a(self):
@@ -352,11 +353,11 @@ class PhaseMap(object):
 
         Returns
         -------
-        None
-
+        phasemap: PhaseMap
+            The padded phasemap
+ 
         Notes
         -----
-        Acts in place and changes dimensions accordingly.
         The confidence of the padded areas is set to zero!
 
         """
@@ -459,7 +460,7 @@ class PhaseMap(object):
         Parameters
         ----------
         shift : float or sequence, optional
-            The shift along the axes. If a float, shift is the same for each axis.
+            The shift along the axes. If a float, shift is the same for each axis (shift_y, shift_x).
             If a sequence, shift should contain one value for each axis.
 
         Returns
@@ -639,7 +640,7 @@ class PhaseMap(object):
         # Take units into consideration:
         if unit == 'auto':  # Try to automatically determine unit (recommended):
             for key, value in self.UNITDICT.items():
-                if not key.startswith('1/'):
+                if not key.startswith('1/') and not key.startswith('T/'):
                     order = np.floor(np.log10(np.abs(self.phase).max() * value))
                     if -1 <= order < 2:
                         unit = key
@@ -715,7 +716,7 @@ class PhaseMap(object):
         if cbar:
             cbar_mappable = im
             if cbar_label is None:
-                if unit.startswith('1/'):
+                if unit.startswith('1/') or unit.startswith('T/'):
                     cbar_name = 'gain'
                 else:
                     cbar_name = 'phase'

@@ -963,7 +963,7 @@ class VectorData(FieldData):
             arrow_mask = np.where(np.hypot(u_mag_mask, v_mag_mask) > 0, True, False)
             for i in range(scale_it):
                 dim_uv = arrow_mask.shape
-                arrow_mask = arrow_mask.reshape(dim_uv[0]//2, 2, dim_uv[0]//2, 2).mean(axis=(1, 3))
+                arrow_mask = arrow_mask.reshape(dim_uv[0]//2, 2, dim_uv[1]//2, 2).mean(axis=(1, 3))
                 arrow_mask = arrow_mask == 1
         else:
             vecdata = self
@@ -1297,7 +1297,7 @@ class VectorData(FieldData):
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
                       orientation=True, size=(700, 750), new_fig=True, view='isometric',
-                      position=None, bgcolor=(0.5, 0.5, 0.5)):
+                      position=None, direction=None, bgcolor=(0.5, 0.5, 0.5)):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
         Parameters
@@ -1318,7 +1318,10 @@ class VectorData(FieldData):
             Color coding mode of the arrows. Use 'angle' (default) or 'amplitude'.
         opacity: float, optional
             Defines the opacity of the arrows. Default is 1.0 (completely opaque).
-
+        position: 3-tuple of float, optional
+            Defines the position of the camera in (x,y,z). The camera points at the centre.
+        direction: tuple, optional
+            Calls 'mayavi.mlab.view(*direction)'. if direction = (phi,theta,r), it sets the 3-D polar coordinates of the camera position.
         Returns
         -------
         plot : :class:`mayavi.modules.vectors.Vectors`
@@ -1369,7 +1372,7 @@ class VectorData(FieldData):
             mlab.title(title, height=0.95, size=0.35)
         if orientation:
             oa = mlab.orientation_axes()
-            oa.marker.viewport=(0, 0, 0.4, 0.4)
+            oa.marker.viewport=(0, 0, 0.3, 0.3)
             mlab.draw()
         engine = mlab.get_engine()
         scene = engine.scenes[0]
@@ -1379,8 +1382,12 @@ class VectorData(FieldData):
             scene.scene.x_plus_view()
         elif view == 'y_plus_view':
             scene.scene.y_plus_view()
-        if position:
+        if position is not None:
             scene.scene.camera.position = position
+            mlab.draw()
+        if direction is not None:
+            mlab.view(*direction)
+            mlab.draw()
         return (vecs, mlab.screenshot())
 
 
@@ -1491,6 +1498,7 @@ class ScalarData(FieldData):
         # TODO: def rebin(a, shape):
         # TODO:     sh = (shape[0], a.shape[0] // shape[0], shape[1], a.shape[1] // shape[1])
         # TODO:     return a.reshape(sh).mean(-1).mean(1)
+        # can replace with skimmage scaling transform
         self._log.debug('Calling scale_down')
         assert n > 0 and isinstance(n, int), 'n must be a positive integer!'
         a_new = self.a * 2 ** n
