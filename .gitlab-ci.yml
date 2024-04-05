@@ -1,0 +1,45 @@
+before_script:
+    # Install requirements for pyramid:
+    - conda env create -q # -q: quiet/ no progressbar, because it spams the log!
+    - source activate pyramid
+    - conda info --envs
+    # Install jutil via deploy token access:
+    - pip install git+https://pyramid:"$JUTIL_DEPLOY_TOKEN"@jugit.fz-juelich.de/j.ungermann/jutil.git
+
+stages:
+    - test
+    - deploy  # TODO: add stage later, upload docs, coverage and such, shift artifacts here?
+
+test_style:
+    image: continuumio/miniconda3:latest
+    stage: test
+    script:
+        # -m: only run tests marked with "flake8"
+        - python setup.py test --addopts "--flake8 -m flake8"
+
+test_function:
+    image: continuumio/miniconda3:latest
+    stage: test
+    artifacts:
+        paths:
+            - .coverage
+        expire_in: 1 week
+    script:
+        # Execute all tests and also check coverage with --cov:
+        - python setup.py test --addopts "--cov"
+
+test_docs:
+    image: continuumio/miniconda3:latest
+    stage: test
+    script:
+    # -f: Force overwriting of any existing generated files.
+    # -e: Put documentation for each module on its own page.
+    # -o: Directory to place the output files. If it does not exist, it is created.
+    # last parameter: module path
+    - sphinx-apidoc -f -e -o docs/api pyramid
+    # Build the documentation from 'docs' and put into 'build/sphinx':
+    - sphinx-build docs build/sphinx
+    artifacts:
+        paths:
+            - build/sphinx
+        expire_in: 1 week
