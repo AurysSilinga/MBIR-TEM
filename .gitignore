@@ -1,12 +1,3 @@
 !.gitignore
-!.gitlab-ci.yml
-.*
-desktop.ini
 *.pyc
-*.egg-info
-*.DS_Store
-*.DS
 *.ipynb_checkpoints*
-build/*
-docs/api/*
-dist/*
