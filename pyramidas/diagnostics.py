@@ -10,6 +10,7 @@ import pyramid as pr
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import fftpack as fft #old scipy version
+import scipy.optimize as op
 import skimage.filters as skfl
 import skimage.transform as sktr
 
@@ -288,3 +289,46 @@ def fsc_calculate_correlation(field, fftvol1, fftvol2, scale=2, max_radius=None,
         plt.xlabel("cycles/pix")
     
     return(freq, FSC, ns_effective)
+    
+    
+def histogram_magnetisation (magdata_rec, range_hist = (1,2), n_bins=100, save_img=False, verbose=True):
+    """
+    Plots a histogram of magnetisation amplitude and fits a gaussian.
+    
+    returns: (bin_counts, bin_edges)
+    """
+
+    amp = magdata_rec.field_amp.copy()
+    amp_distribution = amp[amp>0]
+
+    bin_size = (range_hist[1]-range_hist[0])/n_bins
+    
+
+    plt.figure()
+    bins, bin_edges, temp_patches = plt.hist(amp_distribution, bins = n_bins, range=range_hist, label=f"Bin size is {bin_size} T")
+    plt.xlabel("Magnetisation * $\mu_0$, T")
+    plt.ylabel("Number of voxels")
+    
+    #fit gaussian
+    def gaussian_1D(x, a, b, c):
+        return a* np.e**((-1/2)*((x-b)/c)**2)
+    fun=gaussian_1D
+    x=np.array(bin_edges[:-1])+bin_size/2 #bin centres
+    y=bins
+    starting_pos = (np.max(bins), np.median(x), 0.1)
+    pop, pcov = op.curve_fit(fun, x, y, p0=starting_pos)
+    fit_err = np.sqrt(np.diag(pcov))
+    plt.plot(x, fun(x,*pop), 'r-', label="Gaussian fit")
+
+    plt.legend()
+    plt.tight_layout()
+    if save_img:
+        plt.savefig("amp bin.png",dpi=200)
+    plt.show()
+    
+    if verbose:
+        print("bin_size:", bin_size, "T")
+        print(pop, fit_err)
+        print(np.mean(amp_distribution), np.std(amp_distribution))
+    
+    return (bins, bin_size)

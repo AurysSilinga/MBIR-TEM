@@ -279,6 +279,7 @@ class RotTiltProjector(Projector):
         self.rotation = rotation
         self.tilt = tilt
         self.camera_rotation = camera_rotation
+        self.center = center
         # Create tilt, rotation and combined quaternion, careful: Quaternion(w,x,y,z), not (z,y,x):
         quat_z_n = Quaternion.from_axisangle((0, 0, 1), rotation)  # Rotate around z-axis
         quat_x = Quaternion.from_axisangle((1, 0, 0), tilt)  # Tilt around x-axis
@@ -289,6 +290,7 @@ class RotTiltProjector(Projector):
         dim_z, dim_y, dim_x = dim
         if center == None:
             center = (dim_z / 2., dim_y / 2., dim_x / 2.)
+            self.center = center
         if dim_uv is None:
             dim_v = max(dim_x, dim_y)  # first rotate around z-axis (take x and y into account)
             dim_u = max(dim_v, dim_z)  # then tilt around x-axis (now z matters, too)

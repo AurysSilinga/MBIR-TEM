@@ -501,7 +501,7 @@ def gaussian_moments(xy, data_2d, theta=0, is_error_function=False, plot_results
     return (amp, x0, y0, width_x, width_y, theta, offset)
 
 def fit_2D_gaussian_blob(xy, data_2d, initial_guess=None, bounds=None, gauss_fn=gaussian_2d,
-                        theta=0, plot_results=True, is_error_function=False, verbose=False):
+                        theta=0, plot_results=True, is_error_function=False, verbose=False, labels=["",""]):
     """
     Fits a 2D gaussian function to a dataset. 
     if 'initial_guess is None' determines first two moments to estimate starting conditions.
@@ -541,6 +541,8 @@ def fit_2D_gaussian_blob(xy, data_2d, initial_guess=None, bounds=None, gauss_fn=
         plt.colorbar()
         plt.contour(x, y[::-1], data_fitted, 4, colors='w') #origin is selected by invering y axis
         plt.title("Error function (rainbow) with Gaussian fit (white)")
+        plt.xlabel(labels[1])
+        plt.ylabel(labels[0])
     
     return(popt,pcov)
     
@@ -566,6 +568,7 @@ def get_distance_grid(shape, centre=None):
     
     
 def pad_to_even(array, mode='constant', invert=False, square=False): #'edge'
+    #TODO move to the alignment tab where this niche thing is needed
     """
     pads an array to have even dimensions along every axis. 
     if square=True, makes the array square

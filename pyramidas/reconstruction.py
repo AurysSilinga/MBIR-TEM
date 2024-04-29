@@ -405,7 +405,7 @@ def inspect_magdata(magdata_rec, plot_angles=True, ar_dens=1, mode='arrow'):
         max_ang_field.plot_field(title = "angle")
         return max_ang_field
         
-def inspect_cost_values(cost_values, print_chis=False): 
+def inspect_cost_values(cost_values, print_chis=False, scale='log'): 
     """
     Plots cost values on a logarithmic graph.
     Can display all the cost values if 'print_chis=True'
@@ -418,7 +418,8 @@ def inspect_cost_values(cost_values, print_chis=False):
     plt.plot(model_costs,'c.',label="model")
     plt.plot(regulariser_costs,'r.',label="regulariser")
     plt.plot(regulariser_costs+model_costs,'k.', label="sum")
-    ax.set_yscale("log")
+    if scale=='log':
+        ax.set_yscale("log")
     plt.title("Reconstruction costfunction values")
     plt.legend()
     plt.show()
@@ -444,17 +445,20 @@ def append_valid_costfunction_values (cost_list, cost_function):
     model_c = cost_function.chisq_m[-1]
     regulariser_c = cost_function.chisq_a[-1]
     cost_list.append((model_c, regulariser_c))
-        
+
+
 def translate_trim_data_series(data_series, auto_centre=True, x_extension = 0, 
                                last_valid_x_slice = None, tip_x_position = None,  
                                free_space_y_width = 0, free_space_z_width = 0,
-                                z_shift=0, y_shift=0, plot_results=False): 
+                            z_shift=0, y_shift=0, plot_results=False, subcount=5): 
+
     """
-    move the mask to the imroved position, trim empty space, add a region for edge moments, and recalculate the projectors.
+    move the mask to the improved position, trim empty space, add a region for edge moments, and recalculate the projectors.
     If 'autocentre = True' measures the extent of the mask and centres it to remove as much free space as possible.
     Shifts are implemented as reductions to cropping and will fail 
     if they would translate outside the space defined by the mask.
     """
+    
     data = data_series
     dz, dy, dx = data.dim
     
@@ -499,14 +503,21 @@ def translate_trim_data_series(data_series, auto_centre=True, x_extension = 0,
     zrots=[]
     xtilts=[]
     camera_rots=[]
+    centers=[]
     phasemaps = data.phasemaps
     for projector in data.projectors:
         zrots.append(np.degrees(projector.rotation))
         xtilts.append(np.degrees(projector.tilt))
         camera_rots.append(np.degrees(projector.camera_rotation))
+        center_old = projector.center
+        center_new=[]
+        for i in range(3): #center_new =  center_global + old_center_shift
+            center_new.append(center[i] + center_old[i] - data.dim[i]/2)
+        centers.append(tuple(center_new))
+        
     
-    data_e =  make_projection_data(phasemaps, zrots, xtilts, camera_rots, data.a, center = center, dim=dim, 
-                                     plot_results=False, save_data=False)
+    data_e =  make_projection_data(phasemaps, zrots, xtilts, camera_rots, data.a, center = centers, dim=dim, 
+                                     plot_results=False, save_data=False, subcount=subcount)
     
     #reshape the original mask 
     dz, dy, dx = data_e.dim
@@ -545,3 +556,4 @@ def translate_trim_data_series(data_series, auto_centre=True, x_extension = 0,
         data_e.mask=temp
         
     return(data_e, boundary_charge_edge)
+        

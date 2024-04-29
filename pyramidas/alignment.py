@@ -118,7 +118,7 @@ def fill_raw_dm_image(img, erode_width=1, radius=2, wrong_pixel_value=0):
 
 def identify_edges (im, imw, sigma = 4, high_threshold = 4, low_threshold = 0, roi=None):
     """
-    Perform canny edge detectio on the phase images so they could be measured for distortion later. 
+    Perform canny edge detection on the phase images so they could be measured for distortion later. 
     Once sample edge is identified, adjust sigma values to make orb transform give good alignment.
     
     sigma : float (optional)
@@ -158,7 +158,8 @@ def measure_orb_transform(edge1, edge2, image_warped = True, optimise = True, pl
     """
     Measure the transformation between two images. Works best if initial images are already close or have distinct features.
     image_warped: bool (optional)
-        If True, assumes that the image has shear and scaling is directional.
+        If True, assumes that the image has shear and scaling is directional. otherwise transform euclidean. 
+        If string is passed, applied 'translation', 'euclidean', 'similarity', or 'affine' transform
     optimise: bool (optinal)
         Perform sub-pixel optimisation to determine best transform.
         
@@ -167,10 +168,12 @@ def measure_orb_transform(edge1, edge2, image_warped = True, optimise = True, pl
         The optimised transform.
     """
     
-    if image_warped:
+    if image_warped == True:
         trans='affine' # has shear
+    elif image_warped == False:
+        trans='euclidean'  #only rotation and translation
     else:
-        trans='similarity' #no shear and scaling is uniform.
+        trans = image_warped
         
     fit1=edge1.copy()
     fit2=edge2.copy()
@@ -182,18 +185,21 @@ def measure_orb_transform(edge1, edge2, image_warped = True, optimise = True, pl
     trans_meas = orb_trans(fit1, fit2, plot=True, residual_threshold=8, optimise=optimise, trans=trans)
     
     if verbose:
-        print("\nTransformation")
-        print("translation =",trans_meas.translation, "*( dx,dy)")
-        print("roation =", np.degrees(trans_meas.rotation), "deg, clockwise")
-        print("scale =",trans_meas.scale, "* (sx,sy)")
-        if image_warped:
-            print("shear", trans_meas.shear)
+        try:
+            print("\nTransformation")
+            print("translation =",trans_meas.translation, "*( dx,dy)")
+            print("roation =", np.degrees(trans_meas.rotation), "deg, clockwise")
+            if image_warped:
+                print("scale =",trans_meas.scale, "* (sx,sy)")
+                print("shear", trans_meas.shear)
+        except:
+            print("Transformation values:\n", trans_meas)
 
     #apply transform to edges and inspect
     if plot_result:
-        edge2_tr = apply_image_trans(edge2, trans_meas)
+        fit2_tr = apply_image_trans(fit2, trans_meas)
         #compare edges before and after transformation
-        matshow_n([edge1 - edge2, edge1 - edge2_tr],["side_1 - side_2_uncorrected"," side_1 - side_2_transformed"])
+        matshow_n([fit1 - fit2, fit1 - fit2_tr],["side_1 - side_2_uncorrected"," side_1 - side_2_transformed"])
     
     if save_trans:
         with open(trans_path, 'wb') as f:
@@ -250,8 +256,7 @@ def make_projection_data_simple(mag_phase, mask, confidence=None, zrot=0, xtilt=
     #create projector
     RP_Projector=pr.projector.RotTiltProjector
     print("starting projector calculation")
-    projector = RP_Projector(dim, z_ang, x_ang, subcount=subcount, dim_uv=mag_phase.shape)
-    RP_Projector(dim, z_ang, x_ang, camera_rotation=c_ang, subcount=subcount)
+    projector = RP_Projector(dim, z_ang, x_ang, camera_rotation=c_ang, subcount=subcount, dim_uv=mag_phase.shape)
     print("projector calculation finished")
 
     #create phasemap object
@@ -273,6 +278,51 @@ def make_projection_data_simple(mag_phase, mask, confidence=None, zrot=0, xtilt=
 
 
 # used in tilt series alignment
+
+def pad_equalise_tilt_series(phasemaps, make_square=True, pre_trim=True):
+    """
+    Takes an array of phasemaps, trims empty space, and then pads to make all the same size.
+    Adjusts pixel spacing too.
+    
+    Returns: list, phasemaps_padded
+        list of phasemaps that have the same shape and the same pixel spacing
+    """
+    if pre_trim: #remove empty space
+        phasemaps=trim_empty_space(phasemaps)
+    
+    pixel_spacings=[]
+    sizes=[]
+    for pm in phasemaps:
+        pixel_spacings.append(pm.a)
+        sizes.append(pm.dim_uv)
+        
+    pixel_spacings = [pm.a for pm in phasemaps]
+    spacing_average = np.average(pixel_spacings)
+    spacing_average = float("%.5e"%spacing_average) #keep 5 significant figures
+    spacing_std = np.std(pixel_spacings)
+    print("Pixel spacing is %.3f +/- %.2e"%(spacing_average, spacing_std))
+    
+    sizes=np.array(sizes)
+    x_max = np.max(sizes[:,1])
+    y_max = np.max(sizes[:,0])
+    
+    if make_square:
+        x_max = np.max((x_max, y_max))
+        y_max = np.max((x_max, y_max))
+    
+    phasemaps_padded=[]
+    for pm in phasemaps: #pad and adjust pixel spacing parameters
+        dy,dx= pm.dim_uv
+        pady=y_max - dy
+        pady = (pady//2, pady-pady//2)
+        padx = x_max - dx
+        padx = (padx//2, padx-padx//2)
+        
+        pm_padded = pm.pad((pady,padx))
+        pm_padded.a = spacing_average
+        phasemaps_padded.append(pm_padded)
+    return (phasemaps_padded)
+
 
 def line_fn(x,a,b):
     return(a*x+b)
@@ -406,6 +456,9 @@ def find_image_shifts (img_array, test_image_index=0, method="phase_correlation"
             x_com = np.sum(xv*img)/np.sum(img)
             y_com = np.sum(yx*img)/np.sum(img)
             shifts.append((round(dimy//2-y_com), round(dimx//2-x_com)))
+    if method=="centre_of_mass": #rearange the shifts to be around a central position
+        yc,xc=shifts[test_image_index]
+        shifts=[(yx[0]-yc, yx[1]-xc) for yx in shifts]
     return(shifts)
 
 
@@ -414,6 +467,8 @@ def pad_translate_tilt_series(images, shifts, offset_x=0, offset_y=0, make_odd=T
     Translates all images according to 'shifts' relative to each other. 
     Pads all the images accordingly to implement the relative shifts.
     Amount of padding is minimised, but image centre corrdinate is not preserved.
+    Also makes the images square and odd-sized to reduce errors when rotating and projecting.
+    
     
     make_odd: True
         makes the image centre corespond to an integer coordinate. 
@@ -603,7 +658,7 @@ def minimise_total_error(tana, xtilts, get_total_err_fn = get_total_err_fn, x0=[
     x,y = np.meshgrid(xv, yv) # grid of points
     data = total_err_fn([x, y]) # evaluation of the function on the grid
     try:
-        popt, pcov = fit_2D_gaussian_blob((x,y), data, is_error_function=True, plot_results=True)
+        popt, pcov = fit_2D_gaussian_blob((x,y), data, is_error_function=True, plot_results=True, labels=["miss-tilt, rad", "tilt-axis direction, rad"])
         amplitude, x0, y0, sigma_x, sigma_y, theta, offset = popt
         theta_err = [sigma_x]
         xtilt_err = [sigma_y]
@@ -613,7 +668,7 @@ def minimise_total_error(tana, xtilts, get_total_err_fn = get_total_err_fn, x0=[
         
     except Exception as EXC:
         print(EXC)
-        print("Could not fit a gaussian function to the data! Trying a grid search")
+        print("Could not fit a gaussian function to the data! Trying a grid search error estimation")
         #error estimate by grid search
         possible_sol = data < 1*sol.fun #~ 1 std
         if len(possible_sol[possible_sol]) > 0:
@@ -776,15 +831,28 @@ def align_wire_tips(phasemaps, axis=1, use_high_end = True, padded=False, verbos
             from_edge.append(low_edge)
             
     from_edge=np.array(from_edge)
-    shifts=from_edge - (np.max(from_edge) + np.min(from_edge))//2
-    if not use_high_end:
-        shifts=-1*shifts
+    if axis==1:
+        shifts=from_edge - (np.max(from_edge) + np.min(from_edge))//2
+        if not use_high_end:
+            shifts=-1*shifts
+    else: #estimate x shift from y shift position of wire tip. Find x-axis COM at the tip y-coordinate  
+        if use_high_end:
+            raise NotImplementedError("Vertical tip finding at the top of the image is NOT IMPLEMENTED")
+        else: #bottom of image with xCOM finding
+            mask_rows=[]
+            for i, pm in enumerate(phasemaps):
+                row_i=from_edge[i]
+                mask = pm.mask
+                mask_row = mask[row_i:row_i+1,:]
+                mask_row = np.where(mask_row, 1, 0)
+                mask_rows.append(mask_row)
+            COM_shifts=find_image_shifts(mask_rows, method="centre_of_mass")
+            shifts=[shift[1] for shift in COM_shifts] #retain only x
         
     shifts_yx=[]
     for shift in shifts:
-        el=[0,0]
-        el[axis]=shift  #in numpy the order is [dy,dx], and axis 0 is y.
-        shifts_yx.append(tuple(el))
+        el=(0,shift) #in numpy the order is [dy,dx].
+        shifts_yx.append(el)
     
     phasemaps_shifted=shift_phasemaps(phasemaps, shifts_yx, padded=padded)
     if verbose:
@@ -799,7 +867,7 @@ def align_wire_tips(phasemaps, axis=1, use_high_end = True, padded=False, verbos
 def trim_empty_space(phasemaps, equal_trim = False, verbose=False):
     """
     crops all phasemaps to have minimum empty space, but preserves image centre.
-    equal_trip = True if all phasemaps are even squares and should become smaller even squares.
+    equal_trim = True if all phasemaps are even squares and should become smaller even squares.
     """
     
     #find the edges in all directions
@@ -936,6 +1004,11 @@ def mask_to_3d_round(mask2d, axis=1, trim_z=True):
 def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=True, crop_right=40,
                           crop_left=40, crop_top=1, crop_bottom=0, test_mask_index=None, use_round_projection=True, 
                           axis=1, z_ang=0, camera_rotation=0, subcount=5, padded=False, verbose=False):
+                          
+    """
+    
+    if use round projection, axis defines whether y or x should be used as the symmetry axis
+    """
 
     tilts=np.radians(tilts)
     z_ang = np.radians(z_ang)
@@ -1033,14 +1106,9 @@ def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=
     phasemaps_aligned=shift_phasemaps(phasemaps, shifts_yx, padded=padded)
     
     #correct finite precision errors
-    pixel_spacings = [pm.a for pm in phasemaps_aligned]
-    spacing_average = np.average(pixel_spacings)
-    spacing_std = np.std(pixel_spacings)
-    print("Pixel spacing is %.3f +/- %.2e"%(spacing_average, spacing_std))
     for pm in phasemaps_aligned:
         pm.confidence = np.where(pm.confidence<1, 0, 1)
         pm.phase[pm.confidence<1]=0
-        pm.a = spacing_average
     
     dir_errs=np.array(direction_errors)
     dir_errs = dir_errs*dir_errs
@@ -1065,7 +1133,12 @@ def make_projection_data(phase_maps, zrots, xtilts, camera_rots, pixel_spacing, 
     if dim==None:
         dim=[phase_maps[0].mask.shape[0]]*3
     dimz,dimy,dimx=dim   
-
+    
+    if not isinstance(center, (list, tuple)): #allow passing custom centres for each projection, or a single 3-tuple value, or None.
+        center = [center]*len(phase_maps)
+    elif not isinstance(center[0], (list, tuple)):
+        center = [center]*len(phase_maps)
+    
     #initiate empty dataset
     data = pr.DataSet(pixel_spacing, dim)
 
@@ -1091,7 +1164,7 @@ def make_projection_data(phase_maps, zrots, xtilts, camera_rots, pixel_spacing, 
         z_ang=z_angs[i]
         c_ang=c_angs[i]
         
-        projector = RP_Projector(dim, z_ang, x_ang, camera_rotation=c_ang, center=center, subcount=subcount, dim_uv=phasemap.dim_uv)
+        projector = RP_Projector(dim, z_ang, x_ang, camera_rotation=c_ang, center=center[i], subcount=subcount, dim_uv=phasemap.dim_uv)
         print("%d/%d"%(i+1,len(phase_maps)),end="; ")
 
         data.append(phasemap, projector)
@@ -1155,8 +1228,8 @@ def load_png_mask(mask, filename, axis=2):
         mask_fix=np.tile(mask_x_fix, (x_shape,1,1)) #stack as a pile along z axis
         mask_fix=np.rollaxis(mask_fix, 0,axis+1) #roll z axis to be along x
         print("mask shape",mask_fix.shape)
-        plt.matshow(mask_fix[:,:,16])
-        plt.title("x slice of mask fix")
+        plt.matshow(np.sum(mask_fix, axis=axis))
+        plt.title("sum of mask fix")
 
         mask=np.logical_and(mask, mask_fix)
     return(mask)
@@ -1176,7 +1249,20 @@ def rotate_3d_mask(data_series, plot_results=True):
           ["z projection after rotation","y projection after rotation"])
 
 
-
+def project_scalar_array(array, zrot=0, xrot=0, crot=0, dim_uv=None, subcount=1, center=None, center_offset=(0,0,0)):
+    scalar_field = pr.ScalarData(1, array.copy())
+    RP_Projector=pr.projector.RotTiltProjector
+    dim=array.shape
+    dim_z, dim_y, dim_x = dim
+    if center == None:
+        center = (dim_z / 2.+center_offset[0], dim_y / 2.+center_offset[1], dim_x / 2.+center_offset[2])
+    if dim_uv is None:
+        dim_uv=(np.max(array.shape),np.max(array.shape))
+    projector = RP_Projector(dim, np.radians(zrot), np.radians(xrot), camera_rotation=np.radians(crot), 
+                             subcount=subcount, dim_uv=dim_uv, center=center)
+    field_proj = projector(scalar_field)
+    proj=field_proj.field[0,...]
+    return(proj)
 
 
 

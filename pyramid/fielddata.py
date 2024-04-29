@@ -1297,7 +1297,7 @@ class VectorData(FieldData):
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
                       orientation=True, size=(700, 750), new_fig=True, view='isometric',
-                      position=None, direction=None, bgcolor=(0.5, 0.5, 0.5)):
+                      position=None, direction=None, bgcolor=(0.5, 0.5, 0.5), custom_scalar=None):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
         Parameters
@@ -1314,8 +1314,9 @@ class VectorData(FieldData):
         mode: string, optional
             Mode, determining the glyphs used in the 3D plot. Default is '2darrow', which
             corresponds to 2D arrows. For smaller amounts of arrows, 'arrow' (3D) is prettier.
-        coloring : {'angle', 'amplitude'}, optional
-            Color coding mode of the arrows. Use 'angle' (default) or 'amplitude'.
+        coloring : {'angle', 'amplitude', 'custom'}, optional
+            Color coding mode of the arrows. Use 'angle' (default), or 'amplitude', or 'custom'.
+            if using 'custom' coloring, then also assing custom_scalar=scalar_field, where scalar_field = self.field_amp or a similar array.
         opacity: float, optional
             Defines the opacity of the arrows. Default is 1.0 (completely opaque).
         position: 3-tuple of float, optional
@@ -1359,6 +1360,14 @@ class VectorData(FieldData):
             self._log.debug('Encoding amplitude')
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag,
                                  mode=mode, colormap=cmap, opacity=opacity, line_width=2)
+            mlab.colorbar(label_fmt='%.2f')
+            mlab.colorbar(orientation='vertical')
+        elif coloring == 'custom':
+            self._log.debug('Encoding custom coloring')
+            cutom_scalar = custom_scalar[::ad, ::ad, ::ad].ravel() #resample and reshape to fit
+            vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
+                                 scalars=cutom_scalar, line_width=2)
+            vecs.glyph.color_mode = 'color_by_scalar'
             mlab.colorbar(label_fmt='%.2f')
             mlab.colorbar(orientation='vertical')
         else:
