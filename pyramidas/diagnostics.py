@@ -291,7 +291,7 @@ def fsc_calculate_correlation(field, fftvol1, fftvol2, scale=2, max_radius=None,
     return(freq, FSC, ns_effective)
     
     
-def histogram_magnetisation (magdata_rec, range_hist = (1,2), n_bins=100, save_img=False, verbose=True):
+def histogram_magnetisation (magdata_rec, range_hist = (1,2), n_bins=100, save_img=False, verbose=True, fit_gauss=True):
     """
     Plots a histogram of magnetisation amplitude and fits a gaussian.
     
@@ -310,15 +310,16 @@ def histogram_magnetisation (magdata_rec, range_hist = (1,2), n_bins=100, save_i
     plt.ylabel("Number of voxels")
     
     #fit gaussian
-    def gaussian_1D(x, a, b, c):
-        return a* np.e**((-1/2)*((x-b)/c)**2)
-    fun=gaussian_1D
-    x=np.array(bin_edges[:-1])+bin_size/2 #bin centres
-    y=bins
-    starting_pos = (np.max(bins), np.median(x), 0.1)
-    pop, pcov = op.curve_fit(fun, x, y, p0=starting_pos)
-    fit_err = np.sqrt(np.diag(pcov))
-    plt.plot(x, fun(x,*pop), 'r-', label="Gaussian fit")
+    if fit_gauss:
+        def gaussian_1D(x, a, b, c):
+            return a* np.e**((-1/2)*((x-b)/c)**2)
+        fun=gaussian_1D
+        x=np.array(bin_edges[:-1])+bin_size/2 #bin centres
+        y=bins
+        starting_pos = (np.max(bins), np.median(x), 0.1)
+        pop, pcov = op.curve_fit(fun, x, y, p0=starting_pos)
+        fit_err = np.sqrt(np.diag(pcov))
+        plt.plot(x, fun(x,*pop), 'r-', label="Gaussian fit")
 
     plt.legend()
     plt.tight_layout()
@@ -328,7 +329,8 @@ def histogram_magnetisation (magdata_rec, range_hist = (1,2), n_bins=100, save_i
     
     if verbose:
         print("bin_size:", bin_size, "T")
-        print(pop, fit_err)
-        print(np.mean(amp_distribution), np.std(amp_distribution))
+        if fit_gauss:
+            print("fitting params (a,b,c) with error:", pop, fit_err)
+        print("mean and std:", np.mean(amp_distribution), np.std(amp_distribution))
     
     return (bins, bin_size)

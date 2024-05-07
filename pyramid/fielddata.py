@@ -1297,7 +1297,7 @@ class VectorData(FieldData):
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
                       orientation=True, size=(700, 750), new_fig=True, view='isometric',
-                      position=None, direction=None, bgcolor=(0.5, 0.5, 0.5), custom_scalar=None):
+                      position=None, direction=None, bgcolor=(0.5, 0.5, 0.5), custom_scalar=None, line_width=2):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
         Parameters
@@ -1323,6 +1323,8 @@ class VectorData(FieldData):
             Defines the position of the camera in (x,y,z). The camera points at the centre.
         direction: tuple, optional
             Calls 'mayavi.mlab.view(*direction)'. if direction = (phi,theta,r), it sets the 3-D polar coordinates of the camera position.
+        custom_scalar: ndarray, optional
+            used to define the colouring if coloring mode=='custom'
         Returns
         -------
         plot : :class:`mayavi.modules.vectors.Vectors`
@@ -1349,7 +1351,7 @@ class VectorData(FieldData):
         if coloring == 'angle':  # Encodes the full angle via colorwheel and saturation:
             self._log.debug('Encoding full 3D angles')
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
-                                 scalars=np.arange(len(xxx)), line_width=2)
+                                 scalars=np.arange(len(xxx)), line_width=line_width)
             vector = np.asarray((x_mag.ravel(), y_mag.ravel(), z_mag.ravel()))
             rgb = colors.CMAP_CIRCULAR_DEFAULT.rgb_from_vector(vector)
             rgba = np.hstack((rgb, 255 * np.ones((len(xxx), 1), dtype=np.uint8)))
@@ -1359,14 +1361,14 @@ class VectorData(FieldData):
         elif coloring == 'amplitude':  # Encodes the amplitude of the arrows with the jet colormap:
             self._log.debug('Encoding amplitude')
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag,
-                                 mode=mode, colormap=cmap, opacity=opacity, line_width=2)
+                                 mode=mode, colormap=cmap, opacity=opacity, line_width=line_width)
             mlab.colorbar(label_fmt='%.2f')
             mlab.colorbar(orientation='vertical')
         elif coloring == 'custom':
             self._log.debug('Encoding custom coloring')
             cutom_scalar = custom_scalar[::ad, ::ad, ::ad].ravel() #resample and reshape to fit
             vecs = mlab.quiver3d(xxx, yyy, zzz, x_mag, y_mag, z_mag, mode=mode, opacity=opacity,
-                                 scalars=cutom_scalar, line_width=2)
+                                 scalars=cutom_scalar, line_width=line_width)
             vecs.glyph.color_mode = 'color_by_scalar'
             mlab.colorbar(label_fmt='%.2f')
             mlab.colorbar(orientation='vertical')
