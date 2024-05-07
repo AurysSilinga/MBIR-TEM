@@ -1,0 +1,24 @@
+Metadata-Version: 2.1
+Name: pyramid
+Version: 0.1.0.dev0
+Summary: PYthon based Reconstruction Algorithm for MagnetIc Distributions
+Home-page: https://jugit.fz-juelich.de/j.caron/pyramid
+Author: Jan Caron
+Author-email: j.caron@fz-juelich.de
+License: GPLv3
+Classifier: Development Status :: 3 - alpha
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Topic :: Scientific/Engineering
+Classifier: Operating System :: OS Independen
+Requires-Python: >=3.7
+Provides-Extra: 3Dplot
+Provides-Extra: io
+Provides-Extra: fftw
+Provides-Extra: colors
+License-File: LICENSE
+
+# pyramid(by)AS
+Private version of a clone of Pyramid by Jan Caron

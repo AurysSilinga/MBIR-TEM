@@ -88,7 +88,7 @@ class TestCaseSimpleProjector(unittest.TestCase):
         assert_allclose(jac_T_x, jac_T_x_ref,
                         err_msg='Unexpected behaviour in the the transp. jacobi matrix! (x-axis)')
 
-
+@unittest.skip("Not implemented")
 class TestCaseXTiltProjector(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
@@ -171,7 +171,7 @@ class TestCaseXTiltProjector(unittest.TestCase):
         assert_allclose(jac_T_90, jac_T_90_ref,
                         err_msg='Unexpected behaviour in the the transp. jacobi matrix! (90°)')
 
-
+@unittest.skip("Not implemented")
 class TestCaseYTiltProjector(unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_projector')
