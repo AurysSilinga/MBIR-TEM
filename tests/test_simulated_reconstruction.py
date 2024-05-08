@@ -101,8 +101,6 @@ class TestCaseReconstruction(unittest.TestCase):
         for i in range(len(z_angs)):
             projection_z_ang = projection_z_ang +  [z_angs[i]]*len(x_angs)
 
-
-
         data=prs.simulation.make_phasemap_dataset (projection_x_ang, projection_z_ang, mag_field, b_s, camera_rotation=camera_rotation, center=None,
                                    subcount=1, b_unit=1, mask_threshold=0, mask_overlap_threshold=1, plot_results=False, dim_uv=dim_uv)
 
