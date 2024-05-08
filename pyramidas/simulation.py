@@ -71,7 +71,8 @@ def make_phasemap_dataset (projection_x_ang, projection_z_ang, mag_field, b_s, c
     dim=mag_field.dim
     a_spacing=mag_field.a
     b_unit=1 #use units of 1 T
-    b_s = 3 #the saturation magnetisation of the model, in units of b_unit.
+    b_s = 3 #the saturation magnetisation of the model, in units of b_unit. 
+        Magnetisation = b_s * mag_field / b_unit
     mask_threshold=0 #field amplitude > thresholf is included in the mask
     mask_overlap_threshold=0.9 #if calculating 3D mask from multiple 2D masks, point is included if >90% of masks overlap there
     
@@ -83,6 +84,10 @@ def make_phasemap_dataset (projection_x_ang, projection_z_ang, mag_field, b_s, c
     data = pr.DataSet(a_spacing, dim, b_0=b_unit) #initialise empty dataset of phase maps
     projection_x_ang=np.radians(projection_x_ang)
     projection_z_ang=np.radians(projection_z_ang)
+    camera_rotation = np.radians(camera_rotation)
+    
+    if dim_uv=None:
+        dim_uv=(np.max(dim), np.max(dim))
     
     mapper_kernel=pr.Kernel(a_spacing, dim_uv, b_0=b_s) #define phase calculator parameters
     phas_mapper=pr.PhaseMapperRDFC(mapper_kernel) #create a phase calculator
@@ -91,7 +96,7 @@ def make_phasemap_dataset (projection_x_ang, projection_z_ang, mag_field, b_s, c
     for i in range(len(projection_x_ang)):
         x_ang=projection_x_ang[i]
         z_ang=projection_z_ang[i]
-
+        
         #define the projection
         projector = RP_Projector(dim, z_ang, x_ang, camera_rotation=camera_rotation, center=center, subcount=subcount, dim_uv=dim_uv)
         mag_projection=projector(mag_field) #project magnetic field
