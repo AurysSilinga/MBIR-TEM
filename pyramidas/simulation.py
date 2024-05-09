@@ -86,7 +86,7 @@ def make_phasemap_dataset (projection_x_ang, projection_z_ang, mag_field, b_s, c
     projection_z_ang=np.radians(projection_z_ang)
     camera_rotation = np.radians(camera_rotation)
     
-    if dim_uv=None:
+    if dim_uv==None:
         dim_uv=(np.max(dim), np.max(dim))
     
     mapper_kernel=pr.Kernel(a_spacing, dim_uv, b_0=b_s) #define phase calculator parameters

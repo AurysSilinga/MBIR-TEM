@@ -1,0 +1,18 @@
+1. Set up a Python package manager. 
+   Install Miniforge that comes with a fresh installation of Python (for coding) and Mamba (for managing python packages).
+   Follow the installation instructions on the Miniforge website (https://conda-forge.org/miniforge).
+   This was last tested with Miniforge 3-24.3.0-0 release for Windows x86_64.
+2. Open the Miniforge Command Prompt (usually has a start menu shortcut) and navigate to the pyramid-by-AS folder where this text file is located.
+   On Windowns navigate using 'cd folder_name' commands
+3. In Miniforge Prompt run the command 'mamba env create --file environment.yml' 
+   This will downlaod and install the necessary Python packages for pyramidas to work.
+4. Extract the jutil-master.zip and navigate to the folder with the command 'cd jutil-master'
+5. Run the command 'python setup.py install'
+   This will install the Jutil package that is not available online for automatic download.
+6. Return to the pyramidas-by-AS folder with the command 'cd ..'
+7. Run the command 'python setup.py install'
+   Now that all the prerequisite packages are installed, this will install pyramidas itself.
+8. Navigate to tests folder with command 'cd' test
+9. Run the command 'python -m unittest'
+   This will run all the tests and report if pyramidas was installed correctly. If something is wrong, an error will be shown.
+   If installation was successful, deprecation warnings are expected, but at the end it should display 'errors=0'.
