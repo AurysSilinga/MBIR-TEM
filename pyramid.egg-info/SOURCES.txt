@@ -61,3 +61,4 @@ tests/test_phasemapper.py
 tests/test_pm.py
 tests/test_projector.py
 tests/test_regularisator.py
+tests/test_simulated_reconstruction.py

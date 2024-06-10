@@ -12,7 +12,9 @@
 6. Return to the pyramidas-by-AS folder with the command 'cd ..'
 7. Run the command 'python setup.py install'
    Now that all the prerequisite packages are installed, this will install pyramidas itself.
-8. Navigate to tests folder with command 'cd' test
+8. Navigate to tests folder with command 'cd tests'
 9. Run the command 'python -m unittest'
    This will run all the tests and report if pyramidas was installed correctly. If something is wrong, an error will be shown.
-   If installation was successful, deprecation warnings are expected, but at the end it should display 'errors=0'.
+   If installation was successful, deprecation warnings are expected, but at the end it should display 
+   "Ran X tests in Ys
+    OK (skipped=6)"

@@ -14,11 +14,21 @@ Classifier: Programming Language :: Python :: 3.7
 Classifier: Topic :: Scientific/Engineering
 Classifier: Operating System :: OS Independen
 Requires-Python: >=3.7
-Provides-Extra: 3Dplot
-Provides-Extra: io
-Provides-Extra: fftw
-Provides-Extra: colors
 License-File: LICENSE
+Requires-Dist: numpy>=1.6
+Requires-Dist: tqdm
+Requires-Dist: scipy
+Requires-Dist: matplotlib
+Requires-Dist: Pillow
+Provides-Extra: 3dplot
+Requires-Dist: qt==4.8; extra == "3dplot"
+Requires-Dist: mayavi==4.5; extra == "3dplot"
+Provides-Extra: io
+Requires-Dist: hyperspy; extra == "io"
+Provides-Extra: fftw
+Requires-Dist: pyfftw; extra == "fftw"
+Provides-Extra: colors
+Requires-Dist: cmocean; extra == "colors"
 
 # pyramid(by)AS
 Private version of a clone of Pyramid by Jan Caron

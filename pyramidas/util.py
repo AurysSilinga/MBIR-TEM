@@ -12,6 +12,7 @@ import pyramid as pr
 
 import scipy.optimize as op
 from skimage.transform import rescale
+import skimage.transform as sktr
 
 def pad_images_to_same_size(im1, im2, mode='constant'):
     """

@@ -432,16 +432,29 @@ def measure_wire_orientations(phasemaps, projectors, crop_right=20, crop_left=20
     return(tana, xtilts)
     
     
-def find_image_shifts (img_array, test_image_index=0, method="phase_correlation"):
+def find_image_shifts (img_array, test_image_index=0, method="phase_correlation", subpixel=False, com_to_centre=False):
     """
+    TODO:
+     progressive alignment might be better. (phase correlate img_n to img_n+1 instead img_test to img_n)
+    
     Assuming projection masks are similar, estimate their translations relative to each other
     
+    
     method: string, either "phase_correlation" or "centre_of_mass"
+    
+    test_image_index: int, default: 0
+        the central image that all others are aligned to match
+    subpixel: bool, Default:False
+        if all shifts should be rounded to closest pixel value
+    com_to_centre: bool, Default: False
+        if centre of mass is corrected relative to the central coordinates in the image
+        
+    Returns: list of float tuples, [(sy1,sx1), .... , (syN, sxN)]
     """
     shifts=[]
     test_image=img_array[test_image_index]
     dimy, dimx = test_image.shape
-    for img in img_array:
+    for i,img in enumerate(img_array):
         if method=="phase_correlation":
             correlated = (ifftn(fftn(test_image)*ifftn(img))).real
             dy, dx= np.unravel_index(np.argmax(correlated), correlated.shape)
@@ -455,19 +468,22 @@ def find_image_shifts (img_array, test_image_index=0, method="phase_correlation"
             xv,yx=np.meshgrid(x, y)
             x_com = np.sum(xv*img)/np.sum(img)
             y_com = np.sum(yx*img)/np.sum(img)
-            shifts.append((round(dimy//2-y_com), round(dimx//2-x_com)))
-    if method=="centre_of_mass": #rearange the shifts to be around a central position
+            shifts.append(((dimy/2-0.5-y_com), (dimx/2-0.5-x_com)))
+    if method=="centre_of_mass" and not com_to_centre: #rearange the shifts to be around a central position
         yc,xc=shifts[test_image_index]
         shifts=[(yx[0]-yc, yx[1]-xc) for yx in shifts]
+    if not subpixel:
+        shifts=[(round(yx[0]), round(yx[1])) for yx in shifts]
     return(shifts)
 
 
-def pad_translate_tilt_series(images, shifts, offset_x=0, offset_y=0, make_odd=True, make_square=True):
+def pad_translate_tilt_series(images, shifts, offset_x=0, offset_y=0, make_odd=False, make_square=False):
     """
     Translates all images according to 'shifts' relative to each other. 
     Pads all the images accordingly to implement the relative shifts.
     Amount of padding is minimised, but image centre corrdinate is not preserved.
     Also makes the images square and odd-sized to reduce errors when rotating and projecting.
+    Works on both images and phasemaps.
     
     
     make_odd: True
@@ -493,7 +509,9 @@ def pad_translate_tilt_series(images, shifts, offset_x=0, offset_y=0, make_odd=T
                 
         #shape corrections
         if make_square:
-            dimy, dimx=pm.mask.shape
+            if hasattr(pm, 'mask'):
+                dimy, dimx=pm.mask.shape
+            else: dimy, dimx=pm.shape
             dimy=sy_max+dimy-sy_min
             dimx=sx_max+dimx-sx_min
             
@@ -507,7 +525,9 @@ def pad_translate_tilt_series(images, shifts, offset_x=0, offset_y=0, make_odd=T
                 sy_min = sy_min - (dim_diff-dim_diff//2)
         
         if make_odd:
-            dimy, dimx=pm.mask.shape
+            if hasattr(pm, 'mask'):
+                dimy, dimx=pm.mask.shape
+            else: dimy, dimx=pm.shape
             dimy=sy_max+dimy-sy_min
             dimx=sx_max+dimx-sx_min
             
@@ -518,7 +538,10 @@ def pad_translate_tilt_series(images, shifts, offset_x=0, offset_y=0, make_odd=T
         
         pad_y=(-sy_min+dy, sy_max-dy)
         pad_x=(-sx_min+dx, sx_max-dx)
-        pm = pm.pad((pad_y,pad_x))
+        if hasattr(pm, 'pad'):
+            pm = pm.pad((pad_y,pad_x)) #if a phase map
+        else:
+            pm = np.pad(pm, (pad_y,pad_x)) #if a matrix
         images_shifted.append(pm)
         
     return(images_shifted)
