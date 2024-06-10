@@ -1,0 +1,16 @@
+iniconfig
+packaging
+pluggy<2.0,>=1.5
+exceptiongroup>=1.0.0rc8
+tomli>=1
+colorama
+
+[dev]
+argcomplete
+attrs>=19.2
+hypothesis>=3.56
+mock
+pygments>=2.7.2
+requests
+setuptools
+xmlschema
