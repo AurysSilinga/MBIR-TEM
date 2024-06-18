@@ -432,48 +432,93 @@ def measure_wire_orientations(phasemaps, projectors, crop_right=20, crop_left=20
     return(tana, xtilts)
     
     
-def find_image_shifts (img_array, test_image_index=0, method="phase_correlation", subpixel=False, com_to_centre=False):
+def find_image_shifts (img_array, method="cross_correlation", **kwargs):
     """
-    TODO:
-     progressive alignment might be better. (phase correlate img_n to img_n+1 instead img_test to img_n)
+    Legacy function.
+    Assuming projections are similar, estimate their translations relative to each other.
+    Calls either 'find_image_shifts_com' or 'find_image_shifts_correlation'.
+
+    img_array: array of images 
+        [img_1, img_2, ..., img_n]
+    method: string 
+        Either "cross_correlation" or "centre_of_mass"
+        
+    Returns: list of float tuples, 
+        list with shifts for every image, of form [(sy_1,sx_1), .... , (sy_n, sx_n)]
+    """
+    if method=="cross_correlation":
+        shifts=find_image_shifts_correlation(img_array, **kwargs)
+    elif method=="centre_of_mass":
+        shifts=find_image_shifts_com(img_array, **kwargs)
+    else:
+        raise ValueError("method not recongnised")
+        
+    return (shifts)
+
+def find_image_shifts_com (img_array, test_image_index=None, com_to_centre=False, subpixel=False):
+    """
+    Measure relative centre of mass (CoM) translation of an array of images.
     
-    Assuming projection masks are similar, estimate their translations relative to each other
-    
-    
-    method: string, either "phase_correlation" or "centre_of_mass"
-    
-    test_image_index: int, default: 0
+    img_array: array of images 
+        [img_1, img_2, ..., img_n]
+    test_image_index: int, default: middle index of img_array
         the central image that all others are aligned to match
-    subpixel: bool, Default:False
-        if all shifts should be rounded to closest pixel value
     com_to_centre: bool, Default: False
-        if centre of mass is corrected relative to the central coordinates in the image
+        if True, centre of mass of each image is moved to the central coordinate regardless test_image position.
+    subpixel: bool, Default:False
+        if True, shifts should be rounded to closest pixel value
+
         
     Returns: list of float tuples, [(sy1,sx1), .... , (syN, sxN)]
+        shifts between centres of mass relative to test_image CoM or to the centre of each image.
     """
+    if test_image_index is None:
+        test_image_index=len(img_array)//2
+    
     shifts=[]
     test_image=img_array[test_image_index]
     dimy, dimx = test_image.shape
     for i,img in enumerate(img_array):
-        if method=="phase_correlation":
-            correlated = (ifftn(fftn(test_image)*ifftn(img))).real
-            dy, dx= np.unravel_index(np.argmax(correlated), correlated.shape)
-            if dy>dimy//2:
-                dy=dy-dimy
-            if dx>dimx//2:
-                dx=dx-dimx
-            shifts.append((dy,dx))
-        elif method=="centre_of_mass":
-            x,y = np.arange(dimx), np.arange(dimy) 
-            xv,yx=np.meshgrid(x, y)
-            x_com = np.sum(xv*img)/np.sum(img)
-            y_com = np.sum(yx*img)/np.sum(img)
-            shifts.append(((dimy/2-0.5-y_com), (dimx/2-0.5-x_com)))
-    if method=="centre_of_mass" and not com_to_centre: #rearange the shifts to be around a central position
+        x,y = np.arange(dimx), np.arange(dimy) 
+        xv,yx=np.meshgrid(x, y)
+        x_com = np.sum(xv*img)/np.sum(img)
+        y_com = np.sum(yx*img)/np.sum(img)
+        shifts.append(((dimy/2-0.5-y_com), (dimx/2-0.5-x_com)))
+    if not com_to_centre: #rearange the shifts to be around a central position
         yc,xc=shifts[test_image_index]
         shifts=[(yx[0]-yc, yx[1]-xc) for yx in shifts]
-    if not subpixel:
+    if not subpixel: # round the measurements
         shifts=[(round(yx[0]), round(yx[1])) for yx in shifts]
+    return(shifts)
+
+def find_image_shifts_correlation (img_array, upsample_factor=1):
+    """
+    Phase cross correlate img_n to img_n+1 and return an array of shifts relative to first image
+    img_array: array of images 
+        [img_1, img_2, ..., img_n]
+    upsample_factor: int, default: 1
+        Images will be registered to within 1 / upsample_factor of a pixel. 
+    
+    Returns: list of float tuples, 
+        list with shifts for every image, of form [(sy_1,sx_1), .... , (sy_n, sx_n)]
+    
+    """
+    shifts=[]
+    shift_previous=np.array((0.0,0.0)) #starting shift vector
+    for i,img in enumerate(img_array):
+        if i==0: #compare first image with itself
+            shifts.append(shift_previous.copy()) # for first image
+            continue
+        reference_image=img_array[i-1]
+        img=img_array[i]
+        shift,error,phasediff = phase_cross_correlation(reference_image, img, upsample_factor=upsample_factor)
+        shift_previous+=shift #keep track of total shift
+        shifts.append(shift_previous.copy())
+
+    shifts=np.array(shifts)
+    if upsample_factor==1:
+        shifts=shifts.astype(int) #clean up unit types if measuring full pixel translations
+        
     return(shifts)
 
 
