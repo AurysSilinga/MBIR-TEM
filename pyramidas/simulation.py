@@ -59,6 +59,9 @@ def simulate_reconstruction(data, magdata_rec, cost, b_0=1, unit='rad', plot_res
 def make_phasemap_dataset (projection_x_ang, projection_z_ang, mag_field, b_s, camera_rotation=0, center=None,
                            subcount=5, b_unit=1, mask_threshold=0, mask_overlap_threshold=1, plot_results=False, dim_uv=None):
     """
+    TODO: Include option to calculate phase for voxels that are not visible in the phase images.
+    
+    
     Takes a set of angles in degrees and a B field 3D vector field and returns a set of phasemaps and projector objects
     Creates an artificial CT phasemap dataset for testing reconstruction.
     
