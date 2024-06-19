@@ -16,7 +16,7 @@
 2. Download MBIR-TEM source code.
 3. Open the Miniforge Command Prompt (usually has a start menu shortcut) and navigate to the MBIR-TEM source code folder.
 
-   On Windowns navigate using `cd ".\download_folder_path\MBIR-TEM"` type commands.
+   On Windowns navigate using `cd ".\download_folder_path\MBIR-TEM-main"` type commands.
 4. In Miniforge Prompt run the command `mamba env create --file environment.yml`. 
 
    This will downlaod and install the necessary Python packages for MBIR-TEM to work.
