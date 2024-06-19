@@ -8,7 +8,36 @@
 4. Example notebooks and video tutorials for all of the above.
 
 ## Installation:
+1. Set up a Python package manager. 
 
+   Install Miniforge which comes with a fresh installation of Python (for coding) and Mamba (for managing python packages).
+   Follow the installation instructions on the [Miniforge website](https://conda-forge.org/miniforge).
+   This was last tested with Miniforge 3-24.3.0-0 release for Windows x86_64.
+2. Download MBIR-TEM source code.
+3. Open the Miniforge Command Prompt (usually has a start menu shortcut) and navigate to the MBIR-TEM source code folder.
+
+   On Windowns navigate using `cd ".\download_folder_path\MBIR-TEM"` type commands.
+4. In Miniforge Prompt run the command `mamba env create --file environment.yml`. 
+
+   This will downlaod and install the necessary Python packages for MBIR-TEM to work.
+6. Extract jutil-master.zip and navigate to the folder with the command `cd jutil-master`
+
+7. Run the command `python setup.py install`
+
+   This will install the Jutil package that is not available online for automatic download.
+9. Return to the pyramidas-by-AS folder with the command `cd ..`
+10. Run the command `python setup.py install`
+
+    Now that all the prerequisite packages are installed, this will install MBIR-TEM itself.
+12. Navigate to tests folder with command `cd tests`
+13. Run the command `python -m unittest`
+
+    This will run all the tests and report if pyramidas was installed correctly. If something is wrong, an error will be shown.
+   If installation was successful, deprecation warnings are expected, but at the end it should display 
+```
+    Ran X tests in Ys
+    OK (skipped=6)
+```
 
 
 ## TODO:
