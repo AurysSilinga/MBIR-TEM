@@ -10,8 +10,15 @@
 ## Installation:
 
 
+
 ## TODO:
-* Format documentation
-* Implement CPU acceleration
+* Format documentation.
+* Implement CPU acceleration.
+* Move main development into GPU accelerated branch.
+* Replace all of pyramid back-end with more modern solutions.
 
-
+## Development direction:
+* 3D reconstruction of charge density.
+* 3D mapping of material phases.
+* GPU acceleration and distributed computing for larger datasets.
+* Replace minimisation algorithm and reevaluate optimal estimation diagnostics.

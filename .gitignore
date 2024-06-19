@@ -1,4 +1,12 @@
-!.gitignore
 *.pyc
 *.ipynb_checkpoints*
 *.eggs
+*.egg-info
+*.DS_Store
+*.DS
+*.ipynb_checkpoints*
+build
+dist
+.pytest_cache
+__pycache__
+docs/build/
