@@ -7,7 +7,7 @@
 # To see if compatible upgrades are available for the current packages, use "conda upgrade --all"!
 # When packages are deprecated/deleted, it may be best to recreate the environment from scratch!
 
-name: pyramidas
+name: mbir-tem
 
 channels:
   - defaults  # Default conda channels, on top to keep highest priority!
