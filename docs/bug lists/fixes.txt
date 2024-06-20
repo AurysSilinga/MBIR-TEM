@@ -12,6 +12,8 @@ Known problems:
 +Need to optimise the projector creator
 +phasemapper kernel creator always becomes float64 which causes memory overloads for large simulations (need to allow type(field.a) == float32)
 +Why does the averaging kernel A not sum to 1? Even if starting with mag_0=0
++enable skimage intelex
++use the distributed forward model class for calculations
 
 fix list:
 #projector.py changed rot-tilt projector to make equivalence radius a variable, and default for all projectors at 0.5

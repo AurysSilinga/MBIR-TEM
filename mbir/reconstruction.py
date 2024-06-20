@@ -340,7 +340,7 @@ def reconstruct_from_phasemaps(data, lam=1e-3, max_iter=100, ramp_order=1,
         reg2 = ExchangeRegulariser(data_mask=data.mask, lam=lam2, add_params=fwd_model.ramp.n)
         reg = pr.ComboRegularisator([reg1, reg2])
         if verbose:
-            print("Regularising amplitude and exchange energy")
+            print("Regularising amplitude variance and exchange energy")
     elif regulariser_type == 'mean only':
         reg = AmplitudeMeanRegulariser(mean=mean, data_mask=data.mask, reg_mask=reg_mask, lam=lam, add_params=fwd_model.ramp.n)
         if verbose:
@@ -401,8 +401,8 @@ def inspect_magdata(magdata_rec, plot_angles=True, ar_dens=1, mode='arrow'):
         print("Max spin angle:",np.max(get_max_ang(magdata_rec.field, )))
 
         max_ang = get_max_ang(magdata_rec.field)
-        max_ang_field = pr.ScalarData(magdata_rec.a, max_ang)
-        max_ang_field.plot_field(title = "angle")
+        max_ang_field = pr.ScalarData(magdata_rec.a, np.array((np.max(max_ang,axis=0),)))
+        max_ang_field.plot_field(title = "max spin angle")
         return max_ang_field
         
 def inspect_cost_values(cost_values, print_chis=False, scale='log'): 
@@ -450,7 +450,7 @@ def append_valid_costfunction_values (cost_list, cost_function):
 def translate_trim_data_series(data_series, auto_centre=True, x_extension = 0, 
                                last_valid_x_slice = None, tip_x_position = None,  
                                free_space_y_width = 0, free_space_z_width = 0,
-                            z_shift=0, y_shift=0, plot_results=False, subcount=5): 
+                            z_shift=0, y_shift=0, plot_results=False, subcount=1): 
 
     """
     move the mask to the improved position, trim empty space, add a region for edge moments, and recalculate the projectors.

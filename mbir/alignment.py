@@ -16,6 +16,7 @@ import hyperspy.api as hs
 from fpd.tem_tools import orb_trans, optimise_trans, apply_image_trans
 import skimage.transform as sktr
 from skimage.feature import canny
+from skimage.registration import phase_cross_correlation
 import skimage.filters as skfl
 
 # fitting algorithms
@@ -31,7 +32,7 @@ from .util import *
 
 #used in phase separation
 
-def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = False, plot_cropped = True):
+def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing=0, plot_original = False, plot_cropped = True):
     """
     Takes two hyperspy signals, rebins them, and pads to have equal sizes.
     
@@ -763,7 +764,7 @@ def plot_3D_surface(fun, args=[], bracket = [[-np.pi/2,+np.pi/2], [-np.pi/2,+np.
     Z = fun([X, Y], *args) # evaluation of the function on the grid
 
     fig = plt.figure()
-    ax = fig.gca(projection='3d')
+    ax = fig.add_subplot(projection='3d')
     surf = ax.plot_surface(X, Y, Z)
     plt.xlabel("Theta")
     plt.ylabel("Miss-tilt")
