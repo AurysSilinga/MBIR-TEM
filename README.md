@@ -1,4 +1,4 @@
-# Model-Based Iterative Reconstruction (MBIR) for Transmission Electron Microscopy (TEM)
+# Model-based Iterative Reconstruction (MBIR) of 3D magnetisation for Transmission Electron Microscopy (TEM)
 #### Written by Aurys Šilinga
 
 ## Features:
