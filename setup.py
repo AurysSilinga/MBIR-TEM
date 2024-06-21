@@ -1,5 +1,6 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
-    packages=['pyramid', 'mbir']
-)
+    packages=find_packages(where='src'),
+    package_dir={"": "src"}
+    )
