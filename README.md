@@ -1,2 +1,2 @@
-# pyramid(by)AS
-Private version of a clone of Pyramid by Jan Caron
+# mbir-tem test branch for CUDA acceleration
+# see main branch for full readme
