@@ -763,7 +763,7 @@ def plot_3D_surface(fun, args=[], bracket = [[-np.pi/2,+np.pi/2], [-np.pi/2,+np.
     Z = fun([X, Y], *args) # evaluation of the function on the grid
 
     fig = plt.figure()
-    ax = fig.gca(projection='3d')
+    ax = fig.add_subplot(projection='3d')
     surf = ax.plot_surface(X, Y, Z)
     plt.xlabel("Theta")
     plt.ylabel("Miss-tilt")
@@ -855,7 +855,7 @@ def find_edges(wrongs, axis=0):
 
     return (low_edge, high_edge)
 
-def centre_phasemaps(phasemaps, padded=False):
+def centre_phasemaps(phasemaps, padded=False, verbose=False):
     """
     Measures if the true phase image is in the centre of each phasemap and shifts toward the centre.
     """
@@ -873,6 +873,8 @@ def centre_phasemaps(phasemaps, padded=False):
         shifts.append((shift_y,shift_x))
     
     phasemaps_centered=shift_phasemaps(phasemaps, shifts, padded=padded)
+    if verbose:
+        print("centering shifts (index, (dy,dx)):", list(zip(range(len(shifts)),shifts)))
             
     return(phasemaps_centered)
     
@@ -1332,7 +1334,30 @@ def project_scalar_array(array, zrot=0, xrot=0, crot=0, dim_uv=None, subcount=1,
     proj=field_proj.field[0,...]
     return(proj)
 
+def pad_img_to_square(img, mode='constant'):
+    """
+    pad images to be square
+    preserves the centre
+        
+    return: padded_img, ndarray
+    """
 
+    y1,x1=img.shape
+    pad=np.abs(y1-x1)
+    pad1=pad//2
+    pad2=pad//2
+    
+    if pad%2 == 1:
+        pad2=pad2+1
+    
+    if y1==x1:
+            pass
+    elif y1>x1:
+        img=np.pad(img,((0,0),(pad1,pad2)), mode=mode)
+    else:
+        img=p.pad(img,((pad1,pad2),(0,0)), mode=mode)
+    
+    return(img)
 
 
 
@@ -1395,25 +1420,7 @@ def smooth_masked_img(img, sigma=10, conf=None, recrop=False):
     return(data)
 
 
-def pad_img_to_square(img, mode='constant'):
-    """pad images to be square"""
 
-    y1,x1=img.shape
-    pad=np.abs(y1-x1)
-    pad1=pad//2
-    pad2=pad//2
-    
-    if pad%2 == 1:
-        pad2=pad2+1
-    
-    if y1==x1:
-            pass
-    elif y1>x1:
-        img=np.pad(img,((0,0),(pad1,pad2)), mode=mode)
-    else:
-        img=p.pad(img,((pad1,pad2),(0,0)), mode=mode)
-    
-    return(img)
 
         
 def equalise_dm (s1_orig, s2_orig, rebin_factor, side_2_rotation = 0, plot_original = False, plot_cropped = True):
@@ -1533,7 +1540,7 @@ def make_square_img(img, is_signal = False):
     
 def crop_to_same_size(im1,im2, is_signal=False):
     """
-    crops and image to be square
+    crops and image to be the same size
     crop signals to have same size
     """
     if is_signal:

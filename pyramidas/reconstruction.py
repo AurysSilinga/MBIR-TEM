@@ -16,7 +16,7 @@ from .simulation import simulate_reconstruction
 from .alignment import find_edges, make_projection_data
 
 def reconstruct_from_phasemaps_simple(data, lam=1e-3, max_iter=100, ramp_order=1, 
-                               verbose=True, plot_input=False, plot_results=True, b_0 = 1, **kwargs):
+                               verbose=True, plot_input=False, plot_results=False, b_0 = 1, **kwargs):
     """
     Takes a dataset of phasemaps created by 'make_phasemap_dataset'functin and returns a 3D Magnetisation vector field
     Reconstructs the magnetisation.
