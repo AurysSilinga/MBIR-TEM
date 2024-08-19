@@ -1,0 +1,21 @@
+Installation:
++installed hyperspy with bundle install
++mayavi and vtk needed to be newest version
++used "mamba env update --name test1 --file local.yml" to install pyramid, and then "python setup.py install" in pyramid-master directory
+
+
+Known problems:
++Example quiver plot has "dirt" under the scalebar
++Quiver plot arrorw spacing deforms the whole image
++Creating a slab of width 3 creates one that is width 4 (indexing bug)
++data.plot_phasemaps() has wrong labels. "phi and theta" are actually z_rotation and x_tilt
++Need to optimise the projector creator
++phasemapper kernel creator always becomes float64 which causes memory overloads for large simulations (need to allow type(field.a) == float32)
++Why does the averaging kernel A not sum to 1? Even if starting with mag_0=0
++enable skimage intelex
++use the distributed forward model class for calculations
+
+fix list:
+#projector.py changed rot-tilt projector to make equivalence radius a variable, and default for all projectors at 0.5
+#fielddata.py changed all oa.marker.set_viewport(x) to oa.marker.viewport=x .
+#dataset.py In set_3d_mask removed check if only one mask because it was bugged and gave wrong dimesions.

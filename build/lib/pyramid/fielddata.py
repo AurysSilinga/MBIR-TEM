@@ -1399,7 +1399,7 @@ class VectorData(FieldData):
         if direction is not None:
             mlab.view(*direction)
             mlab.draw()
-        return (vecs, mlab.screenshot())
+        return (vecs)
 
 
 class ScalarData(FieldData):

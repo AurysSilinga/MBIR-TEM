@@ -8,7 +8,7 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 import pyramid as pr
-import pyramidas as prs
+import mbir as prs
 import hyperspy.api as hs
 import skimage.filters as skfl
 import fpd
