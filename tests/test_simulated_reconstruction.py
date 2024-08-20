@@ -75,7 +75,7 @@ class TestCaseReconstruction(unittest.TestCase):
         b=mag_needle.plot_mask()
         a=mag_needle.plot_quiver_field()
 
-        assert(type(c[0]) is mayavi.modules.vectors.Vectors)
+        assert(type(c) is mayavi.modules.vectors.Vectors)
         assert(type(b) is mayavi.modules.iso_surface.IsoSurface)
 
         fig=plt.Figure()
@@ -149,7 +149,7 @@ class TestCaseReconstruction(unittest.TestCase):
         # if mask shape is preserved
         assert np.all(magdata_rec.get_mask()==mag_needle.get_mask()) 
 
-        # if subtraction and plottin still works
+        # if subtraction and plotting still works
         test= magdata_rec-mag_needle*b_s
         magdata_rec.plot_quiver3d()
         test.plot_quiver3d(coloring='amplitude')

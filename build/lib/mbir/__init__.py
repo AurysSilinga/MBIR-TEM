@@ -11,10 +11,6 @@ util
 alignment
     
 reconstruction
-
-simulation
-
-diagnostics
     
 """
 

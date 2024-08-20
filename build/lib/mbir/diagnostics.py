@@ -107,7 +107,7 @@ def bayesian_diagnostics(data, mag_rec, cost_f, voxel_position_zyx=None,
             phasemaps_diff[i].phase[wrong] = 0
         phase_vec_calc = np.concatenate([p.phase_vec for p in phasemaps_diff])
         err_vec = G_row * phase_vec_calc #how much error each individual pixel creates on selected voxel
-        err = np.sqrt(np.dot(err_vec,err_vec)) #total error on a voxel caused by all residuals
+        err = np.sqrt(np.dot(err_vec,err_vec)) #total error on a voxel caused by imperfect reconstruction
         
         fwhm_vec.append(fwhm_pix)
         error_vec.append(err)
