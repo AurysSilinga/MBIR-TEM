@@ -19,7 +19,7 @@ dependencies:
   - python
   - scipy
   - scikit-image
-  - astra-toolbox
+  - astra-toolbox=2.1
   - cupy
   # File IO:
   - hyperspy
