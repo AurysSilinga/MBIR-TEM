@@ -597,6 +597,7 @@ def pad_to_even(array, mode='constant', invert=False, square=False): #'edge'
     else:
         return(padded_array)
         
+
 def rescale_complex(img, scale):
     """
     Skimage rescale function, but works on complex numbers
@@ -605,3 +606,41 @@ def rescale_complex(img, scale):
     r= np.real(img)
     c=np.imag(img)
     return(rescale(r,scale)+1j*rescale(c,scale))
+
+
+def subplots_n(imgs, labels=None, title="", shape=None, vmax=None, vmin=None, **kwargs):
+    """
+    make a subplot showing all images in the 'imgs' array.
+    default shape is a horizontal line of images with dimensions [1,len(imgs)], giving nrows=1, ncols=n.
+
+    imgs: array of ndarrays
+        the images to plot
+    labels: array of strings, default: range(len(imgs))
+        the titles for each image
+    title: string, default: ""
+        title for the full plot
+    shape: tuple, default [1,len(imgs)]
+        shape of subplots grid
+    vmax: int, default: None
+        maximum value of all images
+    vmin: int, default: None
+        minimum value of all images
+    **kwargs: 
+        passed to plt.subplots()
+    """
+    if shape is None:
+        shape=[1,len(imgs)]
+    nrows=shape[0]
+    ncols=shape[1]
+
+    if labels is None:
+        labels = list(range(len(imgs)))
+    
+    fig,ax = plt.subplots(nrows=nrows, ncols=ncols, **kwargs)
+    fig.suptitle(title)
+
+    for i,axis in enumerate(np.ravel(ax)): #plot each image for any shape
+        axis.matshow(imgs[i],vmax=vmax, vmin=vmin)
+        axis.set_title(str(labels[i]))
+    plt.tight_layout()
+    plt.show()

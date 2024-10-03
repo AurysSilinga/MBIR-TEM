@@ -304,11 +304,11 @@ class FieldData(object, metaclass=abc.ABCMeta):
         cont = mlab.contour3d(xxx, yyy, zzz, field_amp, contours=contours,
                               opacity=opacity, **kwargs)
         if new_fig:
-			mlab.outline(cont, extent=extent)
-			mlab.axes(cont, extent=extent)
-			mlab.title(title, height=0.95, size=0.35)
-			mlab.orientation_axes()
-			cont.scene.isometric_view()
+            mlab.outline(cont, extent=extent)
+            mlab.axes(cont, extent=extent)
+            mlab.title(title, height=0.95, size=0.35)
+            mlab.orientation_axes()
+            cont.scene.isometric_view()
         return cont
 
     @abc.abstractmethod

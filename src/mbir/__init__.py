@@ -19,3 +19,4 @@ from . import alignment
 from . import reconstruction
 from . import simulation
 from . import diagnostics
+from . import tomography
