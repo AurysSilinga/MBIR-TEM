@@ -13,6 +13,7 @@ from scipy import fftpack as fft #old scipy version
 import scipy.optimize as op
 import skimage.filters as skfl
 import skimage.transform as sktr
+import copy
 
 from .util import pad_to_even, rescale_complex, fill_masked_image
 from .alignment import find_edges
@@ -93,12 +94,15 @@ def bayesian_diagnostics(data, mag_rec, cost_f, voxel_position_zyx=None,
     diagnostic_vec = []
     
     #calculate gain per pixel
+    backup_cache=copy.deepcopy(cost_f.fwd_model.ramp.param_cache)
     for vec_component in range(3): #(x,y,z)
+        cost_f.fwd_model.ramp.param_cache=copy.deepcopy(backup_cache)
         diagnostic = pr.Diagnostics(mag_rec, cost_f, verbose=False, max_iter=max_iter)
         diagnostic.pos = (vec_component, *position)
         fwhm_component_xyz, fit_param1, fit_param2 = diagnostic.calculate_fwhm(plot=plot_results)
         fwhm_pix = np.array(fwhm_component_xyz)/mag_rec.a
-        G_row=diagnostic.gain_row
+        G_row=diagnostic.gain_row #performs minimisation using original forward model and changes the ramp cache
+        cost_f.fwd_model.ramp.param_cache=copy.deepcopy(backup_cache) #reset cache before simulating phasemaps
     
         #assume that error for each pixel is experimental phase - simulated phase, and use that to find error on amplitude
         phasemaps_diff = data.create_phasemaps(mag_rec, difference=True, ramp=cost_f.fwd_model.ramp)
@@ -129,7 +133,6 @@ def bayesian_diagnostics(data, mag_rec, cost_f, voxel_position_zyx=None,
     error_vec = np.array(error_vec)
     error_vec = error_vec*mag_xyz/amplitude
     error_total = np.sqrt(np.dot(error_vec, error_vec)) #propagate errors for amplitude
-    print()
     
     if verbose:
         print("Voxel position:", position)

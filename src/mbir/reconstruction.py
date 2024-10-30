@@ -402,7 +402,7 @@ def inspect_magdata(magdata_rec, plot_angles=True, ar_dens=1, mode='arrow'):
 
         max_ang = get_max_ang(magdata_rec.field)
         max_ang_field = pr.ScalarData(magdata_rec.a, max_ang)
-        max_ang_field.plot_field(title = "angle")
+        max_ang_field.plot_field(title = "Max spin angle")
         return max_ang_field
         
 def inspect_cost_values(cost_values, print_chis=False, scale='log'): 

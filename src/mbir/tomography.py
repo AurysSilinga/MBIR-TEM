@@ -315,7 +315,7 @@ class AstraReconstructor(object):
             
         for i in range(p.shape[1]):
             plt.matshow(p[:,i,:], vmin=vmin, vmax=vmax)
-            plt.title(title+" "+f"{angles[i]:.2f}")
+            plt.title(title+f" projection at {angles[i]:.2f} deg tilt")
 
     def mask_edge(self, projections=None, ramp_width=3):
         """
