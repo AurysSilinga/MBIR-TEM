@@ -454,7 +454,7 @@ class Diagnostics(object):
             self._log.debug('axis is None')
             fig = plt.figure(figsize=figsize)
             axis = fig.add_subplot(1, 1, 1)
-            axis.set_axis_bgcolor('gray')
+            axis.set_facecolor('gray')
         kwargs.setdefault('labels', 'False')
         # avrg_kern_field = self.get_avrg_kern_field()
         # avrg_kern_field.plot_quiver3d(**kwargs)
