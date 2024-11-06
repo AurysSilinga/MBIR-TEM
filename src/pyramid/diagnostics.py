@@ -41,7 +41,10 @@ __all__ = ['Diagnostics', 'LCurve', 'LCurveCharge', 'get_vector_field_errors']
 
 
 class Diagnostics(object):
-    """Class for calculating diagnostic properties of a specified costfunction.
+    """
+    TODO: Fails to solve for cov_row if the forward model includes ramps!
+    
+    Class for calculating diagnostic properties of a specified costfunction.
 
     For the calculation of diagnostic properties, a costfunction and a magnetization distribution
     are specified at construction. With the :func:`~.set_position`, a position in 3D space can be
@@ -81,7 +84,7 @@ class Diagnostics(object):
 
     @property
     def cov_row(self):
-        """Row of the covariance matrix (``S_a^-1+F'(x_f)^T S_e^-1 F'(x_f)``) which is needed for
+        """Row of the covariance matrix (``S_a^-1+F'(x_f)^T S_e^-1 F'(x_f)``)^-1 which is needed for
         the calculation of the gain and averaging kernel matrizes and which ideally contains the
         variance at position `row_idx` for the current component and position in 3D.
         Note that the covariance matrix of the solution is symmetric (like all covariance
@@ -172,7 +175,8 @@ class Diagnostics(object):
         self._updated_gain_row = False
         self._updated_avrg_kern_row = False
         self._updated_measure_contribution = False
-        self._A = jutil.operator.CostFunctionOperator(self.cost, self.x_rec)
+        # only calls cost.hess_dot() and corresponds to hessian matrix multiplication.
+        self._A = jutil.operator.CostFunctionOperator(self.cost, self.x_rec) 
         self._P = jutil.preconditioner.CostFunctionPreconditioner(self.cost, self.x_rec)
         self._log.debug('Creating ' + str(self))
 
@@ -405,40 +409,44 @@ class Diagnostics(object):
         return axis  # TODO: Return axis on every plot?
 
     def plot_avrg_kern_field3d(self, pos=None, mask=True, ellipsoid=True, **kwargs):
+        """
+        Draws a nice representation of the averaging kernel field, but fails to position the FWHM ellipse.
+        """
         avrg_kern_field = self.get_avrg_kern_field(pos)
         avrg_kern_field.plot_mask(color=(1, 1, 1), opacity=0.15, labels=False, grid=False,
                                   orientation=False)
         avrg_kern_field.plot_quiver3d(**kwargs, new_fig=False)
-        fwhm = self.calculate_fwhm()[0]
-        from mayavi.sources.api import ParametricSurface
-        from mayavi.modules.api import Surface
-        from mayavi import mlab
-        engine = mlab.get_engine()
-        scene = engine.scenes[0]
-        scene.scene.disable_render = True  # for speed  # TODO: EVERYWHERE WITH MAYAVI!
-        # TODO: from enthought.mayavi import mlab
-        # TODO: f = mlab.figure() # returns the current scene
-        # TODO: engine = mlab.get_engine() # returns the running mayavi engine
-        source = ParametricSurface()
-        source.function = 'ellipsoid'
-        engine.add_source(source)
-        surface = Surface()
-        source.add_module(surface)
-        actor = surface.actor  # mayavi actor, actor.actor is tvtk actor
-        # TODO: defaults to 0 for some reason, ah don't need it, turn off scalar visibility instead!
-        # actor.property.ambient = 1
-        actor.property.opacity = 0.5
-        actor.property.color = (0, 0, 0)
-        # Don't colour ellipses by their scalar indices into colour map:
-        actor.mapper.scalar_visibility = False
-        actor.property.backface_culling = True  # gets rid of rendering artifact when opacity is < 1
-        # actor.property.frontface_culling = True  # TODO: needed?
-        actor.actor.orientation = [0, 0, 0]  # in degrees
-        actor.actor.origin = (0, 0, 0)
-        actor.actor.position = (self.pos[1]+0.5, self.pos[2]+0.5, self.pos[3]+0.5)
-        actor.actor.scale = [0.5*fwhm[0]/self.a, 0.5*fwhm[1]/self.a, 0.5*fwhm[2]/self.a]
-        # surface.append(surface)  # TODO: needed?
-        scene.scene.disable_render = False  # now turn it on  # TODO: EVERYWHERE WITH MAYAVI!
+        if ellipsoid:
+            fwhm = self.calculate_fwhm()[0]
+            from mayavi.sources.api import ParametricSurface
+            from mayavi.modules.api import Surface
+            from mayavi import mlab
+            engine = mlab.get_engine()
+            scene = engine.scenes[0]
+            scene.scene.disable_render = True  # for speed  # TODO: EVERYWHERE WITH MAYAVI!
+            # TODO: from enthought.mayavi import mlab
+            # TODO: f = mlab.figure() # returns the current scene
+            # TODO: engine = mlab.get_engine() # returns the running mayavi engine
+            source = ParametricSurface()
+            source.function = 'ellipsoid'
+            engine.add_source(source)
+            surface = Surface()
+            source.add_module(surface)
+            actor = surface.actor  # mayavi actor, actor.actor is tvtk actor
+            # TODO: defaults to 0 for some reason, ah don't need it, turn off scalar visibility instead!
+            # actor.property.ambient = 1
+            actor.property.opacity = 0.5
+            actor.property.color = (0, 0, 0)
+            # Don't colour ellipses by their scalar indices into colour map:
+            actor.mapper.scalar_visibility = False
+            actor.property.backface_culling = True  # gets rid of rendering artifact when opacity is < 1
+            # actor.property.frontface_culling = True  # TODO: needed?
+            actor.actor.orientation = [0, 0, 0]  # in degrees
+            actor.actor.origin = (0, 0, 0)
+            actor.actor.position = (self.pos[1]+0.5, self.pos[2]+0.5, self.pos[3]+0.5)
+            actor.actor.scale = [0.5*fwhm[0]/self.a, 0.5*fwhm[1]/self.a, 0.5*fwhm[2]/self.a]
+            # surface.append(surface)  # TODO: needed?
+            scene.scene.disable_render = False  # now turn it on  # TODO: EVERYWHERE WITH MAYAVI!
 
     def plot_avrg_kern_field_3d_to_2d(self, dim_uv=None, axis=None, figsize=None, high_res=False,
                                       **kwargs):

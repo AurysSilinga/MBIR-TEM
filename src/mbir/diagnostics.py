@@ -106,12 +106,10 @@ def bayesian_diagnostics(data, mag_rec, cost_f, voxel_position_zyx=None,
     
         #assume that error for each pixel is experimental phase - simulated phase, and use that to find error on amplitude
         phasemaps_diff = data.create_phasemaps(mag_rec, difference=True, ramp=cost_f.fwd_model.ramp)
-        for i in range(len(phasemaps_diff)):
-            wrong = np.where(data.phasemaps[i].confidence < 1, True, False)
-            phasemaps_diff[i].phase[wrong] = 0
-        phase_vec_calc = np.concatenate([p.phase_vec for p in phasemaps_diff])
-        err_vec = G_row * phase_vec_calc #how much error each individual pixel creates on selected voxel
-        err = np.sqrt(np.dot(err_vec,err_vec)/data.count) #rms error on a vector component caused by imperfect reconstruction
+        #calculate rms difference only using valid pixels
+        phase_diff_std=np.std(np.concatenate([p.phase[p.confidence>0] for p in phasemaps_diff])) 
+        # err_vec = G_row * phase_vec_calc #how much error each individual pixel creates on selected voxel
+        err = np.sqrt(np.dot(G_row,G_row)*phase_diff_std*phase_diff_std) #total error by assuming pixel rms error is standard deviation.
         
         fwhm_vec.append(fwhm_pix)
         error_vec.append(err)
@@ -140,7 +138,7 @@ def bayesian_diagnostics(data, mag_rec, cost_f, voxel_position_zyx=None,
         (M_x = {mag_xyz[0]:.2e} +/- {error_vec[0]:.2e} T,
          M_y = {mag_xyz[1]:.2e} +/- {error_vec[1]:.2e} T,
          M_z = {mag_xyz[2]:.2e} +/- {error_vec[2]:.2e} T)""")
-        print(f"Amplitude: {amplitude:.3f} +/- {error_total:.3f} T")
+        print(f"Amplitude: {amplitude:.3e} +/- {error_total:.3e} T")
         print(f"Spatial resolution (dx, dy, dz): {fwhm_xyz[0]:.1f}, {fwhm_xyz[1]:.1f}, {fwhm_xyz[2]:.1f} pixels")
         print(f"Pixel spacing: {data.a:.2f} nm")
         
