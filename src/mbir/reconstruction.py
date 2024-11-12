@@ -170,7 +170,7 @@ class AmplitudeRegulariser(pr.Regularisator):
         
         #define mask that shows which voxels should be regularised
         if reg_mask is None:
-            mask_vec=True
+            mask_vec=data_mask[data_mask]
         else:
             mask_vec = reg_mask[data_mask] # vector =  reg_mask in positions where data_mask==True
             

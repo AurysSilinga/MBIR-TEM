@@ -339,6 +339,31 @@ class ZeroOrderRegularisator(Regularisator):
         super().__init__(norm, lam, add_params)
         self._log.debug('Created ' + str(self))
 
+    def hess_dot(self, x, vector):
+        """
+        Calculate the product of a `vector` with the Hessian matrix of the regularisation term.
+        The hessian matrix for the Lp2 norm in the 2*identity martix for the selected elements and 0 elsewhere.
+
+        Parameters
+        ----------
+        x : :class:`~numpy.ndarray` (N=1)
+            Vectorized magnetization distribution at which the Hessian is calculated. The Hessian
+            is constant in this case, thus `x` can be set to None (it is not used int the
+            computation). It is implemented for the case that in the future nonlinear problems
+            have to be solved.
+        vector : :class:`~numpy.ndarray` (N=1)
+            Vectorized magnetization distribution which is multiplied by the Hessian.
+
+        Returns
+        -------
+        result : :class:`~numpy.ndarray` (N=1)
+            Product of the input `vector` with the Hessian matrix.
+
+        """
+        result = np.zeros_like(vector)
+        result[self.slice] = self.lam * self.norm.hess_dot(x[self.slice], vector[self.slice])
+        return result
+
 
 class FirstOrderRegularisator(Regularisator):
     """Class for providing a regularisation term which implements derivation minimization.

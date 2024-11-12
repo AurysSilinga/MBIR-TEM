@@ -193,7 +193,7 @@ class Ramp(object):
         # Determine polynomial order:
         order = (deg_of_freedom + 1) // 2
         # Return polynomial mesh:
-        return (np.indices(dim_uv)[u_or_v] * a) ** order
+        return (np.indices(dim_uv)[u_or_v] * a) ** order # why (*a) ? looks unnecessary
 
     @classmethod
     def create_ramp(cls, a, dim_uv, params):
