@@ -586,6 +586,8 @@ class PhaseMap(object):
     def plot_phase(self, unit='auto', vmin=None, vmax=None, sigma_clip=None, symmetric=True,
                    show_mask=True, show_conf=True, norm=None, cbar=True,  # specific to plot_phase!
                    cmap=None, interpolation='none', axis=None, figsize=None, **kwargs):
+                   
+        #### TODO: make origin a parameter
         """Display the phasemap as a colormesh.
 
         Parameters

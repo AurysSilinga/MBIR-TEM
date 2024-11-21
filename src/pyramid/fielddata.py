@@ -303,10 +303,13 @@ class FieldData(object, metaclass=abc.ABCMeta):
         extent = np.ravel(list(zip((0, 0, 0), field_amp.shape)))
         cont = mlab.contour3d(xxx, yyy, zzz, field_amp, contours=contours,
                               opacity=opacity, **kwargs)
-        mlab.outline(cont, extent=extent)
-        mlab.axes(cont, extent=extent)
-        mlab.title(title, height=0.95, size=0.35)
-        mlab.orientation_axes()
+        
+        if new_fig:
+            mlab.outline(cont, extent=extent)
+            mlab.axes(cont, extent=extent)
+            mlab.title(title, height=0.95, size=0.35)
+            mlab.orientation_axes()
+            
         cont.scene.isometric_view()
         return cont
 
@@ -1327,8 +1330,8 @@ class VectorData(FieldData):
             used to define the colouring if coloring mode=='custom'
         Returns
         -------
-        plot : :class:`mayavi.modules.vectors.Vectors`
-            The plot object.
+        (vectors, screenshot) :  tuple with (:class:`mayavi.modules.vectors.Vectors`, ndarray)
+            The vector plot and a screenshot of the image.
 
         """
         self._log.debug('Calling quiver_plot3D')

@@ -289,7 +289,7 @@ class RotTiltProjector(Projector):
         quat =  quat_z_p * quat_x * quat_z_n
         # Determine dimensions:
         dim_z, dim_y, dim_x = dim
-        if center == None:
+        if center is None:
             center = (dim_z / 2., dim_y / 2., dim_x / 2.)
             self.center = center
         if dim_uv is None:

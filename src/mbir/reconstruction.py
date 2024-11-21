@@ -310,7 +310,8 @@ class ExchangeRegulariser(pr.Regularisator):
         
         norm=ExchangeNorm(diff_vector, scaling)
         
-        super().__init__(norm, lam*6, add_params)
+        # lam = 6*lam to be equivalent to base pyramid regularisator
+        super().__init__(norm, lam*6, add_params) 
         self._log.debug('Created ' + str(self))
         
         

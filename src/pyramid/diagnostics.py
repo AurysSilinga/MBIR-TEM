@@ -200,7 +200,7 @@ class Diagnostics(object):
         magdata_avrg_kern.set_vector(vector, mask=self.mask)
         return magdata_avrg_kern
 
-    def calculate_fwhm(self, pos=None, plot=False):
+    def calculate_fwhm(self, pos=None, plot=False, fontsize=None):
         """Calculate and plot the averaging pixel number at a specified position for x, y or z.
 
         Parameters
@@ -299,15 +299,28 @@ class Diagnostics(object):
             lim_min = np.min(np.concatenate((x, y, z))) - 0.5
             lim_max = np.max(np.concatenate((x, y, z))) + 0.5
             axis.set_xlim(lim_min, lim_max)
-            axis.set_title('Avrg. kern. FWHM', fontsize=18)
-            axis.set_xlabel('x/y/z-slice [nm]', fontsize=15)
-            axis.set_ylabel('information content [%]', fontsize=15)
-            axis.tick_params(axis='both', which='major', labelsize=14)
-            axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
-            comp_legend = axis.legend([cx, cy, cz], [c.get_label() for c in [cx, cy, cz]], loc=2,
-                                      scatterpoints=1, prop={'size': 14})
-            axis.legend(l, [i.get_label() for i in l], loc=1, numpoints=1, prop={'size': 14})
-            axis.add_artist(comp_legend)
+            if fontsize is None:
+                axis.set_title('Avrg. kern. FWHM', fontsize=18)
+                axis.set_xlabel('x/y/z-slice [nm]', fontsize=15)
+                axis.set_ylabel('information content [%]', fontsize=15)
+                axis.tick_params(axis='both', which='major', labelsize=14)
+
+                axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
+                comp_legend = axis.legend([cx, cy, cz], [c.get_label() for c in [cx, cy, cz]], loc=2,
+                                          scatterpoints=1, prop={'size': 14})
+                axis.legend(l, [i.get_label() for i in l], loc=1, numpoints=1, prop={'size': 14})
+                axis.add_artist(comp_legend)
+            else:
+                axis.set_title('Avrg. kern. FWHM', fontsize=fontsize)
+                axis.set_xlabel('x/y/z-slice [nm]', fontsize=fontsize)
+                axis.set_ylabel('information content [%]', fontsize=fontsize)
+                axis.tick_params(axis='both', which='major', labelsize=fontsize)
+
+                axis.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: '{:.3g}'.format(x * a)))
+                comp_legend = axis.legend([cx, cy, cz], [c.get_label() for c in [cx, cy, cz]], loc=2,
+                                          scatterpoints=1, prop={'size': fontsize})
+                axis.legend(l, [i.get_label() for i in l], loc=1, numpoints=1, prop={'size': fontsize})
+                axis.add_artist(comp_legend)
         fwhm = fwhm_x, fwhm_y, fwhm_z
         lr = (lx, rx), (ly, ry), (lz, rz)
         cxyz_dat = c_dat, x_dat, y_dat, z_dat
