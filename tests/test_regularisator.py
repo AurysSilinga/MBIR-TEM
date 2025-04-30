@@ -60,9 +60,9 @@ class TestCaseZeroOrderRegularisator(unittest.TestCase):
         assert_allclose(jac, 2 * np.eye(self.n), err_msg='Unexpected behaviour in jac()!')
 
     def test_hess_dot(self):
-        assert_allclose(self.reg.hess_dot(None, np.arange(self.n)), 2 * np.arange(self.n),
+        assert_allclose(self.reg.hess_dot(np.zeros(1), np.arange(self.n)), 2 * np.arange(self.n),
                         err_msg='Unexpected behaviour in jac()!')
-        hess = np.array([self.reg.hess_dot(None, np.eye(self.n)[:, i]) for i in range(self.n)]).T
+        hess = np.array([self.reg.hess_dot(np.zeros(1), np.eye(self.n)[:, i]) for i in range(self.n)]).T
         assert_allclose(hess, 2 * np.eye(self.n), err_msg='Unexpected behaviour in hess_dot()!')
 
     def test_hess_diag(self):
