@@ -42,8 +42,10 @@ class AstraReconstructor(object):
             if recon_data is None:
                 #dimensions of largest reconstructable object
                 hypot=np.hypot(dim_yd,dim_xd)
-                largest_total_rotation=np.max(np.abs( np.array(projection_z_ang)+np.array(camera_rotation) ))
-                max_dim=round(hypot*np.abs(np.cos(np.radians(45-largest_total_rotation%90)))) 
+                # # for squares
+                # largest_total_rotation=np.max(np.abs( np.array(projection_z_ang)+np.array(camera_rotation) ))
+                # max_dim=round(hypot*np.abs(np.cos(np.radians(45-largest_total_rotation%90))))
+                max_dim=round(hypot) # for arbitrary rectangular arrays
                 recon_data=np.zeros((max_dim,max_dim,max_dim))
             else:
                 recon_data=recon_data.copy()
