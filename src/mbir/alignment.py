@@ -1022,7 +1022,7 @@ def mask_to_3d_round(mask2d, axis=1, trim_z=True):
     mask2d = np.rot90(mask2d, k=(axis+1)%2, axes=(0,1)) 
     dimy, dimx = mask2d.shape
     dimz = np.max((dimy,dimx))
-    if dimz%2 == 0: #2d mask must lie in the centre
+    if dimz%2 == 0: #2d mask must lie in the centre (for pyramid projectors)
         dimz+=1
     mask_3d = np.full((dimz, dimy, dimx), False)
     
@@ -1057,7 +1057,7 @@ def mask_to_3d_round(mask2d, axis=1, trim_z=True):
                 end_j=None
         
     #if estimating not along the x-axis, unrotate the mask after calculation
-    mask_3d = np.rot90(mask_3d, k=-(axis+1)%2, axes=(1,2)) 
+    mask_3d = np.rot90(mask_3d, k=-1*((axis+1)%2), axes=(1,2)) 
     
     #remove empty space
     if trim_z:
