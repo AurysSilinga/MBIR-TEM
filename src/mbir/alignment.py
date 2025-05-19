@@ -31,7 +31,7 @@ from .util import *
 
 #used in phase separation
 
-def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = False, plot_cropped = True):
+def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = False, plot_cropped = True, verbose=True):
     """
     Takes two hyperspy signals, rebins them, and pads to have equal sizes.
     
@@ -42,8 +42,9 @@ def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = Fal
     
     
     #inspect dimensions
-    print("Original image side 1", s1_orig)
-    print("Original image side 2", s2_orig)
+    if verbose:
+        print("Original image side 1", s1_orig)
+        print("Original image side 2", s2_orig)
 
     #Get pixel size from dm files and check scaling
     xaxis,yaxis=s1_orig.axes_manager.signal_axes
@@ -52,7 +53,8 @@ def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = Fal
     a_spacing2=float(f"{xaxis.scale:.5g}")
 
     if a_spacing1 == a_spacing2:
-        print("Original pixel spacing =",a_spacing2, xaxis.units)
+        if verbose:
+            print("Original pixel spacing =",a_spacing2, xaxis.units)
     else:
         print("Original 1 pixel spacing =",a_spacing1, xaxis.units)
         print("Original 2 pixel spacing =",a_spacing2, xaxis.units)
@@ -60,17 +62,16 @@ def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = Fal
 
     #plot images
     if plot_original:
-        s1_orig.plot("Side 1")
-        s2_orig.plot("Side 2")
+        s1_orig.plot("Side 1 Original")
+        s2_orig.plot("Side 2 Original")
         
-    print("\n*****\n")
+
     
     #rebin to match nyquist frequency
     nyquist_spacing = fringe_spacing/a_spacing1/2 #pixels
     rebin_factor = 2 ** (nyquist_spacing//2)
     
     #rebin
-    print("Rebinning by", rebin_factor)
     s1r=s1_orig.rebin(scale=(rebin_factor,rebin_factor))/rebin_factor**2
     s2r=s2_orig.rebin(scale=(rebin_factor,rebin_factor))/rebin_factor**2
     
@@ -91,14 +92,17 @@ def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = Fal
         s2.axes_manager.signal_axes[i].scale=s2r.axes_manager.signal_axes[i].scale
         s2.axes_manager.signal_axes[i].units=s2r.axes_manager.signal_axes[i].units
     
-    print("Rebinned image side 1", s1)
-    print("Rebinned image side 2", s2)
-    print("Rebinned pixel spacing =",a_spacing, xaxis.units)
+    if verbose:
+        print("\n*****\n")
+        print("Rebinning by", rebin_factor)
+        print("Rebinned image side 1", s1)
+        print("Rebinned image side 2", s2)
+        print("Rebinned pixel spacing =",a_spacing, xaxis.units)
 
     #inspect cropped images
     if plot_cropped:
-        s1.plot("Side 1")
-        s2.plot("Side 2")
+        s1.plot(title="Side 1")
+        s2.plot(title="Side 2")
 
     return (s1, s2, a_spacing)
 
