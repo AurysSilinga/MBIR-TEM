@@ -640,7 +640,8 @@ def subplots_n(imgs, labels=None, title="", shape=None, vmax=None, vmin=None, **
     fig.suptitle(title)
 
     for i,axis in enumerate(np.ravel(ax)): #plot each image for any shape
-        axis.matshow(imgs[i],vmax=vmax, vmin=vmin)
-        axis.set_title(str(labels[i]))
+        if i<len(imgs):
+            axis.matshow(imgs[i],vmax=vmax, vmin=vmin)
+            axis.set_title(str(labels[i]))
     plt.tight_layout()
     plt.show()

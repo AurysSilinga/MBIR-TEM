@@ -43,8 +43,8 @@ def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = Fal
     
     #inspect dimensions
     if verbose:
-        print("Original image side 1", s1_orig)
-        print("Original image side 2", s2_orig)
+        print("Original image 1", s1_orig)
+        print("Original image 2", s2_orig)
 
     #Get pixel size from dm files and check scaling
     xaxis,yaxis=s1_orig.axes_manager.signal_axes
@@ -62,8 +62,8 @@ def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = Fal
 
     #plot images
     if plot_original:
-        s1_orig.plot("Side 1 Original")
-        s2_orig.plot("Side 2 Original")
+        s1_orig.plot(title="Image 1 Original")
+        s2_orig.plot(title="Image 2 Original")
         
 
     
@@ -95,14 +95,14 @@ def equalise_hspy_signals (s1_orig, s2_orig, fringe_spacing, plot_original = Fal
     if verbose:
         print("\n*****\n")
         print("Rebinning by", rebin_factor)
-        print("Rebinned image side 1", s1)
-        print("Rebinned image side 2", s2)
+        print("Rebinned image 1", s1)
+        print("Rebinned image 2", s2)
         print("Rebinned pixel spacing =",a_spacing, xaxis.units)
 
     #inspect cropped images
     if plot_cropped:
-        s1.plot(title="Side 1")
-        s2.plot(title="Side 2")
+        s1.plot(title="Image 1")
+        s2.plot(title="Image 2")
 
     return (s1, s2, a_spacing)
 
@@ -120,7 +120,7 @@ def fill_raw_dm_image(img, erode_width=1, radius=2, wrong_pixel_value=0):
     return (img)
 
 
-def identify_edges (im, imw, sigma = 4, high_threshold = 4, low_threshold = 0, roi=None):
+def identify_edges (im, imw, sigma = 4, high_threshold = 4, low_threshold = 0, roi=None, plot_result=False):
     """
     Perform canny edge detection on the phase images so they could be measured for distortion later. 
     Once sample edge is identified, adjust sigma values to make orb transform give good alignment.
@@ -203,7 +203,7 @@ def measure_orb_transform(edge1, edge2, image_warped = True, optimise = True, pl
     if plot_result:
         fit2_tr = apply_image_trans(fit2, trans_meas)
         #compare edges before and after transformation
-        matshow_n([fit1 - fit2, fit1 - fit2_tr],["side_1 - side_2_uncorrected"," side_1 - side_2_transformed"])
+        subplots_n([fit1 - fit2, fit1 - fit2_tr],labels=["side_1 - side_2_uncorrected"," side_1 - side_2_transformed"])
     
     if save_trans:
         with open(trans_path, 'wb') as f:
