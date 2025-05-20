@@ -26,6 +26,9 @@ class AstraReconstructor(object):
     """
     Stores the reconstruction parameters and collects garbage after reconstructions 
     Recon data defines the starting distribution for iterative CT algorithms
+    
+    pixel_size: int (default: 1) 
+        sets ration between pixels sizes in singoram in 3d volume
     """
 
     def __init__(self, proj_data=None, recon_data=None, projection_z_ang=0, projection_x_ang=0, camera_rotation=0, pixel_size=1,
