@@ -153,7 +153,8 @@ def identify_edges (im, imw, sigma = 4, high_threshold = 4, low_threshold = 0, r
         plot1[wrongs] = 0
         plot2[wrongs] = 0
     
-    matshow_n([plot1,plot2], labels=["side 1 edge","side 2 edge"])
+    if plot_result:
+        matshow_n([plot1,plot2], labels=["side 1 edge","side 2 edge"])
     return (edges1.astype(float), edges2.astype(float))
 
 
