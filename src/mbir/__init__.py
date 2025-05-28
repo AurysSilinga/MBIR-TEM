@@ -20,3 +20,5 @@ from . import reconstruction
 from . import simulation
 from . import diagnostics
 from . import tomography
+from . import reconstructionCUDA
+from . import tools2d

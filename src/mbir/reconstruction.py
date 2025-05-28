@@ -14,6 +14,7 @@ from jutil.norms import _BaseNorm
 from .util import *
 from .simulation import simulate_reconstruction 
 from .alignment import find_edges, make_projection_data
+from .reconstructionCUDA import *
 
 def reconstruct_from_phasemaps_simple(data, lam=1e-3, max_iter=100, ramp_order=1, 
                                verbose=True, plot_input=False, plot_results=False, b_0 = 1, **kwargs):
