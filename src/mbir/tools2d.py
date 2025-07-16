@@ -421,7 +421,7 @@ def get_cost_function_two_ms(data_set, projector, y_cutoff=0, M_axis=1, mask_thr
     #     material_y_interface=data_set.phasemaps[0].dim_uv[0]//2
         
     def cost_for_ms(x, data_set=data_set, projector=projector, y_cutoff=y_cutoff,
-                    plot_result=False, print_cost=False, M_axis=M_axis):
+                    plot_result=False, print_cost=False, M_axis=M_axis, gauss_sigma=gauss_sigma):
         ms1,ms2,material_y_interface,c=x
         m_guess=np.zeros((3,*data_set.dim))
         m_guess[M_axis,data_set.mask]=ms1
@@ -485,6 +485,51 @@ def get_cost_function_two_ms_rigid(data_set, projector, y_cutoff=0, M_axis=1, ma
         sim=skfl.gaussian(sim, sigma=gauss_sigma)
         real[conf_mask]=0
         sim[conf_mask]=0
+        phase_diff=real-sim
+        cost=np.sum(np.abs(phase_diff))#
+        if print_cost:
+            print("sum abs diff", cost)
+        if plot_result:
+            vmin,vmax=np.min(real),np.max(real)
+            pu.subplots_n([phase_diff,real,sim],labels=["diff","real","sim"], 
+                          vmax=vmax, vmin=vmin, title=f"{mask_threshold}. Rad, [{vmin:.2f},{vmax:.2f}]")
+            pm.plot_phase(vmin=vmin,vmax=vmax)
+            data_set.phasemaps[0].plot_phase(vmin=vmin,vmax=vmax)
+        return(cost)
+    return (cost_for_ms)
+    
+    
+def get_cost_function_field_ms(data_set, projector, mfield, y_cutoff=0, M_axis=1, mask_threshold=None, gauss_sigma=0):
+    """
+    TODO: why need mask_threshold? mask_threshold is only for the title -> rename in both versions.
+    
+    Returns a functions that gives the sum absolute difference between experimental and simulated phase map.
+    Simulation is perfomed by assuming the 3d mask contains a predefined distribution 'mfield'.
+
+    mfield: pyramid VectorData object
+    projector: OpTomo projector
+    data_set: mbir-tem DataSetCUDA
+
+    
+    Returns: cost_for_ms
+        def cost_for_ms(x, data_set=data_set, projector=projector, y_cutoff=y_cutoff,
+                    plot_result=False, print_cost=False, M_axis=M_axis, gauss_sigma=gauss_sigma):
+    """
+    ms_max=np.max(mfield.field_amp)
+    mfield.field=mfield.field/ms_max
+    
+    def cost_for_ms(x, data_set=data_set, projector=projector, mfield=mfield, y_cutoff=y_cutoff,
+                    plot_result=False, print_cost=False, M_axis=M_axis, gauss_sigma=gauss_sigma):
+        ms,c=x
+        m_guess=mfield.copy()
+        m_guess.field=m_guess.field*ms
+        m_guess.a=data_set.a
+        pms=data_set.create_phasemaps(m_guess, projector=projector)
+        pm=pms[0]
+        real=data_set.phasemaps[0].phase[y_cutoff:-y_cutoff,:]
+        real=skfl.gaussian(real, sigma=gauss_sigma)
+        sim=pm.phase[y_cutoff:-y_cutoff,:]+c
+        sim=skfl.gaussian(sim, sigma=gauss_sigma)
         phase_diff=real-sim
         cost=np.sum(np.abs(phase_diff))#
         if print_cost:

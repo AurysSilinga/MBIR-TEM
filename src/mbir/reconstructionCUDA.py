@@ -156,14 +156,21 @@ class DataSetCUDA(pr.dataset.DataSet):
         A list of all stored phasemap metadata regarding orientation
     phasemaps: list of :class:`~.PhaseMap`
         A list of all stored :class:`~.PhaseMap` objects.
-    projector: astra.OpTomo, optional
-        CUDA projector that simultaneously projects all phasemaps.
+    projector_params: tuple of dict, optional
+        (projector.pg, projector.vg) astra.OpTomo projector that simultaneously projects all phasemaps.
     """
     
     def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None, projector=None):
         super().__init__(a, dim, b_0, mask, Se_inv)
         if projector is not None:
             self.projector_params=(projector.pg, projector.vg)
+            
+    def get_projector(self):
+        proj_geom, vol_geom=self.projector_params
+        proj_id=astra.create_projector('cuda3d', proj_geom, vol_geom)
+        projector = astra.OpTomo(proj_id)
+        astra.projector3d.delete(proj_id)
+        return(projector)
 
     def set_3d_mask(self, projector=None, mask_list=None, threshold=1.0):
         # should be called backproject_3d_mask
