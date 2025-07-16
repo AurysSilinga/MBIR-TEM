@@ -1,5 +1,6 @@
 # Model-based Iterative Reconstruction (MBIR) of 3D magnetisation for Transmission Electron Microscopy (TEM)
-#### Written by Aurys Šilinga
+#### If you are using this for your research, please cite:
+Aurys Šilinga, András Kovács, Stephen McVitie, Rafal E Dunin-Borkowski, Kayla Fallon, Trevor P Almeida, Model-Based Iterative Reconstruction of Three-Dimensional Magnetization in a Nanowire Structure Using Electron Holographic Vector Field Tomography, Microscopy and Microanalysis, Volume 31, Issue 3, June 2025, ozaf043, https://doi.org/10.1093/mam/ozaf043
 
 ## Features:
 1. Automated separation of electrostatic and magnetic components in TEM electron phase images. Uses feature matching from [fpd](https://gitlab.com/fpdpy/fpd) and [scikit-image](https://scikit-image.org/)
