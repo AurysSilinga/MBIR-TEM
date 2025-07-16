@@ -259,7 +259,7 @@ def generate_extruded_dataset(phasemap, y_pad=0, plot_input=False, plot_output=F
     
     Returns: (data_set, projector)    
 
-    TODO: centre shift is broken when doing forward projections. 0 works fine
+    TODO: centre shift is broken when doing forward projections. workaround implemented
     """
 
     pm=phasemap.pad(((y_pad,y_pad),(0,0)))
@@ -288,8 +288,11 @@ def generate_extruded_dataset(phasemap, y_pad=0, plot_input=False, plot_output=F
     dimz,dimy,dimx=m1.shape
     dy=dimy//2-(i_bottom+i_top)//2 #centre the edges
     dx=dimx//2-(i_right+i_left)//2
-    shrink_y=((dimy-(2+i_bottom-i_top))//2)*2 #only shrink equally on both sides
-    shrink_x=((dimx-(2+i_right-i_left))//2)*2
+    # shrink_y=((dimy-(2+i_bottom-i_top))//2)*2 #only shrink equally on both sides
+    # shrink_x=((dimx-(2+i_right-i_left))//2)*2
+    
+    shrink_y=np.min([i_top, dimy-1-i_bottom])*2 #no centre shifting
+    shrink_x=np.min([i_left, dimx-1-i_right])*2
     
     if plot_input:
         plt.figure()
@@ -311,7 +314,7 @@ def generate_extruded_dataset(phasemap, y_pad=0, plot_input=False, plot_output=F
         vol=np.pad(vol, ((0,0),(0,1),(0,0)))
     if vol.shape[2]%2 != mask_sino.shape[2]%2: # make vol x even
         vol=np.pad(vol, ((0,0),(0,0),(0,1)))
-    centre_shift=(0,0,0)# centre_shift=(-dx,-dy,0) #(x,y,z)
+    centre_shift=(0,0,0)# centre_shift=(-dx,-dy,0) #(x,y,z) broken in forward projections
     projector, mask_sino = generate_projector([mask,], volume=vol, centre_shift=centre_shift)
     
     #generate the 3D mask by rotation
@@ -365,6 +368,7 @@ def generate_extruded_dataset(phasemap, y_pad=0, plot_input=False, plot_output=F
         print("Saving as",data_save_path)
 
     return(data_set, projector)
+    
     
 def get_cost_function_uniform_ms(data_set, projector, y_cutoff=0, M_axis=1, mask_threshold=None, gauss_sigma=0):
     """
