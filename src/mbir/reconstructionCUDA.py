@@ -240,6 +240,8 @@ class DataSetCUDA(pr.dataset.DataSet):
 
         #define input parameters and forward model
         vfield=magdata
+        temp_mask=self.mask.copy() 
+        self.mask=vfield.get_mask() #to allow different numbers of vectors in magdata.
         if projector is None:
             proj_geom, vol_geom=self.projector_params
             proj_id=astra.create_projector('cuda3d', proj_geom, vol_geom)
@@ -267,6 +269,7 @@ class DataSetCUDA(pr.dataset.DataSet):
                 pm.phase[phasemaps[i].confidence<1]=0
 
             phasemaps_rec.append(pm)
+        self.mask=temp_mask #return to previous state
         return(phasemaps_rec)
 
 

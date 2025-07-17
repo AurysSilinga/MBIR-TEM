@@ -223,14 +223,14 @@ def phase_to_confidence(s1, s2_tr, sigma_mag_rec = 1, median_footprint=np.ones((
     return(mag_phase, el_phase, confidence, pix_spacing)
 
 
-def remove_ramp_2d(data_simple, verbose=False, max_iter=200, plot_output=True):
+def remove_ramp_2d(data_simple, verbose=False, max_iter=200, plot_output=True, lam=0.001, ramp_order=1):
     """
     Run reconstruction_simple on a dataset containing one phasemap and return the phasemap with the ramp subtracted
     """
     data=data_simple
     if verbose:
         print(f"Running CPU reconstruction with {max_iter} iterations and {len(data.mask[data.mask])} voxels")
-    magdata_rec, cost_fun = pre.reconstruct_from_phasemaps_simple(data, verbose=verbose, max_iter=max_iter)
+    magdata_rec, cost_fun = pre.reconstruct_from_phasemaps_simple(data, verbose=verbose, max_iter=max_iter, lam=lam, ramp_order=ramp_order)
     pm=data.phasemaps[0]
     pm_noramp=pm-cost_fun.fwd_model.ramp(0)
 
