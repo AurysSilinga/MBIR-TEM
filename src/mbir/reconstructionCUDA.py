@@ -63,7 +63,7 @@ def generate_projector(images, volume=None, projection_x_ang=0, centre_shift=(0,
     r.move_reconstruction_centre(centre_shift)
     proj_geom=r.proj_geom
     vol_geom=r.vol_geom
-    # hack for single frame images
+    # hack for single projection datasets by adding an extra identical projection
     if proj_geom['Vectors'].shape[0]==1:
         proj_geom['Vectors']=np.tile(proj_geom['Vectors'], (2,1))
         mask_sino=np.tile(mask_sino, (1,2,1))
@@ -657,7 +657,7 @@ def make_datasetCUDA_from_vfield(vfield, projection_x_ang, projection_z_ang, cam
 
 #reconstruction/Tomography
 def reconstruct_from_phasemaps_CUDA(data, projector,lam=1e-3, max_iter=100, ramp_order=1, 
-                               verbose=True, plot_input=True, plot_results=True, b_0 = 1, 
+                               verbose=False, plot_input=False, plot_results=False, b_0 = 1, 
                                    regulariser_type='exchange', mean=None, abs_tol=1e-20, rel_tol=1e-20,
                                    mag_0=None, reg_mask=None):
     """
@@ -679,7 +679,10 @@ def reconstruct_from_phasemaps_CUDA(data, projector,lam=1e-3, max_iter=100, ramp
     kwargs passed on as phasemap.plot_phase(**kwargs)
     b_0=1 units of mag field in T.
     """
-
+    
+    proj_id=astra.create_projector('cuda3d', projector.pg, projector.vg) #create a projector copy with a valid ID
+    projector = astra.OpTomo(proj_id)
+    
     fwd_model = ForwardModelCUDA(data, projector, ramp_order=ramp_order) #define a forward model. How are ramps implemented?
     if regulariser_type == 'amplitude':
         lam1,lam2 = lam
@@ -726,6 +729,7 @@ def reconstruct_from_phasemaps_CUDA(data, projector,lam=1e-3, max_iter=100, ramp
                                                     abs_tol=abs_tol, rel_tol=rel_tol, mag_0=mag_0)
     # Finalize ForwardModel (returns workers if multicore):
     fwd_model.finalize()
+    astra.projector3d.delete(proj_id) # remove the projector id from memory
 
     x=cost.fwd_model.vfield_to_vector(mag_0)
     current_cost=cost(x)
