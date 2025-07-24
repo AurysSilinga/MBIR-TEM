@@ -245,7 +245,8 @@ def remove_ramp_2d(data_simple, verbose=False, max_iter=200, plot_output=True, l
     
     return (pm_noramp)
     
-def generate_extruded_dataset(phasemap, y_pad=0, plot_input=False, plot_output=False, pad_all_sides=False, data_save_path=None):
+    
+def generate_extruded_dataset(phasemap, height_to_width=1, y_pad=0, plot_input=False, plot_output=False, pad_all_sides=False, data_save_path=None):
     """
     Use one phasemap to generate a CUDA dataset that contains an extruded round 3D mask.
     Takes a 2D mask and generates a 3D mask by rotating it around its centre of mass in y-direction.
@@ -322,7 +323,7 @@ def generate_extruded_dataset(phasemap, y_pad=0, plot_input=False, plot_output=F
     m2=np.where(bpr<n_proj,0,1)
     m_flat=np.sum(m2,axis=0)
     m_flat=m_flat>0
-    m_round=pa.mask_to_3d_round(m_flat,axis=2)
+    m_round=pa.mask_to_3d_round(m_flat, axis=2, height_to_width=height_to_width)
     rdimz,rdimy,rdimx=m_round.shape
     
     #make a projector that fits the 3D mask.

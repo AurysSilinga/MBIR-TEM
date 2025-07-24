@@ -1019,9 +1019,12 @@ def project_mask(mask0, projector, reproject=False, mask_threshold=0.5):
         mask01=np.where(mask01>mask_threshold, True, False)
         return(mask01)    
     
-def mask_to_3d_round(mask2d, axis=1, trim_z=True):
+    
+def mask_to_3d_round(mask2d, axis=1, height_to_width=1, trim_z=True):
     """
     Takes a 2d mask and calculates a 3-d representation by assuming that each slice along an axis is projection of a disk.
+    If the object has an elliptical cross-section, assume height_to_width = semi_major/semi_minor axes of the ellipse.
+    
     """
     #if estimating not along the x-axis, rotate the mask before calculation
     mask2d = np.rot90(mask2d, k=(axis+1)%2, axes=(0,1)) 
@@ -1055,8 +1058,11 @@ def mask_to_3d_round(mask2d, axis=1, trim_z=True):
                 
                 yv_centered = yv - centre_j
                 zv_centered = zv - (dimz-1)/2
-                distance_grid = np.sqrt(yv_centered**2 + zv_centered**2)
-                valid_pixels=distance_grid <= dist
+                #assume and ellipse
+                y_semiaxis=dist
+                z_semiaxis=dist/height_to_width
+                distance_grid = (yv_centered/y_semiaxis)**2 + (zv_centered/z_semiaxis)**2
+                valid_pixels=distance_grid <= 1
                 mask_3d[valid_pixels,i] = True
                 start_j=None
                 end_j=None
@@ -1075,6 +1081,7 @@ def mask_to_3d_round(mask2d, axis=1, trim_z=True):
         mask_3d=mask_3d[multi_slice]
         
     return(mask_3d)
+    
     
 def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=True, crop_right=40,
                           crop_left=40, crop_top=1, crop_bottom=0, test_mask_index=None, use_round_projection=True, 
