@@ -1,13 +1,14 @@
 # Model-based Iterative Reconstruction (MBIR) of 3D magnetisation for Transmission Electron Microscopy (TEM)
-#### Written by Aurys Šilinga
+#### If you are using this for your research, please cite:
+Aurys Šilinga, András Kovács, Stephen McVitie, Rafal E Dunin-Borkowski, Kayla Fallon, Trevor P Almeida, Model-Based Iterative Reconstruction of Three-Dimensional Magnetization in a Nanowire Structure Using Electron Holographic Vector Field Tomography, Microscopy and Microanalysis, Volume 31, Issue 3, June 2025, ozaf043, https://doi.org/10.1093/mam/ozaf043
 
 ## Features:
 1. Automated separation of electrostatic and magnetic components in TEM electron phase images. Uses feature matching from [fpd](https://gitlab.com/fpdpy/fpd) and [scikit-image](https://scikit-image.org/)
 2. Alignment of TEM tomographic tilt series. Applicable to axially symmetric samples (cylinders, cones, needles).
 3. 3D magnetisation reconstruction from phase image tilt series. Uses a modified version of [pyramid](https://iffgit.fz-juelich.de/empyre/empyre) for the calculation.
-4. Example notebooks and video tutorials for all of the above.
+4. Example notebooks and [video tutorials](https://youtube.com/playlist?list=PLKLkbo5BWFU2_sx558KDgQMX39TzrQskP&si=lYW6GKl3ieuF51jU) for all of the above.
 
-## Installation:
+## Installation (with [tutorial](https://youtu.be/5zpXp_i222o?si=Cbxd6k-oxTBE4U0X)):
 1. Set up a Python package manager. 
 
    Install Miniforge, which comes with a fresh installation of Python (for coding) and Mamba (for managing python packages).
