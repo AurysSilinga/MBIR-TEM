@@ -1300,7 +1300,7 @@ class VectorData(FieldData):
     def plot_quiver3d(self, title='Vector Field', limit=None, cmap='jet', mode='2darrow',
                       coloring='angle', ar_dens=1, opacity=1.0, grid=True, labels=True,
                       orientation=True, size=(700, 750), new_fig=True, view='isometric',
-                      position=None, direction=None, bgcolor=(0.5, 0.5, 0.5), custom_scalar=None, line_width=2):
+                      position=None, direction=None, bgcolor=(0.5, 0.5, 0.5), custom_scalar=None, line_width=2, axes=True):
         """Plot the vector field as 3D-vectors in a quiverplot.
 
         Parameters
@@ -1382,8 +1382,9 @@ class VectorData(FieldData):
         if grid:
             mlab.outline(vecs, extent=extent)
         if labels:
-            mlab.axes(vecs, extent=extent)
             mlab.title(title, height=0.95, size=0.35)
+        if axes:
+            mlab.axes(vecs, extent=extent)
         if orientation:
             oa = mlab.orientation_axes()
             oa.marker.viewport=(0, 0, 0.3, 0.3)

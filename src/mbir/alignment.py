@@ -1077,6 +1077,8 @@ def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=
     """
     
     if use round projection, axis defines whether y or x should be used as the symmetry axis
+    
+    return: (phasemaps_aligned, reconstruction_dimensions)
     """
 
     tilts=np.radians(tilts)
