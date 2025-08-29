@@ -1084,8 +1084,8 @@ def mask_to_3d_round(mask2d, axis=1, height_to_width=1, trim_z=True):
     
     
 def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=True, crop_right=40,
-                          crop_left=40, crop_top=1, crop_bottom=0, test_mask_index=None, use_round_projection=True, 
-                          axis=1, z_ang=0, camera_rotation=0, subcount=5, padded=False, verbose=False):
+                          crop_left=40, crop_top=1, crop_bottom=0, test_mask_index=None, use_round_projection=False, 
+                          axis=1, z_ang=0, camera_rotation=0, subcount=1, padded_shift=False, centre_mask=True, verbose=False):
                           
     """
     Fits lines to a cylindrical sample, and shifts the image along y-axis 
@@ -1093,6 +1093,8 @@ def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=
     if "use round projection", axis defines whether y or x should be used as the symmetry axis
     
     returns: (phasemaps_aligned, reconstruction_dimensions)
+    
+    TODO: update plotting to show fitting boxes in the double plot?
     """
 
     tilts=np.radians(tilts)
@@ -1118,8 +1120,13 @@ def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=
     param0 = fit_mask(mask00, plot_results=plot_aligned_masks, crop_right=crop_right, 
                       crop_left=crop_left, crop_top=crop_top, crop_bottom=crop_bottom, x_tilt=0)
     x_mask_mid = (mask00.shape[1]-1)/2
-    y_mid_0 = line_fn(x_mask_mid,*param0)
+    
     a0 = param0[0]
+    if centre_mask:
+        y_mid_0 = line_fn(x_mask_mid,*param0)
+        dy=(mask00.shape[0]-1)/2 - y_mid_0
+        mask00=sktr_translate(mask00, dy=dy)
+    
 
     print("0 tilt mask is calculated from mask",test_mask_index)
     print("Wire direction at 0 tilt", np.degrees(np.arctan(a0)), 'deg')
@@ -1189,7 +1196,7 @@ def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=
             plt.show()
             
     shifts_yx=[(dy,0) for dy in y_shifts]
-    phasemaps_aligned=shift_phasemaps(phasemaps, shifts_yx, padded=padded)
+    phasemaps_aligned=shift_phasemaps(phasemaps, shifts_yx, padded=padded_shift)
     
     #correct finite precision errors
     for pm in phasemaps_aligned:

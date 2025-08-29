@@ -129,15 +129,19 @@ class DummyProjector(pr.projector.Projector):
 
 class DataSetCUDA(pr.dataset.DataSet):
     """
-    TODO: attach forward model to the dataset, instead of just projector.
+    TODO: attach forward model to the dataset, instead of just projector?
+    TODO: make the joint projector be required uppon creation or appending
+    because the process of adding fake projectors and then setting a global projector is confusing?
+    
     
     Class for collecting phase maps and corresponding projectors.
 
     Represents a collection of (e.g. experimentally derived) phase maps, stored as
-    :class:`~.PhaseMap` objects and corresponding projectors stored as :class:`~.Projector`
-    objects. At creation, the grid spacing `a` and the dimension `dim` of the magnetization
+    :class:`~.PhaseMap` objects and corresponding projectors stored as an asta.OpTomo projector. 
+    At creation, the grid spacing `a` and the dimension `dim` of the magnetization
     distribution have to be given. Data can be added via the :func:`~.append` method, where
     a :class:`~.PhaseMap`, a :class:`~.Projector` and additional info have to be given.
+    astra.Optomo projector must be given in addition.
 
     Attributes
     ----------
@@ -152,17 +156,18 @@ class DataSetCUDA(pr.dataset.DataSet):
     Se_inv : :class:`~numpy.ndarray` (N=2), optional
         Inverted covariance matrix of the measurement errors. The matrix has size `NxN` with N
         being the length of the targetvector y (vectorized phase map information).
-    projectors: list of :class:`~.Projector`
-        A list of all stored phasemap metadata regarding orientation
-    phasemaps: list of :class:`~.PhaseMap`
-        A list of all stored :class:`~.PhaseMap` objects.
     projector_params: tuple of dict, optional
         (projector.pg, projector.vg) astra.OpTomo projector that simultaneously projects all phasemaps.
+    projector: astra.OpTomo, optional
+        convenience. gets projector params (projector.pg, projector.vg) from astra.OpTomo projector 
+        if they are not given.
     """
     
-    def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None, projector=None):
+    def __init__(self, a, dim, b_0=1, mask=None, Se_inv=None, projector_params=None, projector=None):
         super().__init__(a, dim, b_0, mask, Se_inv)
-        if projector is not None:
+        if projector_params is not None:
+            self.projector_params=projector_params
+        elif projector is not None:
             self.projector_params=(projector.pg, projector.vg)
             
     def get_projector(self):
@@ -198,17 +203,14 @@ class DataSetCUDA(pr.dataset.DataSet):
 
         """
         if projector is None:
-            proj_geom, vol_geom=self.projector_params
-            proj_id=astra.create_projector('cuda3d', proj_geom, vol_geom)
-            projector = astra.OpTomo(proj_id)
-            astra.projector3d.delete(proj_id)
+            projector=self.get_projector()
         
         self._log.debug('Calling set_3d_mask')
         if mask_list is None:  # if no masks are given, extract from phase maps:
             mask_list = [phasemap.mask for phasemap in self.phasemaps]
         #backproject
-        mask_sino = np.transpose(mask_list, axes=[1,0,2])[::-1,:,:] #to agree with pyramid coordinates
-        mask_3d=projector.BP(mask_sino)
+        mask_sino = np.transpose(mask_list, axes=[1,0,2]) 
+        mask_3d=projector.BP(mask_sino)[:,::-1,:] #to agree with pyramid coordinates
         #threshold
         mask_3d=(mask_3d>=threshold*self.count)
         #set
@@ -243,10 +245,7 @@ class DataSetCUDA(pr.dataset.DataSet):
         temp_mask=self.mask.copy() 
         self.mask=vfield.get_mask() #to allow different numbers of vectors in magdata.
         if projector is None:
-            proj_geom, vol_geom=self.projector_params
-            proj_id=astra.create_projector('cuda3d', proj_geom, vol_geom)
-            projector = astra.OpTomo(proj_id)
-            astra.projector3d.delete(proj_id)
+            projector=self.get_projector()
         fwd_model=ForwardModelCUDA(self, projector, ramp_order=None)
         dim_uv=self.phasemaps[0].dim_uv
         phasemaps=self.phasemaps
@@ -256,7 +255,7 @@ class DataSetCUDA(pr.dataset.DataSet):
         phasemaps_rec=[]
         masks=projector.FP(vfield.get_mask())
         masks=np.transpose(masks, axes=[1,0,2])[:,::-1,:] # transpose such that first axis is tilt angle #pyramid coordinate corr
-        masks=(masks>0.6) #pixel is accepted if it is mostly filled
+        masks=(masks>0.5) #pixel is accepted if it is mostly filled
         confidences=np.ones((n_proj,)+dim_uv)
         phases=fwd_model.vector_to_phase( fwd_model( fwd_model.vfield_to_vector(vfield)))
 
@@ -600,7 +599,7 @@ def make_datasetCUDA_from_vfield(vfield, projection_x_ang, projection_z_ang, cam
     dim_uv: tuple, default:None
         size of projected images. Defaults to 2D side length equal to 3D volume diagonal length.
 
-    returns pr.DataSet containing phase maps and projectors.
+    returns pr.DataSetCUDA containing phase maps and projectors.
     """
 
     #convert camera rotation to an array
@@ -617,6 +616,7 @@ def make_datasetCUDA_from_vfield(vfield, projection_x_ang, projection_z_ang, cam
     vol_geom=r.vol_geom
     proj_id=astra.create_projector('cuda3d', proj_geom, vol_geom)
     projector = astra.OpTomo(proj_id)
+    astra.projector3d.delete(proj_id)
 
     if dim_uv is None:
         dim_uv=(proj_geom['DetectorRowCount'],proj_geom['DetectorColCount'])
@@ -747,3 +747,71 @@ def reconstruct_from_phasemaps_CUDA(data, projector,lam=1e-3, max_iter=100, ramp
         
     return(magdata_rec, cost)
 
+
+def make_projection_dataCUDA(phase_maps, zrots, xtilts, camera_rots, dim=None, pixel_spacing=None, centre_shift = (0,0,0), 
+                                plot_results=False, dtype='f4', save_data_path=None, verbose=True):
+    """
+    add phasemaps into a pr.DataSetCUDA object.
+    TODO: centre_shift may be bugged in the forward model (moves mask but not phase).
+    
+    zrots: list
+        sample z rotation in degrees.
+    xtilts: list
+        sample tilt in degrees.
+    camera_rots: list
+        camera rotation in degrees.
+    centre_shift: tuple, default:(0,0,0)
+        3D mask center shift relative to image centre.
+    dim: tuple, default:None
+        (z,y,x) Dimensions of 3D reconstruction volume. 
+
+
+    returns: pr.DataSetCUDA 
+        containing phase maps and projectors.
+    """
+    
+    if dim==None:
+        dim=[np.max(phase_maps[0].mask.shape)]*3
+    dimz,dimy,dimx=dim   
+    if pixel_spacing is None:
+        pixel_spacing=phase_maps[0].a
+    n_proj=len(phase_maps)
+    dim_uv=phase_maps[0].mask.shape
+    
+    #create projector
+    vol=np.zeros(dim)
+    mask_sino = np.transpose([pm.mask for pm in phase_maps], axes=[1,0,2]).astype(dtype)
+    r=mbir.tomography.AstraReconstructor(mask_sino, vol, zrots, xtilts, camera_rots, verbose=False)
+    proj_geom=r.proj_geom
+    vol_geom=r.vol_geom
+    proj_id=astra.create_projector('cuda3d', proj_geom, vol_geom)
+    projector = astra.OpTomo(proj_id)
+    astra.projector3d.delete(proj_id)
+
+    #initiate empty dataset
+    data = mbir.reconstructionCUDA.DataSetCUDA(pixel_spacing, dim, projector=projector)
+
+    #populate the dataset with dummy projectors containing useful info
+    proj_info=[]
+    for i in range(n_proj):
+        prj=mbir.reconstructionCUDA.DummyProjector(dim=dim, dim_uv=dim_uv, tilt=np.radians(xtilts[i]), 
+                           rotation=np.radians(zrots[i]), camera_rotation=np.radians(camera_rots[i]))
+        proj_info.append(prj)
+    data.append(phase_maps, proj_info)
+        
+    if plot_results:
+        data.plot_phasemaps()
+
+    if verbose:
+        print("Reconstruction voxel number:", dimx*dimy*dimz)
+        print("Pixel size: %.4f nm"%data.a)
+        print("3d reconstructions dimensions:",data.dim)
+
+    if save_data_path is not None:
+        with open(save_data_path, 'wb') as f:
+            pickle.dump(data, f)
+            print("Data saved as:",save_data_path)
+
+    data.set_3d_mask()
+    
+    return(data)
