@@ -1088,8 +1088,11 @@ def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=
                           axis=1, z_ang=0, camera_rotation=0, subcount=5, padded=False, verbose=False):
                           
     """
+    Fits lines to a cylindrical sample, and shifts the image along y-axis 
+    to make the centre-line of the cylinder be in the correct position for tomographic reconstruction.
+    if "use round projection", axis defines whether y or x should be used as the symmetry axis
     
-    if use round projection, axis defines whether y or x should be used as the symmetry axis
+    returns: (phasemaps_aligned, reconstruction_dimensions)
     """
 
     tilts=np.radians(tilts)
@@ -1119,6 +1122,7 @@ def align_wire_directions(phasemaps, tilts, plot_fits=False, plot_aligned_masks=
     a0 = param0[0]
 
     print("0 tilt mask is calculated from mask",test_mask_index)
+    print("Wire direction at 0 tilt", np.degrees(np.arctan(a0)), 'deg')
     
     
     #compare the projections to the experimental masks at various angles
