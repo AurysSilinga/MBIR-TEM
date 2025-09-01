@@ -254,7 +254,7 @@ class DataSetCUDA(pr.dataset.DataSet):
         # use forward model to generate the phasemaps
         phasemaps_rec=[]
         masks=projector.FP(vfield.get_mask())
-        masks=np.transpose(masks, axes=[1,0,2])[:,::-1,:] # transpose such that first axis is tilt angle #pyramid coordinate corr
+        masks=np.transpose(masks, axes=[1,0,2]) # transpose such that first axis is tilt angle #pyramid coordinate corr
         masks=(masks>0.5) #pixel is accepted if it is mostly filled
         confidences=np.ones((n_proj,)+dim_uv)
         phases=fwd_model.vector_to_phase( fwd_model( fwd_model.vfield_to_vector(vfield)))
@@ -610,7 +610,7 @@ def make_datasetCUDA_from_vfield(vfield, projection_x_ang, projection_z_ang, cam
         camera_rotation=[camera_rotation]*n_proj
         
     #create projector
-    r=AstraReconstructor(None, vfield.get_mask(), projection_z_ang, projection_x_ang, camera_rotation, dim_uv=dim_uv, verbose=verbose)
+    r=prt.AstraReconstructor(None, vfield.get_mask(), projection_z_ang, projection_x_ang, camera_rotation, dim_uv=dim_uv, verbose=verbose)
     t=r.move_reconstruction_centre(pos=centre_shift)
     proj_geom=r.proj_geom
     vol_geom=r.vol_geom
@@ -781,7 +781,7 @@ def make_projection_dataCUDA(phase_maps, zrots, xtilts, camera_rots, dim=None, p
     #create projector
     vol=np.zeros(dim)
     mask_sino = np.transpose([pm.mask for pm in phase_maps], axes=[1,0,2]).astype(dtype)
-    r=mbir.tomography.AstraReconstructor(mask_sino, vol, zrots, xtilts, camera_rots, verbose=False)
+    r=prt.AstraReconstructor(mask_sino, vol, zrots, xtilts, camera_rots, verbose=False)
     proj_geom=r.proj_geom
     vol_geom=r.vol_geom
     proj_id=astra.create_projector('cuda3d', proj_geom, vol_geom)
@@ -789,12 +789,12 @@ def make_projection_dataCUDA(phase_maps, zrots, xtilts, camera_rots, dim=None, p
     astra.projector3d.delete(proj_id)
 
     #initiate empty dataset
-    data = mbir.reconstructionCUDA.DataSetCUDA(pixel_spacing, dim, projector=projector)
+    data = DataSetCUDA(pixel_spacing, dim, projector=projector)
 
     #populate the dataset with dummy projectors containing useful info
     proj_info=[]
     for i in range(n_proj):
-        prj=mbir.reconstructionCUDA.DummyProjector(dim=dim, dim_uv=dim_uv, tilt=np.radians(xtilts[i]), 
+        prj=DummyProjector(dim=dim, dim_uv=dim_uv, tilt=np.radians(xtilts[i]), 
                            rotation=np.radians(zrots[i]), camera_rotation=np.radians(camera_rots[i]))
         proj_info.append(prj)
     data.append(phase_maps, proj_info)
