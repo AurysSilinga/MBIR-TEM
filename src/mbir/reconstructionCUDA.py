@@ -254,7 +254,7 @@ class DataSetCUDA(pr.dataset.DataSet):
         # use forward model to generate the phasemaps
         phasemaps_rec=[]
         masks=projector.FP(vfield.get_mask())
-        masks=np.transpose(masks, axes=[1,0,2]) # transpose such that first axis is tilt angle #pyramid coordinate corr
+        masks=np.transpose(masks, axes=[1,0,2]) # transpose such that first axis is tilt angle
         masks=(masks>0.5) #pixel is accepted if it is mostly filled
         confidences=np.ones((n_proj,)+dim_uv)
         phases=fwd_model.vector_to_phase( fwd_model( fwd_model.vfield_to_vector(vfield)))
@@ -692,7 +692,7 @@ def reconstruct_from_phasemaps_CUDA(data, projector,lam=1e-3, max_iter=100, ramp
         if verbose:
             print("Regularising amplitude and exchange energy")
     elif regulariser_type == 'mean only':
-        reg = AmplitudeMeanRegulariser(mean=mean, data_mask=data.mask, reg_mask=reg_mask, lam=lam, add_params=fwd_model.ramp.n)
+        reg = pre.AmplitudeMeanRegulariser(mean=mean, data_mask=data.mask, reg_mask=reg_mask, lam=lam, add_params=fwd_model.ramp.n)
         if verbose:
             print("Regularising set mean")
     elif regulariser_type == 'amplitude only':
@@ -701,7 +701,7 @@ def reconstruct_from_phasemaps_CUDA(data, projector,lam=1e-3, max_iter=100, ramp
             print("Regularising amplitude only")
     elif regulariser_type == 'mean':
         lam1,lam2 = lam
-        reg1 = AmplitudeMeanRegulariser(mean=mean, data_mask=data.mask, reg_mask=reg_mask, lam=lam1, add_params=fwd_model.ramp.n)
+        reg1 = pre.AmplitudeMeanRegulariser(mean=mean, data_mask=data.mask, reg_mask=reg_mask, lam=lam1, add_params=fwd_model.ramp.n)
         reg2 = pre.ExchangeRegulariser(data_mask=data.mask, lam=lam2, add_params=fwd_model.ramp.n)
         reg=pr.ComboRegularisator([reg1, reg2])
         if verbose:
@@ -719,6 +719,8 @@ def reconstruct_from_phasemaps_CUDA(data, projector,lam=1e-3, max_iter=100, ramp
 
     if mag_0 is None:
         mag_0=pr.VectorData(data.a, np.zeros((3,)+data.mask.shape))
+    else:
+        mag_0=mag_0.copy()
         
     x=cost.fwd_model.vfield_to_vector(mag_0)
     current_cost=cost(x)
