@@ -28,6 +28,7 @@ import astra
 import cupy as cp
 import cupyx.scipy.fft as cpfft
 from timeit import default_timer as timer
+import copy
 
 
 def generate_projector(images, volume=None, projection_x_ang=0, centre_shift=(0,0,0), projection_z_ang=0, camera_rotation=0, verbose=False):
@@ -270,8 +271,21 @@ class DataSetCUDA(pr.dataset.DataSet):
             phasemaps_rec.append(pm)
         self.mask=temp_mask #return to previous state
         return(phasemaps_rec)
-
-
+        
+    def copy(self):
+        """
+        Makes a copy of this dataset
+        
+        return: DataSetCUDA
+            A copy.
+        """
+        data=self
+        new_data=DataSetCUDA(data.a, data.dim, mask=copy.deepcopy(data.mask), Se_inv=copy.deepcopy(data.Se_inv), 
+                                                     projector_params=copy.deepcopy(data.projector_params))
+        phasemaps=[pm.copy() for pm in data.phasemaps]
+        projectors=[copy.deepcopy(pr) for pr in data.projectors]
+        new_data.append(phasemaps,projectors)
+        return(new_data)
 
 
 class ForwardModelCUDA(pr.ForwardModel):
