@@ -57,6 +57,7 @@ def generate_projector(images, volume=None, projection_x_ang=0, centre_shift=(0,
     """
 
     mask_sino = np.transpose([im for im in images], axes=[1,0,2])[::-1,:,:] # correction for weird coordinate transforms
+    #mask_sino = np.transpose([im for im in images], axes=[1,0,2]) #which is correct?
     if isinstance(projection_x_ang, (float, int)):
         projection_x_ang=[projection_x_ang,]*mask_sino.shape[1] #if multiple images at constant tilt are given
     r=prt.AstraReconstructor(mask_sino, volume, projection_x_ang=projection_x_ang, projection_z_ang=projection_z_ang, 
@@ -255,7 +256,7 @@ class DataSetCUDA(pr.dataset.DataSet):
         # use forward model to generate the phasemaps
         phasemaps_rec=[]
         masks=projector.FP(vfield.get_mask())
-        masks=np.transpose(masks, axes=[1,0,2]) # transpose such that first axis is tilt angle
+        masks=np.transpose(masks, axes=[1,0,2])[:,::-1,:] # transpose such that first axis is tilt angle
         masks=(masks>0.5) #pixel is accepted if it is mostly filled
         confidences=np.ones((n_proj,)+dim_uv)
         phases=fwd_model.vector_to_phase( fwd_model( fwd_model.vfield_to_vector(vfield)))
@@ -764,11 +765,12 @@ def reconstruct_from_phasemaps_CUDA(data, projector,lam=1e-3, max_iter=100, ramp
     return(magdata_rec, cost)
 
 
-def make_projection_dataCUDA(phase_maps, zrots, xtilts, camera_rots, dim=None, pixel_spacing=None, centre_shift = (0,0,0), 
-                                plot_results=False, dtype='f4', save_data_path=None, verbose=True):
+def make_projection_dataCUDA(phase_maps, zrots=0, xtilts=0, camera_rots=0, dim=None, pixel_spacing=None, centre_shift = (0,0,0), 
+                                plot_results=False, file_save_path=None, verbose=True):
     """
     add phasemaps into a pr.DataSetCUDA object.
     TODO: centre_shift may be bugged in the forward model (moves mask but not phase).
+    TODO: needs workarounds for Astra bug when using one projection
     
     zrots: list
         sample z rotation in degrees.
@@ -791,23 +793,39 @@ def make_projection_dataCUDA(phase_maps, zrots, xtilts, camera_rots, dim=None, p
     dimz,dimy,dimx=dim   
     if pixel_spacing is None:
         pixel_spacing=phase_maps[0].a
-    n_proj=len(phase_maps)
     dim_uv=phase_maps[0].mask.shape
+    n_proj=len(phase_maps)
+    if isinstance(zrots, (float, int)):
+        zrots=[zrots,]*n_proj
+    if isinstance(xtilts, (float, int)):
+        xtilts=[xtilts,]*n_proj
+    if isinstance(camera_rots, (float, int)):
+        camera_rots=[camera_rots,]*n_proj
+    
+    #Hack to work around an Astra bug preveting single projection reconstructions.
+    if len(phase_maps) == 1:
+        dummy_pm=phase_maps[0].copy()
+        dummy_pm.confidence[:,:]=0
+        phase_maps=[phase_maps[0], dummy_pm] #add an extra phasemap that does not affect reconstruction.
+        xtilts=xtilts+xtilts[-1:]
+        zrots=zrots+zrots[-1:]
+        camera_rots=camera_rots+camera_rots[-1:]
+        n_proj=len(phase_maps)
+        if verbose:
+            print("Adding a second empty projection to work around an Astra bug.")
     
     #create projector
     vol=np.zeros(dim)
-    mask_sino = np.transpose([pm.mask for pm in phase_maps], axes=[1,0,2]).astype(dtype)
-    r=prt.AstraReconstructor(mask_sino, vol, zrots, xtilts, camera_rots, verbose=False)
-    proj_geom=r.proj_geom
-    vol_geom=r.vol_geom
-    proj_id=astra.create_projector('cuda3d', proj_geom, vol_geom)
-    projector = astra.OpTomo(proj_id)
-    astra.projector3d.delete(proj_id)
-
+    masks = [pm.mask for pm in phase_maps]
+    projector, mask_sino = generate_projector(masks, vol, projection_x_ang=xtilts, centre_shift=centre_shift, projection_z_ang=zrots, camera_rotation=camera_rots, verbose=verbose)
+    if verbose:
+        print("\n","Volume geometry:", projector.vg)
+        print("Projection geometry:", projector.pg,"\n")
+        
     #initiate empty dataset
     data = DataSetCUDA(pixel_spacing, dim, projector=projector)
 
-    #populate the dataset with dummy projectors containing useful info
+    #populate the dataset with dummy projectors containing rotations angles
     proj_info=[]
     for i in range(n_proj):
         prj=DummyProjector(dim=dim, dim_uv=dim_uv, tilt=np.radians(xtilts[i]), 
@@ -815,19 +833,17 @@ def make_projection_dataCUDA(phase_maps, zrots, xtilts, camera_rots, dim=None, p
         proj_info.append(prj)
     data.append(phase_maps, proj_info)
         
+    data.set_3d_mask()
+        
     if plot_results:
         data.plot_phasemaps()
-
     if verbose:
         print("Reconstruction voxel number:", dimx*dimy*dimz)
         print("Pixel size: %.4f nm"%data.a)
         print("3d reconstructions dimensions:",data.dim)
-
-    if save_data_path is not None:
-        with open(save_data_path, 'wb') as f:
+    if file_save_path is not None:
+        with open(file_save_path, 'wb') as f:
             pickle.dump(data, f)
-            print("Data saved as:",save_data_path)
-
-    data.set_3d_mask()
-    
+            print("Data saved as:",file_save_path)
+            
     return(data)

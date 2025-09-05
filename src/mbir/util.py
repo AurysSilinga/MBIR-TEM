@@ -608,7 +608,7 @@ def rescale_complex(img, scale):
     return(rescale(r,scale)+1j*rescale(c,scale))
 
 
-def subplots_n(imgs, labels=None, title="", shape=None, vmax=None, vmin=None, **kwargs):
+def subplots_n(imgs, labels=None, title="", shape=None, vmax=None, vmin=None, cmap='gray', **kwargs):
     """
     make a subplot showing all images in the 'imgs' array.
     default shape is a horizontal line of images with dimensions [1,len(imgs)], giving nrows=1, ncols=n.
@@ -641,7 +641,7 @@ def subplots_n(imgs, labels=None, title="", shape=None, vmax=None, vmin=None, **
 
     for i,axis in enumerate(np.ravel(ax)): #plot each image for any shape
         if i<len(imgs):
-            axis.matshow(imgs[i],vmax=vmax, vmin=vmin)
+            axis.matshow(imgs[i],vmax=vmax, vmin=vmin, cmap=cmap)
             axis.set_title(str(labels[i]))
     plt.tight_layout()
     plt.show()

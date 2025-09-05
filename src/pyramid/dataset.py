@@ -212,11 +212,11 @@ class DataSet(object):
 
         """
         self._log.debug('Calling append')
-        if type(phasemap) is not list:
+        if type(phasemap) not in [list,tuple]:
             phasemap = [phasemap]
-        if type(projector) is not list:
+        if type(projector) not in [list,tuple]:
             projector = [projector]
-        if type(phasemapper) is not list:
+        if type(phasemapper) not in [list,tuple]:
             phasemapper = [phasemapper] * len(phasemap)
         assert len(phasemap) == len(projector),\
             ('Phasemaps and projectors must have same'
