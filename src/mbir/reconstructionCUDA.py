@@ -219,7 +219,11 @@ class DataSetCUDA(pr.dataset.DataSet):
         self.mask = mask_3d
 
     def create_phasemaps(self, magdata, difference=False, ramp=None, projector=None):
-        """Create a list of phasemaps with the projectors in the dataset for a given
+        """
+        TODO: simulated phasemaps have a phase offset sometimes?
+        
+        
+        Create a list of phasemaps with the projectors in the dataset for a given
         :class:`~.VectorData` object.
 
         Parameters
@@ -820,7 +824,7 @@ def make_projection_dataCUDA(phase_maps, zrots=0, xtilts=0, camera_rots=0, dim=N
     projector, mask_sino = generate_projector(masks, vol, projection_x_ang=xtilts, centre_shift=centre_shift, projection_z_ang=zrots, camera_rotation=camera_rots, verbose=verbose)
     if verbose:
         print("\n","Volume geometry:", projector.vg)
-        print("Projection geometry:", projector.pg,"\n")
+        print("Projection geometry:", projector.pg)
         
     #initiate empty dataset
     data = DataSetCUDA(pixel_spacing, dim, projector=projector)
@@ -841,6 +845,7 @@ def make_projection_dataCUDA(phase_maps, zrots=0, xtilts=0, camera_rots=0, dim=N
         print("Reconstruction voxel number:", dimx*dimy*dimz)
         print("Pixel size: %.4f nm"%data.a)
         print("3d reconstructions dimensions:",data.dim)
+        print("")
     if file_save_path is not None:
         with open(file_save_path, 'wb') as f:
             pickle.dump(data, f)
